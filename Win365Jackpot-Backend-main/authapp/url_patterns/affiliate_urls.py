@@ -2,6 +2,7 @@
 from django.urls import path
 from authapp.views.affiliate_views import (
     AffiliateLoginView,
+    AffiliateApplyView,
     AffiliateDashboardView,
     AffiliateReferralsListView,
     AdminGrantAffiliateView,
@@ -13,6 +14,7 @@ from authapp.views.affiliate_views import (
 # Public/affiliate — mounted at api/affiliate/
 public_urlpatterns = [
     path("affiliate/login/", AffiliateLoginView.as_view()),
+    path("affiliate/apply/", AffiliateApplyView.as_view()),
     path("affiliate/dashboard/", AffiliateDashboardView.as_view()),
     path("affiliate/referrals/", AffiliateReferralsListView.as_view()),
 ]

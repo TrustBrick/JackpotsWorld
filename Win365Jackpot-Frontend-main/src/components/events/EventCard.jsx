@@ -1,9 +1,10 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import {
   MapPin, Building2, CalendarDays, Clock, Tag, ArrowRight, ImageOff,
 } from 'lucide-react'
+import { getFallbackImage } from '../../utils/mediaFallback'
 
 function formatDate(iso) {
   if (!iso) return ''
@@ -31,6 +32,8 @@ const STATUS_COLORS = {
  */
 function EventCard({ event }) {
   const navigate = useNavigate()
+  const [imgFailed, setImgFailed] = useState(false)
+  const imgSrc = event.image || getFallbackImage({ id: event.id, country: event.country })
 
   return (
     <motion.div
@@ -42,14 +45,15 @@ function EventCard({ event }) {
     >
       {/* Banner */}
       <div className="relative h-44 md:h-48 overflow-hidden">
-        {event.image ? (
+        {!imgFailed ? (
           <img
-            src={event.image}
+            src={imgSrc}
             alt={event.name}
             className="w-full h-full object-cover"
             loading="lazy"
             width={400}
             height={192}
+            onError={() => setImgFailed(true)}
           />
         ) : (
           <div

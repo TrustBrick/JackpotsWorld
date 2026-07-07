@@ -19,6 +19,7 @@ const Poker            = lazy(() => import('./pages/Poker'))
 const PokerDetails     = lazy(() => import('./pages/PokerDetails'))
 const AuthPage         = lazy(() => import('./pages/AuthPage'))
 const AffiliatePanel   = lazy(() => import('./affiliate/AffiliatePanel'))
+const AffiliateRegister = lazy(() => import('./pages/AffiliateRegister'))
 
 function RouteFallback() {
   return (
@@ -77,6 +78,7 @@ export default function App() {
         <Route path="/promotions"       element={<Promotions />} />
         <Route path="/promotions/:id"   element={<PromotionDetails />} />
         <Route path="/affiliates"       element={<Affiliates />} />
+        <Route path="/affiliate-register" element={<AffiliateRegister />} />
         <Route path="/poker"            element={<Poker />} />
         <Route path="/poker/:id"        element={<PokerDetails />} />
         <Route path="/sign-in"          element={<AuthPage tab="login" />} />

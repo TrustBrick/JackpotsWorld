@@ -463,7 +463,7 @@ useEffect(() => {
           initial={{ opacity:0, y:32 }} animate={{ opacity:1, y:0 }}
           transition={{ delay:0.35, duration:0.65 }}
           style={{
-            fontFamily:"'Space Grotesk', sans-serif",  
+            fontFamily:"'Poppins', sans-serif",
             fontWeight:700,
             fontSize:'clamp(52px,13vw,120px)',
             lineHeight:0.9,

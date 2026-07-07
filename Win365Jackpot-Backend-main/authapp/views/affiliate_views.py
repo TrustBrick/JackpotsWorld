@@ -5,6 +5,7 @@ Affiliate role — a genuinely separate login/dashboard on top of the same
 User model, mirroring the AdminProfile / AdminLoginView pattern.
 
   • AffiliateLoginView          — POST /api/affiliate/login/            (public)
+  • AffiliateApplyView          — POST /api/affiliate/apply/            (authenticated — self-service application)
   • AffiliateDashboardView      — GET  /api/affiliate/dashboard/        (affiliate)
   • AffiliateReferralsListView  — GET  /api/affiliate/referrals/        (affiliate)
   • AdminGrantAffiliateView     — POST /api/admin-panel/affiliates/grant/        (admin)
@@ -81,6 +82,32 @@ class AffiliateLoginView(APIView):
             "affiliate_profile": AffiliateProfileSerializer(profile).data,
             "tokens": tokens,
         })
+
+
+# ─── Affiliate self-service application ─────────────────────────────────────
+# Public registration (see AffiliateRegister.jsx) creates the underlying User
+# account via the existing OTP-verified /api/auth/verify-otp/ flow, then
+# calls this endpoint (now authenticated with that user's fresh token) to
+# raise a pending AffiliateProfile — inactive until an admin approves it via
+# the existing AdminGrantAffiliateView, exactly like every other affiliate.
+
+class AffiliateApplyView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        existing = AffiliateProfile.objects.filter(user=user).first()
+        if existing:
+            return Response({
+                "message": "You have already applied to the affiliate program.",
+                "affiliate_profile": AffiliateProfileSerializer(existing).data,
+            }, status=200)
+
+        profile = AffiliateProfile.objects.create(user=user, is_active=False)
+        return Response({
+            "message": "Application submitted. Our team will review it and activate your affiliate account.",
+            "affiliate_profile": AffiliateProfileSerializer(profile).data,
+        }, status=201)
 
 
 # ─── Affiliate dashboard ─────────────────────────────────────────────────────

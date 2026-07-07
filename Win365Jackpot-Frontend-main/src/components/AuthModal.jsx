@@ -29,7 +29,7 @@ if (!API && import.meta.env.DEV) {
   )
 }
 
-class ApiError extends Error {
+export class ApiError extends Error {
   constructor(message, data, status) {
     super(message)
     this.data = data
@@ -82,7 +82,7 @@ function extractApiMessage(json, status) {
  * `.message` is always one of the specific, user-facing strings this
  * component is supposed to show (never a generic "Network error").
  */
-async function apiFetch(path, options = {}) {
+export async function apiFetch(path, options = {}) {
   let res
   try {
     res = await fetch(`${API || ''}${path}`, {
@@ -126,7 +126,7 @@ const COMMON_TYPOS = {
   'outlok.com': 'outlook.com', 'outook.com': 'outlook.com',
 }
 
-function validateEmail(val) {
+export function validateEmail(val) {
   const v = val.trim()
   if (!v) return { ok: false, error: 'Email is required' }
   if (!VALID_EMAIL.test(v)) return { ok: false, error: 'Enter a valid email address' }
@@ -135,9 +135,9 @@ function validateEmail(val) {
   return { ok: true, error: null }
 }
 
-const DEFAULT_COUNTRY = { code: '+91', flag: '🇮🇳', name: 'India', digits: 10, placeholder: '0000000000', format: v => v }
+export const DEFAULT_COUNTRY = { code: '+91', flag: '🇮🇳', name: 'India', digits: 10, placeholder: '0000000000', format: v => v }
 
-const DIGIT_MAP = {
+export const DIGIT_MAP = {
   '+91': 10, '+1': 10, '+44': 10, '+61': 9, '+971': 9, '+65': 8, '+49': 11, '+33': 9,
   '+81': 10, '+86': 11, '+55': 11, '+27': 9, '+234': 10, '+92': 10, '+880': 10,
   '+94': 9, '+977': 10, '+966': 9, '+20': 10, '+62': 11, '+63': 10, '+84': 10,
@@ -149,7 +149,7 @@ const DIGIT_MAP = {
 }
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
-const C = {
+export const C = {
   bg:          '#0d1117',
   surface:     '#161b22',
   surfaceHi:   '#1c2128',
@@ -169,7 +169,7 @@ const C = {
 }
 
 // ─── Atoms ────────────────────────────────────────────────────────────────────
-function FocusInput({ type = 'text', value, onChange, placeholder, hasError, hasOk, extraStyle, onKeyDown, ...rest }) {
+export function FocusInput({ type = 'text', value, onChange, placeholder, hasError, hasOk, extraStyle, onKeyDown, ...rest }) {
   const [focus, setFocus] = useState(false)
   const st = {
     width: '100%', padding: '10px 13px', fontSize: 14,
@@ -188,7 +188,7 @@ function FocusInput({ type = 'text', value, onChange, placeholder, hasError, has
   )
 }
 
-function PwInput({ value, onChange, placeholder = 'Password', onKeyDown }) {
+export function PwInput({ value, onChange, placeholder = 'Password', onKeyDown }) {
   const [show, setShow] = useState(false)
   const [focus, setFocus] = useState(false)
   return (
@@ -219,7 +219,7 @@ function PwInput({ value, onChange, placeholder = 'Password', onKeyDown }) {
 }
 
 // ─── Country-aware phone input ─────────────────────────────────────────────────
-function PhoneInput({ value, country, countries = [], onValueChange, onCountryChange, hasError, hasOk }) {
+export function PhoneInput({ value, country, countries = [], onValueChange, onCountryChange, hasError, hasOk }) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [focus, setFocus] = useState(false)
@@ -304,15 +304,15 @@ function PhoneInput({ value, country, countries = [], onValueChange, onCountryCh
   )
 }
 
-const Label = ({ children }) => (
+export const Label = ({ children }) => (
   <div style={{ fontSize: 11.5, fontWeight: 600, color: C.muted, marginBottom: 6, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{children}</div>
 )
-const Hint = ({ color, icon: Icon, children }) => (
+export const Hint = ({ color, icon: Icon, children }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color, marginTop: 5 }}>
     <Icon size={10} />{children}
   </div>
 )
-function ErrBox({ msg }) {
+export function ErrBox({ msg }) {
   if (!msg) return null
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 13px', background: C.redBg, border: `1.5px solid ${C.redBorder}`, borderRadius: 8, marginBottom: 14, fontSize: 12.5, color: C.red, lineHeight: 1.5 }}>
@@ -320,7 +320,7 @@ function ErrBox({ msg }) {
     </div>
   )
 }
-function GoldBtn({ onClick, loading, disabled, children }) {
+export function GoldBtn({ onClick, loading, disabled, children }) {
   const off = loading || disabled
   return (
     <button onClick={onClick} disabled={off}
@@ -342,7 +342,7 @@ function GoldBtn({ onClick, loading, disabled, children }) {
   )
 }
 
-const W = { marginBottom: 15 }
+export const W = { marginBottom: 15 }
 
 // ─── OTP Step ─────────────────────────────────────────────────────────────────
 function OTPStep({ email, registrationData, onSuccess, onBack }) {

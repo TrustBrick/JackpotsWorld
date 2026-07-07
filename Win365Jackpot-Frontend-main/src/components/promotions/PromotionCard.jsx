@@ -1,25 +1,44 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { CalendarClock, Gift, CheckCircle2, ArrowRight, Info, ImageOff } from 'lucide-react'
+
+// Placeholder-free default banners — drop the real files in at these exact
+// paths and they appear automatically, no code changes needed.
+const PROMO_FALLBACK_IMAGES = [
+  '/assets/promotions/inr-packages.jpg',
+  '/assets/promotions/loyalty.jpg',
+  '/assets/promotions/refer-earn.jpg',
+  '/assets/promotions/registration.jpg',
+  '/assets/promotions/usd-packages.jpg',
+]
 
 /**
  * PromotionCard — presentational only. Consumes the PromotionSerializer
  * shape from GET /api/promotions/ (see src/services/promotionService.js).
- * Reused inside every country's horizontally-scrolling strip.
+ * Rendered inside a responsive grid, grouped per country.
  */
-function PromotionCard({ promotion, onClaim, onViewDetails }) {
+function PromotionCard({ promotion, index = 0, onClaim, onViewDetails }) {
+  const [imgFailed, setImgFailed] = useState(false)
+  const imgSrc = promotion.image || PROMO_FALLBACK_IMAGES[index % PROMO_FALLBACK_IMAGES.length]
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-40px' }}
       transition={{ duration: 0.5 }}
-      className="casino-card flex flex-col overflow-hidden h-full"
+      className="casino-card flex flex-col overflow-hidden h-full rounded-xl shadow-lg shadow-black/30 hover:scale-105 transition-transform duration-300"
     >
       {/* Casino image + logo */}
       <div className="relative h-36 overflow-hidden">
-        {promotion.image ? (
-          <img src={promotion.image} alt={promotion.casino_name} className="w-full h-full object-cover" loading="lazy" />
+        {!imgFailed ? (
+          <img
+            src={imgSrc}
+            alt={promotion.casino_name || promotion.title}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            onError={() => setImgFailed(true)}
+          />
         ) : (
           <div className="w-full h-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, var(--w365-card), var(--w365-bg-mid))' }}>
             <ImageOff size={22} className="text-gold/30" />

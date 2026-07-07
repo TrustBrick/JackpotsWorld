@@ -8,6 +8,7 @@ import { fetchEvents } from '../services/eventService'
 import { useAutoFetch } from '../hooks/useAutoFetch'
 
 const PAGE_SIZE = 20
+const STATUS_ORDER = { live: 0, upcoming: 1, completed: 2 }
 
 export default function Events() {
   const [page, setPage] = useState(1)
@@ -16,7 +17,10 @@ export default function Events() {
 
   const { data, loading, error, reload } = useAutoFetch(fetchEvents, params, { intervalMs: 60_000 })
 
-  const events = data?.results || []
+  const events = useMemo(() => {
+    const list = data?.results || []
+    return [...list].sort((a, b) => (STATUS_ORDER[a.status] ?? 99) - (STATUS_ORDER[b.status] ?? 99))
+  }, [data])
   const totalPages = Math.max(1, Math.ceil((data?.count || 0) / PAGE_SIZE))
 
   return (

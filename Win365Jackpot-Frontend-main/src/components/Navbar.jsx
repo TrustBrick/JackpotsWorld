@@ -160,8 +160,8 @@ function NavLabel({ link }) {
           boxShadow:  '0 0 14px rgba(212,175,55,0.25)',
         }}
       >
-        <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" style={{ boxShadow: '0 0 6px #D4AF37' }} />
-        <Gift size={13} strokeWidth={2} />
+        <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse shrink-0" style={{ boxShadow: '0 0 6px #D4AF37' }} />
+        <Gift size={13} strokeWidth={2} className="shrink-0" />
         Gifts
         <motion.span
           className="absolute inset-0 rounded-full"
@@ -370,7 +370,7 @@ export default function Navbar() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={openLogin}
-                className="btn-gold flex items-center gap-1.5 px-5 py-2 rounded-full text-sm font-bold tracking-widest uppercase"
+                className="btn-gold h-10 flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-bold tracking-widest uppercase whitespace-nowrap leading-none"
               >
                 <UserPlus size={13} />
                 Sign In / Sign Up

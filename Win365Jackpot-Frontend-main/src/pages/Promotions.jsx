@@ -16,6 +16,15 @@ export default function Promotions() {
 
   const countries = data?.countries || []
 
+  // Running start-index per country so PromotionCard's fallback-image cycle
+  // (5 images) advances across every card on the page, not just per-country.
+  let runningIndex = 0
+  const countryStartIndex = countries.map(({ promotions }) => {
+    const start = runningIndex
+    runningIndex += promotions.length
+    return start
+  })
+
   const handleClaim = (promo) => setSelected(promo)
 
   return (
@@ -54,7 +63,7 @@ export default function Promotions() {
           </motion.div>
         ) : (
           <div className="flex flex-col gap-12">
-            {countries.map(({ country, promotions }) => (
+            {countries.map(({ country, promotions }, ci) => (
               <div key={country}>
                 <div className="flex items-center gap-3 mb-5">
                   <span className="flag text-2xl leading-none">{flagFromCountryCode(promotions[0]?.country_code)}</span>
@@ -62,11 +71,9 @@ export default function Promotions() {
                   <span className="text-white/30 text-xs font-body">{promotions.length} offer{promotions.length !== 1 ? 's' : ''}</span>
                 </div>
 
-                <div className="flex gap-5 overflow-x-auto pb-3 sa-scrollbar" style={{ scrollSnapType: 'x proximity' }}>
-                  {promotions.map(promo => (
-                    <div key={promo.id} className="shrink-0 w-[300px] md:w-[340px]" style={{ scrollSnapAlign: 'start' }}>
-                      <PromotionCard promotion={promo} onClaim={handleClaim} onViewDetails={setSelected} />
-                    </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {promotions.map((promo, pi) => (
+                    <PromotionCard key={promo.id} promotion={promo} index={countryStartIndex[ci] + pi} onClaim={handleClaim} onViewDetails={setSelected} />
                   ))}
                 </div>
               </div>

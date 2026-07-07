@@ -233,7 +233,7 @@ export default function Affiliates() {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.97 }}
-            onClick={() => navigate('/affiliate-login')}
+            onClick={() => navigate('/affiliate-register')}
             className="btn-gold flex items-center gap-2 px-8 py-3 rounded-full text-sm font-bold tracking-widest uppercase"
           >
             <UserPlus size={15} /> Become an Affiliate

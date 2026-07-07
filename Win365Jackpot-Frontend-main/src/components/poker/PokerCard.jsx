@@ -1,7 +1,8 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { Building2, CalendarDays, Clock, MapPin, Coins, Trophy, ArrowRight, ImageOff } from 'lucide-react'
+import { getFallbackImage } from '../../utils/mediaFallback'
 
 function formatDate(iso) {
   if (!iso) return ''
@@ -32,6 +33,8 @@ const STATUS_COLORS = {
 function PokerCard({ tournament }) {
   const navigate = useNavigate()
   const statusColor = STATUS_COLORS[tournament.status] || '#888'
+  const [imgFailed, setImgFailed] = useState(false)
+  const imgSrc = tournament.image || getFallbackImage({ id: tournament.id, country: tournament.location })
 
   return (
     <motion.div
@@ -42,8 +45,8 @@ function PokerCard({ tournament }) {
       className="poker-card flex flex-col overflow-hidden h-full"
     >
       <div className="relative h-36 overflow-hidden rounded-t-[20px]">
-        {tournament.image ? (
-          <img src={tournament.image} alt={tournament.name} className="w-full h-full object-cover" loading="lazy" />
+        {!imgFailed ? (
+          <img src={imgSrc} alt={tournament.name} className="w-full h-full object-cover" loading="lazy" onError={() => setImgFailed(true)} />
         ) : (
           <div className="w-full h-full flex items-center justify-center" style={{ background: 'linear-gradient(160deg, rgba(28,28,30,0.9), rgba(18,18,20,0.9))' }}>
             <ImageOff size={24} className="text-gold/30" />

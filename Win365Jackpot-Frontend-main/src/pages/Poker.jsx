@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { LogIn, UserPlus, AlertTriangle, RefreshCw, Spade } from 'lucide-react'
 import Navbar from '../components/Navbar'
@@ -9,6 +9,7 @@ import { fetchPokerTournaments } from '../services/pokerService'
 import { useAutoFetch } from '../hooks/useAutoFetch'
 
 const EMPTY_PARAMS = {}
+const STATUS_ORDER = { live: 0, upcoming: 1, completed: 2 }
 
 export default function Poker() {
   const [authOpen, setAuthOpen] = useState(false)
@@ -16,7 +17,10 @@ export default function Poker() {
   const isLoggedIn = !!localStorage.getItem('access')
 
   const { data, loading, error, reload } = useAutoFetch(fetchPokerTournaments, EMPTY_PARAMS, { intervalMs: 60_000 })
-  const tournaments = data?.results || []
+  const tournaments = useMemo(() => {
+    const list = data?.results || []
+    return [...list].sort((a, b) => (STATUS_ORDER[a.status] ?? 99) - (STATUS_ORDER[b.status] ?? 99))
+  }, [data])
 
   const openAuth = (tab) => { setAuthTab(tab); setAuthOpen(true) }
 
