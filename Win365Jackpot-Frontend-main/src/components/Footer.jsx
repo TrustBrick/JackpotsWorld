@@ -15,10 +15,10 @@ export default function Footer() {
   const [open, setOpen] = useState(false)
 
   return (
-    <footer style={{
+    <footer id="contact" style={{
       borderTop: '1px solid rgba(212,175,55,0.15)',
       padding: '64px 24px 32px',
-      background: 'rgba(6, 8, 18, 0.85)',
+      background: 'rgba(var(--w365-bg-rgb),0.85)',
       backdropFilter: 'blur(6px)',
       WebkitBackdropFilter: 'blur(6px)',
 
@@ -46,7 +46,7 @@ export default function Footer() {
   </div>
              
             </div>
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', lineHeight: 1.7, marginBottom: 12 }}>
+            <p style={{ fontSize: 13, color: 'var(--w365-text-muted)', lineHeight: 1.7, marginBottom: 12 }}>
               Asia's premier casino promotion platform. Connecting players to world-class gaming experiences across the globe.
             </p>
             <div style={{ fontSize: 11, color: 'rgba(212,175,55,0.4)', marginBottom: 16 }}>www.jackpotsworld.casino</div>
@@ -101,9 +101,9 @@ export default function Footer() {
                 <li key={i}>
                   <ScrollLink
                     to="packages" smooth duration={600} offset={-80}
-                    style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', cursor: 'pointer', transition: 'color 0.15s', textDecoration: 'none' }}
+                    style={{ fontSize: 13, color: 'var(--w365-text-muted)', cursor: 'pointer', transition: 'color 0.15s', textDecoration: 'none' }}
                     onMouseEnter={e => e.currentTarget.style.color = '#D4AF37'}
-                    onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
+                    onMouseLeave={e => e.currentTarget.style.color = 'var(--w365-text-muted)'}
                   >
                     {d}
                   </ScrollLink>
@@ -124,9 +124,9 @@ export default function Footer() {
                     <motion.li key={i} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}>
                       <ScrollLink
                         to="packages" smooth duration={600} offset={-80}
-                        style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', cursor: 'pointer', transition: 'color 0.15s' }}
+                        style={{ fontSize: 13, color: 'var(--w365-text-muted)', cursor: 'pointer', transition: 'color 0.15s' }}
                         onMouseEnter={e => e.currentTarget.style.color = '#D4AF37'}
-                        onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
+                        onMouseLeave={e => e.currentTarget.style.color = 'var(--w365-text-muted)'}
                       >
                         {d}
                       </ScrollLink>
@@ -163,9 +163,9 @@ export default function Footer() {
                 <li key={i}>
                   <ScrollLink
                     to="games" smooth duration={600} offset={-80}
-                    style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', cursor: 'pointer', transition: 'color 0.15s' }}
+                    style={{ fontSize: 13, color: 'var(--w365-text-muted)', cursor: 'pointer', transition: 'color 0.15s' }}
                     onMouseEnter={e => e.currentTarget.style.color = '#D4AF37'}
-                    onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
+                    onMouseLeave={e => e.currentTarget.style.color = 'var(--w365-text-muted)'}
                   >
                     {g}
                   </ScrollLink>
@@ -184,9 +184,9 @@ export default function Footer() {
               <li>
                 <ScrollLink
                   to="why" smooth duration={600} offset={-80}
-                  style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', cursor: 'pointer', transition: 'color 0.15s' }}
+                  style={{ fontSize: 13, color: 'var(--w365-text-muted)', cursor: 'pointer', transition: 'color 0.15s' }}
                   onMouseEnter={e => e.currentTarget.style.color = '#D4AF37'}
-                  onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'var(--w365-text-muted)'}
                 >
                   About Us
                 </ScrollLink>
@@ -196,9 +196,9 @@ export default function Footer() {
                 <a
                   href={`https://wa.me/${WA_NUM}?text=${WA_MSG}`}
                   target="_blank" rel="noopener noreferrer"
-                  style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', textDecoration: 'none', transition: 'color 0.15s' }}
+                  style={{ fontSize: 13, color: 'var(--w365-text-muted)', textDecoration: 'none', transition: 'color 0.15s' }}
                   onMouseEnter={e => e.currentTarget.style.color = '#D4AF37'}
-                  onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'var(--w365-text-muted)'}
                 >
                   Contact
                 </a>
@@ -208,9 +208,9 @@ export default function Footer() {
               <li style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                 <RouterLink
                   to="/privacy-policy"
-                  style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', textDecoration: 'none', transition: 'color 0.15s' }}
+                  style={{ fontSize: 13, color: 'var(--w365-text-muted)', textDecoration: 'none', transition: 'color 0.15s' }}
                   onMouseEnter={e => e.currentTarget.style.color = '#D4AF37'}
-                  onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'var(--w365-text-muted)'}
                 >
                   Privacy Policy
                 </RouterLink>
@@ -219,9 +219,9 @@ export default function Footer() {
               <li>
                 <RouterLink
                   to="/cookies-policy"
-                  style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', textDecoration: 'none', transition: 'color 0.15s' }}
+                  style={{ fontSize: 13, color: 'var(--w365-text-muted)', textDecoration: 'none', transition: 'color 0.15s' }}
                   onMouseEnter={e => e.currentTarget.style.color = '#D4AF37'}
-                  onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'var(--w365-text-muted)'}
                 >
                   Cookies Policy
                 </RouterLink>
@@ -243,7 +243,7 @@ export default function Footer() {
           marginBottom: 24,
           background: 'rgba(255,255,255,0.02)',
         }}>
-          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', textAlign: 'center', lineHeight: 1.7 }}>
+          <p style={{ fontSize: 12, color: 'var(--w365-text-muted)', textAlign: 'center', lineHeight: 1.7 }}>
             <span style={{ color: 'rgba(212,175,55,0.55)', fontWeight: 600 }}>⚠ Responsible Gaming: </span>
             Gambling involves risk. Please play responsibly. Jackpots World promotes responsible gaming and only serves adults aged 21+.
             If you or someone you know has a gambling problem, please seek help. jackpotsworld.com is a promotional platform only.
@@ -254,7 +254,7 @@ export default function Footer() {
         <div style={{
           display: 'flex', flexWrap: 'wrap',
           justifyContent: 'space-between', alignItems: 'center',
-          gap: 12, fontSize: 12, color: 'rgba(255,255,255,0.25)',
+          gap: 12, fontSize: 12, color: 'var(--w365-text-muted)',
         }}>
           <span>© 2026 jackpotsworld.casino — All Rights Reserved</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

@@ -1,24 +1,37 @@
 import React from 'react'
 import { motion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import {
-  MapPin, Building2, CalendarDays, Tag, ShieldCheck,
-  Package, Phone, Mail, ArrowRight,
+  MapPin, Building2, CalendarDays, Clock, Tag, ArrowRight, ImageOff,
 } from 'lucide-react'
 
 function formatDate(iso) {
   if (!iso) return ''
-  const d = new Date(iso)
+  const d = new Date(`${iso}T00:00:00`)
   return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
+function formatTime(hms) {
+  if (!hms) return ''
+  const [h, m] = hms.split(':')
+  const d = new Date()
+  d.setHours(Number(h), Number(m))
+  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+}
+
+const STATUS_COLORS = {
+  upcoming: '#60a5fa',
+  live: '#34d399',
+  completed: 'rgba(255,255,255,0.4)',
+}
+
 /**
- * EventCard
- * Purely presentational — takes one `event` object (see src/data/events.js
- * for the expected shape) and renders it. When the dummy data is replaced
- * with a live `/api/events` response, nothing here needs to change as long
- * as the response objects keep the same field names.
+ * EventCard — presentational only. Consumes the CasinoEventSerializer shape
+ * from GET /api/events/ (see src/services/eventService.js).
  */
-export default function EventCard({ event, onRegister }) {
+function EventCard({ event }) {
+  const navigate = useNavigate()
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -29,95 +42,105 @@ export default function EventCard({ event, onRegister }) {
     >
       {/* Banner */}
       <div className="relative h-44 md:h-48 overflow-hidden">
-        <img
-          src={event.banner}
-          alt={event.title}
-          className="w-full h-full object-cover"
-          loading="lazy"
-        />
+        {event.image ? (
+          <img
+            src={event.image}
+            alt={event.name}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            width={400}
+            height={192}
+          />
+        ) : (
+          <div
+            className="w-full h-full flex items-center justify-center"
+            style={{ background: 'linear-gradient(135deg, var(--w365-card), var(--w365-bg-mid))' }}
+          >
+            <ImageOff size={26} className="text-gold/30" />
+          </div>
+        )}
         <div
           className="absolute inset-0"
           style={{ background: 'linear-gradient(180deg, transparent 40%, rgba(10,0,5,0.9) 100%)' }}
         />
-        <span
-          className="absolute top-3 left-3 px-3 py-1 rounded-full text-[11px] font-bold tracking-widest uppercase"
-          style={{
-            background: 'rgba(212,175,55,0.15)',
-            border: '1px solid rgba(212,175,55,0.5)',
-            color: '#D4AF37',
-          }}
-        >
-          <Tag size={10} className="inline mr-1 -mt-0.5" />
-          {event.category}
-        </span>
-        <div className="absolute bottom-3 left-4 right-4">
-          <p className="text-white/60 text-xs font-body flex items-center gap-1">
-            <Building2 size={11} /> {event.casinoName}
-          </p>
-        </div>
+        {event.category && (
+          <span
+            className="absolute top-3 left-3 px-3 py-1 rounded-full text-[11px] font-bold tracking-widest uppercase"
+            style={{ background: 'rgba(212,175,55,0.15)', border: '1px solid rgba(212,175,55,0.5)', color: '#D4AF37' }}
+          >
+            <Tag size={10} className="inline mr-1 -mt-0.5" />
+            {event.category}
+          </span>
+        )}
+        {event.status && (
+          <span
+            className="absolute top-3 right-3 px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase"
+            style={{
+              background: `${STATUS_COLORS[event.status] || '#888'}18`,
+              border: `1px solid ${STATUS_COLORS[event.status] || '#888'}55`,
+              color: STATUS_COLORS[event.status] || '#888',
+            }}
+          >
+            {event.status}
+          </span>
+        )}
       </div>
 
       {/* Body */}
       <div className="p-5 flex flex-col flex-1 gap-3">
-        <h3
-          className="font-black text-lg text-white/90 leading-snug"
-          style={{ fontFamily: "'Cormorant Garamond', serif" }}
-        >
-          {event.title}
-        </h3>
+        <h3 className="font-black text-lg text-white/90 leading-snug">{event.name}</h3>
 
-        <p className="text-white/55 text-sm font-body leading-relaxed line-clamp-3">
-          {event.description}
-        </p>
+        {event.short_description && (
+          <p className="text-white/55 text-sm font-body leading-relaxed line-clamp-3">
+            {event.short_description}
+          </p>
+        )}
 
         <div className="grid grid-cols-2 gap-2 text-xs font-body text-white/60 mt-1">
           <div className="flex items-center gap-1.5">
             <MapPin size={13} className="text-gold shrink-0" />
-            {event.city}, {event.country}
+            {event.city ? `${event.city}, ` : ''}{event.country}
           </div>
           <div className="flex items-center gap-1.5">
             <CalendarDays size={13} className="text-gold shrink-0" />
-            {formatDate(event.startDate)} – {formatDate(event.endDate)}
+            {formatDate(event.event_date)}
           </div>
-          <div className="col-span-2 flex items-center gap-1.5">
-            <Building2 size={13} className="text-gold shrink-0" />
-            {event.venue}
-          </div>
+          {event.event_time && (
+            <div className="flex items-center gap-1.5">
+              <Clock size={13} className="text-gold shrink-0" />
+              {formatTime(event.event_time)}
+            </div>
+          )}
+          {event.venue && (
+            <div className="col-span-2 flex items-center gap-1.5">
+              <Building2 size={13} className="text-gold shrink-0" />
+              {event.venue}
+            </div>
+          )}
         </div>
 
-        <div className="section-divider my-1" />
-
-        <div className="flex items-start gap-1.5 text-xs font-body text-white/50">
-          <ShieldCheck size={13} className="text-gold shrink-0 mt-0.5" />
-          <span>{event.entryRequirements}</span>
+        <div className="flex gap-2 mt-auto">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => navigate(`/events/${event.id}`)}
+            className="btn-outline-gold flex-1 flex items-center justify-center gap-1.5 rounded-full py-2.5 text-xs font-bold tracking-widest uppercase"
+          >
+            Register
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => navigate(`/events/${event.id}`)}
+            className="btn-gold flex-1 flex items-center justify-center gap-1.5 rounded-full py-2.5 text-xs font-bold tracking-widest uppercase"
+          >
+            Get Ticket
+            <ArrowRight size={13} />
+          </motion.button>
         </div>
-
-        {event.packages?.length > 0 && (
-          <div className="flex items-start gap-1.5 text-xs font-body text-white/50">
-            <Package size={13} className="text-gold shrink-0 mt-0.5" />
-            <span>
-              {event.packages.map(p => p.name).join(' · ')}
-            </span>
-          </div>
-        )}
-
-        {event.contact && (
-          <div className="flex flex-wrap gap-3 text-xs font-body text-white/40 mt-1">
-            <span className="flex items-center gap-1"><Mail size={11} /> {event.contact.email}</span>
-            <span className="flex items-center gap-1"><Phone size={11} /> {event.contact.phone}</span>
-          </div>
-        )}
-
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={() => onRegister?.(event)}
-          className="btn-gold mt-auto w-full flex items-center justify-center gap-2 rounded-full py-2.5 text-sm font-bold tracking-widest uppercase"
-        >
-          Register
-          <ArrowRight size={14} />
-        </motion.button>
       </div>
     </motion.div>
   )
 }
+
+export default React.memo(EventCard)

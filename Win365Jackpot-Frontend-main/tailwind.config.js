@@ -4,8 +4,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-  heading: ['Cormorant Garamond', 'serif'],
-  body: ['Montserrat', 'sans-serif'],
+  heading: ['Space Grotesk', 'sans-serif'],
+  body: ['Space Grotesk', 'sans-serif'],
+  sans: ['Space Grotesk', 'sans-serif'],
 },
       colors: {
         gold: { DEFAULT:'#D4AF37', light:'#F5D060', dark:'#9A7D20' },

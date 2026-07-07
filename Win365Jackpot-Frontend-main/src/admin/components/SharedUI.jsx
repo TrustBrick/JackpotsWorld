@@ -161,11 +161,12 @@ export function Pagination({ page, total, perPage = 20, onChange }) {
 export function Table({ headers, children, loading, colSpan, emptyText = "No records found" }) {
   return (
     <Card style={{ padding: 0, overflow: "hidden" }}>
+      <div style={{ overflowX: "auto" }}>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
         <thead>
           <tr style={{ borderBottom: `1px solid ${C.border}`, background: "rgba(255,255,255,0.02)" }}>
-            {headers.map(h => (
-              <th key={h} style={{ padding: "12px 14px", textAlign: "left", fontSize: 10, color: "rgba(255,255,255,0.3)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", whiteSpace: "nowrap" }}>{h}</th>
+            {headers.map((h, i) => (
+              <th key={i} style={{ padding: "12px 14px", textAlign: "left", fontSize: 10, color: "rgba(255,255,255,0.3)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", whiteSpace: "nowrap" }}>{h}</th>
             ))}
           </tr>
         </thead>
@@ -176,6 +177,7 @@ export function Table({ headers, children, loading, colSpan, emptyText = "No rec
           }
         </tbody>
       </table>
+      </div>
     </Card>
   );
 }

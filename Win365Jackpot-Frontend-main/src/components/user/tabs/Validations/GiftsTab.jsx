@@ -135,7 +135,7 @@ function WalletCard({ type, label, sublabel, Icon, color, balance }) {
         </div>
       </div>
 
-      <div style={{ fontFamily: "'JetBrains Mono', 'Fira Code', monospace", fontSize: "clamp(1.1rem,3vw,1.35rem)", fontWeight: 700, color, letterSpacing: "-0.01em" }}>
+      <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(1.1rem,3vw,1.35rem)", fontWeight: 700, color, letterSpacing: "-0.01em" }}>
         {type === "rolling_points"
           ? `${Number(balance || 0).toLocaleString("en-IN")} RP`
           : `$${fmtAmount(balance)}`
@@ -207,7 +207,7 @@ function GiftCard({ g, onClaim, claiming }) {
         {/* Amount */}
         <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
           <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", fontWeight: 500 }}>$</span>
-          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "clamp(1.4rem,4vw,1.8rem)", fontWeight: 800, color: isClaimed || isExpired ? "rgba(255,255,255,0.3)" : "white", letterSpacing: "-0.02em" }}>
+          <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(1.4rem,4vw,1.8rem)", fontWeight: 800, color: isClaimed || isExpired ? "rgba(255,255,255,0.3)" : "white", letterSpacing: "-0.02em" }}>
             {Number(g.amount || 0).toLocaleString("en-IN")}
           </span>
         </div>
@@ -348,7 +348,7 @@ export default function GiftsTab({ onToast, onRefresh }) {
   const vipName   = VIP_NAMES[(curLvl || 1) - 1] || "VIP";
 
   return (
-    <div style={{ fontFamily: "'DM Mono', 'JetBrains Mono', monospace", color: "rgba(255,255,255,0.85)", minHeight: "100vh" }}>
+    <div style={{ fontFamily: "'Space Grotesk', sans-serif", color: "rgba(255,255,255,0.85)", minHeight: "100vh" }}>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         .gift-filter-btn:hover { background: rgba(255,255,255,0.05) !important; }
@@ -361,16 +361,16 @@ export default function GiftsTab({ onToast, onRefresh }) {
             <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(212,175,55,0.12)", border: "1px solid rgba(212,175,55,0.25)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <FiGift size={15} color="#D4AF37" />
             </div>
-            <h1 style={{ fontSize: 18, fontWeight: 700, color: "white", margin: 0, fontFamily: "'DM Sans', sans-serif", letterSpacing: "-0.02em" }}>Gifts & Rewards</h1>
+            <h1 style={{ fontSize: 18, fontWeight: 700, color: "white", margin: 0, fontFamily: "'Space Grotesk', sans-serif", letterSpacing: "-0.02em" }}>Gifts & Rewards</h1>
           </div>
-          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", margin: 0, fontFamily: "'DM Sans', sans-serif" }}>
+          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", margin: 0, fontFamily: "'Space Grotesk', sans-serif" }}>
             Manage and claim your available rewards
           </p>
         </div>
         <button
           onClick={refresh}
           disabled={refreshing}
-          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.55)", fontSize: 12, cursor: refreshing ? "not-allowed" : "pointer", fontFamily: "'DM Sans', sans-serif" }}
+          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.55)", fontSize: 12, cursor: refreshing ? "not-allowed" : "pointer", fontFamily: "'Space Grotesk', sans-serif" }}
         >
           <FiRefreshCw size={13} style={{ animation: refreshing ? "spin 0.7s linear infinite" : "none" }} />
           Refresh
@@ -385,11 +385,11 @@ export default function GiftsTab({ onToast, onRefresh }) {
           { label: "Pending Value", value: `$${Number(totalValue).toLocaleString("en-IN")}`, icon: <FiDollarSign size={13} />, color: "#60A5FA", sub: "Claimable total" },
         ].map(({ label, value, icon, color, sub }) => (
           <div key={label} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 8, padding: "12px 14px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6, color: "rgba(255,255,255,0.4)", fontSize: 11, fontFamily: "'DM Sans', sans-serif" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6, color: "rgba(255,255,255,0.4)", fontSize: 11, fontFamily: "'Space Grotesk', sans-serif" }}>
               <span style={{ color }}>{icon}</span> {label}
             </div>
-            <div style={{ fontSize: "clamp(1.1rem,3vw,1.4rem)", fontWeight: 800, color, fontFamily: "'DM Mono', monospace" }}>{value}</div>
-            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", marginTop: 2, fontFamily: "'DM Sans', sans-serif" }}>{sub}</div>
+            <div style={{ fontSize: "clamp(1.1rem,3vw,1.4rem)", fontWeight: 800, color, fontFamily: "'Space Grotesk', sans-serif" }}>{value}</div>
+            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", marginTop: 2, fontFamily: "'Space Grotesk', sans-serif" }}>{sub}</div>
           </div>
         ))}
       </div>
@@ -398,7 +398,7 @@ export default function GiftsTab({ onToast, onRefresh }) {
       <section style={{ marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
           <div style={{ width: 3, height: 14, borderRadius: 2, background: "#D4AF37" }} />
-          <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.1em", fontFamily: "'DM Sans', sans-serif" }}>Wallet Balances</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.1em", fontFamily: "'Space Grotesk', sans-serif" }}>Wallet Balances</span>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
           {WALLET_CONFIG.map(({ type, label, sublabel, Icon, color }) => (
@@ -412,7 +412,7 @@ export default function GiftsTab({ onToast, onRefresh }) {
         <section style={{ marginBottom: 20 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
             <div style={{ width: 3, height: 14, borderRadius: 2, background: vipColor }} />
-            <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.1em", fontFamily: "'DM Sans', sans-serif" }}>VIP Status</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.1em", fontFamily: "'Space Grotesk', sans-serif" }}>VIP Status</span>
           </div>
           <div style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${vipColor}22`, borderRadius: 10, padding: "16px 18px", position: "relative", overflow: "hidden" }}>
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, ${vipColor}80, transparent)` }} />
@@ -423,17 +423,17 @@ export default function GiftsTab({ onToast, onRefresh }) {
                   <RiVipCrownLine size={18} color={vipColor} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: vipColor, fontFamily: "'DM Sans', sans-serif" }}>{vipName}</div>
-                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontFamily: "'DM Mono', monospace" }}>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: vipColor, fontFamily: "'Space Grotesk', sans-serif" }}>{vipName}</div>
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontFamily: "'Space Grotesk', sans-serif" }}>
                     {pts.toLocaleString("en-IN")} pts accumulated
                   </div>
                 </div>
               </div>
               {nextPts && (
                 <div style={{ textAlign: "right" }}>
-                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: "'DM Sans', sans-serif" }}>Next level</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "white", fontFamily: "'DM Mono', monospace" }}>{nextPts.toLocaleString("en-IN")}</div>
-                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", fontFamily: "'DM Mono', monospace" }}>{ptsToNext.toLocaleString("en-IN")} to go</div>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: "'Space Grotesk', sans-serif" }}>Next level</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "white", fontFamily: "'Space Grotesk', sans-serif" }}>{nextPts.toLocaleString("en-IN")}</div>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", fontFamily: "'Space Grotesk', sans-serif" }}>{ptsToNext.toLocaleString("en-IN")} to go</div>
                 </div>
               )}
             </div>
@@ -442,7 +442,7 @@ export default function GiftsTab({ onToast, onRefresh }) {
             <div style={{ height: 6, borderRadius: 3, background: "rgba(255,255,255,0.06)", overflow: "hidden", marginBottom: 8 }}>
               <div style={{ width: `${Math.min(progress, 100)}%`, height: "100%", background: vipColor, borderRadius: 3, boxShadow: `0 0 8px ${vipColor}60`, transition: "width 0.8s ease" }} />
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "rgba(255,255,255,0.3)", fontFamily: "'DM Mono', monospace" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "rgba(255,255,255,0.3)", fontFamily: "'Space Grotesk', sans-serif" }}>
               <span>Lv {curLvl} — {vipName}</span>
               <span style={{ color: vipColor, fontWeight: 600 }}>{progress.toFixed(1)}%</span>
               {nextPts && <span>Lv {curLvl + 1} — {VIP_NAMES[curLvl] || `Level ${curLvl + 1}`}</span>}
@@ -457,8 +457,8 @@ export default function GiftsTab({ onToast, onRefresh }) {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <div style={{ width: 3, height: 14, borderRadius: 2, background: "#60A5FA" }} />
-            <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.1em", fontFamily: "'DM Sans', sans-serif" }}>Gift History</span>
-            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", fontFamily: "'DM Sans', sans-serif" }}>· {filtered.length} item{filtered.length !== 1 ? "s" : ""}</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.1em", fontFamily: "'Space Grotesk', sans-serif" }}>Gift History</span>
+            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", fontFamily: "'Space Grotesk', sans-serif" }}>· {filtered.length} item{filtered.length !== 1 ? "s" : ""}</span>
           </div>
 
           {/* Filter tabs */}
@@ -477,7 +477,7 @@ export default function GiftsTab({ onToast, onRefresh }) {
                     background: active ? "rgba(212,175,55,0.12)" : "transparent",
                     color: active ? "#D4AF37" : "rgba(255,255,255,0.4)",
                     cursor: "pointer", transition: "all 0.15s",
-                    fontFamily: "'DM Sans', sans-serif",
+                    fontFamily: "'Space Grotesk', sans-serif",
                     whiteSpace: "nowrap",
                   }}
                 >
@@ -504,8 +504,8 @@ export default function GiftsTab({ onToast, onRefresh }) {
             <div style={{ width: 48, height: 48, borderRadius: 12, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
               <FiPackage size={22} color="rgba(255,255,255,0.2)" />
             </div>
-            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", fontFamily: "'DM Sans', sans-serif" }}>No {filter === "all" ? "" : filter} gifts found</div>
-            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.2)", marginTop: 4, fontFamily: "'DM Sans', sans-serif" }}>Check back later for new rewards</div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", fontFamily: "'Space Grotesk', sans-serif" }}>No {filter === "all" ? "" : filter} gifts found</div>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.2)", marginTop: 4, fontFamily: "'Space Grotesk', sans-serif" }}>Check back later for new rewards</div>
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>

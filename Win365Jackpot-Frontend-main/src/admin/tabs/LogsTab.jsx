@@ -55,7 +55,7 @@ function fmtDT(iso) {
 const S = {
   // Layout
   root: {
-    fontFamily: "'JetBrains Mono', 'Fira Code', 'Courier New', monospace",
+    fontFamily: "'Space Grotesk', sans-serif",
     color: "rgba(255,255,255,0.85)",
     minHeight: "100vh",
   },
@@ -164,7 +164,7 @@ const S = {
     border: "1px solid rgba(255,255,255,0.12)",
     borderRadius: 14, overflow: "hidden",
     display: "flex", flexDirection: "column",
-    fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+    fontFamily: "'Space Grotesk', sans-serif",
   },
   modalHeader: {
     padding: "16px 20px",

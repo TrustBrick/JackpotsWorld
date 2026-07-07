@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   LogOut, MessageCircle, Send, Bell, Gift,
   BarChart3, Wallet, Plane, Heart, Star,
-  Trophy, Users, User, Menu, X, ChevronRight,
+  Trophy, Users, User, Menu, X, ChevronRight, Package,
 } from "lucide-react";
 import { C, VIP_COLOR, TABS } from "../constants";
 import { fmtN } from "../helpers";
@@ -31,7 +31,7 @@ export function useBreakpoint() {
   return bp;
 }
 
-const ICON_MAP = { BarChart3, Wallet, Plane, Gift, Heart, Star, Trophy, Bell, Users, User };
+const ICON_MAP = { BarChart3, Wallet, Plane, Gift, Heart, Star, Trophy, Bell, Users, User, Package };
 
 function useNotifPulse() {
   useEffect(() => {

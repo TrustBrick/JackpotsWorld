@@ -21,16 +21,25 @@ class AdminWalletSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+def _validate_admin_id(value):
+    from authapp.models import User
+    if not User.objects.filter(pk=value, is_staff=True, is_superuser=False).exists():
+        raise serializers.ValidationError("Not a valid admin account.")
+    return value
+
+
 class AdminWalletCreditSerializer(serializers.Serializer):
     wallet_type = serializers.ChoiceField(choices=VALID_WALLET_TYPES)
     amount      = serializers.DecimalField(max_digits=18, decimal_places=2, min_value=Decimal("0.01"))
     note        = serializers.CharField(required=False, allow_blank=True, default="")
+    admin_id    = serializers.IntegerField(validators=[_validate_admin_id])
 
 
 class AdminWalletDebitSerializer(serializers.Serializer):
     wallet_type = serializers.ChoiceField(choices=VALID_WALLET_TYPES)
     amount      = serializers.DecimalField(max_digits=18, decimal_places=2, min_value=Decimal("0.01"))
     note        = serializers.CharField(required=False, allow_blank=True, default="")
+    admin_id    = serializers.IntegerField(validators=[_validate_admin_id])
 
 
 class AdminTransferToUserSerializer(serializers.Serializer):

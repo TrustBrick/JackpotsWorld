@@ -419,6 +419,7 @@ function VerifyPane({ onToast }) {
       </div>
 
       <Card style={{ padding: 0, overflow: "hidden" }}>
+        <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
           <thead>
             <tr style={{ borderBottom: `1px solid ${C.border}`, background: "rgba(255,255,255,0.02)" }}>
@@ -473,6 +474,7 @@ function VerifyPane({ onToast }) {
                 })}
           </tbody>
         </table>
+        </div>
         <Pagination page={page} total={total} perPage={PER} onChange={pg => { setPage(pg); load(pg); }} />
       </Card>
 
@@ -559,6 +561,7 @@ function HistoryPane({ onToast }) {
       </div>
 
       <Card style={{ padding: 0, overflow: "hidden" }}>
+        <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
           <thead>
             <tr style={{ borderBottom: `1px solid ${C.border}`, background: "rgba(255,255,255,0.02)" }}>
@@ -605,6 +608,7 @@ function HistoryPane({ onToast }) {
                 })}
           </tbody>
         </table>
+        </div>
         <Pagination page={page} total={total} perPage={PER} onChange={pg => load(pg)} />
       </Card>
     </div>
@@ -655,6 +659,7 @@ function ValidationPane({ onToast }) {
       </div>
 
       <Card style={{ padding: 0, overflow: "hidden" }}>
+        <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
           <thead>
             <tr style={{ borderBottom: `1px solid ${C.border}`, background: "rgba(255,255,255,0.02)" }}>
@@ -685,6 +690,7 @@ function ValidationPane({ onToast }) {
                 ))}
           </tbody>
         </table>
+        </div>
         <Pagination page={page} total={total} perPage={PER} onChange={pg => load(pg)} />
       </Card>
     </div>

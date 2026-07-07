@@ -157,7 +157,7 @@ const loadAccounts = async (uid) => {
 };
 
   return (
-    <div style={{ maxWidth:1100, fontFamily:"'DM Sans',sans-serif" }}>
+    <div style={{ maxWidth:1100, fontFamily:"'Space Grotesk',sans-serif" }}>
 
       {/* ── TOP TABS ── */}
       <div style={{

@@ -3,16 +3,21 @@ import { ADMIN_API } from "./constants";
 export { ADMIN_API as API };
 
 // ─── Auth-aware fetch with token refresh ──────────────────────────────────────
+// When opts.body is a FormData instance (file/image uploads), the browser
+// must set its own multipart Content-Type header (with boundary) — forcing
+// "application/json" would send a malformed request the backend can't parse.
+const buildHeaders = (token, opts) => {
+  const isFormData = typeof FormData !== "undefined" && opts.body instanceof FormData;
+  return {
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
+    Authorization: `Bearer ${token}`,
+    ...(opts.headers || {}),
+  };
+};
+
 export const adminFetch = async (url, opts = {}) => {
   let token = localStorage.getItem("admin_token");
-  let res = await fetch(url, {
-    ...opts,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      ...(opts.headers || {}),
-    },
-  });
+  let res = await fetch(url, { ...opts, headers: buildHeaders(token, opts) });
   if (res.status === 401) {
     const refresh = localStorage.getItem("admin_refresh");
     if (refresh) {
@@ -24,14 +29,7 @@ export const adminFetch = async (url, opts = {}) => {
       if (rr.ok) {
         const d = await rr.json();
         localStorage.setItem("admin_token", d.access);
-        res = await fetch(url, {
-          ...opts,
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${d.access}`,
-            ...(opts.headers || {}),
-          },
-        });
+        res = await fetch(url, { ...opts, headers: buildHeaders(d.access, opts) });
       } else {
         ["admin_token", "admin_refresh", "admin_user"].forEach(k => localStorage.removeItem(k));
         window.location.href = "/admin-panel";

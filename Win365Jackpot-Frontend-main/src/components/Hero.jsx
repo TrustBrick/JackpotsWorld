@@ -5,7 +5,6 @@ import { Gem } from 'lucide-react'
 
 // ─── CSS ───────────────────────────────────────────────────────────────────
 const CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Whisper&display=swap');
   @keyframes floatCard {
     0%   { opacity:0; transform: translateY(0) scale(0.45) rotate(-22deg); }
     12%  { opacity:0.85; }
@@ -94,7 +93,7 @@ const FloatingCard = memo(({ suit, val, pos, delay, red }) => (
       borderRadius:8,
       display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
       fontWeight:800,
-      fontFamily:"'Montserrat', sans-serif",
+      fontFamily:"'Space Grotesk', sans-serif",
       fontSize:'clamp(8px,1.4vw,11px)',
       color: red ? '#ff4466' : '#D4AF37',
       animation:`cardGlow 2.5s ${delay}s ease-in-out infinite`,
@@ -144,7 +143,7 @@ const FloatingLuxury = memo(({ Icon, logo, label, pos, delay, color }) => {
         color, opacity:0.85,
         fontWeight:900,
         letterSpacing:'0.13em',
-        fontFamily:"'Montserrat', sans-serif",
+        fontFamily:"'Space Grotesk', sans-serif",
       }}>
         {label}
       </div>
@@ -243,14 +242,14 @@ function WinnerFeedDesktop() {
               <span style={{ width:8, height:8, borderRadius:'50%', background:'#4ade80', flexShrink:0, animation:'pulse-dot 2s infinite' }} />
               <div style={{ minWidth:0 }}>
                 <div style={{
-                  fontFamily:"'Montserrat', sans-serif", fontSize:12,
+                  fontFamily:"'Space Grotesk', sans-serif", fontSize:12,
                   color:'rgba(255,255,255,0.9)', fontWeight:600,
                   overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
                 }}>
                   🏆 <span style={{ color:'#D4AF37' }}>{w.amount}</span> — {w.name}
                 </div>
                 <div style={{
-                  fontFamily:"'Montserrat', sans-serif", fontSize:10,
+                  fontFamily:"'Space Grotesk', sans-serif", fontSize:10,
                   color:'rgba(255,255,255,0.4)', marginTop:2,
                   overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
                 }}>
@@ -289,14 +288,14 @@ function WinnerFeedMobile() {
             <span style={{ width:6, height:6, borderRadius:'50%', background:'#4ade80', flexShrink:0, animation:'pulse-dot 2s infinite' }} />
             <div style={{ minWidth:0 }}>
               <div style={{
-                fontFamily:"'Montserrat', sans-serif", fontWeight:700,
+                fontFamily:"'Space Grotesk', sans-serif", fontWeight:700,
                 fontSize:'clamp(8px,2.2vw,9.5px)', color:'#fff',
                 overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
               }}>
                 🏆 <span style={{ color:'#D4AF37' }}>{w.amount}</span> {w.name}
               </div>
               <div style={{
-                fontFamily:"'Montserrat', sans-serif",
+                fontFamily:"'Space Grotesk', sans-serif",
                 fontSize:'clamp(7px,1.9vw,8px)', color:'rgba(255,255,255,0.45)',
                 overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
               }}>
@@ -449,7 +448,7 @@ useEffect(() => {
             border:'1px solid rgba(212,175,55,0.35)', borderRadius:999,
             padding:'6px 16px', marginBottom:'clamp(12px,3vw,24px)',
             background:'rgba(212,175,55,0.07)',
-            fontFamily:"'Montserrat', sans-serif",
+            fontFamily:"'Space Grotesk', sans-serif",
             fontSize:'clamp(8px,1.8vw,10px)', fontWeight:700,
             letterSpacing:'0.18em', textTransform:'uppercase',
             color:'rgba(212,175,55,0.8)',
@@ -459,12 +458,12 @@ useEffect(() => {
           Asia's #1 Offline Casino Promotion Platform
         </motion.div>
 
-        {/* H1 — Cormorant Garamond classic serif */}
+        {/* H1 */}
         <motion.h1
           initial={{ opacity:0, y:32 }} animate={{ opacity:1, y:0 }}
           transition={{ delay:0.35, duration:0.65 }}
           style={{
-            fontFamily:"'Montserrat', sans-serif",  
+            fontFamily:"'Space Grotesk', sans-serif",  
             fontWeight:700,
             fontSize:'clamp(52px,13vw,120px)',
             lineHeight:0.9,
@@ -498,7 +497,7 @@ useEffect(() => {
           initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }}
           transition={{ delay:0.68 }}
           style={{
-            fontFamily:"'Montserrat', sans-serif",
+            fontFamily:"'Space Grotesk', sans-serif",
             color:'rgba(255,255,255,0.65)',
             fontSize:'clamp(11px,2.8vw,17px)',
             lineHeight:1.65, maxWidth:'38ch', margin:'0 auto 6px auto',
@@ -515,7 +514,7 @@ useEffect(() => {
           initial={{ opacity:0 }} animate={{ opacity:1 }}
           transition={{ delay:0.82 }}
           style={{
-            fontFamily:"'Montserrat', sans-serif",
+            fontFamily:"'Space Grotesk', sans-serif",
             color:'rgba(255,255,255,0.28)',
             fontSize:'clamp(8px,2vw,11px)', letterSpacing:'0.14em',
             marginBottom:'clamp(20px,4vw,32px)',
@@ -538,7 +537,7 @@ useEffect(() => {
                 backgroundSize:'200% auto',
                 color:'#1a0010', border:'none', borderRadius:999,
                 padding:'clamp(10px,2.5vw,14px) clamp(18px,4.5vw,38px)',
-                fontFamily:"'Montserrat', sans-serif",
+                fontFamily:"'Space Grotesk', sans-serif",
                 fontSize:'clamp(9px,2.2vw,13px)', fontWeight:900,
                 letterSpacing:'0.13em', textTransform:'uppercase',
                 cursor:'pointer',
@@ -556,7 +555,7 @@ useEffect(() => {
                 border:'1.5px solid rgba(212,175,55,0.45)',
                 borderRadius:999,
                 padding:'clamp(10px,2.5vw,14px) clamp(18px,4.5vw,38px)',
-                fontFamily:"'Montserrat', sans-serif",
+                fontFamily:"'Space Grotesk', sans-serif",
                 fontSize:'clamp(9px,2.2vw,13px)', fontWeight:700,
                 letterSpacing:'0.13em', textTransform:'uppercase',
                 cursor:'pointer', touchAction:'manipulation',
@@ -597,7 +596,7 @@ useEffect(() => {
     >
       <div
         style={{
-          fontFamily: "'Montserrat', sans-serif",
+          fontFamily: "'Space Grotesk', sans-serif",
           fontWeight: 700,
           fontSize: 'clamp(16px,3.8vw,28px)',
           background: 'linear-gradient(135deg,#D4AF37,#F5E07A)',
@@ -612,7 +611,7 @@ useEffect(() => {
       </div>
       <div
         style={{
-          fontFamily: "'Montserrat', sans-serif",
+          fontFamily: "'Space Grotesk', sans-serif",
           color: 'rgba(255,255,255,0.45)',
           fontSize: 'clamp(6px,1.4vw,9px)',
           letterSpacing: '0.16em',
@@ -636,7 +635,7 @@ useEffect(() => {
         animation:'scrollBounce 1.6s 2s ease-in-out infinite',
         transform:'translateX(-50%)',
       }}>
-        <div style={{ fontFamily:"'Montserrat', sans-serif", fontSize:7, letterSpacing:'0.2em', textTransform:'uppercase' }}>Scroll</div>
+        <div style={{ fontFamily:"'Space Grotesk', sans-serif", fontSize:7, letterSpacing:'0.2em', textTransform:'uppercase' }}>Scroll</div>
         <div style={{ width:1, height:'clamp(20px,4vw,40px)', background:'linear-gradient(to bottom, rgba(212,175,55,0.4), transparent)' }} />
       </div>
     </section>

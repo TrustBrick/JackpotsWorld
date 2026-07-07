@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart3, Users, Wallet, Building2, Crown, Gift,
   Bell, FileText, Shield, Activity, UserCog, LogOut, Key,
-  Eye, EyeOff, AlertCircle,
+  Eye, EyeOff, AlertCircle, CalendarDays, Spade,
 } from "lucide-react";
 
 import OverviewTab       from "./tabs/OverviewTab";
@@ -18,6 +18,9 @@ import TxnsTab           from "./tabs/TxnsTab";
 import KycTab            from "./tabs/KycTab";
 import LogsTab           from "./tabs/LogsTab";
 import StaffTab          from "./tabs/StaffTab";
+import EventsManageTab      from "./tabs/content/EventsManageTab";
+import PokerManageTab       from "./tabs/content/PokerManageTab";
+import PromotionsManageTab  from "./tabs/content/PromotionsManageTab";
 
 import { Card, Toast } from "./components/SharedUI";
 import { API } from "./helpers";
@@ -28,7 +31,7 @@ import AdminWalletBanner from "./AdminWalletBanner";
 
 const ICON_MAP = {
   BarChart3, Users, Wallet, Building2, Crown, Gift,
-  Bell, FileText, Shield, Activity, UserCog,
+  Bell, FileText, Shield, Activity, UserCog, CalendarDays, Spade,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -69,7 +72,7 @@ function AdminLoginScreen({ onSuccess }) {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Sans', sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Space Grotesk', sans-serif" }}>
       <div style={{ position: "fixed", inset: 0, pointerEvents: "none" }}>
         <div style={{ position: "absolute", top: "20%", left: "50%", transform: "translate(-50%,-50%)", width: 600, height: 600, borderRadius: "50%", background: `radial-gradient(circle, ${C.gold}18, transparent 60%)` }} />
       </div>
@@ -173,6 +176,9 @@ export default function AdminPanel() {
       case "notifications": return <NotifsTab     {...props} />;
       case "transactions":  return <TxnsTab       {...props} />;
       case "kyc":       return <KycTab            {...props} />;
+      case "events":    return <EventsManageTab     {...props} />;
+      case "poker":     return <PokerManageTab       {...props} />;
+      case "promotions":return <PromotionsManageTab  {...props} />;
       case "logs":      return <LogsTab           {...props} />;
       case "staff":     return <StaffTab          {...props} />;
       default:          return <OverviewTab       {...props} />;
@@ -180,7 +186,7 @@ export default function AdminPanel() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, color: "white", fontFamily: "'DM Sans', sans-serif", display: "flex" }}>
+    <div style={{ minHeight: "100vh", background: C.bg, color: "white", fontFamily: "'Space Grotesk', sans-serif", display: "flex" }}>
 
       {/* ── Sidebar ── */}
       <aside style={{

@@ -113,7 +113,6 @@ export default function TxnsTab({ onToast }) {
 
 
    const load = async (pg = 1) => {
-    console.log("Filters →", { q, typeF, walletF });
     setLoading(true);
     try {
       const p = new URLSearchParams();

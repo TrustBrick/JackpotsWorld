@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from 'react-scroll'
 import {
-  Menu, X, Gift, LogIn, UserPlus, LogOut,
+  Menu, X, Gift, UserPlus, LogOut,
   ChevronDown, User, Crown, Wallet,
 } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -297,9 +297,10 @@ export default function Navbar() {
         transition={{ duration: 0.7, ease: 'easeOut' }}
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
           scrolled
-            ? 'bg-casino-dark/95 backdrop-blur-md border-b border-gold/20 py-3'
+            ? 'backdrop-blur-md border-b border-gold/20 py-3'
             : 'bg-transparent py-5'
         }`}
+        style={scrolled ? { background: 'rgba(var(--w365-bg-rgb),0.95)' } : undefined}
       >
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
 
@@ -356,49 +357,24 @@ export default function Navbar() {
           {/* Desktop auth */}
           <div className="hidden md:flex items-center gap-2.5">
             {user ? (
-              <UserDropdown 
-  user={user} 
-  onLogout={handleLogout} 
+              <UserDropdown
+  user={user}
+  onLogout={handleLogout}
   onRequireAuth={() => {
     setModalTab('login')
     setModalOpen(true)
   }}
 />
             ) : (
-              <>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={openLogin}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-full font-body text-sm font-semibold tracking-widest uppercase transition-all duration-200"
-                  style={{
-                    background: 'transparent',
-                    border:     '1px solid rgba(212,175,55,0.35)',
-                    color:      'rgba(212,175,55,0.85)',
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.background  = 'rgba(212,175,55,0.08)'
-                    e.currentTarget.style.borderColor = 'rgba(212,175,55,0.6)'
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.background  = 'transparent'
-                    e.currentTarget.style.borderColor = 'rgba(212,175,55,0.35)'
-                  }}
-                >
-                  <LogIn size={13} />
-                  Login
-                </motion.button>
-
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={openRegister}
-                  className="btn-gold flex items-center gap-1.5 px-5 py-2 rounded-full text-sm font-bold tracking-widest uppercase"
-                >
-                  <UserPlus size={13} />
-                  Signup
-                </motion.button>
-              </>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={openLogin}
+                className="btn-gold flex items-center gap-1.5 px-5 py-2 rounded-full text-sm font-bold tracking-widest uppercase"
+              >
+                <UserPlus size={13} />
+                Sign In / Sign Up
+              </motion.button>
             )}
           </div>
 
@@ -409,49 +385,26 @@ export default function Navbar() {
               // Logged in → show dropdown in topbar
               <UserDropdown user={user} onLogout={handleLogout} />
             ) : (
-              // Not logged in → show Login + Signup in topbar
-              <>
-                <button
-                  onClick={openLogin}
-                  style={{
-                    background:    'transparent',
-                    border:        '1px solid rgba(212,175,55,0.35)',
-                    color:         'rgba(212,175,55,0.85)',
-                    borderRadius:  99,
-                    padding:       '6px 11px',
-                    fontSize:      11,
-                    fontWeight:    700,
-                    letterSpacing: '0.04em',
-                    cursor:        'pointer',
-                    display:       'flex',
-                    alignItems:    'center',
-                    gap:           4,
-                    whiteSpace:    'nowrap',
-                  }}
-                >
-                  <LogIn size={11} /> Login
-                </button>
-
-                <button
-                  onClick={openRegister}
-                  className="btn-gold"
-                  style={{
-                    borderRadius:  99,
-                    padding:       '6px 11px',
-                    fontSize:      11,
-                    fontWeight:    700,
-                    letterSpacing: '0.04em',
-                    cursor:        'pointer',
-                    display:       'flex',
-                    alignItems:    'center',
-                    gap:           4,
-                    border:        'none',
-                    whiteSpace:    'nowrap',
-                  }}
-                >
-                  <UserPlus size={11} /> Sign Up
-                </button>
-              </>
+              // Not logged in → single combined auth CTA in topbar
+              <button
+                onClick={openLogin}
+                className="btn-gold"
+                style={{
+                  borderRadius:  99,
+                  padding:       '6px 11px',
+                  fontSize:      11,
+                  fontWeight:    700,
+                  letterSpacing: '0.04em',
+                  cursor:        'pointer',
+                  display:       'flex',
+                  alignItems:    'center',
+                  gap:           4,
+                  border:        'none',
+                  whiteSpace:    'nowrap',
+                }}
+              >
+                <UserPlus size={11} /> Sign In / Sign Up
+              </button>
             )}
 
             {/* Hamburger toggle */}
@@ -482,7 +435,7 @@ export default function Navbar() {
               exit={{   opacity: 0, height: 0      }}
               className="md:hidden overflow-hidden"
               style={{
-                background: '#0A0005',
+                background: 'var(--w365-bg)',
                 borderTop:  '1px solid rgba(212,175,55,0.25)',
                 boxShadow:  '0 8px 32px rgba(0,0,0,0.8)',
               }}

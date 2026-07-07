@@ -115,6 +115,11 @@ class CountryListView(APIView):
             )
             resp.raise_for_status()
             raw = resp.json()
+            if not isinstance(raw, list):
+                # restcountries.com occasionally returns an error object
+                # (e.g. {"message": ..., "status": ...}) instead of the
+                # expected array — iterating over it would crash below.
+                raise ValueError("Unexpected response shape from restcountries.com")
         except Exception as e:
             return Response(
                 {"error": f"Could not fetch country data: {str(e)}"},

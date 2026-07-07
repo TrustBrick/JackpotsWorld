@@ -18,6 +18,7 @@ import OverviewTab       from "./tabs/Validations/OverviewTab";
 import WalletTab         from "./tabs/stats//WalletTab";
 import TravelTab         from "./tabs/Validations/TravelTab";
 import GiftsTab          from "./tabs/Validations/GiftsTab";
+import PackagesTab       from "./tabs/Validations/PackagesTab";
 import FavouritesTab     from "./tabs/Validations/FavouritesTab";
 import BonusTab          from "./tabs/Validations/BonusTab";
 import RewardsTab        from "./tabs/Validations/RewardsTab";
@@ -34,7 +35,7 @@ function BannedScreen({ message, supportEmail, onLogout }) {
       minHeight: "100vh",
       display: "flex", alignItems: "center", justifyContent: "center",
       background: "#0a0a0f", flexDirection: "column", gap: 20,
-      fontFamily: "'DM Sans', sans-serif",
+      fontFamily: "'Space Grotesk', sans-serif",
     }}>
       <div style={{ position: "fixed", inset: 0, pointerEvents: "none", overflow: "hidden", zIndex: 0 }}>
         <div style={{
@@ -202,7 +203,7 @@ export default function Dashboard() {
       minHeight: "100vh",
       background: C.bg,
       color: "white",
-      fontFamily: "'DM Sans', sans-serif",
+      fontFamily: "'Space Grotesk', sans-serif",
       display: "flex",
     }}>
       {/* Ambient glow */}
@@ -295,6 +296,7 @@ export default function Dashboard() {
             {tab === "wallet"        && <WalletTab        profile={profile} onToast={showToast} onRefresh={fetchDashboard} />}
             {tab === "travel"        && <TravelTab        profile={profile} onToast={showToast} />}
             {tab === "gifts"         && <GiftsTab         onToast={showToast} onRefresh={fetchDashboard} />}
+            {tab === "packages"      && <PackagesTab      />}
             {tab === "favourites"    && <FavouritesTab    onToast={showToast} />}
             {tab === "bonus"         && <BonusTab         profile={profile} onToast={showToast} onRefresh={fetchDashboard} />}
             {tab === "rewards"       && <RewardsTab       onToast={showToast} onRefresh={fetchDashboard} />}

@@ -1,12 +1,12 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import {
   Users, TrendingUp, Percent, Layers, FileText, ChevronDown,
   LogIn, UserPlus, CheckCircle2,
 } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import PageHeader from '../components/shared/PageHeader'
-import AuthModal from '../components/AuthModal'
 
 // ── Static content ───────────────────────────────────────────────────────────
 // This is copy-only content for now. If you later want this editable from an
@@ -90,21 +90,11 @@ function FaqItem({ faq, isOpen, onToggle }) {
  */
 export default function Affiliates() {
   const [openFaq, setOpenFaq]   = useState(0)
-  const [authOpen, setAuthOpen] = useState(false)
-  const [authTab, setAuthTab]   = useState('login')
-
-  const openAuth = (tab) => { setAuthTab(tab); setAuthOpen(true) }
+  const navigate = useNavigate()
 
   return (
     <div className="min-h-screen" style={{ background: '#0A0005' }}>
       <Navbar />
-
-      <AuthModal
-        isOpen={authOpen}
-        onClose={() => setAuthOpen(false)}
-        defaultTab={authTab}
-        onAuthSuccess={() => setAuthOpen(false)}
-      />
 
       <PageHeader
         eyebrow="Partner With Us"
@@ -235,18 +225,18 @@ export default function Affiliates() {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.97 }}
-            onClick={() => openAuth('login')}
+            onClick={() => navigate('/affiliate-login')}
             className="btn-outline-gold flex items-center gap-2 px-8 py-3 rounded-full text-sm font-bold tracking-widest uppercase"
           >
-            <LogIn size={15} /> Login
+            <LogIn size={15} /> Affiliate Login
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.97 }}
-            onClick={() => openAuth('register')}
+            onClick={() => navigate('/affiliate-login')}
             className="btn-gold flex items-center gap-2 px-8 py-3 rounded-full text-sm font-bold tracking-widest uppercase"
           >
-            <UserPlus size={15} /> Register
+            <UserPlus size={15} /> Become an Affiliate
           </motion.button>
         </div>
       </section>

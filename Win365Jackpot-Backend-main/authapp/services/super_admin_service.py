@@ -58,6 +58,7 @@ def credit_admin_wallet(
     wallet_type: str,
     amount,
     note: str = "",
+    target_admin=None,   # optional Admin this pool credit is attributed to
 ) -> dict:
     amount = Decimal(str(amount))
     if amount <= 0:
@@ -81,6 +82,8 @@ def credit_admin_wallet(
         admin_wallet_after=after,
         performed_by=actor,
         performed_by_email=actor.email,
+        target_user=target_admin,
+        target_user_uid=getattr(target_admin, "user_uid", ""),
         note=note,
         reference=ref,
     )
@@ -119,6 +122,7 @@ def debit_admin_wallet(
     wallet_type: str,
     amount,
     note: str = "",
+    target_admin=None,   # optional Admin this pool debit is attributed to
 ) -> dict:
     amount = Decimal(str(amount))
     if amount <= 0:
@@ -142,6 +146,8 @@ def debit_admin_wallet(
         admin_wallet_after=after,
         performed_by=actor,
         performed_by_email=actor.email,
+        target_user=target_admin,
+        target_user_uid=getattr(target_admin, "user_uid", ""),
         note=note,
         reference=ref,
     )

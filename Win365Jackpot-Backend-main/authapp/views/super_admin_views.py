@@ -63,12 +63,14 @@ class AdminWalletCreditView(APIView):
             return Response(ser.errors, status=400)
 
         AdminWallet.objects.get_or_create(pk=1)
+        target_admin = User.objects.get(pk=ser.validated_data["admin_id"])
 
         result = credit_admin_wallet(
             actor=request.user,
             wallet_type=ser.validated_data["wallet_type"],
             amount=ser.validated_data["amount"],
             note=ser.validated_data.get("note", ""),
+            target_admin=target_admin,
         )
         return Response({"message": "AdminWallet credited.", **result})
 
@@ -91,6 +93,7 @@ class AdminWalletDebitView(APIView):
             return Response(ser.errors, status=400)
 
         AdminWallet.objects.get_or_create(pk=1)
+        target_admin = User.objects.get(pk=ser.validated_data["admin_id"])
 
         try:
             result = debit_admin_wallet(
@@ -98,6 +101,7 @@ class AdminWalletDebitView(APIView):
                 wallet_type=ser.validated_data["wallet_type"],
                 amount=ser.validated_data["amount"],
                 note=ser.validated_data.get("note", ""),
+                target_admin=target_admin,
             )
         except ValueError as exc:
             return Response({"error": str(exc)}, status=400)
@@ -156,7 +160,11 @@ class SuperAdminTransactionListView(APIView):
     """
     GET /super-admin/wallet/history/
     Full ledger — SA_CREDIT / SA_DEBIT / ADM_TRANSFER.
-    Filterable by txn_type, wallet_type, q, page.
+    Filterable by txn_type, wallet_type, user_type, q, page.
+
+    user_type is derived, not a stored field: SA_CREDIT/SA_DEBIT act on the
+    pooled AdminWallet (attributed to an Admin) -> "admin"; ADM_TRANSFER
+    moves funds into an end-user's wallet -> "user".
     """
     permission_classes = [IsSuperAdmin]
 
@@ -167,6 +175,7 @@ class SuperAdminTransactionListView(APIView):
 
         txn_type    = request.query_params.get("txn_type",    "").strip().upper()
         wallet_type = request.query_params.get("wallet_type", "").strip().upper()
+        user_type   = request.query_params.get("user_type",   "").strip().lower()
         q           = request.query_params.get("q",           "").strip()
         page        = max(int(request.query_params.get("page",      1)),  1)
         per         = max(int(request.query_params.get("page_size", 20)), 1)
@@ -175,6 +184,10 @@ class SuperAdminTransactionListView(APIView):
             qs = qs.filter(txn_type=txn_type)
         if wallet_type:
             qs = qs.filter(wallet_type=wallet_type)
+        if user_type == "admin":
+            qs = qs.filter(txn_type__in=["SA_CREDIT", "SA_DEBIT"])
+        elif user_type == "user":
+            qs = qs.filter(txn_type="ADM_TRANSFER")
         if q:
             qs = qs.filter(
                 Q(reference__icontains=q) |

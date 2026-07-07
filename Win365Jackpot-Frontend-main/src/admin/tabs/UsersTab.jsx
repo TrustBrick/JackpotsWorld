@@ -303,6 +303,7 @@ export default function UsersTab({ onToast }) {
         </div>
 
         <Card style={{ padding: 0, overflow: "hidden" }}>
+          <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.02)" }}>
@@ -359,6 +360,7 @@ export default function UsersTab({ onToast }) {
               ))}
             </tbody>
           </table>
+          </div>
           <div style={{ padding: 12, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
             <Pagination page={page} total={total} perPage={PER_PAGE} onChange={pg => setPage(pg)} />
           </div>

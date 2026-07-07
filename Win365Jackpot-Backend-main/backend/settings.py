@@ -189,3 +189,12 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
 
 TURNSTILE_SECRET_KEY = config("TURNSTILE_SECRET_KEY", default="")
+
+# ── Events / Poker content sync ──────────────────────────────────────────────
+# Best-effort RSS aggregator (authapp/services/event_sync_service.py,
+# authapp/services/poker_sync_service.py). Comma-separated feed URLs; empty by
+# default since curated seed data (migration 0005) already keeps these
+# sections populated — add real feed URLs here to enable auto-sync, run via
+# `python manage.py sync_events` / `sync_poker` (cron / Windows Task Scheduler).
+EVENT_RSS_FEEDS = [u.strip() for u in config("EVENT_RSS_FEEDS", default="").split(",") if u.strip()]
+POKER_RSS_FEEDS = [u.strip() for u in config("POKER_RSS_FEEDS", default="").split(",") if u.strip()]

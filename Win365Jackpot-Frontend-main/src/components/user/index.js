@@ -14,6 +14,7 @@ export { default as OverviewTab }      from "./tabs/Validations/OverviewTab";
 export { default as WalletTab }        from "./tabs/WalletTab";
 export { default as TravelTab }        from "./tabs/Validations/TravelTab";
 export { default as GiftsTab }         from "./tabs/Validations/GiftsTab";
+export { default as PackagesTab }      from "./tabs/Validations/PackagesTab";
 export { default as FavouritesTab }    from "./tabs/Validations/FavouritesTab";
 export { default as BonusTab }         from "./tabs/Validations/BonusTab";
 export { default as RewardsTab }       from "./tabs/Validations/RewardsTab";

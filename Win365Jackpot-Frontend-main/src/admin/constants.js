@@ -65,6 +65,9 @@ export const ADMIN_TABS = [
   // { id:"notifications", label:"Notifications",    icon:"Bell"       },
   { id:"transactions",  label:"Transaction History",     icon:"FileText"   },
   // { id:"kyc",           label:"KYC / Accounts",   icon:"Shield"     },
+  { id:"events",        label:"Manage Events",    icon:"CalendarDays" },
+  { id:"poker",         label:"Manage Poker",      icon:"Spade" },
+  { id:"promotions",    label:"Manage Promotions", icon:"Gift" },
   { id:"logs",          label:"Activity Logs",    icon:"Activity"   },
   // { id:"staff",         label:"Staff",            icon:"UserCog"    },
 ];

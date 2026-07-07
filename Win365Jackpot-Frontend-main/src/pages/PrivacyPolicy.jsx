@@ -82,7 +82,7 @@ export default function PrivacyPolicy() {
       minHeight: '100vh',
       background: '#0A0005',
       color: 'white',
-      fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
+      fontFamily: "'Space Grotesk', 'Segoe UI', sans-serif",
     }}>
 
       {/* ── Top bar ── */}

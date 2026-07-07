@@ -45,6 +45,7 @@ export const TABS = [
   { id: "wallet",        label: "Wallet",          icon: "Wallet"         },
   { id: "travel",        label: "Travel History",  icon: "Plane"          },
   { id: "gifts",         label: "Gifts",           icon: "Gift"           },
+  { id: "packages",      label: "Packages",        icon: "Package"        },
   // { id: "favourites",    label: "Favourites",      icon: "Heart"          },
   // { id: "bonus",         label: "Bonus",           icon: "Star"           },
   // { id: "rewards",       label: "Spin & Rewards",  icon: "Trophy"         },
