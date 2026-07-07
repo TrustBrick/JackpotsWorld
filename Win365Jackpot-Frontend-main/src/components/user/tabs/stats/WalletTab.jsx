@@ -599,8 +599,7 @@ function TransactionHistory({ onToast }) {
                         fontSize: 14, fontWeight: 700, fontFamily: "monospace",
                         color: isCredit ? (C.green || "#34d399") : (C.red || "#f87171"),
                       }}>
-                        {isCredit ? "+" : "−"}
-                        {isRP ? `${Number(tx.amount).toLocaleString()} RP` : fmt(tx.amount)}
+                        {isRP ? Number(tx.amount).toLocaleString() : `${isCredit ? "+" : "−"}${fmt(tx.amount)}`}
                       </div>
                       <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>
                         {isRP ? `${Number(tx.balance_after).toLocaleString()} RP` : fmt(tx.balance_after)}

@@ -8,6 +8,8 @@ GET /wallet/transactions/  → paginated transaction history for current user
 GET /wallet/validations/   → validation log for current user
 """
 
+import re
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -222,9 +224,19 @@ class UserWalletTransactionListView(APIView):
         if search:
             qs = qs.filter(transaction_reference__icontains=search)
 
-        total  = qs.count()
+        # credit_casino_wallet/debit_casino_wallet (casino_wallet_service.py)
+        # always write an internal "[CASINO:X] [C] WAC $100 | ..." audit row to
+        # this same table *in addition to* the plain row _credit_main/_debit_main
+        # writes for the main-wallet side of a withdrawal (see admin_offline_
+        # deposit_views.py's WAC branch) — two rows for one real action. De-dupe
+        # and clean up the internal tags before paginating so the user only ever
+        # sees one row per action, formatted "Casino Name | note".
+        all_txns = list(qs)
+        visible_txns, casino_backfill = _dedupe_casino_pairs(all_txns)
+
+        total  = len(visible_txns)
         offset = (page - 1) * per
-        items  = qs[offset: offset + per]
+        items  = visible_txns[offset: offset + per]
 
         results = []
         for tx in items:
@@ -234,6 +246,11 @@ class UserWalletTransactionListView(APIView):
             note_lower = (tx.note or "").lower()
             if "loss" in note_lower or "withdrawn" in note_lower:
                 cr_dr = "DR"
+
+            casino_name, clean_note, _ = _parse_wallet_note(tx.note)
+            if not casino_name:
+                casino_name = casino_backfill.get(tx.id)
+            display_note = f"{casino_name} | {clean_note}" if casino_name else clean_note
 
             results.append({
                 "id":                     str(tx.id),
@@ -253,8 +270,8 @@ class UserWalletTransactionListView(APIView):
                 "balance_before":         float(tx.balance_before),
                 "balance_after":          float(tx.balance_after),
 
-                "note":                   tx.note or "",
-                "casino_name":            _extract_casino(tx.note),
+                "note":                   display_note,
+                "casino_name":            casino_name,
 
                 "performed_by_name":      tx.performed_by.user_uid if tx.performed_by else "System",
                 "status":                 getattr(tx, "validation_status", "approved"),
@@ -269,13 +286,62 @@ class UserWalletTransactionListView(APIView):
         })
 
 
-def _extract_casino(note):
-    """Pull casino name from the note field if present."""
-    if not note:
-        return None
-    # Notes are formatted: "Casino Name | details"
-    parts = note.split("|")
-    return parts[0].strip() if parts else None
+_CASINO_TAG_RE = re.compile(r"^\[CASINO:([^\]]+)\]\s*")
+_CODE_TAG_RE   = re.compile(r"^\[[A-Za-z]{1,3}\]\s*[A-Z]{2,6}\s*\$[\d,.]+\s*\|?\s*")
+
+
+def _parse_wallet_note(note):
+    """
+    Internal audit notes look like "[CASINO:Big Daddy] [C] WAC $10000 | free text".
+    Strips the bracket/code tags and returns (casino_name_or_None, clean_note, is_system_tagged).
+    """
+    text = note or ""
+    m = _CASINO_TAG_RE.match(text)
+    casino_name = m.group(1).strip() if m else None
+    if m:
+        text = text[m.end():]
+    text = _CODE_TAG_RE.sub("", text).strip(" |").strip()
+    return casino_name, (text or "Transaction"), bool(m)
+
+
+def _dedupe_casino_pairs(txns):
+    """
+    Collapse a system-tagged row ("[CASINO:...]", written by casino_wallet_
+    service's credit/debit helpers) together with its plain sibling (written
+    by _credit_main/_debit_main for the same real action) into just the
+    plain row — matched by same transaction_type + amount within a few
+    seconds of each other. A tagged row with no plain sibling (e.g. WIN, LAC,
+    each leg of a TAC transfer) is the only record of that action, so it's
+    kept, just cleaned up for display by _parse_wallet_note.
+
+    Returns (visible_txns, casino_name_backfill) where casino_name_backfill
+    maps a plain txn's id -> casino name recovered from its dropped twin.
+    """
+    tagged = [t for t in txns if _CASINO_TAG_RE.match(t.note or "")]
+    plain  = [t for t in txns if not _CASINO_TAG_RE.match(t.note or "")]
+
+    dropped_ids = set()
+    used_tagged = set()
+    backfill    = {}
+
+    for p in plain:
+        for t in tagged:
+            if t.id in used_tagged:
+                continue
+            if (
+                t.transaction_type == p.transaction_type
+                and t.amount == p.amount
+                and abs((t.created_at - p.created_at).total_seconds()) <= 10
+            ):
+                used_tagged.add(t.id)
+                dropped_ids.add(t.id)
+                casino_name, _, _ = _parse_wallet_note(t.note)
+                if casino_name:
+                    backfill[p.id] = casino_name
+                break
+
+    visible = [t for t in txns if t.id not in dropped_ids]
+    return visible, backfill
 
 
 # ─── Admin: wallet accounts for a specific user ───────────────────────────────

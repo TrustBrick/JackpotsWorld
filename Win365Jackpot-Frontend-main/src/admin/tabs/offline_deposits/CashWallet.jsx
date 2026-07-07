@@ -109,7 +109,7 @@ export default function CashWallet({ userInfo, accounts, casinos, submitting, se
     const wj  = await wr.json();
     const map = {};
     const normalize = { cash:"C", non_cash:"NC", otp:"O", rolling_points:"RP" };
-    (j.wallets||[]).forEach(w => {
+    (wj.wallets||[]).forEach(w => {
     const key = normalize[w.wallet_type] || w.wallet_type;
   map[key] = Number(w.balance);
 });
@@ -216,7 +216,7 @@ export default function CashWallet({ userInfo, accounts, casinos, submitting, se
               <label style={lbl}>Casino</label>
               <select value={casinoName} onChange={e => setCasinoName(e.target.value)} disabled={!country} style={sel(casinoName?"#34d399":COLOR)}>
                 <option value="">— Select casino —</option>
-                {casinosForCountry.map(c => <option key={c.name+c.location} value={c.name}>{c.location ? `${c.name} (${c.location})` : c.name}</option>)}
+                {casinosForCountry.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
               </select>
             </div>
           </div>
@@ -287,7 +287,7 @@ export default function CashWallet({ userInfo, accounts, casinos, submitting, se
                 <label style={lbl}>To Casino</label>
                 <select value={toCasino} onChange={e => setToCasino(e.target.value)} style={sel("#60a5fa")}>
                   <option value="">— Select —</option>
-                  {toCasinosForCountry.map(c => <option key={c.name+c.location} value={c.name}>{c.name} ({c.location})</option>)}
+                  {toCasinosForCountry.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
                 </select>
               </div>
             )}

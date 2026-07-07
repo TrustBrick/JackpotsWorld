@@ -153,7 +153,11 @@ export default function AdminPanel() {
 
   const logout = () => {
     ["admin_token", "admin_refresh", "admin_user"].forEach(k => localStorage.removeItem(k));
-    navigate("/");
+    setAuthed(false);
+    setAdminUser(null);
+    // Replace (not push) so the authenticated panel entry is gone from
+    // history — back button lands on the login screen, not the panel.
+    navigate("/admin-panel", { replace: true });
   };
 
   if (!authed) return (

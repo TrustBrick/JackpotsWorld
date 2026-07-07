@@ -163,6 +163,7 @@ export default function RollingPoints({ userInfo, accounts, submitting, setSubmi
     if (!rSlipNumber.trim()) return onToast("Enter slip number", false);
     if (rSlipError)          return onToast(rSlipError, false);
     if (!rBettingDate)       return onToast("Select betting date", false);
+    if (rBettingDate !== TODAY) return onToast("Only today's date is allowed for betting entries", false);
     if (betAmt <= 0)         return onToast("Enter total bet amount", false);
     if (rpAdded <= 0)        return onToast("Rolling points must be > 0", false);
 
@@ -192,7 +193,7 @@ export default function RollingPoints({ userInfo, accounts, submitting, setSubmi
   };
 
   const isValid = !hasNoCasinoAccounts && !!country && !!rCasino &&
-    rSlipNumber.trim() && !rSlipError && rBettingDate && betAmt > 0 && rpAdded > 0 && !submitting;
+    rSlipNumber.trim() && !rSlipError && rBettingDate === TODAY && betAmt > 0 && rpAdded > 0 && !submitting;
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
@@ -278,25 +279,23 @@ export default function RollingPoints({ userInfo, accounts, submitting, setSubmi
             )}
           </div>
 
-          {/* Betting Date — no future dates */}
+          {/* Betting Date — only today's date is allowed (no past, no future) */}
           <div>
             <label style={lbl}><Calendar size={9} style={{ display:"inline", marginRight:3 }}/>Betting Date *</label>
             <input
               value={rBettingDate}
-              onChange={e => {
-                if (e.target.value > TODAY) return; // block future
-                setRBettingDate(e.target.value);
-              }}
+              onChange={e => setRBettingDate(e.target.value)}
               type="date"
+              min={TODAY}
               max={TODAY}
               style={{
-                ...inp("#60a5fa"),
+                ...inp(rBettingDate && rBettingDate !== TODAY ? "#f87171" : "#60a5fa", rBettingDate && rBettingDate !== TODAY),
                 colorScheme: "dark",
               }}
             />
-            {rBettingDate > TODAY && (
+            {rBettingDate && rBettingDate !== TODAY && (
               <div style={{ fontSize:10, color:"#f87171", marginTop:4, fontWeight:600 }}>
-                Future dates are not allowed
+                Only today's date is allowed for betting entries
               </div>
             )}
           </div>
@@ -324,7 +323,7 @@ export default function RollingPoints({ userInfo, accounts, submitting, setSubmi
             <label style={lbl}>Casino Name *</label>
             <select value={rCasino} onChange={e => setRCasino(e.target.value)} style={sel("#60a5fa")}>
               <option value="">— Select casino —</option>
-              {casinosForCountry.map(c => <option key={c.name} value={c.name}>{c.location ? `${c.name} (${c.location})` : c.name}</option>)}
+              {casinosForCountry.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
             </select>
           </div>
         )}

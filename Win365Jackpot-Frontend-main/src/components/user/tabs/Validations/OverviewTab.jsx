@@ -315,6 +315,7 @@ export default function OverviewTab({ profile, onTabChange, onToast }) {
               const color  = isDr ? T.red : T.green;
               const wMeta  = WALLET_META[tx.wallet_type] || { abbr: tx.wallet_type, color: "#888" };
               const label  = TX_LABELS[txType] || txType;
+              const isRP   = tx.wallet_type === "rolling_points";
 
               return (
                 <div
@@ -349,7 +350,10 @@ export default function OverviewTab({ profile, onTabChange, onToast }) {
 
                   <div style={{ textAlign: "right", flexShrink: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color, whiteSpace: "nowrap" }}>
-                      {isDr ? "−" : "+"}{fmt(Math.abs(Number(tx.amount)))}
+                      {isRP
+                        ? Math.abs(Number(tx.amount)).toLocaleString("en-IN")
+                        : `${isDr ? "−" : "+"}${fmt(Math.abs(Number(tx.amount)))}`
+                      }
                     </div>
                     <div style={{ fontSize: 10, fontWeight: 700, color: T.textMuted, marginTop: 2 }}>
                       {isDr ? "DR" : "CR"}

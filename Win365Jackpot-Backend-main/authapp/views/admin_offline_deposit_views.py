@@ -30,6 +30,7 @@ WHAT WAS WRONG BEFORE:
 from decimal import Decimal, ROUND_HALF_UP
 from django.db import transaction as db_transaction
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -472,8 +473,12 @@ class AdminOfflineDepositsView(APIView):
                     )
                 except ValueError as exc:
                     return Response({"error": f"Casino wallet: {exc}"}, status=400)
+                # Prefix with casino name so the user-facing transaction list
+                # (which de-dupes this row against casino_wallet_service's
+                # internal "[CASINO:...]" audit row) has it without needing
+                # to parse tags: displays as "Casino Name | note".
                 new_main_bal = _credit_main(user, wallet_type, amount, txn_type,
-                                            note or f"Withdrawal from {casino}", actor)
+                                            f"{casino} | {note or f'Withdrawal from {casino}'}", actor)
                 _log_offline(user=user, txn_type=txn_type, casino=casino,
                              wallet_type=wallet_type, amount=amount,
                              main_balance=new_main_bal, actor=actor, note=note)
@@ -592,6 +597,15 @@ class AdminOfflineDepositsView(APIView):
             if not casino or not country:
                 return _reject("❌ This player is not registered for the selected casino.")
 
+            # Betting date must be exactly today — no backdated or future entries.
+            today = timezone.now().date()
+            if betting_date and str(betting_date) != str(today):
+                return _reject("❌ Only today's date is allowed for betting entries.")
+
+            # Casino must actually belong to the selected country (reference catalog).
+            if not Casino.objects.filter(country=country, name=casino, is_active=True).exists():
+                return _reject(f"❌ {casino} does not belong to {country}.")
+
             wallet, wallet_err = _resolve_player_casino_wallet(user, casino, country)
             if wallet_err:
                 return _reject(wallet_err)
@@ -631,6 +645,11 @@ class AdminOfflineDepositsView(APIView):
             level_up_triggered = new_vip_level > old_vip_level
 
             rp_wallet_balance = _write_rp_txn(user, rp_added, "ROP", rp_note, actor)
+
+            # Per-casino RP total — kept separate per casino/country wallet so
+            # entries never mix across casinos (fix D.2).
+            wallet.rolling_points = (wallet.rolling_points or Decimal("0")) + rp_added
+            wallet.save(update_fields=["rolling_points"])
 
             try:
                 from authapp.services.notification_service import notify_transaction
@@ -705,6 +724,7 @@ class AdminOfflineDepositsView(APIView):
                 "level_up_triggered":   level_up_triggered,
                 "new_vip_level":        new_vip_level,
                 "rp_wallet_balance":    rp_wallet_balance,
+                "casino_rolling_points": float(wallet.rolling_points),
             })
 
         return Response({"error": f"Unknown entry type: {entry_type}"}, status=400)

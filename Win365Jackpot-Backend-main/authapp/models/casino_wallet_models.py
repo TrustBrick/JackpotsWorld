@@ -44,6 +44,12 @@ class CasinoWalletAccount(models.Model):
 
     balance = models.DecimalField(max_digits=14, decimal_places=2, default=0)
 
+    # Rolling points earned specifically at this casino/country wallet — kept
+    # separate from the global `CustomUser.rolling_points_total` so per-casino
+    # totals never mix (e.g. India/Big Daddy RP stays distinct from
+    # Sri Lanka/Bellagio Casino RP even for the same player).
+    rolling_points = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+
     is_active = models.BooleanField(default=True)
 
     # 🔹 Audit

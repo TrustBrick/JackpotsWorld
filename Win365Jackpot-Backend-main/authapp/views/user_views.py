@@ -1,5 +1,6 @@
 # authapp/views/user_views.py
 
+import re
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -292,6 +293,28 @@ class UserWalletTransactionListView(APIView):
 
 
 
+_BRACKET_TAG_RE = re.compile(r"\[[^\]]*\]")
+_SYSTEM_NOTE_MARKERS = ("[CASINO:", "[C]", "[NC]", "[O]", "[RP]", "WAC ", "DAC ", "WMA ", "DMA ", "LAC ", "TAC ")
+
+
+def _clean_travel_note(casino_name, note):
+    """
+    Strip internal audit tags (e.g. "[CASINO:Big Daddy] [C] WAC $10000 | note")
+    from a raw log note and format it as "Casino Name | note" for display.
+    """
+    text = note or ""
+    if any(marker in text for marker in _SYSTEM_NOTE_MARKERS):
+        text = _BRACKET_TAG_RE.sub("", text)
+        # Drop a leading "TXNTYPE $amount" fragment left behind after tags are stripped.
+        text = re.sub(r"^[A-Z]{2,6}\s*\$[\d,.]+\s*\|?\s*", "", text).strip(" |").strip()
+
+    if not text:
+        return ""  # no real note left to show — don't invent one from the casino name
+    if casino_name:
+        return f"{casino_name} | {text}"
+    return text
+
+
 class UserTravelHistoryView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -314,7 +337,7 @@ class UserTravelHistoryView(APIView):
                 "rolling_points_total": float(log.rolling_points_total or 0),
                 "vip_level_at_time":    log.vip_level_at_time,
                 "level_up_triggered":   log.level_up_triggered,
-                "note":                 log.note,
+                "note":                 _clean_travel_note(log.casino_name, log.note),
                 "created_at":           log.created_at,
             })
         return Response({"results": results, "count": len(results)})
