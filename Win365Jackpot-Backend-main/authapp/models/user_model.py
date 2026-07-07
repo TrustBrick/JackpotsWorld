@@ -244,6 +244,7 @@ class ActivityLog(models.Model):
         ("withdrawal_created", "Withdrawal Created"),
         ("casino_visit_recorded", "Casino Visit Recorded"),
         ("casino_transfer", "Casino Transfer"),
+        ("rolling_points_rejected", "Rolling Points Rejected"),
         ("bonus_added", "Bonus Added"),
         ("reward_created", "Reward Created"),
         ("reward_claimed", "Reward Claimed"),

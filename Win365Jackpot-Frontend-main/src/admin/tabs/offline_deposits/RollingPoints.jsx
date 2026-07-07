@@ -3,10 +3,10 @@
  * Rolling Points entry tab — extracted from OfflineDepositTab
  */
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   TrendingUp, Hash, Calendar, AlertTriangle,
-  Info, ChevronDown, ChevronUp,
+  Info, ChevronDown, ChevronUp, ShieldAlert,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { adminFetch, API, fmt } from "../../helpers";
@@ -97,7 +97,7 @@ function RefTable() {
 }
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
-export default function RollingPoints({ userInfo, accounts, casinos, submitting, setSubmitting, onToast, refreshUser }) {
+export default function RollingPoints({ userInfo, accounts, submitting, setSubmitting, onToast, refreshUser }) {
   const [showRef,       setShowRef]       = useState(false);
   const [rCasino,       setRCasino]       = useState("");
   const [country,       setCountry]       = useState("");
@@ -109,6 +109,25 @@ export default function RollingPoints({ userInfo, accounts, casinos, submitting,
   const [rTotalBetAmt,  setRTotalBetAmt]  = useState("");
   const [rRpOverride,   setRRpOverride]   = useState("");
   const [rNote,         setRNote]         = useState("");
+
+  // Player-scoped casino list — ONLY casinos where this player has an
+  // active, funded Cash wallet (i.e. has actually deposited/played there).
+  // Never the global casino reference list.
+  const [playerCasinos,        setPlayerCasinos]        = useState({});
+  const [loadingPlayerCasinos, setLoadingPlayerCasinos]  = useState(false);
+
+  useEffect(() => {
+    setCountry(""); setRCasino("");
+    if (!userInfo) { setPlayerCasinos({}); return; }
+    setLoadingPlayerCasinos(true);
+    adminFetch(`${API}/api/admin-panel/deposits/casinos/?user_id=${userInfo.id}`)
+      .then(r => r.json())
+      .then(j => setPlayerCasinos(j.casinos || {}))
+      .catch(() => setPlayerCasinos({}))
+      .finally(() => setLoadingPlayerCasinos(false));
+  }, [userInfo]);
+
+  const hasNoCasinoAccounts = !loadingPlayerCasinos && !!userInfo && Object.keys(playerCasinos).length === 0;
 
   const checkSlipUnique = useCallback(async (slip) => {
     if (!slip.trim()) { setRSlipError(""); return; }
@@ -126,7 +145,7 @@ export default function RollingPoints({ userInfo, accounts, casinos, submitting,
   const nextVip    = vipLvl < MAX_VIP ? VIP_BY_LVL[vipLvl+1] : null;
   const vipColor   = VIP_COLORS[vipLvl-1] || VIP_COLORS[0];
   const currentRP  = Number(userInfo?.rolling_points_total || 0);
-  const casinosForCountry = casinos[country] || [];
+  const casinosForCountry = playerCasinos[country] || [];
 
   const betAmt      = parseFloat(rTotalBetAmt) || 0;
   const numBets     = parseInt(rTotalBets) || 0;
@@ -138,11 +157,13 @@ export default function RollingPoints({ userInfo, accounts, casinos, submitting,
 
   const submitRP = async () => {
     if (!userInfo)           return onToast("Select a user first", false);
+    if (hasNoCasinoAccounts) return onToast("No active casino accounts found.", false);
+    if (!country)            return onToast("Select a country", false);
+    if (!rCasino)            return onToast("Select a casino", false);
     if (!rSlipNumber.trim()) return onToast("Enter slip number", false);
     if (rSlipError)          return onToast(rSlipError, false);
     if (!rBettingDate)       return onToast("Select betting date", false);
     if (betAmt <= 0)         return onToast("Enter total bet amount", false);
-    if (!rCasino)            return onToast("Select a casino", false);
     if (rpAdded <= 0)        return onToast("Rolling points must be > 0", false);
 
     setSubmitting(true);
@@ -151,7 +172,7 @@ export default function RollingPoints({ userInfo, accounts, casinos, submitting,
         method:"POST",
         body: JSON.stringify({
           user_id: userInfo.id, type:"rolling_points",
-          vip_level: vipLvl, casino_name: rCasino,
+          vip_level: vipLvl, casino_name: rCasino, country,
           slip_number: rSlipNumber.trim(), betting_date: rBettingDate,
           total_bets: numBets, total_bet_amount: betAmt,
           rolling_points_manual: rRpOverride !== "" ? rpAdded : null,
@@ -170,7 +191,8 @@ export default function RollingPoints({ userInfo, accounts, casinos, submitting,
     setSubmitting(false);
   };
 
-  const isValid = rSlipNumber.trim() && !rSlipError && rBettingDate && betAmt > 0 && rCasino && rpAdded > 0 && !submitting;
+  const isValid = !hasNoCasinoAccounts && !!country && !!rCasino &&
+    rSlipNumber.trim() && !rSlipError && rBettingDate && betAmt > 0 && rpAdded > 0 && !submitting;
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
@@ -206,8 +228,21 @@ export default function RollingPoints({ userInfo, accounts, casinos, submitting,
         </div>
       )}
 
+      {/* No active casino accounts — blocks the whole form */}
+      {userInfo && loadingPlayerCasinos && (
+        <div style={{ padding:"12px 14px", borderRadius:10, background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.08)", fontSize:12, color:"rgba(255,255,255,0.4)" }}>
+          Loading this player's casino accounts…
+        </div>
+      )}
+      {hasNoCasinoAccounts && (
+        <div style={{ padding:"12px 14px", borderRadius:10, background:"rgba(248,113,113,0.08)", border:"1px solid rgba(248,113,113,0.3)", fontSize:12, color:"#f87171", display:"flex", gap:8, alignItems:"flex-start", fontWeight:600 }}>
+          <ShieldAlert size={14} style={{ flexShrink:0, marginTop:1 }}/>
+          No active casino accounts found. This player has no recorded cash deposit at any casino — record a Cash Wallet deposit first before adding rolling points.
+        </div>
+      )}
+
       {/* Form Card */}
-      <div style={{ padding:"16px", borderRadius:12, background:"rgba(167,139,250,0.04)", border:"1px solid rgba(167,139,250,0.18)" }}>
+      <div style={{ padding:"16px", borderRadius:12, background:"rgba(167,139,250,0.04)", border:"1px solid rgba(167,139,250,0.18)", opacity: hasNoCasinoAccounts ? 0.45 : 1, pointerEvents: hasNoCasinoAccounts ? "none" : "auto" }}>
 
         {/* Header */}
         <div style={{ marginBottom:14, paddingBottom:12, borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
@@ -266,15 +301,22 @@ export default function RollingPoints({ userInfo, accounts, casinos, submitting,
             )}
           </div>
 
-          {/* Country */}
+          {/* Country — only countries where this player has actually deposited */}
           <div>
             <label style={lbl}>Country *</label>
             <select value={country} onChange={e => { setCountry(e.target.value); setRCasino(""); }} style={sel("#60a5fa")}>
               <option value="">— Country —</option>
-              {Object.keys(casinos).map(c => <option key={c} value={c}>{c}</option>)}
+              {Object.keys(playerCasinos).map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
         </div>
+
+        {/* Casino — only casinos where this player has an active funded Cash wallet */}
+        {country && casinosForCountry.length === 0 && (
+          <div style={{ marginBottom:12, padding:"8px 12px", borderRadius:8, background:"rgba(251,191,36,0.06)", border:"1px solid rgba(251,191,36,0.2)", fontSize:11, color:"#fbbf24", display:"flex", gap:7, alignItems:"center" }}>
+            <AlertTriangle size={12}/> No casino found for this player.
+          </div>
+        )}
 
         {/* Casino */}
         {country && (
@@ -282,7 +324,7 @@ export default function RollingPoints({ userInfo, accounts, casinos, submitting,
             <label style={lbl}>Casino Name *</label>
             <select value={rCasino} onChange={e => setRCasino(e.target.value)} style={sel("#60a5fa")}>
               <option value="">— Select casino —</option>
-              {casinosForCountry.map(c => <option key={c.name} value={c.name}>{c.name} ({c.location})</option>)}
+              {casinosForCountry.map(c => <option key={c.name} value={c.name}>{c.location ? `${c.name} (${c.location})` : c.name}</option>)}
             </select>
           </div>
         )}

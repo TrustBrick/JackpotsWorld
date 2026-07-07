@@ -30,16 +30,22 @@ logger = logging.getLogger(__name__)
 
 
 
-def _get_or_create_casino_wallet(user, casino_name: str, wallet_type: str) -> CasinoWalletAccount:
-    acct, _ = CasinoWalletAccount.objects.get_or_create(
+def _get_or_create_casino_wallet(user, casino_name: str, wallet_type: str, country: str = None) -> CasinoWalletAccount:
+    acct, created = CasinoWalletAccount.objects.get_or_create(
         user=user,
         casino_name=casino_name,
         wallet_type=wallet_type,
         defaults={
             "balance": Decimal("0"),
             "user_uid": user.user_uid,  # 🔥 REQUIRED
+            "country": country or "",
         }
     )
+    # Backfill country on legacy rows that predate this field, or self-heal
+    # a blank one, whenever a country is actually supplied by the caller.
+    if country and not acct.country:
+        acct.country = country
+        acct.save(update_fields=["country"])
     return acct
 
 
@@ -131,12 +137,13 @@ def credit_casino_wallet(
     actor,
     txn_type: str,
     note: str = "",
+    country: str = None,
 ) -> dict:
     amount = Decimal(str(amount))
     if amount <= 0:
         raise ValueError("Credit amount must be > 0")
 
-    acct = _get_or_create_casino_wallet(user, casino_name, wallet_type)
+    acct = _get_or_create_casino_wallet(user, casino_name, wallet_type, country=country)
     before = acct.balance
     acct.balance += amount
     acct.last_transaction_type = txn_type
@@ -187,6 +194,14 @@ def credit_casino_wallet(
     except Exception as exc:
         logger.warning("notify failed credit_casino_wallet: %s", exc)
 
+    # ── Referral commission (flat % of a referred user's cash deposits) ────
+    if txn_type == "DAC":
+        try:
+            from authapp.services.affiliate_service import record_referral_commission
+            record_referral_commission(user, amount, source_ref=str(casino_txn.id))
+        except Exception as exc:
+            logger.warning("referral commission failed credit_casino_wallet: %s", exc)
+
     return {
         "casino_balance": float(acct.balance),
         "casino_txn_id":  str(casino_txn.id),
@@ -203,12 +218,13 @@ def debit_casino_wallet(
     actor,
     txn_type: str,
     note: str = "",
+    country: str = None,
 ) -> dict:
     amount = Decimal(str(amount))
     if amount <= 0:
         raise ValueError("Debit amount must be > 0")
 
-    acct = _get_or_create_casino_wallet(user, casino_name, wallet_type)
+    acct = _get_or_create_casino_wallet(user, casino_name, wallet_type, country=country)
     if acct.balance < amount:
         raise ValueError(
             f"Insufficient {casino_name}/{wallet_type} balance "

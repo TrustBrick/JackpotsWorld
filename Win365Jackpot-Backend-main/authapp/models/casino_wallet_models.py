@@ -30,6 +30,12 @@ class CasinoWalletAccount(models.Model):
 
     casino_name = models.CharField(max_length=120, db_index=True)
 
+    # Country this specific wallet belongs to — stamped from the country the
+    # admin actually selected when the deposit was made. Casino names collide
+    # across countries in the Casino reference table, so this is the only
+    # reliable way to know which country a given wallet is really for.
+    country = models.CharField(max_length=100, blank=True, default="", db_index=True)
+
     wallet_type = models.CharField(
         max_length=3,
         choices=CASINO_WALLET_TYPES,
@@ -37,6 +43,8 @@ class CasinoWalletAccount(models.Model):
     )
 
     balance = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+
+    is_active = models.BooleanField(default=True)
 
     # 🔹 Audit
     last_transaction_type = models.CharField(max_length=20, blank=True)

@@ -39,6 +39,7 @@ from authapp.models import ActivityLog
 from authapp.models.wallet_models import WalletAccount, WalletTransaction
 from authapp.models.offline_deposit import OfflineDepositLog
 from authapp.models.casino_models import Casino
+from authapp.models.casino_wallet_models import CasinoWalletAccount
 from authapp.utils.account_number import generate_account_number
 from authapp.services.casino_wallet_service import (
     credit_casino_wallet,
@@ -214,6 +215,26 @@ def _log_offline(user, txn_type, casino, wallet_type, amount, main_balance, acto
         logger.warning("OfflineDepositLog write failed: %s", exc)
 
 
+def _resolve_player_casino_wallet(user, casino_name: str, country: str):
+    """
+    Looks up the player's Cash (C) casino wallet for the given casino name.
+    Returns (wallet, None) on success, or (None, error_message) on failure —
+    distinguishing "never had this casino at all" from "has it, but for a
+    different country" so the correct ❌ message can be shown.
+    """
+    wallet = CasinoWalletAccount.objects.filter(
+        user=user, casino_name=casino_name, wallet_type="C",
+    ).first()
+
+    if not wallet:
+        return None, "❌ This player is not registered for the selected casino."
+
+    if wallet.country and wallet.country != country:
+        return None, "❌ This player has never played in the selected country."
+
+    return wallet, None
+
+
 def _deduct_admin_wallet(wallet_type, amount, actor):
     """Deduct from AdminWallet. Raises ValueError if insufficient."""
     field = ADMIN_WALLET_FIELD.get(wallet_type)
@@ -298,8 +319,10 @@ class AdminOfflineDepositsView(APIView):
             txn_type    = (data.get("transaction_type") or "").strip().upper()
             transfer_to = (data.get("transfer_to_casino") or "").strip()
             note        = (data.get("note") or "").strip()
+            country     = (data.get("country") or "").strip()
+            to_country  = (data.get("transfer_to_country") or "").strip()
 
-            
+
 
             if not txn_type:
                 return Response({"error": "transaction_type required"}, status=400)
@@ -375,7 +398,8 @@ class AdminOfflineDepositsView(APIView):
                     return Response({"error": f"User main wallet: {exc}"}, status=400)
                 casino_result = credit_casino_wallet(
                     user, casino, wallet_type, amount, actor, txn_type,
-                    note=note or f"Deposit at {casino}"
+                    note=note or f"Deposit at {casino}",
+                    country=country or None,
                 )
                 _log_offline(user=user, txn_type=txn_type, casino=casino,
                              wallet_type=wallet_type, amount=amount,
@@ -417,6 +441,7 @@ class AdminOfflineDepositsView(APIView):
                     actor,
                     txn_type,
                     note=note or "Casino winnings (admin cash funded)",
+                    country=country or None,
                 )
 
                 ActivityLog.log(
@@ -442,7 +467,8 @@ class AdminOfflineDepositsView(APIView):
                 try:
                     casino_result = debit_casino_wallet(
                         user, casino, wallet_type, amount, actor, txn_type,
-                        note=note or f"Withdrawal from {casino}"
+                        note=note or f"Withdrawal from {casino}",
+                        country=country or None,
                     )
                 except ValueError as exc:
                     return Response({"error": f"Casino wallet: {exc}"}, status=400)
@@ -474,7 +500,8 @@ class AdminOfflineDepositsView(APIView):
                 try:
                     casino_result = debit_casino_wallet(
                         user, casino, wallet_type, amount, actor, txn_type,
-                        note=note or f"Lost at {casino}"
+                        note=note or f"Lost at {casino}",
+                        country=country or None,
                     )
                 except ValueError as exc:
                     return Response({"error": f"Casino wallet: {exc}"}, status=400)
@@ -506,13 +533,15 @@ class AdminOfflineDepositsView(APIView):
                 try:
                     from_result = debit_casino_wallet(
                         user, casino, wallet_type, amount, actor, "TAC",
-                        note=f"Transfer {casino} → {transfer_to}"
+                        note=f"Transfer {casino} → {transfer_to}",
+                        country=country or None,
                     )
                 except ValueError as exc:
                     return Response({"error": f"Source casino: {exc}"}, status=400)
                 to_result = credit_casino_wallet(
                     user, transfer_to, wallet_type, amount, actor, "TAC",
-                    note=f"Transfer from {casino}"
+                    note=f"Transfer from {casino}",
+                    country=to_country or None,
                 )
                 _log_offline(user=user, txn_type="TAC", casino=casino,
                              wallet_type=wallet_type, amount=amount, main_balance=None,
@@ -539,9 +568,40 @@ class AdminOfflineDepositsView(APIView):
             slip_number  = (data.get("slip_number") or "").strip()
             betting_date = data.get("betting_date") or None
             casino       = (data.get("casino_name") or "").strip()
+            country      = (data.get("country") or "").strip()
             note         = (data.get("note") or "").strip()
             num_bets     = int(data.get("total_bets") or 0)
             bet_amount   = Decimal(str(data.get("total_bet_amount") or 0))
+
+            ip = request.META.get("REMOTE_ADDR")
+
+            def _reject(message):
+                ActivityLog.log(
+                    action="rolling_points_rejected", actor=actor, target_user=user,
+                    description=(
+                        f"Rejected rolling points entry — {message} "
+                        f"(casino={casino!r}, country={country!r})"
+                    ),
+                    ip_address=ip, casino_name=casino or None,
+                )
+                return Response({"error": message}, status=400)
+
+            # ── Business validation: only allow casinos the player has actually
+            # deposited into, in the country that deposit was actually made in.
+            # Backend-enforced regardless of what the frontend already filtered.
+            if not casino or not country:
+                return _reject("❌ This player is not registered for the selected casino.")
+
+            wallet, wallet_err = _resolve_player_casino_wallet(user, casino, country)
+            if wallet_err:
+                return _reject(wallet_err)
+            if not wallet.is_active:
+                return _reject("❌ Casino wallet is inactive.")
+            if wallet.balance <= 0:
+                return _reject("❌ Player has insufficient casino wallet balance.")
+
+            if bet_amount <= 0 and not data.get("rolling_points_manual"):
+                return _reject("❌ Invalid betting amount.")
 
             current_vip_level = int(data.get("vip_level", getattr(user, "vip_level", 1) or 1))
             vip_cfg  = VIP_CONFIG.get(current_vip_level, VIP_CONFIG[1])
@@ -550,7 +610,7 @@ class AdminOfflineDepositsView(APIView):
 
             if slip_number:
                 if OfflineDepositLog.objects.filter(slip_number=slip_number).exists():
-                    return Response({"error": f"Slip number '{slip_number}' already exists"}, status=400)
+                    return _reject(f"❌ Slip number '{slip_number}' already exists")
 
             manual_override = data.get("rolling_points_manual")
             if manual_override:
@@ -558,10 +618,10 @@ class AdminOfflineDepositsView(APIView):
             elif bet_amount > 0:
                 rp_added = (bet_amount / Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             else:
-                return Response({"error": "total_bet_amount required to calculate RP"}, status=400)
+                return _reject("❌ Invalid betting amount.")
 
             if rp_added <= 0:
-                return Response({"error": "Rolling points must be > 0"}, status=400)
+                return _reject("❌ Invalid betting amount.")
 
             current_total      = Decimal(str(getattr(user, "rolling_points_total", 0) or 0))
             new_total          = current_total + rp_added
@@ -721,6 +781,35 @@ class AdminCasinoListView(APIView):
     def get(self, request):
         if not _is_admin(request.user):
             return Response({"error": "Forbidden"}, status=403)
+
+        user_id = request.query_params.get("user_id")
+
+        # Player-scoped mode (used by Rolling Points): only casinos where this
+        # player actually has an active, funded Cash wallet — grouped by the
+        # country that deposit was actually recorded in. Rows whose `country`
+        # predates this field (blank, legacy) are omitted rather than guessed.
+        if user_id:
+            wallets = (
+                CasinoWalletAccount.objects
+                .filter(user_id=user_id, wallet_type="C", is_active=True, balance__gt=0)
+                .exclude(country="")
+                .order_by("casino_name")
+            )
+            grouped = defaultdict(list)
+            seen = set()
+            for w in wallets:
+                key = (w.country, w.casino_name)
+                if key in seen:
+                    continue
+                seen.add(key)
+                grouped[w.country].append({
+                    "name": w.casino_name,
+                    "location": "",
+                    "wallet_balance": float(w.balance),
+                })
+            return Response({"casinos": dict(grouped)})
+
+        # Default (unfiltered) mode — unchanged, used by Cash Wallet tab.
         grouped = defaultdict(list)
         for c in Casino.objects.filter(is_active=True):
             grouped[c.country].append({"name": c.name, "location": c.location})

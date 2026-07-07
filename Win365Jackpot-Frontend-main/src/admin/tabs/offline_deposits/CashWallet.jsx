@@ -75,7 +75,6 @@ export default function CashWallet({ userInfo, accounts, casinos, submitting, se
   const casinosForCountry   = casinos[country]   || [];
   const toCasinosForCountry = casinos[toCountry] || [];
   const amountNum           = parseFloat(amount) || 0;
-  console.log("ADMIN TOTAL:", userTotalCash);
 
   const insufficientFunds = opMode === "main"
     ? amountNum > adminBal
@@ -143,6 +142,8 @@ export default function CashWallet({ userInfo, accounts, casinos, submitting, se
           transaction_type: txnType,
           note: note||undefined,
           transfer_to_casino: opMode==="transfer" ? toCasino : undefined,
+          country: opMode==="main" ? undefined : country,
+          transfer_to_country: opMode==="transfer" ? toCountry : undefined,
         }),
       });
       const j = await r.json();
@@ -215,7 +216,7 @@ export default function CashWallet({ userInfo, accounts, casinos, submitting, se
               <label style={lbl}>Casino</label>
               <select value={casinoName} onChange={e => setCasinoName(e.target.value)} disabled={!country} style={sel(casinoName?"#34d399":COLOR)}>
                 <option value="">— Select casino —</option>
-                {casinosForCountry.map(c => <option key={c.name+c.location} value={c.name}>{c.name} ({c.location})</option>)}
+                {casinosForCountry.map(c => <option key={c.name+c.location} value={c.name}>{c.location ? `${c.name} (${c.location})` : c.name}</option>)}
               </select>
             </div>
           </div>
