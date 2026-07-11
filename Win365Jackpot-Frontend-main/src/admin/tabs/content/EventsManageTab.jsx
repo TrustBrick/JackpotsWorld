@@ -1,5 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import ManageContentTab from "./ManageContentTab";
+import EventTicketsTable from "./EventTicketsTable";
+import { useAdminTheme } from "../../context/AdminThemeContext";
 
 const FIELDS = [
   { name: "name",              label: "Event Name",       placeholder: "Riviera Grand Slam Weekend" },
@@ -25,14 +27,46 @@ const COLUMNS = [
   { key: "category" },
 ].map(c => ({ label: c.label || c.key[0].toUpperCase() + c.key.slice(1), ...c }));
 
+const VIEWS = [
+  { id: "events", label: "Events" },
+  { id: "registrations", label: "Ticket Requests" },
+];
+
 export default function EventsManageTab({ onToast }) {
+  const { C } = useAdminTheme();
+  const [view, setView] = useState("events");
+
   return (
-    <ManageContentTab
-      resourceLabel="Event"
-      apiPath="/api/admin-panel/events/"
-      fields={FIELDS}
-      columns={COLUMNS}
-      onToast={onToast}
-    />
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ display: "flex", gap: 8 }}>
+        {VIEWS.map(v => (
+          <button
+            key={v.id}
+            onClick={() => setView(v.id)}
+            style={{
+              padding: "7px 16px", borderRadius: 20, fontSize: 12, fontWeight: 700,
+              cursor: "pointer", transition: "all 0.15s",
+              border: view === v.id ? `1px solid ${C.gold}50` : `1px solid ${C.border}`,
+              background: view === v.id ? `${C.gold}15` : "transparent",
+              color: view === v.id ? C.gold : C.muted,
+            }}
+          >
+            {v.label}
+          </button>
+        ))}
+      </div>
+
+      {view === "events" ? (
+        <ManageContentTab
+          resourceLabel="Event"
+          apiPath="/api/admin-panel/events/"
+          fields={FIELDS}
+          columns={COLUMNS}
+          onToast={onToast}
+        />
+      ) : (
+        <EventTicketsTable onToast={onToast} />
+      )}
+    </div>
   );
 }

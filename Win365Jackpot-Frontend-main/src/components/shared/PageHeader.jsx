@@ -36,7 +36,7 @@ export default function PageHeader({ eyebrow, title, subtitle }) {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-white/60 font-body text-sm md:text-base max-w-2xl mx-auto"
+            className="text-theme-muted font-body text-sm md:text-base max-w-2xl mx-auto"
           >
             {subtitle}
           </motion.p>

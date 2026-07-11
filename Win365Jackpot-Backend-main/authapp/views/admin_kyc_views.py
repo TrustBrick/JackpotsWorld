@@ -16,10 +16,12 @@ from rest_framework.permissions import IsAuthenticated
 
 from authapp.models import User, ActivityLog
 from authapp.models.kyc_model import KYCSubmission
+from authapp.services.notification_service import notify_generic
 
 
 def _is_admin(user):
-    return user.is_authenticated and user.is_staff
+    from authapp.permissions.admin_role_permissions import _has_capability
+    return user.is_authenticated and user.is_staff and _has_capability(user, "can_approve_kyc")
 
 
 def _geo_lookup(ip):
@@ -38,8 +40,25 @@ def _geo_lookup(ip):
     return {}
 
 
+def _latest_ban_log(user):
+    """
+    Ban/unban metadata (reason, actor, timestamp) is stored in ActivityLog
+    rather than on the User model — the dedicated is_banned/ban_reason/
+    banned_at/banned_by fields were removed. This looks up the most recent
+    ban-related entry so the admin UI can still show why/when.
+    """
+    return (
+        ActivityLog.objects
+        .filter(target_user=user, action__in=["user_banned", "user_unbanned"])
+        .order_by("-created_at")
+        .first()
+    )
+
+
 def _serialize_kyc(kyc):
     u = kyc.user
+    is_banned = not u.is_active
+    ban_log = _latest_ban_log(u) if is_banned else None
     return {
         # User identity
         "id":           kyc.pk,
@@ -54,11 +73,12 @@ def _serialize_kyc(kyc):
         "kyc_status":   u.kyc_status,
         "is_verified":  u.is_verified,
         "is_active":    u.is_active,
-        "is_banned":    getattr(u, "is_banned", False),
-        "ban_reason":   getattr(u, "ban_reason", ""),
-        "banned_at":    getattr(u, "banned_at", None),
+        "is_banned":    is_banned,
+        "ban_reason":   (ban_log.description or "") if ban_log else "",
+        "banned_at":    ban_log.created_at if ban_log else None,
 
         # KYC submission details
+        "kyc_type":        kyc.kyc_type,
         "full_name":       kyc.full_name,
         "date_of_birth":   kyc.date_of_birth,
         "document_type":   kyc.document_type,
@@ -98,6 +118,7 @@ class AdminKYCListView(APIView):
             return Response({"error": "Forbidden"}, status=403)
 
         status_filter = request.query_params.get("status", "pending")
+        type_filter   = request.query_params.get("type", "all")
 
         qs = KYCSubmission.objects.select_related(
             "user", "reviewed_by"
@@ -105,9 +126,12 @@ class AdminKYCListView(APIView):
 
         if status_filter == "banned":
             # Show all KYC records where the user is currently banned
-            qs = qs.filter(user__is_banned=True)
+            qs = qs.filter(user__is_active=False)
         elif status_filter in ("pending", "approved", "rejected"):
             qs = qs.filter(status=status_filter)
+
+        if type_filter in ("player", "affiliate"):
+            qs = qs.filter(kyc_type=type_filter)
 
         return Response([_serialize_kyc(k) for k in qs])
 
@@ -151,6 +175,11 @@ class AdminKYCUpdateView(APIView):
                 description=f"KYC approved for {user.email}",
                 ip_address=request.META.get("REMOTE_ADDR"),
             )
+            notify_generic(
+                user, "KYC Approved ✅",
+                "Your KYC documents have been verified and approved.",
+                icon="security",
+            )
             return Response({"message": f"KYC approved for {user.email}"})
 
         # ── Reject ───────────────────────────────────────────────────────────
@@ -172,16 +201,17 @@ class AdminKYCUpdateView(APIView):
                 description=f"KYC rejected for {user.email}. Reason: {reason}",
                 ip_address=request.META.get("REMOTE_ADDR"),
             )
+            notify_generic(
+                user, "KYC Rejected",
+                f"Your KYC submission was rejected. Reason: {reason}" if reason else "Your KYC submission was rejected.",
+                icon="security",
+            )
             return Response({"message": f"KYC rejected for {user.email}"})
 
         # ── Ban ──────────────────────────────────────────────────────────────
         elif action == "ban":
-            user.is_banned   = True
-            user.is_active   = False
-            user.ban_reason  = reason
-            user.banned_at   = now
-            user.banned_by   = request.user
-            user.save(update_fields=["is_banned", "is_active", "ban_reason", "banned_at", "banned_by"])
+            user.is_active = False
+            user.save(update_fields=["is_active"])
 
             kyc.reviewed_at = now
             kyc.reviewed_by = request.user
@@ -191,19 +221,16 @@ class AdminKYCUpdateView(APIView):
                 action="user_banned",
                 actor=request.user,
                 target_user=user,
-                description=f"User banned: {user.email}. Reason: {reason}",
+                description=reason,
+                meta={"reason": reason},
                 ip_address=request.META.get("REMOTE_ADDR"),
             )
             return Response({"message": f"{user.email} has been banned"})
 
         # ── Unban ─────────────────────────────────────────────────────────────
         elif action == "unban":
-            user.is_banned  = False
-            user.is_active  = True
-            user.ban_reason = ""
-            user.banned_at  = None
-            user.banned_by  = None
-            user.save(update_fields=["is_banned", "is_active", "ban_reason", "banned_at", "banned_by"])
+            user.is_active = True
+            user.save(update_fields=["is_active"])
 
             ActivityLog.log(
                 action="user_unbanned",

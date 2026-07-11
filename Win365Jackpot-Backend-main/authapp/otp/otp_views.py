@@ -15,8 +15,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from authapp.models import User, OTPRecord
+from authapp.models import User, OTPRecord, ActivityLog
 from authapp.serializers import UserProfileSerializer
+from authapp.serializers.user_serializers import validate_strong_password, clean_full_phone
+from authapp.throttles import OTPSendRateThrottle, OTPVerifyRateThrottle
 from .otp_utils import generate_otp, send_otp_email
 
 
@@ -29,6 +31,7 @@ def get_tokens(user):
 
 class SendOTPView(APIView):
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [OTPSendRateThrottle]
 
     def post(self, request):
         email = request.data.get("email", "").strip()
@@ -70,6 +73,7 @@ class SendOTPView(APIView):
 
 class VerifyOTPView(APIView):
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [OTPVerifyRateThrottle]
 
     def post(self, request):
         email = request.data.get("email", "").strip()
@@ -107,11 +111,32 @@ class VerifyOTPView(APIView):
 
             # register
             password = request.data.get("password", "")
+            try:
+                validate_strong_password(password)
+            except Exception as exc:
+                detail = exc.detail if hasattr(exc, "detail") else str(exc)
+                return Response({"error": str(detail)}, status=400)
+
+            country   = (request.data.get("country") or "IN").strip().upper()[:2]
+            dial_code = (request.data.get("dial_code") or "+91").strip()
+
+            full_phone = ""
+            if phone:
+                try:
+                    full_phone = clean_full_phone(phone)
+                except Exception as exc:
+                    detail = exc.detail if hasattr(exc, "detail") else str(exc)
+                    return Response({"error": str(detail)}, status=400)
+                if User.objects.filter(phone=full_phone).exists():
+                    return Response({"error": "This mobile number is already registered."}, status=400)
+
             user = User.objects.create_user(
                 email=email,
-                phone=phone or "",
+                phone=full_phone,
                 name=name,
                 password=password,
+                country=country,
+                dial_code=dial_code,
             )
 
             # ✅ KYC FLOW
@@ -134,3 +159,105 @@ class VerifyOTPView(APIView):
         tokens  = get_tokens(user)
         profile = UserProfileSerializer(user, context={"request": request}).data
         return Response({"user": profile, "tokens": tokens}, status=200)
+
+
+# ─── Forgot Password ─────────────────────────────────────────────────────────
+# POST /api/auth/forgot-password/  { email }
+# POST /api/auth/reset-password/   { email, otp, new_password }
+
+class ForgotPasswordRequestView(APIView):
+    permission_classes = [permissions.AllowAny]
+    throttle_classes = [OTPSendRateThrottle]
+
+    def post(self, request):
+        email = request.data.get("email", "").strip().lower()
+        if not email or "@" not in email:
+            return Response({"error": "Valid email is required"}, status=400)
+
+        generic_response = Response(
+            {"message": "If an account exists for this email, a reset code has been sent."}
+        )
+
+        user = User.objects.filter(email=email).first()
+        if not user:
+            # Don't reveal whether the account exists.
+            return generic_response
+
+        otp = generate_otp()
+        OTPRecord.objects.filter(email=email, mode="reset").delete()
+        OTPRecord.objects.create(
+            email=email,
+            phone="",
+            otp=otp,
+            mode="reset",
+            expires_at=timezone.now() + timedelta(minutes=10),
+        )
+
+        try:
+            send_otp_email(email, otp)
+        except Exception:
+            pass  # still return the generic response — don't leak delivery failures
+
+        return generic_response
+
+
+class ResetPasswordConfirmView(APIView):
+    permission_classes = [permissions.AllowAny]
+    throttle_classes = [OTPVerifyRateThrottle]
+
+    def post(self, request):
+        email        = request.data.get("email", "").strip().lower()
+        otp          = request.data.get("otp", "").strip()
+        new_password = request.data.get("new_password", "")
+
+        if not email or not otp or not new_password:
+            return Response({"error": "Email, OTP and new password are required"}, status=400)
+
+        try:
+            record = OTPRecord.objects.filter(
+                email=email, otp=otp, mode="reset"
+            ).latest("created_at")
+        except OTPRecord.DoesNotExist:
+            return Response({"error": "Invalid or expired code"}, status=400)
+
+        if record.expires_at < timezone.now():
+            record.delete()
+            return Response({"error": "Code has expired. Please request a new one."}, status=400)
+
+        try:
+            validate_strong_password(new_password)
+        except Exception as exc:
+            detail = exc.detail if hasattr(exc, "detail") else str(exc)
+            return Response({"error": str(detail)}, status=400)
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            record.delete()
+            return Response({"error": "Account not found"}, status=404)
+
+        record.delete()  # consumed
+
+        user.set_password(new_password)
+        user.save(update_fields=["password"])
+
+        # Force re-login everywhere: blacklist every outstanding refresh
+        # token issued to this user before the reset.
+        try:
+            from rest_framework_simplejwt.token_blacklist.models import (
+                OutstandingToken, BlacklistedToken,
+            )
+            for token in OutstandingToken.objects.filter(user=user):
+                BlacklistedToken.objects.get_or_create(token=token)
+        except Exception:
+            pass
+
+        ActivityLog.log(
+            action="password_change",
+            actor=user,
+            target_user=user,
+            description="Password reset via forgot-password flow",
+            ip_address=request.META.get("REMOTE_ADDR"),
+        )
+
+        return Response({"message": "Password reset successfully. Please log in with your new password."})

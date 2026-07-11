@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import {
   DollarSign, CreditCard, Zap, TrendingUp, RefreshCw,
   ShieldCheck, TrendingDown, Users, Award,
@@ -11,16 +12,18 @@ import { Card, Spinner, Pagination } from "../../components/SharedUI";
 /* ─── CONSTANTS (outside components — defined once) ─────── */
 const TX_PAGE_SIZE = 10;
 
+// i18nKey maps onto the existing vip.* keys already used by Sidebar.jsx —
+// translated at render time (t() isn't available at module scope).
 const VIP_LEVELS = [
-  {  label: "VIP",             min_pts: 0 },
-  {  label: "VIP Bronze",      min_pts: 5000 },
-  {  label: "Silver",          min_pts: 15000 },
-  { label: "Gold",            min_pts: 30000 },
-  {  label: "Jackpot I",       min_pts: 75000 },
-  {  label: "Jackpot II",      min_pts: 150000 },
-  {  label: "Jackpot III",     min_pts: 350000 },
-  {  label: "Jackpot Platinum",min_pts: 750000 },
-  {  label: "Jackpot Diamond", min_pts: 1500000 },
+  {  i18nKey: "vip.vip",             min_pts: 0 },
+  {  i18nKey: "vip.vipBronze",      min_pts: 5000 },
+  {  i18nKey: "vip.silver",          min_pts: 15000 },
+  { i18nKey: "vip.gold",            min_pts: 30000 },
+  {  i18nKey: "vip.jackpot1",       min_pts: 75000 },
+  {  i18nKey: "vip.jackpot2",      min_pts: 150000 },
+  {  i18nKey: "vip.jackpot3",     min_pts: 350000 },
+  {  i18nKey: "vip.jackpotPlatinum",min_pts: 750000 },
+  {  i18nKey: "vip.jackpotDiamond", min_pts: 1500000 },
 ];
 
 const LEVEL_COLORS = [
@@ -30,11 +33,11 @@ const LEVEL_COLORS = [
 
 /* ── filter values MUST match backend wallet_type strings ── */
 const WALLET_FILTERS = [
-  { label: "All",            value: "all" },
-  { label: "Cash",           value: "cash" },
-  { label: "Non-Cash",       value: "non_cash" },
-  { label: "OTP",            value: "otp" },
-  { label: "Rolling Points", value: "rolling_points" },
+  { i18nKey: "wallet.filterAll",            value: "all" },
+  { i18nKey: "wallet.filterCash",           value: "cash" },
+  { i18nKey: "wallet.filterNonCash",        value: "non_cash" },
+  { i18nKey: "wallet.filterOtp",            value: "otp" },
+  { i18nKey: "wallet.filterRollingPoints",  value: "rolling_points" },
 ];
 
 const WALLET_ICONS = {
@@ -92,6 +95,7 @@ function StatCard({ label, value, color }) {
    MAIN EXPORT
 ═══════════════════════════════════════════════════════ */
 export default function WalletTab({ profile, onToast }) {
+  const { t } = useTranslation();
   const [tab, setTab] = useState("balances");
   const [accounts,   setAccounts]   = useState([]);
   const [levelData,  setLevelData]  = useState(null);
@@ -118,8 +122,8 @@ export default function WalletTab({ profile, onToast }) {
   useEffect(() => { loadBalances(); }, [loadBalances]);
 
   const TABS = [
-    { key: "balances", label: "Balances" },
-    { key: "history",  label: "Transaction history" },
+    { key: "balances", label: t("wallet.tabBalances") },
+    { key: "history",  label: t("wallet.tabHistory") },
   ];
 
   return (
@@ -156,7 +160,7 @@ export default function WalletTab({ profile, onToast }) {
             }}
           >
             <RefreshCw size={12} style={{ animation: refreshing ? "spin 0.7s linear infinite" : "none" }} />
-            Refresh
+            {t("common.refresh")}
           </button>
         )}
       </div>
@@ -175,6 +179,7 @@ export default function WalletTab({ profile, onToast }) {
    BALANCES PANEL
 ═══════════════════════════════════════════════════════ */
 function WalletBalances({ accounts, levelData, loading, profile }) {
+  const { t } = useTranslation();
   // ADD casino wallet state
   const [casinoData,      setCasinoData]      = useState({ casinos: [], has_casino_balances: false });
   const [selectedCasino,  setSelectedCasino]  = useState("");
@@ -251,12 +256,12 @@ function WalletBalances({ accounts, levelData, loading, profile }) {
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
           <div>
             <div style={{ fontSize: 11, opacity: 0.4, letterSpacing: "0.1em", textTransform: "uppercase" }}>
-              Membership status
+              {t("wallet.membershipStatus")}
             </div>
-            <div style={{ fontSize: 26, fontWeight: 900, color: vipColor }}>{vipCfg.label}</div>
-            <div style={{ fontSize: 11, opacity: 0.4 }}>{pts.toLocaleString()} Accumulated Points</div>
+            <div style={{ fontSize: 26, fontWeight: 900, color: vipColor }}>{t(vipCfg.i18nKey)}</div>
+            <div style={{ fontSize: 11, opacity: 0.4 }}>{t("wallet.accumulatedPoints", { count: pts.toLocaleString() })}</div>
           </div>
-         
+
         </div>
         <div style={{ height: 6, background: "#111", borderRadius: 4, overflow: "hidden" }}>
           <div style={{
@@ -268,23 +273,23 @@ function WalletBalances({ accounts, levelData, loading, profile }) {
           <span>{pts.toLocaleString()} / {nextVip ? nextVip.min_pts.toLocaleString() : "MAX"}</span>
           <span>
             {nextVip
-              ? `${(nextVip.min_pts - pts).toLocaleString()} points to ${nextVip.label}`
-              : "TOP TIER"}
+              ? t("wallet.pointsToNext", { points: (nextVip.min_pts - pts).toLocaleString(), level: t(nextVip.i18nKey) })
+              : t("wallet.topTier")}
           </span>
         </div>
       </Card>
 
       {/* MAIN WALLET BALANCES */}
       <div>
-        <SectionLabel>Jackpots World — Account balances</SectionLabel>
+        <SectionLabel>{t("wallet.accountBalances")}</SectionLabel>
         {/* Main Balance Summary */}
 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:16 }}>
   <div style={{ padding:"14px 16px", borderRadius:10, background:"rgba(52,211,153,0.06)", border:"1px solid rgba(52,211,153,0.25)" }}>
     <div style={{ fontSize:10, color:"rgba(255,255,255,0.4)", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:4 }}>
-      Main Balance
+      {t("wallet.mainBalance")}
     </div>
     <div style={{ fontSize:10, color:"rgba(255,255,255,0.25)", marginBottom:8 }}>
-      Available to deposit at casino or payout
+      {t("wallet.mainBalanceSub")}
     </div>
     <div style={{ fontSize:26, fontWeight:900, fontFamily:"monospace", color:"#34d399" }}>
       {fmt(mainBal)}
@@ -292,10 +297,10 @@ function WalletBalances({ accounts, levelData, loading, profile }) {
   </div>
   <div style={{ padding:"14px 16px", borderRadius:10, background:"rgba(96,165,250,0.06)", border:"1px solid rgba(96,165,250,0.25)" }}>
     <div style={{ fontSize:10, color:"rgba(255,255,255,0.4)", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:4 }}>
-      Total Main Balance
+      {t("wallet.totalMainBalance")}
     </div>
     <div style={{ fontSize:10, color:"rgba(255,255,255,0.25)", marginBottom:8 }}>
-      Main + all casino wallets combined
+      {t("wallet.totalMainBalanceSub")}
     </div>
     <div style={{ fontSize:26, fontWeight:900, fontFamily:"monospace", color:"#60a5fa" }}>
       {fmt(totalMainBalance)}
@@ -333,7 +338,7 @@ function WalletBalances({ accounts, levelData, loading, profile }) {
       {/* CASINO WALLETS — only shown if user has any balance */}
       {casinoData.casinos.length > 0 && (
         <div>
-          <SectionLabel>Casino Wallets</SectionLabel>
+          <SectionLabel>{t("wallet.casinoWallets")}</SectionLabel>
 
           {/* Casino selector dropdown */}
           {casinoData.casinos.length > 1 && (
@@ -385,23 +390,23 @@ function WalletBalances({ accounts, levelData, loading, profile }) {
 
       {/* ACCOUNT STATS — unchanged */}
       <div>
-        <SectionLabel>Account overview</SectionLabel>
+        <SectionLabel>{t("wallet.accountOverview")}</SectionLabel>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
-          <StatCard label="Total deposited"  value={fmt(totalDeposited)}  color={C.green || "#34d399"} />
-          <StatCard label="Total withdrawn"  value={fmt(totalWithdrawn)}  color={C.red   || "#f87171"} />
-          <StatCard label="Total wagered"    value={fmt(totalWagered)} />
-          <StatCard label="Total won"        value={fmt(totalWon)}        color={C.gold  || "#fbbf24"} />
+          <StatCard label={t("wallet.totalDeposited")}  value={fmt(totalDeposited)}  color={C.green || "#34d399"} />
+          <StatCard label={t("wallet.totalWithdrawn")}  value={fmt(totalWithdrawn)}  color={C.red   || "#f87171"} />
+          <StatCard label={t("wallet.totalWagered")}    value={fmt(totalWagered)} />
+          <StatCard label={t("wallet.totalWon")}        value={fmt(totalWon)}        color={C.gold  || "#fbbf24"} />
         </div>
       </div>
 
       {/* ACCOUNT DETAILS — unchanged */}
       <div>
-        <SectionLabel>Account details</SectionLabel>
+        <SectionLabel>{t("wallet.accountDetails")}</SectionLabel>
         {[
           {
             Icon: ShieldCheck,
-            title: "KYC status",
-            sub: "Identity verification",
+            title: t("wallet.kycStatus"),
+            sub: t("wallet.kycStatusSub"),
             right: (
               <span style={{
                 padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600,
@@ -413,8 +418,8 @@ function WalletBalances({ accounts, levelData, loading, profile }) {
           },
           {
             Icon: Award,
-            title: "Referral code",
-            sub: "Share to earn rewards",
+            title: t("wallet.referralCode"),
+            sub: t("wallet.referralCodeSub"),
             right: (
               <span style={{ fontFamily: "monospace", fontSize: 13, fontWeight: 700 }}>
                 {referralCode}
@@ -423,10 +428,10 @@ function WalletBalances({ accounts, levelData, loading, profile }) {
           },
           {
             Icon: Users,
-            title: "Referred users",
-            sub: `${referralEarnings ? fmt(referralEarnings) + " earned" : "No earnings yet"}`,
+            title: t("wallet.referredUsers"),
+            sub: referralEarnings ? t("wallet.earnedAmount", { amount: fmt(referralEarnings) }) : t("wallet.noEarningsYet"),
             right: (
-              <span style={{ fontSize: 14, fontWeight: 700 }}>{referralCount} users</span>
+              <span style={{ fontSize: 14, fontWeight: 700 }}>{t("wallet.usersCount", { count: referralCount })}</span>
             ),
           },
         ].map(({ Icon, title, sub, right }) => (
@@ -457,6 +462,7 @@ function WalletBalances({ accounts, levelData, loading, profile }) {
    TRANSACTION HISTORY
 ═══════════════════════════════════════════════════════ */
 function TransactionHistory({ onToast }) {
+  const { t } = useTranslation();
   const [history,  setHistory]  = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [page,     setPage]     = useState(1);
@@ -501,7 +507,7 @@ function TransactionHistory({ onToast }) {
 
   const totalPages = Math.max(1, Math.ceil(total / TX_PAGE_SIZE));
   const start = (page - 1) * TX_PAGE_SIZE;
-  const showing = `${total === 0 ? 0 : start + 1}–${Math.min(page * TX_PAGE_SIZE, total)} of ${total}`;
+  const showing = t("tables.showingRange", { start: total === 0 ? 0 : start + 1, end: Math.min(page * TX_PAGE_SIZE, total), total });
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -520,7 +526,7 @@ function TransactionHistory({ onToast }) {
               transition: "all 0.15s",
             }}
           >
-            {f.label}
+            {t(f.i18nKey)}
           </button>
         ))}
       </div>
@@ -531,7 +537,7 @@ function TransactionHistory({ onToast }) {
           <div style={{ padding: 40, textAlign: "center" }}><Spinner /></div>
         ) : history.length === 0 ? (
           <div style={{ padding: 40, textAlign: "center", color: "rgba(255,255,255,0.3)", fontSize: 13 }}>
-            No transactions found
+            {t("wallet.noTransactionsFound")}
           </div>
         ) : (
           history.map((tx, idx) => {
@@ -578,7 +584,7 @@ function TransactionHistory({ onToast }) {
                         whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
                         display: "flex", alignItems: "center", gap: 6,
                       }}>
-                        {tx.note || "Transaction"}
+                        {tx.note || t("wallet.transaction")}
                         <span style={{
                           fontSize: 10, padding: "1px 6px", borderRadius: 10,
                           background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.4)",
@@ -628,14 +634,14 @@ function TransactionHistory({ onToast }) {
                     display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px 16px",
                     borderTop: `1px solid ${C.border}`,
                   }}>
-                    <Detail label="Balance before" value={isRP ? `${Number(tx.balance_before).toLocaleString()} RP` : fmt(tx.balance_before)} />
-                    <Detail label="Balance after"  value={isRP ? `${Number(tx.balance_after).toLocaleString()} RP`  : fmt(tx.balance_after)} />
-                    <Detail label="Status"         value={tx.status?.toUpperCase() || "APPROVED"} />
-                    <Detail label="Direction"      value={tx.direction?.toUpperCase()} />
-                    <Detail label="Processed by" value={tx.performed_by_uid || "System"} />
-                    <Detail label="Reference"      value={tx.transaction_reference} />
+                    <Detail label={t("wallet.balanceBefore")} value={isRP ? `${Number(tx.balance_before).toLocaleString()} RP` : fmt(tx.balance_before)} />
+                    <Detail label={t("wallet.balanceAfter")}  value={isRP ? `${Number(tx.balance_after).toLocaleString()} RP`  : fmt(tx.balance_after)} />
+                    <Detail label={t("tables.status")}         value={tx.status?.toUpperCase() || t("wallet.approved")} />
+                    <Detail label={t("tables.direction")}      value={tx.direction?.toUpperCase()} />
+                    <Detail label={t("tables.processedBy")} value={tx.performed_by_uid || t("tables.system")} />
+                    <Detail label={t("tables.reference")}      value={tx.transaction_reference} />
                     <div style={{ gridColumn: "span 3" }}>
-                      <Detail label="Note" value={tx.note || "No note"} />
+                      <Detail label={t("tables.note")} value={tx.note || t("tables.noNote")} />
                     </div>
                   </div>
                 </div>
@@ -661,8 +667,8 @@ function TransactionHistory({ onToast }) {
                 color: page === 1 ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.55)",
                 cursor: page === 1 ? "not-allowed" : "pointer",
               }}
-            >← Prev</button>
-            <span style={{ padding: "0 4px" }}>{page} / {totalPages}</span>
+            >{t("tables.prev")}</button>
+            <span style={{ padding: "0 4px" }}>{t("tables.pageOf", { page, total: totalPages })}</span>
             <button
               onClick={() => setPage(p => p + 1)}
               disabled={page >= totalPages}
@@ -672,7 +678,7 @@ function TransactionHistory({ onToast }) {
                 color: page >= totalPages ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.55)",
                 cursor: page >= totalPages ? "not-allowed" : "pointer",
               }}
-            >Next →</button>
+            >{t("tables.next")}</button>
           </div>
         </div>
       </Card>

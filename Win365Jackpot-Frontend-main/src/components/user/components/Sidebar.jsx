@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LogOut, MessageCircle, Send, Bell, Gift,
   BarChart3, Wallet, Plane, Heart, Star,
   Trophy, Users, User, Menu, X, ChevronRight, Package,
+  LifeBuoy, ShieldCheck, Globe,
 } from "lucide-react";
 import { C, VIP_COLOR, TABS } from "../constants";
 import { fmtN } from "../helpers";
@@ -31,7 +33,7 @@ export function useBreakpoint() {
   return bp;
 }
 
-const ICON_MAP = { BarChart3, Wallet, Plane, Gift, Heart, Star, Trophy, Bell, Users, User, Package };
+const ICON_MAP = { BarChart3, Wallet, Plane, Gift, Heart, Star, Trophy, Bell, Users, User, Package, LifeBuoy, ShieldCheck };
 
 function useNotifPulse() {
   useEffect(() => {
@@ -60,15 +62,47 @@ function useNotifPulse() {
 
 const ANIMATED_BELL_URL = "https://cdn-icons-gif.flaticon.com/15578679/15578679.gif";
 
+// Maps each TABS entry's stable `id` (constants.js) to its i18next key —
+// translating the *lookup key*, not TABS itself, keeps constants.js a plain
+// data file with no i18n dependency of its own. Exported so Dashboard.jsx's
+// top-bar title can use the same mapping instead of duplicating it.
+export const TAB_I18N_KEY = {
+  overview: "sidebar.overview",
+  wallet: "sidebar.wallet",
+  travel: "sidebar.travelHistory",
+  gifts: "sidebar.gifts",
+  packages: "sidebar.packages",
+  notifications: "sidebar.notifications",
+  referral: "sidebar.referral",
+  profile: "sidebar.profile",
+  support: "sidebar.liveSupport",
+  responsible_gambling: "sidebar.responsibleGambling",
+};
+
+const VIP_I18N_KEYS = [
+  "vip.vip", "vip.vipBronze", "vip.silver", "vip.gold",
+  "vip.jackpot1", "vip.jackpot2", "vip.jackpot3", "vip.jackpotPlatinum", "vip.jackpotDiamond",
+];
+
 // ═════════════════════════════════════════════════════════════════════════════
 export default function Sidebar({ profile, stats, activeTab, onTabChange, onLogout }) {
   useNotifPulse();
+  const { i18n } = useTranslation();
   const bp       = useBreakpoint();
   const vipColor = VIP_COLOR[profile?.vip_level] || C.gold;
   const unread   = stats?.unread_notifications ?? 0;
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => { if (bp === "desktop") setDrawerOpen(false); }, [bp]);
+
+  // Load the user's saved language preference on login, regardless of which
+  // breakpoint/sidebar variant is currently mounted.
+  useEffect(() => {
+    if (profile?.preferred_language && profile.preferred_language !== i18n.language) {
+      i18n.changeLanguage(profile.preferred_language);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.preferred_language]);
 
   const handleTabChange = useCallback((id) => {
     onTabChange(id);
@@ -182,6 +216,7 @@ export default function Sidebar({ profile, stats, activeTab, onTabChange, onLogo
 
 // ── Icon Rail ─────────────────────────────────────────────────────────────────
 function IconRail({ vipColor, unread, activeTab, profile, onTabChange, onHamburger, onLogout }) {
+  const { t } = useTranslation();
   return (
     <aside style={{
       width: RAIL_WIDTH, flexShrink: 0,
@@ -225,20 +260,24 @@ function IconRail({ vipColor, unread, activeTab, profile, onTabChange, onHamburg
       </div>
 
       <nav style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, width: "100%" }}>
-        {TABS.map(t => {
-  const Icon     = ICON_MAP[t.icon];
-  const isActive = activeTab === t.id;
-  const hasBadge = t.id === "notifications" && unread > 0;
+        {TABS.map(tab => {
+  const Icon     = ICON_MAP[tab.icon];
+  const isActive = activeTab === tab.id;
+  const hasBadge = tab.id === "notifications" && unread > 0;
+  const label    = TAB_I18N_KEY[tab.id] ? t(TAB_I18N_KEY[tab.id]) : tab.label;
   return (
-    <button key={t.id} onClick={() => onTabChange(t.id)} title={t.label} style={{
+    <button key={tab.id} onClick={() => onTabChange(tab.id)} title={label} style={{
       width: 40, height: 38, borderRadius: 9,
       display: "flex", alignItems: "center", justifyContent: "center",
       border: isActive ? `1px solid ${vipColor}30` : "1px solid transparent",
       background: isActive ? `${vipColor}12` : "transparent",
       color: isActive ? vipColor : "rgba(255,255,255,0.35)",
       cursor: "pointer", position: "relative", transition: "all 0.15s",
-    }}>
-      {t.id === "notifications" && hasBadge ? (
+    }}
+    onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "rgba(255,255,255,0.8)"; } }}
+    onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.35)"; } }}
+    >
+      {tab.id === "notifications" && hasBadge ? (
         <img
           src={ANIMATED_BELL_URL}
           alt="notifications"
@@ -259,7 +298,7 @@ function IconRail({ vipColor, unread, activeTab, profile, onTabChange, onHamburg
 })}
       </nav>
 
-      <button onClick={onLogout} title="Sign Out" style={{
+      <button onClick={onLogout} title={t("sidebar.signOut")} style={{
         width: 40, height: 36, borderRadius: 9,
         display: "flex", alignItems: "center", justifyContent: "center",
         background: "transparent", border: "1px solid transparent",
@@ -273,6 +312,8 @@ function IconRail({ vipColor, unread, activeTab, profile, onTabChange, onHamburg
 
 // ── Full Sidebar ──────────────────────────────────────────────────────────────
 function FullSidebar({ profile, vipColor, unread, activeTab, onTabChange, onLogout, width, fixed = false, showClose = false, onClose }) {
+  const { t } = useTranslation();
+
   return (
     <aside style={{
       width, flexShrink: 0,
@@ -286,8 +327,8 @@ function FullSidebar({ profile, vipColor, unread, activeTab, onTabChange, onLogo
     }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20, paddingLeft: 4 }}>
         <div onClick={() => window.location.href = "/"} style={{ cursor: "pointer" }}>
-          <img 
-    src='images/jackpotsworld_watermark.png' 
+          <img
+    src='/images/jackpotsworld_watermark.png'
     className="w-10 h-10 object-contain"
   />
   <div className="flex flex-col leading-none">
@@ -330,7 +371,7 @@ function FullSidebar({ profile, vipColor, unread, activeTab, onTabChange, onLogo
   border: `1px solid ${vipColor}40`, color: vipColor,
   textTransform: "uppercase", letterSpacing: "0.05em",
 }}>
-  {["VIP","VIP Bronze","Silver","Gold","Jackpot I","Jackpot II","Jackpot III","Jackpot Platinum","Jackpot Diamond"][( profile?.vip_level || 1) - 1] || "VIP"}
+  {VIP_I18N_KEYS[(profile?.vip_level || 1) - 1] ? t(VIP_I18N_KEYS[(profile?.vip_level || 1) - 1]) : t("vip.vip")}
 </span>
           </div>
         </div>
@@ -354,12 +395,13 @@ function FullSidebar({ profile, vipColor, unread, activeTab, onTabChange, onLogo
 
       {/* Nav */}
       <nav style={{ flex: 1, display: "flex", flexDirection: "column", gap: 1 }}>
-        {TABS.map(t => {
-  const Icon     = ICON_MAP[t.icon];
-  const isActive = activeTab === t.id;
-  const hasBadge = t.id === "notifications" && unread > 0;
+        {TABS.map(tab => {
+  const Icon     = ICON_MAP[tab.icon];
+  const isActive = activeTab === tab.id;
+  const hasBadge = tab.id === "notifications" && unread > 0;
+  const label    = TAB_I18N_KEY[tab.id] ? t(TAB_I18N_KEY[tab.id]) : tab.label;
   return (
-    <button key={t.id} onClick={() => onTabChange(t.id)} style={{
+    <button key={tab.id} onClick={() => onTabChange(tab.id)} style={{
       display: "flex", alignItems: "center", gap: 9,
       padding: "8px 10px", borderRadius: 9,
       fontSize: 12, fontWeight: isActive ? 700 : 500,
@@ -368,9 +410,12 @@ function FullSidebar({ profile, vipColor, unread, activeTab, onTabChange, onLogo
       background: isActive ? `${vipColor}10` : "transparent",
       color: isActive ? vipColor : "rgba(255,255,255,0.4)",
       cursor: "pointer", transition: "all 0.15s", position: "relative",
-    }}>
+    }}
+    onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "rgba(255,255,255,0.85)"; } }}
+    onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.4)"; } }}
+    >
       {/* ── Icon slot ── */}
-      {t.id === "notifications" && hasBadge ? (
+      {tab.id === "notifications" && hasBadge ? (
         <img
           src={ANIMATED_BELL_URL}
           alt="notifications"
@@ -380,7 +425,7 @@ function FullSidebar({ profile, vipColor, unread, activeTab, onTabChange, onLogo
         Icon && <Icon size={13} />
       )}
 
-      {t.label}
+      {label}
 
       {/* ── Unread count badge ── */}
       {hasBadge && (
@@ -407,13 +452,13 @@ function FullSidebar({ profile, vipColor, unread, activeTab, onTabChange, onLogo
           gap: 5, padding: "8px", borderRadius: 9,
           background: "rgba(37,211,102,0.1)", border: "1px solid rgba(37,211,102,0.2)",
           color: "#25d366", fontSize: 11, fontWeight: 700, textDecoration: "none",
-        }}><MessageCircle size={12} /> WhatsApp</a>
+        }}><MessageCircle size={12} /> {t("sidebar.whatsapp")}</a>
         <a href="https://t.me/" target="_blank" rel="noopener noreferrer" style={{
           flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
           gap: 5, padding: "8px", borderRadius: 9,
           background: "rgba(0,136,204,0.1)", border: "1px solid rgba(0,136,204,0.2)",
           color: "#0088cc", fontSize: 11, fontWeight: 700, textDecoration: "none",
-        }}><Send size={12} /> Telegram</a>
+        }}><Send size={12} /> {t("sidebar.telegram")}</a>
       </div>
 
       <button onClick={onLogout} style={{
@@ -421,7 +466,7 @@ function FullSidebar({ profile, vipColor, unread, activeTab, onTabChange, onLogo
         padding: "9px 10px", borderRadius: 9, fontSize: 12, fontWeight: 600,
         background: "none", border: "none", color: "rgba(248,113,113,0.6)",
         cursor: "pointer", width: "100%", marginTop: 6,
-      }}><LogOut size={13} /> Sign Out</button>
+      }}><LogOut size={13} /> {t("sidebar.signOut")}</button>
     </aside>
   );
 }

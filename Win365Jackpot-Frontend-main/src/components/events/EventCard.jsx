@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -25,12 +26,18 @@ const STATUS_COLORS = {
   live: '#34d399',
   completed: 'rgba(255,255,255,0.4)',
 }
+const STATUS_LABEL_KEYS = {
+  upcoming: 'common.statusUpcoming',
+  live: 'common.statusLive',
+  completed: 'common.statusCompleted',
+}
 
 /**
  * EventCard — presentational only. Consumes the CasinoEventSerializer shape
  * from GET /api/events/ (see src/services/eventService.js).
  */
 function EventCard({ event }) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [imgFailed, setImgFailed] = useState(false)
   const imgSrc = event.image || getFallbackImage({ id: event.id, country: event.country })
@@ -85,22 +92,22 @@ function EventCard({ event }) {
               color: STATUS_COLORS[event.status] || '#888',
             }}
           >
-            {event.status}
+            {STATUS_LABEL_KEYS[event.status] ? t(STATUS_LABEL_KEYS[event.status]) : event.status}
           </span>
         )}
       </div>
 
       {/* Body */}
       <div className="p-5 flex flex-col flex-1 gap-3">
-        <h3 className="font-black text-lg text-white/90 leading-snug">{event.name}</h3>
+        <h3 className="font-black text-lg text-[rgba(var(--w365-text-rgb),0.90)] leading-snug">{event.name}</h3>
 
         {event.short_description && (
-          <p className="text-white/55 text-sm font-body leading-relaxed line-clamp-3">
+          <p className="text-[rgba(var(--w365-text-rgb),0.55)] text-sm font-body leading-relaxed line-clamp-3">
             {event.short_description}
           </p>
         )}
 
-        <div className="grid grid-cols-2 gap-2 text-xs font-body text-white/60 mt-1">
+        <div className="grid grid-cols-2 gap-2 text-xs font-body text-[rgba(var(--w365-text-rgb),0.60)] mt-1">
           <div className="flex items-center gap-1.5">
             <MapPin size={13} className="text-gold shrink-0" />
             {event.city ? `${event.city}, ` : ''}{event.country}
@@ -130,7 +137,7 @@ function EventCard({ event }) {
             onClick={() => navigate(`/events/${event.id}`)}
             className="btn-outline-gold flex-1 flex items-center justify-center gap-1.5 rounded-full py-2.5 text-xs font-bold tracking-widest uppercase"
           >
-            Register
+            {t('common.register')}
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.02 }}
@@ -138,7 +145,7 @@ function EventCard({ event }) {
             onClick={() => navigate(`/events/${event.id}`)}
             className="btn-gold flex-1 flex items-center justify-center gap-1.5 rounded-full py-2.5 text-xs font-bold tracking-widest uppercase"
           >
-            Get Ticket
+            {t('common.getTicket')}
             <ArrowRight size={13} />
           </motion.button>
         </div>

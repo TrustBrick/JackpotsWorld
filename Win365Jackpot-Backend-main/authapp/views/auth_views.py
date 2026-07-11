@@ -10,7 +10,6 @@ Authentication endpoints:
   • CheckUserView      — POST /api/auth/check-user/
 """
 
-import requests
 import re
 
 from django.contrib.auth import authenticate
@@ -23,6 +22,12 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from authapp.models import User, AdminProfile, ActivityLog
 from authapp.serializers import RegisterSerializer, LoginSerializer, UserProfileSerializer
+from authapp.throttles import (
+    LoginRateThrottle, AdminLoginRateThrottle, RegisterRateThrottle, CheckUserRateThrottle,
+)
+from authapp.utils.account_lockout import is_locked_out, record_failed_attempt, reset_attempts
+from authapp.utils.geolocation import resolve_geo_location
+from authapp.data.countries import COUNTRIES
 
 def _handle_referral_on_signup(new_user, referral_code_used: str):
     if not referral_code_used:
@@ -94,81 +99,55 @@ def get_ua(request):
     return request.META.get("HTTP_USER_AGENT", "")[:512]
 
 
-# ─── Country List ─────────────────────────────────────────────────────────────
+def _apply_login_geo(user, ip, extra_update_fields=None):
+    """Best-effort: resolve `ip` to a city/region/country and stamp it onto
+    `user`, saving only the touched fields. Never raises — if the lookup
+    fails, the user's existing location fields are left untouched."""
+    geo = resolve_geo_location(ip)
+    fields = list(extra_update_fields or [])
+    if geo:
+        user.last_login_city = geo.get("city", "")
+        user.last_login_region = geo.get("region", "")
+        user.last_login_country_name = geo.get("country_name", "")
+        fields += ["last_login_city", "last_login_region", "last_login_country_name"]
+    if fields:
+        user.save(update_fields=fields)
+    return geo
 
-# We fetch from restcountries.com and cache in memory for the lifetime of the process.
-_COUNTRIES_CACHE = None
+
+# ─── Country List ─────────────────────────────────────────────────────────────
+#
+# Previously this fetched restcountries.com's v3.1 "/all" endpoint at runtime.
+# That API has since been deprecated (it now returns a 200 with an error body
+# instead of country data), which silently broke every phone/country picker
+# on the site down to a single hardcoded India fallback. Using a bundled,
+# static dataset instead removes the dependency on a third-party API's
+# availability/format entirely for a core part of the registration flow.
 
 class CountryListView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
-        global _COUNTRIES_CACHE
-        if _COUNTRIES_CACHE is not None:
-            return Response(_COUNTRIES_CACHE)
-
-        try:
-            resp = requests.get(
-                "https://restcountries.com/v3.1/all"
-                "?fields=name,cca2,idd,flag,population",
-                timeout=10,
-            )
-            resp.raise_for_status()
-            raw = resp.json()
-            if not isinstance(raw, list):
-                # restcountries.com occasionally returns an error object
-                # (e.g. {"message": ..., "status": ...}) instead of the
-                # expected array — iterating over it would crash below.
-                raise ValueError("Unexpected response shape from restcountries.com")
-        except Exception as e:
-            return Response(
-                {"error": f"Could not fetch country data: {str(e)}"},
-                status=502,
-            )
-
-        countries = []
-        for c in raw:
-            idd      = c.get("idd", {})
-            root     = idd.get("root", "")
-            suffixes = idd.get("suffixes", [])
-
-            if not root:
-                continue  # skip countries with no dial code
-
-            if len(suffixes) == 1:
-                dial_code = root + suffixes[0]
-            else:
-                dial_code = root  # e.g. "+1" for US
-
-            # Skip if dial_code is just "+" or empty
-            if not dial_code or dial_code == "+":
-                continue
-
-            countries.append({
-                "name":      c["name"]["common"],
-                "code":      c.get("cca2", ""),
-                "dial_code": dial_code,
-                "flag":      c.get("flag", ""),
-            })
-
-        # Sort alphabetically — this gives all ~250 countries
-        countries.sort(key=lambda x: x["name"])
-        _COUNTRIES_CACHE = countries
-        return Response(countries)
+        return Response(COUNTRIES)
 
 
 # ─── Register ────────────────────────────────────────────────────────────────
 
 class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [RegisterRateThrottle]
 
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
             user   = serializer.save()
+            ip = get_client_ip(request)
+            user.last_login_ip = ip
+            user.save(update_fields=["last_login_ip"])
+            geo = _apply_login_geo(user, ip)
             tokens = get_tokens(user)
             profile = UserProfileSerializer(user, context={"request": request}).data
-    
+
             # ── Referral handling ──────────────────────────────
             referral_code = request.data.get("referral_code", "").strip().upper()
             if referral_code:
@@ -176,18 +155,19 @@ class RegisterView(APIView):
                 user.save(update_fields=["referral_code_used"])
                 _handle_referral_on_signup(user, referral_code)
             # ──────────────────────────────────────────────────
-    
+
             ActivityLog.log(
                 action="register",
                 actor=user,
                 target_user=user,
                 description=f"New user registered: {user.email} | Country: {user.country}",
-                ip_address=get_client_ip(request),
+                ip_address=ip,
                 user_agent=get_ua(request),
                 meta={
                     "country":       user.country,
                     "dial_code":     user.dial_code,
                     "referral_used": referral_code or None,
+                    **({"geo": geo} if geo else {}),
                 },
             )
             return Response({"user": profile, "tokens": tokens}, status=status.HTTP_201_CREATED)
@@ -197,6 +177,7 @@ class RegisterView(APIView):
 
 class LoginView(APIView):
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [LoginRateThrottle]
 
     def post(self, request):
         # Cloudflare Turnstile verification (enable when ready):
@@ -204,14 +185,24 @@ class LoginView(APIView):
         # if not verify_turnstile(cf_token):
         #     return Response({"error": "Verification failed. Please try again."}, status=400)
 
+        email = request.data.get("email", "").strip().lower()
+        if email and is_locked_out(email):
+            return Response(
+                {"error": "Too many failed attempts. Please try again in 15 minutes."},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.validated_data["user"]
+            if email:
+                reset_attempts(email)
             ip   = get_client_ip(request)
 
             user.last_login_ip = ip
             user.last_login    = timezone.now()
             user.save(update_fields=["last_login_ip", "last_login"])
+            geo = _apply_login_geo(user, ip)
 
             tokens  = get_tokens(user)
             profile = UserProfileSerializer(user, context={"request": request}).data
@@ -223,9 +214,11 @@ class LoginView(APIView):
                 description=f"User login from {ip}",
                 ip_address=ip,
                 user_agent=get_ua(request),
-                meta={"country": user.country},
+                meta={"country": user.country, **({"geo": geo} if geo else {})},
             )
             return Response({"user": profile, "tokens": tokens})
+        if email:
+            record_failed_attempt(email)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -257,6 +250,7 @@ class LogoutView(APIView):
 
 class CheckUserView(APIView):
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [CheckUserRateThrottle]
 
     def post(self, request):
         identifier = request.data.get("identifier", "").strip()
@@ -279,6 +273,7 @@ class CheckUserView(APIView):
 
 class SuperAdminLoginView(APIView):
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [AdminLoginRateThrottle]
 
     def post(self, request):
         email    = request.data.get("email", "").strip().lower()
@@ -288,10 +283,19 @@ class SuperAdminLoginView(APIView):
         if not email or not password:
             return Response({"error": "Email and password required"}, status=400)
 
+        if is_locked_out(email):
+            return Response(
+                {"error": "Too many failed attempts. Please try again in 15 minutes."},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
         user = User.objects.filter(email__iexact=email).first()
 
         if not user or not user.check_password(password):
+            record_failed_attempt(email)
             return Response({"error": "Invalid credentials"}, status=400)
+
+        reset_attempts(email)
 
         # Super Admin = is_superuser=True AND is_staff=False
         # Super Admin = is_superuser=True AND is_staff=True
@@ -317,6 +321,7 @@ class SuperAdminLoginView(APIView):
         user.last_login    = timezone.now()
         user.last_login_ip = ip
         user.save(update_fields=["last_login", "last_login_ip"])
+        geo = _apply_login_geo(user, ip)
 
         ActivityLog.log(
             action="admin_login",
@@ -324,7 +329,7 @@ class SuperAdminLoginView(APIView):
             description=f"Super Admin login from {ip}",
             ip_address=ip,
             user_agent=get_ua(request),
-            meta={"success": True, "role": "superadmin"},
+            meta={"success": True, "role": "superadmin", **({"geo": geo} if geo else {})},
         )
 
         tokens = get_tokens(user)
@@ -337,6 +342,7 @@ class SuperAdminLoginView(APIView):
                 "is_staff":     user.is_staff,
                 "is_superuser": user.is_superuser,
                 "role":         profile.role,
+                "theme_preference": profile.theme_preference,
             },
             "tokens": tokens,
         })
@@ -344,6 +350,7 @@ class SuperAdminLoginView(APIView):
 
 class AdminLoginView(APIView):
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [AdminLoginRateThrottle]
 
     def post(self, request):
         email    = request.data.get("email", "").strip().lower()
@@ -353,9 +360,16 @@ class AdminLoginView(APIView):
         if not email or not password:
             return Response({"error": "Email and password required"}, status=400)
 
+        if is_locked_out(email):
+            return Response(
+                {"error": "Too many failed attempts. Please try again in 15 minutes."},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
         user = User.objects.filter(email__iexact=email).first()
 
         if not user or not user.check_password(password):
+            record_failed_attempt(email)
             ActivityLog.log(
                 action="admin_login",
                 description=f"Failed admin login attempt: {email}",
@@ -363,6 +377,8 @@ class AdminLoginView(APIView):
                 meta={"email": email, "success": False},
             )
             return Response({"error": "Invalid credentials"}, status=400)
+
+        reset_attempts(email)
 
         # Admin login = is_staff=True (super admins also have is_staff=True, so this allows both)
         if not user.is_staff:
@@ -380,6 +396,7 @@ class AdminLoginView(APIView):
         user.last_login    = timezone.now()
         user.last_login_ip = ip
         user.save(update_fields=["last_login", "last_login_ip"])
+        geo = _apply_login_geo(user, ip)
 
         ActivityLog.log(
             action="admin_login",
@@ -387,7 +404,7 @@ class AdminLoginView(APIView):
             description=f"Admin login from {ip}",
             ip_address=ip,
             user_agent=get_ua(request),
-            meta={"success": True},
+            meta={"success": True, **({"geo": geo} if geo else {})},
         )
 
         tokens = get_tokens(user)
@@ -400,6 +417,7 @@ class AdminLoginView(APIView):
                 "is_staff":     user.is_staff,
                 "is_superuser": user.is_superuser,
                 "role":         profile.role,
+                "theme_preference": profile.theme_preference,
             },
             "tokens": tokens,
         })

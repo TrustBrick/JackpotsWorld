@@ -6,6 +6,8 @@ from authapp.views.events_views import (
     EventTicketRequestView,
     AdminEventListCreateView,
     AdminEventDetailView,
+    AdminEventTicketRequestListView,
+    AdminEventTicketRequestUpdateView,
 )
 
 # Public — mounted at api/events/
@@ -19,4 +21,6 @@ public_urlpatterns = [
 admin_urlpatterns = [
     path("events/", AdminEventListCreateView.as_view()),
     path("events/<int:pk>/", AdminEventDetailView.as_view()),
+    path("events/tickets/", AdminEventTicketRequestListView.as_view()),
+    path("events/tickets/<int:pk>/", AdminEventTicketRequestUpdateView.as_view()),
 ]

@@ -14,6 +14,7 @@ from authapp.serializers.wallet_serializers import WalletTransactionSerializer
 from django.core.paginator import Paginator
 
 from authapp.models import WalletAccount, ActivityLog
+from authapp.utils.file_validation import validate_uploaded_image
 from authapp.serializers import (
     UserProfileSerializer,
     UpdateProfileSerializer,
@@ -151,6 +152,11 @@ class AvatarUpdateView(APIView):
             )
 
         if avatar:
+            try:
+                validate_uploaded_image(avatar)
+            except Exception as exc:
+                detail = exc.detail if hasattr(exc, "detail") else str(exc)
+                return Response({"detail": str(detail)}, status=status.HTTP_400_BAD_REQUEST)
             user.avatar = avatar
         if avatar_url:
             user.avatar_url = avatar_url

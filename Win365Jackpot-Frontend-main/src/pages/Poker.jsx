@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { LogIn, UserPlus, AlertTriangle, RefreshCw, Spade } from 'lucide-react'
+import { useTheme } from '../context/ThemeContext'
 import Navbar from '../components/Navbar'
 import PageHeader from '../components/shared/PageHeader'
 import PokerCard from '../components/poker/PokerCard'
@@ -12,6 +14,8 @@ const EMPTY_PARAMS = {}
 const STATUS_ORDER = { live: 0, upcoming: 1, completed: 2 }
 
 export default function Poker() {
+  const { t } = useTranslation()
+  const { theme } = useTheme()
   const [authOpen, setAuthOpen] = useState(false)
   const [authTab, setAuthTab] = useState('login')
   const isLoggedIn = !!localStorage.getItem('access')
@@ -25,7 +29,7 @@ export default function Poker() {
   const openAuth = (tab) => { setAuthTab(tab); setAuthOpen(true) }
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--w365-bg)' }}>
+    <div key={theme} className="min-h-screen" style={{ background: 'var(--w365-bg)' }}>
       <Navbar />
 
       <AuthModal
@@ -36,23 +40,23 @@ export default function Poker() {
       />
 
       <PageHeader
-        eyebrow="High Stakes, Live Action"
-        title="Poker"
-        subtitle="Upcoming tournaments and live tables from our partner casinos — get your ticket or watch the schedule fill in real time."
+        eyebrow={t('poker.eyebrow')}
+        title={t('poker.title')}
+        subtitle={t('poker.subtitle')}
       />
 
       {!isLoggedIn && (
         <div className="max-w-3xl mx-auto px-4 -mt-6 mb-10">
           <div className="casino-card flex flex-col md:flex-row items-center justify-between gap-4 px-6 py-4">
             <p className="text-white/60 text-sm font-body text-center md:text-left">
-              Sign in to get your ticket for tournaments and track your seated events.
+              {t('poker.signInPrompt')}
             </p>
             <div className="flex gap-2 shrink-0">
               <button onClick={() => openAuth('login')} className="btn-outline-gold flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase">
-                <LogIn size={13} /> Sign In
+                <LogIn size={13} /> {t('common.signIn')}
               </button>
               <button onClick={() => openAuth('register')} className="btn-gold flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase">
-                <UserPlus size={13} /> Sign Up
+                <UserPlus size={13} /> {t('common.signUp')}
               </button>
             </div>
           </div>
@@ -69,15 +73,15 @@ export default function Poker() {
         ) : error ? (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-24 text-white/40">
             <AlertTriangle size={40} className="mb-4 text-red-400/60" />
-            <p className="font-body mb-4">Couldn't load tournaments right now. Please try again.</p>
+            <p className="font-body mb-4">{t('poker.loadError')}</p>
             <button onClick={reload} className="btn-outline-gold rounded-full px-5 py-2 text-sm font-bold flex items-center gap-2">
-              <RefreshCw size={14} /> Retry
+              <RefreshCw size={14} /> {t('common.retry')}
             </button>
           </motion.div>
         ) : tournaments.length === 0 ? (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-24 text-white/40">
             <Spade size={40} className="mb-4 text-gold/50" />
-            <p className="font-body">No tournaments scheduled right now. Check back soon.</p>
+            <p className="font-body">{t('poker.noTournaments')}</p>
           </motion.div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

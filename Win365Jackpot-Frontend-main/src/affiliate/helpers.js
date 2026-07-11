@@ -14,13 +14,33 @@ const buildHeaders = (token, opts) => {
 // a genuinely separate login, not an upgrade of the user dashboard.
 export const affiliateFetch = async (url, opts = {}) => {
   const token = localStorage.getItem("affiliate_token")
-  const res = await fetch(url, { ...opts, headers: buildHeaders(token, opts) })
+  let res = await fetch(url, { ...opts, headers: buildHeaders(token, opts) })
+
   if (res.status === 401) {
-    localStorage.removeItem("affiliate_token")
-    localStorage.removeItem("affiliate_refresh")
-    localStorage.removeItem("affiliate_user")
-    window.location.href = "/affiliate-login"
-    return
+    const refresh = localStorage.getItem("affiliate_refresh")
+    if (refresh) {
+      const rr = await fetch(`${API}/api/auth/token/refresh/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh }),
+      })
+      if (rr.ok) {
+        const d = await rr.json()
+        localStorage.setItem("affiliate_token", d.access)
+        res = await fetch(url, { ...opts, headers: buildHeaders(d.access, opts) })
+      } else {
+        localStorage.removeItem("affiliate_token")
+        localStorage.removeItem("affiliate_refresh")
+        localStorage.removeItem("affiliate_user")
+        window.location.href = "/affiliate-login"
+        return
+      }
+    } else {
+      localStorage.removeItem("affiliate_token")
+      localStorage.removeItem("affiliate_user")
+      window.location.href = "/affiliate-login"
+      return
+    }
   }
   return res
 }

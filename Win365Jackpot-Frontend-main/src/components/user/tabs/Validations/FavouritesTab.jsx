@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Heart, MapPin, Globe, X } from "lucide-react";
 import { C } from "../../constants";
 import { authFetch, API } from "../../helpers";
 import { Card, Spinner } from "../../components/SharedUI";
 
 export default function FavouritesTab({ onToast }) {
+  const { t } = useTranslation();
   const [favs, setFavs]       = useState({ countries: [], casinos: [] });
   const [loading, setLoading] = useState(true);
   const [favTab, setFavTab]   = useState("casinos");
@@ -22,9 +24,9 @@ export default function FavouritesTab({ onToast }) {
     const r = await authFetch(`${API}/api/user/favourites/${id}/`, { method: "DELETE" });
     if (r.ok) {
       setFavs(prev => ({ ...prev, [type]: prev[type].filter(f => f.id !== id) }));
-      onToast("Removed from favourites");
+      onToast(t("favourites.removedFromFavourites"));
     } else {
-      onToast("Failed to remove", false);
+      onToast(t("favourites.failedToRemove"), false);
     }
     setRemoving(null);
   };
@@ -33,12 +35,12 @@ export default function FavouritesTab({ onToast }) {
     <div>
       {/* Sub-tabs */}
       <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-        {[["casinos", "🏛️ Casinos"], ["countries", "🌍 Countries"]].map(([t, l]) => (
-          <button key={t} onClick={() => setFavTab(t)} style={{
+        {[["casinos", `🏛️ ${t("favourites.casinos")}`], ["countries", `🌍 ${t("favourites.countries")}`]].map(([id, l]) => (
+          <button key={id} onClick={() => setFavTab(id)} style={{
             padding: "8px 16px", borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer",
-            border: `1px solid ${favTab === t ? `${C.pink}40` : C.border}`,
-            background: favTab === t ? `${C.pink}12` : "transparent",
-            color: favTab === t ? C.pink : "rgba(255,255,255,0.4)",
+            border: `1px solid ${favTab === id ? `${C.pink}40` : C.border}`,
+            background: favTab === id ? `${C.pink}12` : "transparent",
+            color: favTab === id ? C.pink : "rgba(255,255,255,0.4)",
           }}>
             {l}
           </button>
@@ -69,7 +71,7 @@ export default function FavouritesTab({ onToast }) {
             </Card>
           ))}
           {favs.casinos.length === 0 && (
-            <EmptyState icon={<Heart size={32} />} text="No favourite casinos yet" />
+            <EmptyState icon={<Heart size={32} />} text={t("favourites.noFavouriteCasinosYet")} />
           )}
         </div>
       ) : (
@@ -79,11 +81,11 @@ export default function FavouritesTab({ onToast }) {
               <RemoveBtn id={c.id} removing={removing} onRemove={() => removeFav("countries", c.id)} />
               <div style={{ fontSize: 28, marginBottom: 8 }}>{c.flag || "🌍"}</div>
               <div style={{ fontWeight: 700, color: "white", fontSize: 15, marginBottom: 4 }}>{c.name}</div>
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>{c.casino_count || 0} casinos</div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>{t("favourites.casinosCount", { count: c.casino_count || 0 })}</div>
             </Card>
           ))}
           {favs.countries.length === 0 && (
-            <EmptyState icon={<Globe size={32} />} text="No favourite countries yet" />
+            <EmptyState icon={<Globe size={32} />} text={t("favourites.noFavouriteCountriesYet")} />
           )}
         </div>
       )}

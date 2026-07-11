@@ -4,18 +4,20 @@ import {
   Search, Check, X, Filter, RefreshCw, Info, Shield,
   ArrowDownLeft, ArrowUpRight, Plus, AlertCircle, CheckCircle,
 } from "lucide-react";
-import { C, WALLET_CFG, SCENARIO_META, VALIDATABLE } from "../constants";
+import { WALLET_CFG, SCENARIO_META, VALIDATABLE } from "../constants";
 import { adminFetch, API, fmt, fmtN, fmtDT, fmtD } from "../helpers";
 import {
   Card, Btn, Input, Select, Textarea, Spinner, UidBadge, UtrBadge,
   StatusBadge, Pagination, Table, rowHover, SectionTitle,
 } from "../components/SharedUI";
+import { useAdminTheme } from "../context/AdminThemeContext";
 
 // ═════════════════════════════════════════════════════════════════════════════
 // WALLET MANAGER TAB  (root)
 // ═════════════════════════════════════════════════════════════════════════════
 
 export default function WalletTab({ onToast }) {
+  const { C } = useAdminTheme();
   const [sub, setSub] = useState("balances");
 
   const SUB_TABS = [
@@ -36,7 +38,7 @@ export default function WalletTab({ onToast }) {
             border: `1px solid ${sub === id ? C.border : "transparent"}`,
             borderBottom: "none",
             background: sub === id ? C.surface2 : "transparent",
-            color: sub === id ? "white" : "rgba(255,255,255,0.4)",
+            color: sub === id ? C.text : C.muted,
             marginBottom: -1,
           }}>{label}</button>
         ))}
@@ -56,6 +58,7 @@ export default function WalletTab({ onToast }) {
 // ═════════════════════════════════════════════════════════════════════════════
 
 function BalancesPane({ onToast }) {
+  const { C } = useAdminTheme();
   const [q, setQ]               = useState("");
   const [userId, setUserId]     = useState(null);
   const [accounts, setAccounts] = useState([]);
@@ -82,18 +85,18 @@ function BalancesPane({ onToast }) {
 
   return (
     <div>
-      <div style={{ padding: "10px 14px", borderRadius: 10, background: `${C.blue}08`, border: `1px solid ${C.blue}20`, fontSize: 12, color: "rgba(255,255,255,0.5)", marginBottom: 18, lineHeight: 1.7 }}>
+      <div style={{ padding: "10px 14px", borderRadius: 10, background: `${C.blue}08`, border: `1px solid ${C.blue}20`, fontSize: 12, color: C.muted, marginBottom: 18, lineHeight: 1.7 }}>
         <Info size={12} style={{ display: "inline", marginRight: 6, color: C.blue }} />
-        Each user has exactly <b style={{ color: "white" }}>4 wallet accounts</b> (Cash, Non-Cash, OTP, Rolling Points). Account numbers are unique per customer UID.
+        Each user has exactly <b style={{ color: C.text }}>4 wallet accounts</b> (Cash, Non-Cash, OTP, Rolling Points). Account numbers are unique per customer UID.
       </div>
 
       {/* Search */}
       <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
         <div style={{ flex: 1, position: "relative" }}>
-          <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.3)" }} />
+          <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.muted }} />
           <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search by email / UID / name…"
             onKeyDown={e => e.key === "Enter" && search()}
-            style={{ width: "100%", padding: "10px 14px 10px 36px", borderRadius: 10, background: C.surface, border: `1px solid ${C.border}`, color: "white", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+            style={{ width: "100%", padding: "10px 14px 10px 36px", borderRadius: 10, background: C.surface, border: `1px solid ${C.border}`, color: C.text, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
         </div>
         <Btn onClick={search} outline><Search size={13} /> Search</Btn>
       </div>
@@ -105,12 +108,12 @@ function BalancesPane({ onToast }) {
           {/* User info bar */}
           <div style={{ padding: "12px 16px", borderRadius: 12, background: `${C.green}08`, border: `1px solid ${C.green}25`, marginBottom: 20, display: "flex", alignItems: "center", gap: 14 }}>
             <div>
-              <div style={{ fontWeight: 700, color: "white", fontSize: 13 }}>{userInfo.name || userInfo.email}</div>
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>{userInfo.email}</div>
+              <div style={{ fontWeight: 700, color: C.text, fontSize: 13 }}>{userInfo.name || userInfo.email}</div>
+              <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{userInfo.email}</div>
             </div>
             <UidBadge uid={userInfo.user_uid} />
             <div style={{ marginLeft: "auto", display: "flex", gap: 16, fontSize: 11 }}>
-              <span style={{ color: "rgba(255,255,255,0.4)" }}>VIP <b style={{ color: "#D4AF37" }}>{userInfo.vip_level}</b></span>
+              <span style={{ color: C.muted }}>VIP <b style={{ color: "#D4AF37" }}>{userInfo.vip_level}</b></span>
             </div>
           </div>
 
@@ -124,28 +127,28 @@ function BalancesPane({ onToast }) {
                   <div style={{ fontSize: 12, fontWeight: 700, color: cfg.color, marginBottom: 4 }}>{cfg.label}</div>
 
                   {/* Account number */}
-                  <div style={{ fontFamily: "monospace", fontSize: 11, color: "rgba(255,255,255,0.55)", fontWeight: 700, marginBottom: 12, padding: "6px 10px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: `1px solid ${C.border}` }}>
+                  <div style={{ fontFamily: "monospace", fontSize: 11, color: C.sub, fontWeight: 700, marginBottom: 12, padding: "6px 10px", borderRadius: 8, background: C.hoverBg, border: `1px solid ${C.border}` }}>
                     {acct.account_number}
                   </div>
 
-                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.1em" }}>Available Balance</div>
-                  <div style={{ fontSize: 26, fontWeight: 900, color: "white", fontFamily: "monospace", marginBottom: 14 }}>{fmt(acct.balance)}</div>
+                  <div style={{ fontSize: 11, color: C.muted, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.1em" }}>Available Balance</div>
+                  <div style={{ fontSize: 26, fontWeight: 900, color: C.text, fontFamily: "monospace", marginBottom: 14 }}>{fmt(acct.balance)}</div>
 
                   <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 10 }}>
                     <div>
-                      <div style={{ color: "rgba(255,255,255,0.3)", marginBottom: 2 }}>Last Updated</div>
-                      <div style={{ color: "rgba(255,255,255,0.6)" }}>{fmtDT(acct.last_updated)}</div>
+                      <div style={{ color: C.muted, marginBottom: 2 }}>Last Updated</div>
+                      <div style={{ color: C.sub }}>{fmtDT(acct.last_updated)}</div>
                     </div>
                     <div>
-                      <div style={{ color: "rgba(255,255,255,0.3)", marginBottom: 2 }}>Updated By</div>
+                      <div style={{ color: C.muted, marginBottom: 2 }}>Updated By</div>
                       <div style={{ color: cfg.color, fontWeight: 700, fontFamily: "monospace" }}>{acct.updated_by_uid || "—"}</div>
                     </div>
                     <div style={{ gridColumn: "1/-1" }}>
-                      <div style={{ color: "rgba(255,255,255,0.3)", marginBottom: 2 }}>Last Reason</div>
-                      <div style={{ color: "rgba(255,255,255,0.5)" }}>{acct.last_reason || "—"}</div>
+                      <div style={{ color: C.muted, marginBottom: 2 }}>Last Reason</div>
+                      <div style={{ color: C.muted }}>{acct.last_reason || "—"}</div>
                     </div>
                     <div style={{ gridColumn: "1/-1" }}>
-                      <div style={{ color: "rgba(255,255,255,0.3)", marginBottom: 2 }}>Last Scenario Code</div>
+                      <div style={{ color: C.muted, marginBottom: 2 }}>Last Scenario Code</div>
                       <div style={{ fontFamily: "monospace", fontWeight: 700, color: cfg.color }}>{acct.last_scenario || "—"}</div>
                     </div>
                   </div>
@@ -157,7 +160,7 @@ function BalancesPane({ onToast }) {
       )}
 
       {!userInfo && !loading && (
-        <div style={{ textAlign: "center", padding: 56, color: "rgba(255,255,255,0.2)" }}>
+        <div style={{ textAlign: "center", padding: 56, color: C.dim }}>
           Search for a user to view their wallet accounts
         </div>
       )}
@@ -178,6 +181,7 @@ const SCENARIO_GROUPS = {
 };
 
 function EntryPane({ onToast, onDone }) {
+  const { C } = useAdminTheme();
   const [q, setQ]               = useState("");
   const [userId, setUserId]     = useState(null);
   const [userInfo, setUserInfo] = useState(null);
@@ -236,10 +240,10 @@ function EntryPane({ onToast, onDone }) {
         {/* User search */}
         <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
           <div style={{ flex: 1, position: "relative" }}>
-            <Search size={13} style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.3)" }} />
+            <Search size={13} style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: C.muted }} />
             <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search user by email / UID…"
               onKeyDown={e => e.key === "Enter" && search()}
-              style={{ width: "100%", padding: "10px 14px 10px 34px", borderRadius: 10, background: C.surface, border: `1px solid ${C.border}`, color: "white", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+              style={{ width: "100%", padding: "10px 14px 10px 34px", borderRadius: 10, background: C.surface, border: `1px solid ${C.border}`, color: C.text, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
           </div>
           <Btn outline onClick={search}><Search size={13} /></Btn>
         </div>
@@ -247,7 +251,7 @@ function EntryPane({ onToast, onDone }) {
         {userInfo && (
           <div style={{ padding: "10px 12px", borderRadius: 10, background: `${C.green}08`, border: `1px solid ${C.green}25`, marginBottom: 14, fontSize: 12 }}>
             <div style={{ color: C.green, fontWeight: 700 }}>✅ {userInfo.user_uid} · {userInfo.name || userInfo.email}</div>
-            <div style={{ color: "rgba(255,255,255,0.45)", marginTop: 3 }}>
+            <div style={{ color: C.muted, marginTop: 3 }}>
               VIP {userInfo.vip_level} &nbsp;|&nbsp; Cash: {fmt(userInfo.wallet_balance)} &nbsp;|&nbsp; NC: {fmt(userInfo.bonus_balance)}
             </div>
           </div>
@@ -255,11 +259,11 @@ function EntryPane({ onToast, onDone }) {
 
         {/* Scenario selector */}
         <div style={{ marginBottom: 14 }}>
-          <label style={{ display: "block", fontSize: 11, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>
+          <label style={{ display: "block", fontSize: 11, color: C.muted, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>
             Transaction Scenario *
           </label>
           <select value={scenario} onChange={e => setScenario(e.target.value)}
-            style={{ width: "100%", padding: "11px 14px", borderRadius: 10, background: "#0d0d1a", border: `1px solid ${scenario ? C.gold + "50" : C.border}`, color: "white", fontSize: 13, outline: "none" }}>
+            style={{ width: "100%", padding: "11px 14px", borderRadius: 10, background: C.inputBg, border: `1px solid ${scenario ? C.gold + "50" : C.border}`, color: C.text, fontSize: 13, outline: "none" }}>
             <option value="">— Select scenario —</option>
             {Object.entries(SCENARIO_GROUPS).map(([wtype, pairs]) => (
               <optgroup key={wtype} label={`── ${WALLET_CFG[wtype]?.label || wtype} Wallet ──`}>
@@ -276,18 +280,18 @@ function EntryPane({ onToast, onDone }) {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ marginBottom: 14, padding: "10px 14px", borderRadius: 10, background: `${WALLET_CFG[walletType]?.color}10`, border: `1px solid ${WALLET_CFG[walletType]?.color}30`, fontSize: 12 }}>
             <div style={{ display: "flex", gap: 16 }}>
               <div>
-                <div style={{ color: "rgba(255,255,255,0.4)", marginBottom: 2 }}>Wallet</div>
+                <div style={{ color: C.muted, marginBottom: 2 }}>Wallet</div>
                 <div style={{ fontWeight: 700, color: WALLET_CFG[walletType]?.color }}>{WALLET_CFG[walletType]?.label}</div>
               </div>
               <div>
-                <div style={{ color: "rgba(255,255,255,0.4)", marginBottom: 2 }}>Direction</div>
+                <div style={{ color: C.muted, marginBottom: 2 }}>Direction</div>
                 <div style={{ fontWeight: 700, color: direction === "credit" ? C.green : C.red }}>
                   {direction === "credit" ? "↑ Credit" : "↓ Debit"}
                 </div>
               </div>
               {isValidatable && expected !== null && (
                 <div>
-                  <div style={{ color: "rgba(255,255,255,0.4)", marginBottom: 2 }}>Expected Amount</div>
+                  <div style={{ color: C.muted, marginBottom: 2 }}>Expected Amount</div>
                   <div style={{ fontWeight: 700, color: C.gold }}>{fmt(expected)}</div>
                 </div>
               )}
@@ -298,7 +302,7 @@ function EntryPane({ onToast, onDone }) {
               </div>
             )}
             {scenario === "ROP" && (
-              <div style={{ marginTop: 8, fontSize: 11, color: "rgba(255,255,255,0.4)" }}>
+              <div style={{ marginTop: 8, fontSize: 11, color: C.muted }}>
                 ℹ️ Rolling Points are non-redeemable and non-transferrable.
               </div>
             )}
@@ -311,7 +315,7 @@ function EntryPane({ onToast, onDone }) {
         {scenario && (
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14, marginTop: -6 }}>
             {[500, 1000, 2500, 5000, 10000, 25000, 50000].map(a => (
-              <button key={a} onClick={() => setAmount(String(a))} style={{ padding: "4px 10px", borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: "pointer", background: amount === String(a) ? `${C.gold}20` : C.surface, border: `1px solid ${amount === String(a) ? `${C.gold}50` : C.border}`, color: amount === String(a) ? C.gold : "rgba(255,255,255,0.4)" }}>
+              <button key={a} onClick={() => setAmount(String(a))} style={{ padding: "4px 10px", borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: "pointer", background: amount === String(a) ? `${C.gold}20` : C.surface, border: `1px solid ${amount === String(a) ? `${C.gold}50` : C.border}`, color: amount === String(a) ? C.gold : C.muted }}>
                 ${a >= 1000 ? (a / 1000) + "k" : a}
               </button>
             ))}
@@ -337,9 +341,9 @@ function EntryPane({ onToast, onDone }) {
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {pairs.map(([code, meta]) => (
-                  <div key={code} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 10px", borderRadius: 8, background: "rgba(255,255,255,0.025)" }}>
+                  <div key={code} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 10px", borderRadius: 8, background: C.hoverBg }}>
                     <span style={{ fontFamily: "monospace", fontSize: 11, fontWeight: 800, color: cfg.color, minWidth: 54 }}>{code}</span>
-                    <span style={{ fontSize: 12, color: "rgba(255,255,255,0.55)" }}>{meta.label}</span>
+                    <span style={{ fontSize: 12, color: C.sub }}>{meta.label}</span>
                     <span style={{ marginLeft: "auto", fontSize: 10, fontWeight: 700, color: meta.dir === "credit" ? C.green : C.red }}>{meta.dir === "credit" ? "↑ Cr" : "↓ Dr"}</span>
                   </div>
                 ))}
@@ -355,7 +359,7 @@ function EntryPane({ onToast, onDone }) {
               {result.ok ? "✅ Submitted Successfully" : "❌ Submission Failed"}
             </div>
             {result.utr_reference && <div style={{ fontFamily: "monospace", fontSize: 12, color: C.blue }}>UTR: {result.utr_reference}</div>}
-            {result.detail && <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", marginTop: 6 }}>{result.detail}</div>}
+            {result.detail && <div style={{ fontSize: 12, color: C.muted, marginTop: 6 }}>{result.detail}</div>}
           </motion.div>
         )}
       </div>
@@ -368,6 +372,7 @@ function EntryPane({ onToast, onDone }) {
 // ═════════════════════════════════════════════════════════════════════════════
 
 function VerifyPane({ onToast }) {
+  const { C } = useAdminTheme();
   const [txns, setTxns]         = useState([]);
   const [loading, setLoading]   = useState(false);
   const [page, setPage]         = useState(1);
@@ -422,28 +427,28 @@ function VerifyPane({ onToast }) {
         <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
           <thead>
-            <tr style={{ borderBottom: `1px solid ${C.border}`, background: "rgba(255,255,255,0.02)" }}>
-              {HEADERS.map(h => <th key={h} style={{ padding: "12px 13px", textAlign: "left", fontSize: 10, color: "rgba(255,255,255,0.3)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", whiteSpace: "nowrap" }}>{h}</th>)}
+            <tr style={{ borderBottom: `1px solid ${C.border}`, background: C.hoverBg }}>
+              {HEADERS.map(h => <th key={h} style={{ padding: "12px 13px", textAlign: "left", fontSize: 10, color: C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", whiteSpace: "nowrap" }}>{h}</th>)}
             </tr>
           </thead>
           <tbody>
             {loading
               ? <tr><td colSpan={10} style={{ padding: 40, textAlign: "center" }}><Spinner /></td></tr>
               : txns.length === 0
-                ? <tr><td colSpan={10} style={{ padding: 40, textAlign: "center", color: "rgba(255,255,255,0.2)" }}>No pending transactions</td></tr>
+                ? <tr><td colSpan={10} style={{ padding: 40, textAlign: "center", color: C.dim }}>No pending transactions</td></tr>
                 : txns.map(tx => {
                   const wCfg = WALLET_CFG[tx.wallet_type] || {};
                   const isCr = tx.direction === "credit";
                   return (
-                    <tr key={tx.id} style={{ borderBottom: `1px solid ${C.border}` }} {...rowHover}>
+                    <tr key={tx.id} style={{ borderBottom: `1px solid ${C.border}` }} {...rowHover(C)}>
                       <td style={{ padding: "11px 13px" }}><UtrBadge utr={tx.utr_reference} /></td>
                       <td style={{ padding: "11px 13px" }}>
-                        <div style={{ fontWeight: 600, color: "white", fontSize: 11 }}>{tx.user_name || "—"}</div>
-                        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>{tx.user_uid}</div>
+                        <div style={{ fontWeight: 600, color: C.text, fontSize: 11 }}>{tx.user_name || "—"}</div>
+                        <div style={{ fontSize: 10, color: C.muted }}>{tx.user_uid}</div>
                       </td>
                       <td style={{ padding: "11px 13px" }}>
                         <span style={{ fontFamily: "monospace", fontSize: 10, fontWeight: 800, color: wCfg.color, background: `${wCfg.color}15`, padding: "2px 7px", borderRadius: 6 }}>{tx.scenario_code}</span>
-                        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginTop: 2 }}>{tx.scenario_label}</div>
+                        <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>{tx.scenario_label}</div>
                       </td>
                       <td style={{ padding: "11px 13px" }}>
                         <span style={{ fontSize: 10, fontWeight: 800, color: wCfg.color, padding: "2px 7px", borderRadius: 6, background: `${wCfg.color}15` }}>{wCfg.abbr}</span>
@@ -454,11 +459,11 @@ function VerifyPane({ onToast }) {
                       <td style={{ padding: "11px 13px", fontFamily: "monospace", fontWeight: 900, color: isCr ? C.green : C.red, whiteSpace: "nowrap" }}>
                         {isCr ? "+" : "-"}{fmt(tx.amount)}
                       </td>
-                      <td style={{ padding: "11px 13px", fontSize: 10, color: "rgba(255,255,255,0.4)", maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <td style={{ padding: "11px 13px", fontSize: 10, color: C.muted, maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {tx.note || "—"}
                       </td>
                       <td style={{ padding: "11px 13px", fontFamily: "monospace", fontSize: 10, color: C.gold }}>{tx.created_by_uid || "—"}</td>
-                      <td style={{ padding: "11px 13px", fontSize: 10, color: "rgba(255,255,255,0.4)", whiteSpace: "nowrap" }}>{fmtDT(tx.created_at)}</td>
+                      <td style={{ padding: "11px 13px", fontSize: 10, color: C.muted, whiteSpace: "nowrap" }}>{fmtDT(tx.created_at)}</td>
                       <td style={{ padding: "11px 13px" }}>
                         <div style={{ display: "flex", gap: 6 }}>
                           <Btn small color={C.green} disabled={acting === tx.id} onClick={() => approve(tx.id)}>
@@ -508,6 +513,7 @@ function VerifyPane({ onToast }) {
 // ═════════════════════════════════════════════════════════════════════════════
 
 function HistoryPane({ onToast }) {
+  const { C } = useAdminTheme();
   const [txns, setTxns]         = useState([]);
   const [loading, setLoading]   = useState(false);
   const [page, setPage]         = useState(1);
@@ -543,9 +549,9 @@ function HistoryPane({ onToast }) {
       {/* Filters */}
       <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ position: "relative", flex: 1, minWidth: 200 }}>
-          <Search size={13} style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.3)" }} />
+          <Search size={13} style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: C.muted }} />
           <input value={q} onChange={e => { setQ(e.target.value); setPage(1); }} placeholder="Search UTR / user UID / email…"
-            style={{ width: "100%", padding: "9px 14px 9px 34px", borderRadius: 10, background: C.surface, border: `1px solid ${C.border}`, color: "white", fontSize: 12, outline: "none", boxSizing: "border-box" }} />
+            style={{ width: "100%", padding: "9px 14px 9px 34px", borderRadius: 10, background: C.surface, border: `1px solid ${C.border}`, color: C.text, fontSize: 12, outline: "none", boxSizing: "border-box" }} />
         </div>
         {[
           { val: statusF,   set: setStatusF,  opts: [["", "All Status"], ["pending", "Pending"], ["approved", "Approved"], ["rejected", "Rejected"]] },
@@ -553,7 +559,7 @@ function HistoryPane({ onToast }) {
           { val: scenarioF, set: setScenF,    opts: [["", "All Scenarios"], ...Object.keys(SCENARIO_META).map(c => [c, c])] },
         ].map((f, i) => (
           <select key={i} value={f.val} onChange={e => { f.set(e.target.value); setPage(1); }}
-            style={{ padding: "9px 12px", borderRadius: 10, background: "#111", border: `1px solid ${C.border}`, color: "white", fontSize: 12 }}>
+            style={{ padding: "9px 12px", borderRadius: 10, background: C.inputBg, border: `1px solid ${C.border}`, color: C.text, fontSize: 12 }}>
             {f.opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
         ))}
@@ -564,24 +570,24 @@ function HistoryPane({ onToast }) {
         <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
           <thead>
-            <tr style={{ borderBottom: `1px solid ${C.border}`, background: "rgba(255,255,255,0.02)" }}>
-              {HEADERS.map(h => <th key={h} style={{ padding: "12px 13px", textAlign: "left", fontSize: 10, color: "rgba(255,255,255,0.3)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", whiteSpace: "nowrap" }}>{h}</th>)}
+            <tr style={{ borderBottom: `1px solid ${C.border}`, background: C.hoverBg }}>
+              {HEADERS.map(h => <th key={h} style={{ padding: "12px 13px", textAlign: "left", fontSize: 10, color: C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", whiteSpace: "nowrap" }}>{h}</th>)}
             </tr>
           </thead>
           <tbody>
             {loading
               ? <tr><td colSpan={10} style={{ padding: 40, textAlign: "center" }}><Spinner /></td></tr>
               : txns.length === 0
-                ? <tr><td colSpan={10} style={{ padding: 40, textAlign: "center", color: "rgba(255,255,255,0.2)" }}>No transactions found</td></tr>
+                ? <tr><td colSpan={10} style={{ padding: 40, textAlign: "center", color: C.dim }}>No transactions found</td></tr>
                 : txns.map(tx => {
                   const wCfg = WALLET_CFG[tx.wallet_type] || {};
                   const isCr = tx.direction === "credit";
                   return (
-                    <tr key={tx.id} style={{ borderBottom: `1px solid ${C.border}` }} {...rowHover}>
+                    <tr key={tx.id} style={{ borderBottom: `1px solid ${C.border}` }} {...rowHover(C)}>
                       <td style={{ padding: "11px 13px" }}><UtrBadge utr={tx.utr_reference} /></td>
                       <td style={{ padding: "11px 13px" }}>
-                        <div style={{ fontWeight: 600, color: "white", fontSize: 11 }}>{tx.user_name || "—"}</div>
-                        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>{tx.user_uid}</div>
+                        <div style={{ fontWeight: 600, color: C.text, fontSize: 11 }}>{tx.user_name || "—"}</div>
+                        <div style={{ fontSize: 10, color: C.muted }}>{tx.user_uid}</div>
                       </td>
                       <td style={{ padding: "11px 13px" }}>
                         <span style={{ fontFamily: "monospace", fontSize: 10, fontWeight: 800, color: wCfg.color || C.gold, background: `${wCfg.color || C.gold}15`, padding: "2px 7px", borderRadius: 6 }}>{tx.scenario_code}</span>
@@ -595,14 +601,14 @@ function HistoryPane({ onToast }) {
                       <td style={{ padding: "11px 13px", fontFamily: "monospace", fontWeight: 700, color: isCr ? C.green : C.red, whiteSpace: "nowrap" }}>
                         {isCr ? "+" : "-"}{fmt(tx.amount)}
                       </td>
-                      <td style={{ padding: "11px 13px", fontFamily: "monospace", fontSize: 11, color: "rgba(255,255,255,0.45)" }}>
+                      <td style={{ padding: "11px 13px", fontFamily: "monospace", fontSize: 11, color: C.muted }}>
                         {tx.balance_before != null ? fmt(tx.balance_before) : "—"}
                       </td>
-                      <td style={{ padding: "11px 13px", fontFamily: "monospace", fontSize: 11, color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>
+                      <td style={{ padding: "11px 13px", fontFamily: "monospace", fontSize: 11, color: C.sub, fontWeight: 600 }}>
                         {tx.balance_after != null ? fmt(tx.balance_after) : "—"}
                       </td>
                       <td style={{ padding: "11px 13px" }}><StatusBadge status={tx.status} /></td>
-                      <td style={{ padding: "11px 13px", fontSize: 10, color: "rgba(255,255,255,0.4)", whiteSpace: "nowrap" }}>{fmtDT(tx.created_at)}</td>
+                      <td style={{ padding: "11px 13px", fontSize: 10, color: C.muted, whiteSpace: "nowrap" }}>{fmtDT(tx.created_at)}</td>
                     </tr>
                   );
                 })}
@@ -620,6 +626,7 @@ function HistoryPane({ onToast }) {
 // ═════════════════════════════════════════════════════════════════════════════
 
 function ValidationPane({ onToast }) {
+  const { C } = useAdminTheme();
   const [vals, setVals]       = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage]       = useState(1);
@@ -646,14 +653,14 @@ function ValidationPane({ onToast }) {
 
   return (
     <div>
-      <div style={{ padding: "10px 14px", borderRadius: 10, background: `${C.blue}08`, border: `1px solid ${C.blue}20`, fontSize: 12, color: "rgba(255,255,255,0.5)", marginBottom: 16, lineHeight: 1.7 }}>
+      <div style={{ padding: "10px 14px", borderRadius: 10, background: `${C.blue}08`, border: `1px solid ${C.blue}20`, fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.7 }}>
         <Shield size={12} style={{ display: "inline", marginRight: 6, color: C.blue }} />
         System validates LUB / WBA / MBA entries against configured rules (VIP Level × multiplier). Mismatches are auto-rejected and logged here.
       </div>
 
       <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
         {[["", "All"], ["approved", "Approved"], ["rejected", "Rejected"], ["pending", "Pending"]].map(([v, l]) => (
-          <button key={v} onClick={() => { setResultF(v); setPage(1); }} style={{ padding: "7px 14px", borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${resultF === v ? `${C.gold}40` : C.border}`, background: resultF === v ? `${C.gold}12` : "transparent", color: resultF === v ? C.gold : "rgba(255,255,255,0.4)" }}>{l}</button>
+          <button key={v} onClick={() => { setResultF(v); setPage(1); }} style={{ padding: "7px 14px", borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${resultF === v ? `${C.gold}40` : C.border}`, background: resultF === v ? `${C.gold}12` : "transparent", color: resultF === v ? C.gold : C.muted }}>{l}</button>
         ))}
         <Btn small outline onClick={() => load(page)}><RefreshCw size={12} /></Btn>
       </div>
@@ -662,17 +669,17 @@ function ValidationPane({ onToast }) {
         <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
           <thead>
-            <tr style={{ borderBottom: `1px solid ${C.border}`, background: "rgba(255,255,255,0.02)" }}>
-              {HEADERS.map(h => <th key={h} style={{ padding: "12px 13px", textAlign: "left", fontSize: 10, color: "rgba(255,255,255,0.3)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", whiteSpace: "nowrap" }}>{h}</th>)}
+            <tr style={{ borderBottom: `1px solid ${C.border}`, background: C.hoverBg }}>
+              {HEADERS.map(h => <th key={h} style={{ padding: "12px 13px", textAlign: "left", fontSize: 10, color: C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", whiteSpace: "nowrap" }}>{h}</th>)}
             </tr>
           </thead>
           <tbody>
             {loading
               ? <tr><td colSpan={9} style={{ padding: 40, textAlign: "center" }}><Spinner /></td></tr>
               : vals.length === 0
-                ? <tr><td colSpan={9} style={{ padding: 40, textAlign: "center", color: "rgba(255,255,255,0.2)" }}>No validation records</td></tr>
+                ? <tr><td colSpan={9} style={{ padding: 40, textAlign: "center", color: C.dim }}>No validation records</td></tr>
                 : vals.map(v => (
-                  <tr key={v.id} style={{ borderBottom: `1px solid ${C.border}` }} {...rowHover}>
+                  <tr key={v.id} style={{ borderBottom: `1px solid ${C.border}` }} {...rowHover(C)}>
                     <td style={{ padding: "11px 13px" }}><UtrBadge utr={v.utr_reference} /></td>
                     <td style={{ padding: "11px 13px" }}><UidBadge uid={v.user_uid} /></td>
                     <td style={{ padding: "11px 13px" }}>
@@ -682,10 +689,10 @@ function ValidationPane({ onToast }) {
                     <td style={{ padding: "11px 13px", fontFamily: "monospace", fontWeight: 700, color: v.result === "approved" ? C.green : C.red }}>{fmt(v.submitted_amount)}</td>
                     <td style={{ padding: "11px 13px", fontFamily: "monospace", fontSize: 10, color: C.blue, fontWeight: 700 }}>{v.back_office_uid || "—"}</td>
                     <td style={{ padding: "11px 13px" }}><StatusBadge status={v.result} /></td>
-                    <td style={{ padding: "11px 13px", fontSize: 10, color: v.result === "approved" ? "rgba(255,255,255,0.35)" : C.red, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <td style={{ padding: "11px 13px", fontSize: 10, color: v.result === "approved" ? C.muted : C.red, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {v.rejection_reason || (v.result === "approved" ? "Values match" : "—")}
                     </td>
-                    <td style={{ padding: "11px 13px", fontSize: 10, color: "rgba(255,255,255,0.4)", whiteSpace: "nowrap" }}>{fmtDT(v.created_at)}</td>
+                    <td style={{ padding: "11px 13px", fontSize: 10, color: C.muted, whiteSpace: "nowrap" }}>{fmtDT(v.created_at)}</td>
                   </tr>
                 ))}
           </tbody>

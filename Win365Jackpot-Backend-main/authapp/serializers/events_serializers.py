@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from authapp.models.events_models import CasinoEvent
+from authapp.models.events_models import CasinoEvent, EventTicketRequest
 
 
 class CasinoEventSerializer(serializers.ModelSerializer):
@@ -17,3 +17,25 @@ class CasinoEventSerializer(serializers.ModelSerializer):
             "status", "is_active", "created_at", "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
+
+
+class EventTicketRequestAdminSerializer(serializers.ModelSerializer):
+    """Back Office lead-capture view — one row per 'Get Ticket' click."""
+    user_name  = serializers.CharField(source="user.name", read_only=True)
+    user_uid   = serializers.CharField(source="user.user_uid", read_only=True)
+    event_name = serializers.CharField(source="event.name", read_only=True)
+    venue      = serializers.CharField(source="event.venue", read_only=True)
+    event_date = serializers.DateField(source="event.event_date", read_only=True)
+    phone      = serializers.CharField(source="user.phone", read_only=True)
+    email      = serializers.EmailField(source="user.email", read_only=True)
+
+    class Meta:
+        model = EventTicketRequest
+        fields = [
+            "id", "user_name", "user_uid", "event_name", "venue",
+            "event_date", "phone", "email", "created_at", "status", "admin_note",
+        ]
+        read_only_fields = [
+            "id", "user_name", "user_uid", "event_name", "venue",
+            "event_date", "phone", "email", "created_at",
+        ]

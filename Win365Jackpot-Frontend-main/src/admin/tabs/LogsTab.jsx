@@ -4,6 +4,7 @@ import {
   Search, RefreshCw, ChevronDown, ChevronUp,
   User, Shield, X, Activity,
 } from "lucide-react";
+import { useAdminTheme } from "../context/AdminThemeContext";
 
 /* ─── Action metadata ─────────────────────────────────────────────────────── */
 const ACTION_META = {
@@ -52,26 +53,29 @@ function fmtDT(iso) {
 }
 
 /* ─── Styles ──────────────────────────────────────────────────────────────── */
-const S = {
+// Takes the current theme's C object (from useAdminTheme() in the caller)
+// since this is a plain object/function, not a component, and can't call
+// hooks itself. Usage: const S = getS(C);
+const getS = (C) => ({
   // Layout
   root: {
     fontFamily: "'Space Grotesk', sans-serif",
-    color: "rgba(255,255,255,0.85)",
+    color: C.sub,
     minHeight: "100vh",
   },
 
   // Tab bar
   tabBar: {
     display: "flex", gap: 2, marginBottom: 20,
-    background: "rgba(255,255,255,0.03)",
-    border: "1px solid rgba(255,255,255,0.08)",
+    background: C.hoverBg,
+    border: `1px solid ${C.border}`,
     borderRadius: 10, padding: 4, width: "fit-content",
   },
   tabBtn: (active, color) => ({
     display: "flex", alignItems: "center", gap: 7,
     padding: "8px 18px", borderRadius: 7, border: "none",
     background: active ? (color + "18") : "transparent",
-    color: active ? color : "rgba(255,255,255,0.4)",
+    color: active ? color : C.muted,
     cursor: "pointer", fontSize: 12, fontWeight: active ? 700 : 400,
     transition: "all 0.15s",
     outline: active ? `1px solid ${color}30` : "none",
@@ -87,51 +91,51 @@ const S = {
   },
   searchInput: {
     width: "100%", padding: "9px 12px 9px 36px",
-    background: "rgba(255,255,255,0.04)",
-    border: "1px solid rgba(255,255,255,0.1)",
-    borderRadius: 8, color: "white", fontSize: 12,
+    background: C.inputBg,
+    border: `1px solid ${C.border}`,
+    borderRadius: 8, color: C.text, fontSize: 12,
     outline: "none", boxSizing: "border-box",
     fontFamily: "inherit",
   },
   searchIcon: {
     position: "absolute", left: 11, top: "50%",
     transform: "translateY(-50%)",
-    color: "rgba(255,255,255,0.3)", pointerEvents: "none",
+    color: C.muted, pointerEvents: "none",
   },
   refreshBtn: {
     display: "flex", alignItems: "center", gap: 6,
     padding: "9px 14px", borderRadius: 8,
-    background: "rgba(255,255,255,0.04)",
-    border: "1px solid rgba(255,255,255,0.1)",
-    color: "rgba(255,255,255,0.6)", cursor: "pointer",
+    background: C.hoverBg,
+    border: `1px solid ${C.border}`,
+    color: C.sub, cursor: "pointer",
     fontSize: 12, fontFamily: "inherit",
   },
   countBadge: {
     marginLeft: "auto", fontSize: 11,
-    color: "rgba(255,255,255,0.3)",
-    background: "rgba(255,255,255,0.04)",
-    border: "1px solid rgba(255,255,255,0.08)",
+    color: C.muted,
+    background: C.hoverBg,
+    border: `1px solid ${C.border}`,
     padding: "5px 12px", borderRadius: 6,
   },
 
   // Table card
   tableCard: {
-    background: "rgba(255,255,255,0.02)",
-    border: "1px solid rgba(255,255,255,0.08)",
+    background: C.hoverBg,
+    border: `1px solid ${C.border}`,
     borderRadius: 12, overflow: "hidden",
   },
   table: { width: "100%", borderCollapse: "collapse", fontSize: 12 },
   th: {
     padding: "11px 14px", textAlign: "left",
     fontSize: 10, fontWeight: 700, letterSpacing: "0.08em",
-    color: "rgba(255,255,255,0.3)", textTransform: "uppercase",
-    background: "rgba(255,255,255,0.025)",
-    borderBottom: "1px solid rgba(255,255,255,0.07)",
+    color: C.muted, textTransform: "uppercase",
+    background: C.hoverBg,
+    borderBottom: `1px solid ${C.border}`,
     fontFamily: "inherit",
   },
   td: {
     padding: "12px 14px",
-    borderBottom: "1px solid rgba(255,255,255,0.05)",
+    borderBottom: `1px solid ${C.border}`,
     verticalAlign: "middle",
   },
 
@@ -139,14 +143,14 @@ const S = {
   pagination: {
     display: "flex", alignItems: "center", justifyContent: "space-between",
     padding: "12px 16px",
-    borderTop: "1px solid rgba(255,255,255,0.07)",
-    fontSize: 11, color: "rgba(255,255,255,0.4)",
+    borderTop: `1px solid ${C.border}`,
+    fontSize: 11, color: C.muted,
   },
   pgBtn: (disabled) => ({
     padding: "6px 14px", borderRadius: 6, fontSize: 11,
-    background: disabled ? "transparent" : "rgba(255,255,255,0.05)",
-    border: "1px solid rgba(255,255,255,0.1)",
-    color: disabled ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.7)",
+    background: disabled ? "transparent" : C.hoverBg,
+    border: `1px solid ${C.border}`,
+    color: disabled ? C.dim : C.sub,
     cursor: disabled ? "not-allowed" : "pointer",
     fontFamily: "inherit",
   }),
@@ -160,17 +164,17 @@ const S = {
   },
   modal: {
     width: 520, maxWidth: "95vw", maxHeight: "85vh",
-    background: "#0d1117",
-    border: "1px solid rgba(255,255,255,0.12)",
+    background: C.panelBg,
+    border: `1px solid ${C.border2}`,
     borderRadius: 14, overflow: "hidden",
     display: "flex", flexDirection: "column",
     fontFamily: "'Space Grotesk', sans-serif",
   },
   modalHeader: {
     padding: "16px 20px",
-    borderBottom: "1px solid rgba(255,255,255,0.08)",
+    borderBottom: `1px solid ${C.border}`,
     display: "flex", justifyContent: "space-between", alignItems: "center",
-    background: "rgba(255,255,255,0.02)",
+    background: C.hoverBg,
   },
   modalBody: { padding: 20, overflowY: "auto", flex: 1 },
   modalField: {
@@ -178,19 +182,19 @@ const S = {
   },
   modalLabel: {
     fontSize: 9, fontWeight: 700, textTransform: "uppercase",
-    letterSpacing: "0.1em", color: "rgba(255,255,255,0.3)",
+    letterSpacing: "0.1em", color: C.muted,
   },
   modalValue: {
-    fontSize: 12, color: "rgba(255,255,255,0.85)",
-    background: "rgba(255,255,255,0.03)",
-    border: "1px solid rgba(255,255,255,0.07)",
+    fontSize: 12, color: C.sub,
+    background: C.hoverBg,
+    border: `1px solid ${C.border}`,
     borderRadius: 6, padding: "8px 10px",
     wordBreak: "break-all",
   },
   divider: {
-    height: 1, background: "rgba(255,255,255,0.07)", margin: "16px 0",
+    height: 1, background: C.border, margin: "16px 0",
   },
-};
+});
 
 /* ─── Sub-components ─────────────────────────────────────────────────────── */
 function ActionBadge({ action }) {
@@ -210,6 +214,8 @@ function ActionBadge({ action }) {
 }
 
 function ModalField({ label, value, mono, color }) {
+  const { C } = useAdminTheme();
+  const S = getS(C);
   if (value === null || value === undefined || value === "") return null;
   return (
     <div style={S.modalField}>
@@ -217,7 +223,7 @@ function ModalField({ label, value, mono, color }) {
       <div style={{
         ...S.modalValue,
         fontFamily: mono ? "inherit" : "system-ui",
-        color: color || "rgba(255,255,255,0.85)",
+        color: color || C.sub,
       }}>
         {String(value)}
       </div>
@@ -226,6 +232,8 @@ function ModalField({ label, value, mono, color }) {
 }
 
 function LogModal({ log, onClose }) {
+  const { C } = useAdminTheme();
+  const S = getS(C);
   if (!log) return null;
   const meta = getActionMeta(log.action);
   const isFinancial = log.amount || log.before_balance !== null;
@@ -248,7 +256,7 @@ function LogModal({ log, onClose }) {
             onClick={onClose}
             style={{
               background: "none", border: "none",
-              color: "rgba(255,255,255,0.4)", cursor: "pointer", padding: 4,
+              color: C.muted, cursor: "pointer", padding: 4,
             }}
           >
             <X size={16} />
@@ -271,7 +279,7 @@ function LogModal({ log, onClose }) {
           <div style={S.divider} />
 
           {/* Users */}
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "rgba(255,255,255,0.3)", marginBottom: 10 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: C.muted, marginBottom: 10 }}>
             Parties
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -289,7 +297,7 @@ function LogModal({ log, onClose }) {
           {isFinancial && (
             <>
               <div style={S.divider} />
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "rgba(255,255,255,0.3)", marginBottom: 10 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: C.muted, marginBottom: 10 }}>
                 Financial
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
@@ -321,14 +329,14 @@ function LogModal({ log, onClose }) {
           {log.meta && Object.keys(log.meta).length > 0 && (
             <>
               <div style={S.divider} />
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "rgba(255,255,255,0.3)", marginBottom: 10 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: C.muted, marginBottom: 10 }}>
                 Meta
               </div>
               <div style={{
-                background: "rgba(0,0,0,0.3)", borderRadius: 8,
+                background: C.bg, borderRadius: 8,
                 padding: "12px", fontSize: 11,
-                color: "rgba(255,255,255,0.6)",
-                border: "1px solid rgba(255,255,255,0.06)",
+                color: C.sub,
+                border: `1px solid ${C.border}`,
                 whiteSpace: "pre-wrap", wordBreak: "break-all",
               }}>
                 {JSON.stringify(log.meta, null, 2)}
@@ -347,6 +355,8 @@ function LogModal({ log, onClose }) {
 const PAGE_SIZE = 50;
 
 export default function LogsTab({ onToast }) {
+  const { C } = useAdminTheme();
+  const S = getS(C);
   const [activeTab, setActiveTab]   = useState("user");   // "user" | "admin"
   const [logs,      setLogs]        = useState([]);
   const [total,     setTotal]       = useState(0);
@@ -450,7 +460,7 @@ export default function LogsTab({ onToast }) {
       {/* ── Table ── */}
       <div style={S.tableCard}>
         {loading ? (
-          <div style={{ padding: "60px 0", textAlign: "center", color: "rgba(255,255,255,0.3)", fontSize: 12 }}>
+          <div style={{ padding: "60px 0", textAlign: "center", color: C.muted, fontSize: 12 }}>
             Loading logs…
           </div>
         ) : (
@@ -466,7 +476,7 @@ export default function LogsTab({ onToast }) {
               <tbody>
                 {logs.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ padding: "48px 0", textAlign: "center", color: "rgba(255,255,255,0.2)", fontSize: 12 }}>
+                    <td colSpan={6} style={{ padding: "48px 0", textAlign: "center", color: C.dim, fontSize: 12 }}>
                       <Activity size={24} style={{ display: "block", margin: "0 auto 8px", opacity: 0.3 }} />
                       No logs found
                     </td>
@@ -474,7 +484,7 @@ export default function LogsTab({ onToast }) {
                 ) : logs.map((log, i) => {
                   const isFinancial = !!log.amount;
                   const isOpen      = expanded === log.id;
-                  const rowBg       = i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.008)";
+                  const rowBg       = i % 2 === 0 ? "transparent" : C.hoverBg;
 
                   return (
                     <React.Fragment key={log.id}>
@@ -483,7 +493,7 @@ export default function LogsTab({ onToast }) {
                         onClick={() => setExpanded(isOpen ? null : log.id)}
                       >
                         {/* Timestamp */}
-                        <td style={{ ...S.td, whiteSpace: "nowrap", color: "rgba(255,255,255,0.45)", fontSize: 11 }}>
+                        <td style={{ ...S.td, whiteSpace: "nowrap", color: C.muted, fontSize: 11 }}>
                           {fmtDT(log.created_at)}
                         </td>
 
@@ -494,18 +504,18 @@ export default function LogsTab({ onToast }) {
 
                         {/* Target User */}
                         <td style={S.td}>
-                          <div style={{ fontSize: 12, color: "white", fontWeight: 500 }}>
+                          <div style={{ fontSize: 12, color: C.text, fontWeight: 500 }}>
                             {log.target_user_email || "—"}
                           </div>
                           {log.target_user_uid && (
-                            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>
+                            <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>
                               {log.target_user_uid}
                             </div>
                           )}
                         </td>
 
                         {/* Actor / IP */}
-                        <td style={{ ...S.td, fontSize: 11, color: "rgba(255,255,255,0.4)" }}>
+                        <td style={{ ...S.td, fontSize: 11, color: C.muted }}>
                           {activeTab === "admin"
                             ? (log.actor_email || "System")
                             : (log.ip_address  || "—")}
@@ -523,13 +533,13 @@ export default function LogsTab({ onToast }) {
                                 ${Number(log.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                               </span>
                               {log.wallet_type && (
-                                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", marginTop: 2, textTransform: "uppercase" }}>
+                                <div style={{ fontSize: 9, color: C.muted, marginTop: 2, textTransform: "uppercase" }}>
                                   {log.wallet_type}
                                 </div>
                               )}
                             </div>
                           ) : (
-                            <span style={{ color: "rgba(255,255,255,0.2)" }}>—</span>
+                            <span style={{ color: C.dim }}>—</span>
                           )}
                         </td>
 
@@ -540,15 +550,15 @@ export default function LogsTab({ onToast }) {
                               onClick={e => { e.stopPropagation(); setSelected(log); }}
                               style={{
                                 padding: "4px 10px", borderRadius: 6, fontSize: 10,
-                                background: "rgba(255,255,255,0.06)",
-                                border: "1px solid rgba(255,255,255,0.1)",
-                                color: "rgba(255,255,255,0.7)", cursor: "pointer",
+                                background: C.hoverBg,
+                                border: `1px solid ${C.border}`,
+                                color: C.sub, cursor: "pointer",
                                 fontFamily: "inherit", fontWeight: 600,
                               }}
                             >
                               View
                             </button>
-                            <span style={{ color: "rgba(255,255,255,0.3)" }}>
+                            <span style={{ color: C.muted }}>
                               {isOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                             </span>
                           </div>
@@ -557,39 +567,39 @@ export default function LogsTab({ onToast }) {
 
                       {/* Inline expand row */}
                       {isOpen && (
-                        <tr style={{ background: "rgba(255,255,255,0.015)" }}>
+                        <tr style={{ background: C.hoverBg }}>
                           <td colSpan={6} style={{ padding: "12px 16px" }}>
                             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 12 }}>
                               {log.description && (
                                 <div style={{ gridColumn: "span 2" }}>
-                                  <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 3 }}>Description</div>
-                                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.7)" }}>{log.description}</div>
+                                  <div style={{ fontSize: 9, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 3 }}>Description</div>
+                                  <div style={{ fontSize: 11, color: C.sub }}>{log.description}</div>
                                 </div>
                               )}
                               {log.casino_name && (
                                 <div>
-                                  <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 3 }}>Casino</div>
-                                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.7)" }}>{log.casino_name}</div>
+                                  <div style={{ fontSize: 9, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 3 }}>Casino</div>
+                                  <div style={{ fontSize: 11, color: C.sub }}>{log.casino_name}</div>
                                 </div>
                               )}
                               {log.before_balance != null && (
                                 <div>
-                                  <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 3 }}>Before → After</div>
-                                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.7)" }}>
+                                  <div style={{ fontSize: 9, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 3 }}>Before → After</div>
+                                  <div style={{ fontSize: 11, color: C.sub }}>
                                     ${Number(log.before_balance).toLocaleString("en-IN")} → ${Number(log.after_balance).toLocaleString("en-IN")}
                                   </div>
                                 </div>
                               )}
                               {log.actor_email && (
                                 <div>
-                                  <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 3 }}>Actor</div>
-                                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.7)" }}>{log.actor_email}</div>
+                                  <div style={{ fontSize: 9, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 3 }}>Actor</div>
+                                  <div style={{ fontSize: 11, color: C.sub }}>{log.actor_email}</div>
                                 </div>
                               )}
                               {log.ip_address && (
                                 <div>
-                                  <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 3 }}>IP Address</div>
-                                  <div style={{ fontSize: 11, fontFamily: "monospace", color: "rgba(255,255,255,0.7)" }}>{log.ip_address}</div>
+                                  <div style={{ fontSize: 9, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 3 }}>IP Address</div>
+                                  <div style={{ fontSize: 11, fontFamily: "monospace", color: C.sub }}>{log.ip_address}</div>
                                 </div>
                               )}
                             </div>
@@ -628,9 +638,9 @@ export default function LogsTab({ onToast }) {
                     onClick={() => load(pg, search, activeTab)}
                     style={{
                       ...S.pgBtn(false),
-                      background: pg === page ? "rgba(96,165,250,0.15)" : "rgba(255,255,255,0.03)",
-                      color: pg === page ? "#60a5fa" : "rgba(255,255,255,0.5)",
-                      border: pg === page ? "1px solid rgba(96,165,250,0.3)" : "1px solid rgba(255,255,255,0.08)",
+                      background: pg === page ? "rgba(96,165,250,0.15)" : C.hoverBg,
+                      color: pg === page ? "#60a5fa" : C.muted,
+                      border: pg === page ? "1px solid rgba(96,165,250,0.3)" : `1px solid ${C.border}`,
                       minWidth: 34, textAlign: "center",
                     }}
                   >

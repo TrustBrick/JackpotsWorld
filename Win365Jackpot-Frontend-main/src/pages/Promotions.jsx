@@ -1,6 +1,9 @@
-import React, { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { X, Gift as GiftIcon, CheckCircle2, AlertTriangle, RefreshCw, Sparkles } from 'lucide-react'
+import React from 'react'
+import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import { AlertTriangle, RefreshCw, Sparkles } from 'lucide-react'
+import { useTheme } from '../context/ThemeContext'
 import Navbar from '../components/Navbar'
 import PageHeader from '../components/shared/PageHeader'
 import PromotionCard from '../components/promotions/PromotionCard'
@@ -11,30 +14,26 @@ import { flagFromCountryCode } from '../utils/countryFlags'
 const EMPTY_PARAMS = {}
 
 export default function Promotions() {
-  const [selected, setSelected] = useState(null)
+  const { t } = useTranslation()
+  const { theme } = useTheme()
+  const navigate = useNavigate()
   const { data, loading, error, reload } = useAutoFetch(fetchPromotions, EMPTY_PARAMS, { intervalMs: 60_000 })
 
   const countries = data?.countries || []
 
-  // Running start-index per country so PromotionCard's fallback-image cycle
-  // (5 images) advances across every card on the page, not just per-country.
-  let runningIndex = 0
-  const countryStartIndex = countries.map(({ promotions }) => {
-    const start = runningIndex
-    runningIndex += promotions.length
-    return start
-  })
-
-  const handleClaim = (promo) => setSelected(promo)
+  // Claim Bonus / Learn More / Details all open the full promotion details
+  // page (large banner, gallery, video, T&Cs) rather than a small in-page
+  // modal, since that page already exists and matches the design.
+  const goToDetails = (promo) => navigate(`/promotions/${promo.id}`)
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--w365-bg)' }}>
+    <div key={theme} className="min-h-screen" style={{ background: 'var(--w365-bg)' }}>
       <Navbar />
 
       <PageHeader
-        eyebrow="Partner Casino Offers"
-        title="Promotions"
-        subtitle="Hand-picked bonuses, cashback, and perks from our partner casinos — refreshed regularly."
+        eyebrow={t('promotions.eyebrow')}
+        title={t('promotions.title')}
+        subtitle={t('promotions.subtitle')}
       />
 
       <section className="max-w-7xl mx-auto px-4 pb-24">
@@ -51,29 +50,29 @@ export default function Promotions() {
         ) : error ? (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-24 text-white/40">
             <AlertTriangle size={40} className="mb-4 text-red-400/60" />
-            <p className="font-body mb-4">Couldn't load promotions right now. Please try again.</p>
+            <p className="font-body mb-4">{t('promotions.loadError')}</p>
             <button onClick={reload} className="btn-outline-gold rounded-full px-5 py-2 text-sm font-bold flex items-center gap-2">
-              <RefreshCw size={14} /> Retry
+              <RefreshCw size={14} /> {t('common.retry')}
             </button>
           </motion.div>
         ) : countries.length === 0 ? (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-24 text-white/40">
             <Sparkles size={40} className="mb-4 text-gold/50" />
-            <p className="font-body">No promotions available right now. Check back soon.</p>
+            <p className="font-body">{t('promotions.noPromotions')}</p>
           </motion.div>
         ) : (
           <div className="flex flex-col gap-12">
-            {countries.map(({ country, promotions }, ci) => (
+            {countries.map(({ country, promotions }) => (
               <div key={country}>
                 <div className="flex items-center gap-3 mb-5">
                   <span className="flag text-2xl leading-none">{flagFromCountryCode(promotions[0]?.country_code)}</span>
                   <h2 className="gold-text font-black text-xl md:text-2xl tracking-wide">{country}</h2>
-                  <span className="text-white/30 text-xs font-body">{promotions.length} offer{promotions.length !== 1 ? 's' : ''}</span>
+                  <span className="text-white/30 text-xs font-body">{t('promotions.offersCount', { count: promotions.length })}</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {promotions.map((promo, pi) => (
-                    <PromotionCard key={promo.id} promotion={promo} index={countryStartIndex[ci] + pi} onClaim={handleClaim} onViewDetails={setSelected} />
+                  {promotions.map((promo) => (
+                    <PromotionCard key={promo.id} promotion={promo} onClaim={goToDetails} onViewDetails={goToDetails} />
                   ))}
                 </div>
               </div>
@@ -81,65 +80,6 @@ export default function Promotions() {
           </div>
         )}
       </section>
-
-      {/* Details modal */}
-      <AnimatePresence>
-        {selected && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] flex items-center justify-center px-4"
-            style={{ background: 'rgba(10,0,5,0.85)' }}
-            onClick={() => setSelected(null)}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              transition={{ duration: 0.2 }}
-              onClick={(e) => e.stopPropagation()}
-              className="casino-card max-w-md w-full p-6 relative"
-            >
-              <button
-                onClick={() => setSelected(null)}
-                className="absolute top-4 right-4 text-white/50 hover:text-gold transition-colors"
-              >
-                <X size={18} />
-              </button>
-
-              <p className="text-gold/70 text-xs tracking-widest uppercase font-body mb-1">
-                {selected.casino_name}
-              </p>
-              <h3 className="gold-text font-black text-2xl mb-3">{selected.title}</h3>
-              {selected.description && <p className="text-white/60 text-sm font-body mb-4">{selected.description}</p>}
-
-              {selected.bonus_details && (
-                <div className="flex items-center gap-2 text-sm font-body text-white/70 mb-2">
-                  <GiftIcon size={14} className="text-gold" /> {selected.bonus_details}
-                </div>
-              )}
-
-              {selected.benefits?.length > 0 && (
-                <ul className="flex flex-col gap-1.5 mb-5">
-                  {selected.benefits.map((b, i) => (
-                    <li key={i} className="flex items-center gap-2 text-sm font-body text-white/55">
-                      <CheckCircle2 size={14} className="text-gold" /> {b}
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              <button
-                onClick={() => setSelected(null)}
-                className="btn-gold w-full rounded-full py-2.5 text-sm font-bold tracking-widest uppercase"
-              >
-                {selected.cta_label || 'Claim Bonus'}
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   )
 }

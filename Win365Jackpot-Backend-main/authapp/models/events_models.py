@@ -38,10 +38,20 @@ class CasinoEvent(models.Model):
         return f"{self.name} ({self.country})"
 
 
+REGISTRATION_STATUS_CHOICES = [
+    ("new",       "New"),
+    ("contacted", "Contacted"),
+    ("closed",    "Closed"),
+]
+
+
 class EventTicketRequest(models.Model):
     event      = models.ForeignKey(CasinoEvent, on_delete=models.CASCADE, related_name="ticket_requests")
     user       = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="event_ticket_requests")
+    status     = models.CharField(max_length=12, choices=REGISTRATION_STATUS_CHOICES, default="new", db_index=True)
+    admin_note = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["-created_at"]

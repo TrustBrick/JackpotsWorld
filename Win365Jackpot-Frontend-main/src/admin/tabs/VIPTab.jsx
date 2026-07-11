@@ -1,11 +1,12 @@
 import React from "react";
 import { Card } from "../components/SharedUI";
-import { C } from "../constants";
+import { useAdminTheme } from "../context/AdminThemeContext";
 
 export default function VIPTab({ onToast }) {
+  const { C } = useAdminTheme();
   return (
     <Card>
-      <div style={{ padding: 40, textAlign: "center", color: "rgba(255,255,255,0.3)" }}>
+      <div style={{ padding: 40, textAlign: "center", color: C.muted }}>
         VIP Tab — coming soon
       </div>
     </Card>

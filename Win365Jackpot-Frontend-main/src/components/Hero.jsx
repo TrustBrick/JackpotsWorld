@@ -1,7 +1,11 @@
 import React, { useEffect, useState, useRef, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from 'react-scroll'
-import { Gem } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Gem, CalendarDays, MapPinned, Gift, MapPin } from 'lucide-react'
+import { useAutoFetch } from '../hooks/useAutoFetch'
+import { fetchLocations } from '../services/locationService'
+import { flagFromCountryCode } from '../utils/countryFlags'
 
 // ─── CSS ───────────────────────────────────────────────────────────────────
 const CSS = `
@@ -19,17 +23,17 @@ const CSS = `
   }
   @keyframes cardGlow {
     0%,100% { box-shadow: 0 0 8px rgba(212,175,55,0.3); }
-    50%      { box-shadow: 0 0 22px rgba(212,175,55,0.75), 0 0 42px rgba(212,175,55,0.28); }
-  }
-  @keyframes luxGlow {
-    0%,100% { box-shadow: 0 0 6px rgba(212,175,55,0.2); }
-    50%      { box-shadow: 0 0 22px rgba(212,175,55,0.65), 0 0 38px rgba(212,175,55,0.22); }
-  }
   @keyframes spinRing {
     to { transform: rotate(360deg); }
   }
   @keyframes spinRingR {
     to { transform: rotate(-360deg); }
+  }
+    50%      { box-shadow: 0 0 22px rgba(212,175,55,0.75), 0 0 42px rgba(212,175,55,0.28); }
+  }
+  @keyframes luxGlow {
+    0%,100% { box-shadow: 0 0 6px rgba(212,175,55,0.2); }
+    50%      { box-shadow: 0 0 22px rgba(212,175,55,0.65), 0 0 38px rgba(212,175,55,0.22); }
   }
   @keyframes scrollBounce {
     0%,100% { transform: translateX(-50%) translateY(0); opacity:1; }
@@ -45,6 +49,13 @@ const CSS = `
   @keyframes girlFadeIn {
     from { opacity:0; transform: translateX(28px); }
     to   { opacity:1; transform: translateX(0); }
+  }
+  @keyframes w365-countries-marquee {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .w365-countries-track { animation: none !important; }
   }
 `
 
@@ -309,11 +320,60 @@ function WinnerFeedMobile() {
   )
 }
 
+// ─── Countries ribbon fallback (used only until the API responds) ─────────
+const FALLBACK_LOCATIONS = [
+  { id: 'vn', name: 'Vietnam', country_code: 'VN' },
+  { id: 'mo', name: 'Macau', country_code: 'MO' },
+  { id: 'in', name: 'India', country_code: 'IN' },
+  { id: 'lk', name: 'Sri Lanka', country_code: 'LK' },
+  { id: 'ph', name: 'Philippines', country_code: 'PH' },
+]
+
 // ─── Main Hero ────────────────────────────────────────────────────────────
 export default function Hero() {
+  const navigate = useNavigate()
   const [dailyCr, setDailyCr] = useState(getDailyWinnings)
 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+
+  // Countries ribbon — pinned to the exact rendered size of the "Experience
+  // World-Class Casino Gaming Across" badge above it, so the scrolling text
+  // never grows the pill wider/taller than that badge at any breakpoint.
+  const countriesBadgeRef = useRef(null)
+  const [countriesBadgeSize, setCountriesBadgeSize] = useState(null)
+  useEffect(() => {
+    const el = countriesBadgeRef.current
+    if (!el) return
+    const update = () => setCountriesBadgeSize({ width: el.offsetWidth, height: el.offsetHeight })
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    // Web-font swap (e.g. Space Grotesk finishing load) can reflow the badge
+    // narrower after the first measurement without ResizeObserver firing
+    // again reliably in every browser, so re-measure once fonts settle too.
+    document.fonts?.ready?.then(update)
+    // Belt-and-suspenders: some browsers throttle ResizeObserver callbacks
+    // for backgrounded/occluded tabs, so also re-measure on window resize.
+    window.addEventListener('resize', update)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', update)
+    }
+  }, [])
+
+  const { data: locationsData } = useAutoFetch(fetchLocations, {}, { intervalMs: 60_000 })
+  const locations = Array.isArray(locationsData) && locationsData.length > 0 ? locationsData : FALLBACK_LOCATIONS
+  const countriesTrack = [...locations, ...locations]
+
+  // Background video loop fallback — some encodes don't honor the native
+  // `loop` attribute reliably in every browser, so force-restart on end/pause.
+  const videoRef = useRef(null)
+  const restartVideo = () => {
+    const v = videoRef.current
+    if (!v) return
+    v.currentTime = 0
+    v.play().catch(() => {})
+  }
 
 useEffect(() => {
   const handleResize = () => {
@@ -347,6 +407,35 @@ useEffect(() => {
         background:'radial-gradient(ellipse at 50% 28%, #2e0024 0%, #160012 42%, #0A0005 100%)',
       }}
     >
+      {/* Background video — sits behind everything else in the hero.
+          `loop` is set natively, but the onEnded/onPause fallback below
+          force-restarts playback for encodes some browsers won't loop
+          seamlessly on their own (common with web-editor exports). */}
+      <video
+        ref={videoRef}
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload="auto"
+        onEnded={restartVideo}
+        onPause={restartVideo}
+        style={{
+          position:'absolute', inset:0, width:'100%', height:'100%',
+          objectFit:'cover', zIndex:0, pointerEvents:'none',
+        }}
+      >
+        <source src="/videos/hero-background.mp4" type="video/mp4" />
+      </video>
+
+      {/* Color-grading overlay — keeps the video in the site's dark magenta/gold
+          palette and preserves text contrast, same gradient the section used
+          as a plain background before the video was added */}
+      <div style={{
+        position:'absolute', inset:0, zIndex:1, pointerEvents:'none',
+        background:'radial-gradient(ellipse at 50% 28%, rgba(46,0,36,0.62) 0%, rgba(22,0,18,0.78) 42%, rgba(10,0,5,0.92) 100%)',
+      }} />
+
       {/* Spinning rings */}
       <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }} aria-hidden>
         {RINGS.map((s, i) => (
@@ -359,11 +448,18 @@ useEffect(() => {
         ))}
       </div>
 
-      {/* Floating cards */}
-      {floatingCards.map((c, i) => <FloatingCard key={i} {...c} />)}
+      {/* Floating cards — desktop only: on narrow viewports there's no margin
+          room outside the centered text column, so these would otherwise
+          overlap the winner feed / hero title / CTAs (see Dice desktop below,
+          which already used this same guard) */}
+      <div className="hidden md:contents">
+        {floatingCards.map((c, i) => <FloatingCard key={i} {...c} />)}
+      </div>
 
-      {/* Floating luxury */}
-      {luxuryItems.map((item, i) => <FloatingLuxury key={i} {...item} />)}
+      {/* Floating luxury — desktop only, same reasoning as above */}
+      <div className="hidden md:contents">
+        {luxuryItems.map((item, i) => <FloatingLuxury key={i} {...item} />)}
+      </div>
 
       {/* Dice desktop */}
       {[
@@ -492,23 +588,79 @@ useEffect(() => {
           }}
         />
 
-        {/* Sub */}
-        <motion.p
-          initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }}
-          transition={{ delay:0.68 }}
+        {/* Destinations badge — same component/styling as the top badge */}
+        <motion.div
+          ref={countriesBadgeRef}
+          initial={{ opacity:0, y:-20 }} animate={{ opacity:1, y:0 }}
+          transition={{ delay:0.68, duration:0.45 }}
           style={{
+            display:'inline-flex', alignItems:'center', gap:8,
+            border:'1px solid rgba(212,175,55,0.35)', borderRadius:999,
+            padding:'6px 16px', marginBottom:'clamp(12px,3vw,24px)',
+            background:'rgba(212,175,55,0.07)',
             fontFamily:"'Space Grotesk', sans-serif",
-            color:'rgba(255,255,255,0.65)',
-            fontSize:'clamp(11px,2.8vw,17px)',
-            lineHeight:1.65, maxWidth:'38ch', margin:'0 auto 6px auto',
+            fontSize:'clamp(8px,1.8vw,10px)', fontWeight:700,
+            letterSpacing:'0.18em', textTransform:'uppercase',
+            color:'rgba(212,175,55,0.8)',
           }}
         >
+          <span style={{ width:6, height:6, borderRadius:'50%', background:'#4ade80', flexShrink:0, animation:'pulse-dot 2s infinite', display:'inline-block' }} />
           Experience World-Class Casino Gaming Across
-          <br />
-          <span style={{ color:'#D4AF37', fontWeight:700, fontSize:'clamp(10px,2.5vw,15px)' }}>
-            Vietnam · Macau · India · Sri Lanka · Philippines ...
-          </span>
-        </motion.p>
+        </motion.div>
+
+        {/* Countries ribbon — same size/position/layout as before (pinned to
+            the badge above's exact rendered width/height), restyled to the
+            premium metallic-gold theme: same gradient + shimmer sweep as
+            the CTA button/JACKPOTS heading elsewhere on this page. Only the
+            country text scrolls inside it; data comes from the same
+            admin-managed SupportedLocation API, so new countries added in
+            the Admin Panel show up automatically. */}
+        <motion.div
+          initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }}
+          transition={{ delay:0.75, duration:0.45 }}
+          style={{
+            display:'inline-flex', alignItems:'center', gap:8,
+            border:'1.5px solid #F5E07A', borderRadius:999,
+            padding:'6px 16px', marginBottom:'clamp(12px,3vw,24px)',
+            background:'linear-gradient(135deg,#9c7a24,#D4AF37,#F9E8A0,#D4AF37,#9c7a24)',
+            backgroundSize:'220% auto',
+            animation:'shimmer 4.5s linear infinite',
+            boxShadow:'0 0 16px rgba(212,175,55,0.5), 0 4px 14px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.55), inset 0 -1px 2px rgba(120,80,10,0.35)',
+            fontFamily:"'Space Grotesk', sans-serif",
+            fontSize:'clamp(8px,1.8vw,10px)', fontWeight:700,
+            letterSpacing:'0.18em', textTransform:'uppercase',
+            color:'#1a0010',
+            width: countriesBadgeSize ? countriesBadgeSize.width : undefined,
+            height: countriesBadgeSize ? countriesBadgeSize.height : undefined,
+            boxSizing:'border-box',
+            overflow:'hidden',
+            position:'relative',
+          }}
+          aria-label="Casino destinations we operate in"
+        >
+          <span style={{ width:6, height:6, borderRadius:'50%', background:'#1a6b1f', flexShrink:0, animation:'pulse-dot 2s infinite', display:'inline-block' }} />
+          <div style={{ overflow:'hidden', flex:'1 1 auto', minWidth:0 }}>
+            <div
+              className="w365-countries-track"
+              style={{
+                display:'inline-flex', alignItems:'center', gap:'1.4em',
+                whiteSpace:'nowrap', width:'max-content',
+                animation:'w365-countries-marquee 16s linear infinite',
+                willChange:'transform',
+              }}
+            >
+              {countriesTrack.map((loc, i) => (
+                <span key={`${loc.id ?? loc.name}-${i}`} style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
+                  <span style={{ fontSize:'1.3em', lineHeight:1 }}>
+                    {flagFromCountryCode(loc.country_code) || <MapPin size={9} />}
+                  </span>
+                  {loc.name}
+                  <span aria-hidden style={{ color:'rgba(26,0,16,0.55)' }}>•</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        </motion.div>
 
         <motion.p
           initial={{ opacity:0 }} animate={{ opacity:1 }}
@@ -562,6 +714,50 @@ useEffect(() => {
               }}
             >Packages ✨</motion.button>
           </Link>
+        </motion.div>
+
+        {/* Secondary nav — Events / Destinations / Promotions (moved here from
+            the navbar). Styled as the exact same secondary button component
+            as "Packages" above (transparent gold-outline, same padding/font/
+            radius/hover-tap/transitions), keeping Register as the sole
+            primary gold-filled/glow CTA on the page. */}
+        <motion.div
+          initial={{ opacity:0, y:14 }} animate={{ opacity:1, y:0 }}
+          transition={{ delay:1.0 }}
+          style={{
+            display:'flex', gap:'clamp(8px,2vw,12px)', justifyContent:'center',
+            flexWrap:'wrap', marginTop:'clamp(10px,2.5vw,16px)',
+          }}
+        >
+          {[
+            { label:'Events', icon:CalendarDays, onClick:() => navigate('/events') },
+            { label:'Destinations', icon:MapPinned, onClick:() => {
+                const el = document.getElementById('packages')
+                if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.pageYOffset - 80, behavior:'smooth' })
+              } },
+            { label:'Promotions', icon:Gift, onClick:() => navigate('/promotions') },
+          ].map(({ label, icon:Icon, onClick }) => (
+            <motion.button
+              key={label}
+              onClick={onClick}
+              whileHover={{ scale:1.04 }} whileTap={{ scale:0.97 }}
+              style={{
+                display:'flex', alignItems:'center', gap:6,
+                background:'transparent',
+                color:'rgba(212,175,55,0.9)',
+                border:'1.5px solid rgba(212,175,55,0.45)',
+                borderRadius:999,
+                padding:'clamp(10px,2.5vw,14px) clamp(18px,4.5vw,38px)',
+                fontFamily:"'Space Grotesk', sans-serif",
+                fontSize:'clamp(9px,2.2vw,13px)', fontWeight:700,
+                letterSpacing:'0.13em', textTransform:'uppercase',
+                cursor:'pointer', touchAction:'manipulation',
+              }}
+            >
+              <Icon size={12} />
+              {label}
+            </motion.button>
+          ))}
         </motion.div>
 
         {/* Stats */}

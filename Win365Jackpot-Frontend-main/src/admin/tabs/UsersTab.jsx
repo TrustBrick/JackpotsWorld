@@ -12,6 +12,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, Spinner, UidBadge, Pagination } from "../components/SharedUI";
 import { adminFetch, API, fmt, fmtN, fmtDT } from "../helpers";
+import { useAdminTheme } from "../context/AdminThemeContext";
 
 /* ═══════════════════════════════════════════════════════════
    CONSTANTS
@@ -60,25 +61,27 @@ const TX_PER_PAGE = 10;
 /* ═══════════════════════════════════════════════════════════
    STYLES
 ═══════════════════════════════════════════════════════════ */
-const S = {
-  th: {
-    padding: "10px 14px", textAlign: "left", fontSize: 10,
-    color: "rgba(255,255,255,0.3)", fontWeight: 700,
-    textTransform: "uppercase", letterSpacing: "0.08em", whiteSpace: "nowrap",
-  },
-  td: { padding: "12px 14px" },
-  input: {
-    width: "100%", padding: "9px 12px", borderRadius: 8,
-    background: "rgba(255,255,255,0.04)",
-    border: "1px solid rgba(255,255,255,0.1)",
-    color: "white", fontSize: 13, outline: "none",
-  },
-  sectionTitle: {
-    fontSize: 10, fontWeight: 700, textTransform: "uppercase",
-    letterSpacing: "0.1em", color: "rgba(255,255,255,0.3)",
-    marginBottom: 10,
-  },
-};
+function buildS(C) {
+  return {
+    th: {
+      padding: "10px 14px", textAlign: "left", fontSize: 10,
+      color: C.muted, fontWeight: 700,
+      textTransform: "uppercase", letterSpacing: "0.08em", whiteSpace: "nowrap",
+    },
+    td: { padding: "12px 14px" },
+    input: {
+      width: "100%", padding: "9px 12px", borderRadius: 8,
+      background: C.inputBg,
+      border: `1px solid ${C.border}`,
+      color: C.text, fontSize: 13, outline: "none",
+    },
+    sectionTitle: {
+      fontSize: 10, fontWeight: 700, textTransform: "uppercase",
+      letterSpacing: "0.1em", color: C.muted,
+      marginBottom: 10,
+    },
+  };
+}
 
 // ── Pulse keyframe injected once ──────────────────────────
 const _style = document.createElement("style");
@@ -87,10 +90,11 @@ document.head.appendChild(_style);
 
 // Skeleton shimmer bar used in balance cells while loading
 function Shimmer({ width = 60 }) {
+  const { C } = useAdminTheme();
   return (
     <div style={{
       width, height: 13, borderRadius: 4,
-      background: "rgba(255,255,255,0.07)",
+      background: C.hoverBg,
       animation: "pulse 1.4s ease-in-out infinite",
     }} />
   );
@@ -162,6 +166,8 @@ function computeBalances(mainWallets, casinoList) {
    MAIN COMPONENT
 ═══════════════════════════════════════════════════════════ */
 export default function UsersTab({ onToast }) {
+  const { C } = useAdminTheme();
+  const S = buildS(C);
   const [users,        setUsers]        = useState([]);
   const [total,        setTotal]        = useState(0);
   const [page,         setPage]         = useState(1);
@@ -285,7 +291,7 @@ export default function UsersTab({ onToast }) {
       <div>
         <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
           <div style={{ flex: 1, position: "relative" }}>
-            <Search size={13} style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.25)" }} />
+            <Search size={13} style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: C.dim }} />
             <input
               value={q}
               onChange={e => setQ(e.target.value)}
@@ -294,10 +300,10 @@ export default function UsersTab({ onToast }) {
               style={{ ...S.input, paddingLeft: 34 }}
             />
           </div>
-          <button onClick={handleSearch} style={{ padding: "9px 14px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.6)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+          <button onClick={handleSearch} style={{ padding: "9px 14px", borderRadius: 8, border: `1px solid ${C.border}`, background: C.hoverBg, color: C.sub, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
             <Search size={12} /> Search
           </button>
-          <button onClick={() => { detailCache.current = {}; loadUsers(page); }} style={{ padding: "9px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: "rgba(255,255,255,0.4)", cursor: "pointer" }}>
+          <button onClick={() => { detailCache.current = {}; loadUsers(page); }} style={{ padding: "9px 12px", borderRadius: 8, border: `1px solid ${C.border}`, background: "transparent", color: C.muted, cursor: "pointer" }}>
             <RefreshCw size={13} />
           </button>
         </div>
@@ -306,25 +312,37 @@ export default function UsersTab({ onToast }) {
           <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
-              <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.02)" }}>
-                {["UID", "User", "Level", "Available Balance", "Total Balance", "Status", "Actions"].map(h => (
+              <tr style={{ borderBottom: `1px solid ${C.border}`, background: C.hoverBg }}>
+                {["UID", "User", "Level", "Location", "Available Balance", "Total Balance", "Status", "Actions"].map(h => (
                   <th key={h} style={S.th}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} style={{ padding: 40, textAlign: "center" }}><Spinner /></td></tr>
+                <tr><td colSpan={8} style={{ padding: 40, textAlign: "center" }}><Spinner /></td></tr>
               ) : users.length === 0 ? (
-                <tr><td colSpan={7} style={{ padding: 40, textAlign: "center", color: "rgba(255,255,255,0.2)", fontSize: 12 }}>No users found</td></tr>
+                <tr><td colSpan={8} style={{ padding: 40, textAlign: "center", color: C.dim, fontSize: 12 }}>No users found</td></tr>
               ) : users.map(u => (
-                <tr key={u.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", background: selectedUser?.profile?.id === u.id ? "rgba(212,175,55,0.04)" : "transparent" }}>
+                <tr key={u.id} style={{ borderBottom: `1px solid ${C.border}`, background: selectedUser?.profile?.id === u.id ? "rgba(212,175,55,0.04)" : "transparent" }}>
                   <td style={S.td}><UidBadge uid={u.user_uid} /></td>
                   <td style={S.td}>
-                    <div style={{ fontWeight: 600, color: "white" }}>{u.name || "—"}</div>
-                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>{u.email}</div>
+                    <div style={{ fontWeight: 600, color: C.text }}>{u.name || "—"}</div>
+                    <div style={{ fontSize: 11, color: C.muted }}>{u.email}</div>
                   </td>
                   <td style={S.td}><LevelBadge level={u._level} /></td>
+
+                  {/* ✅ Location — resolved from last login IP */}
+                  <td style={S.td}>
+                    {u.last_login_city || u.last_login_country_name ? (
+                      <>
+                        <div style={{ fontSize: 12, color: C.sub }}>{u.last_login_city || "—"}</div>
+                        <div style={{ fontSize: 10, color: C.muted }}>{u.last_login_country_name || "—"}</div>
+                      </>
+                    ) : (
+                      <div style={{ fontSize: 11, color: C.dim }}>Unknown</div>
+                    )}
+                  </td>
 
                   {/* ✅ Available Balance — shimmer while null */}
                   <td style={S.td}>
@@ -333,7 +351,7 @@ export default function UsersTab({ onToast }) {
                     ) : (
                       <>
                         <div style={{ fontFamily: "monospace", color: "#34D399", fontWeight: 700 }}>{fmt(u._availableCash)}</div>
-                        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)" }}>Can deposit/payout</div>
+                        <div style={{ fontSize: 10, color: C.dim }}>Can deposit/payout</div>
                       </>
                     )}
                   </td>
@@ -345,14 +363,14 @@ export default function UsersTab({ onToast }) {
                     ) : (
                       <>
                         <div style={{ fontFamily: "monospace", color: "#60A5FA", fontWeight: 700 }}>{fmt(u._totalMainBalance)}</div>
-                        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)" }}>Incl. all casinos</div>
+                        <div style={{ fontSize: 10, color: C.dim }}>Incl. all casinos</div>
                       </>
                     )}
                   </td>
 
                   <td style={S.td}><StatusBadge kycStatus={u.kyc_status} isActive={u.is_active} /></td>
                   <td style={S.td}>
-                    <button onClick={() => openDetail(u)} style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.1)", background: selectedUser?.profile?.id === u.id ? "rgba(212,175,55,0.15)" : "rgba(255,255,255,0.05)", color: "white", fontSize: 11, cursor: "pointer" }}>
+                    <button onClick={() => openDetail(u)} style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: selectedUser?.profile?.id === u.id ? "rgba(212,175,55,0.15)" : C.hoverBg, color: C.text, fontSize: 11, cursor: "pointer" }}>
                       <Eye size={12} /> View
                     </button>
                   </td>
@@ -361,7 +379,7 @@ export default function UsersTab({ onToast }) {
             </tbody>
           </table>
           </div>
-          <div style={{ padding: 12, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+          <div style={{ padding: 12, borderTop: `1px solid ${C.border}` }}>
             <Pagination page={page} total={total} perPage={PER_PAGE} onChange={pg => setPage(pg)} />
           </div>
         </Card>
@@ -392,6 +410,8 @@ export default function UsersTab({ onToast }) {
    USER DETAIL PANEL
 ═══════════════════════════════════════════════════════════ */
 function UserDetailPanel({ data, onClose, onToast }) {
+  const { C } = useAdminTheme();
+  const S = buildS(C);
   const { profile: u, level: lvl, mainWallets, casinos, txData, travelData, _loading } = data;
 
   const [txState, setTxState] = useState({
@@ -447,7 +467,7 @@ function UserDetailPanel({ data, onClose, onToast }) {
   const selectedCasinoData = casinos?.find(c => c.casino_name === selectedCasino);
   const KYC_COLOR = {
     approved: "#34D399", rejected: "#F87171",
-    submitted: "#FBBF24", pending: "rgba(255,255,255,0.35)",
+    submitted: "#FBBF24", pending: C.muted,
   };
 
   return (
@@ -455,7 +475,7 @@ function UserDetailPanel({ data, onClose, onToast }) {
 
       {/* ── 1. PROFILE HEADER ── */}
       <Card style={{ position: "relative", background: `linear-gradient(135deg, ${lvlColor}10, rgba(0,0,0,0))`, border: `1px solid ${lvlColor}25` }}>
-        <button onClick={onClose} style={{ position: "absolute", right: 12, top: 12, background: "none", border: "none", color: "rgba(255,255,255,0.3)", cursor: "pointer" }}>
+        <button onClick={onClose} style={{ position: "absolute", right: 12, top: 12, background: "none", border: "none", color: C.muted, cursor: "pointer" }}>
           <X size={18} />
         </button>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
@@ -466,8 +486,8 @@ function UserDetailPanel({ data, onClose, onToast }) {
             }
           </div>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: "white" }}>{u?.name || "—"}</div>
-            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>{u?.email}</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{u?.name || "—"}</div>
+            <div style={{ fontSize: 11, color: C.muted }}>{u?.email}</div>
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -506,7 +526,7 @@ function UserDetailPanel({ data, onClose, onToast }) {
         <div style={S.sectionTitle}>💳 Main Wallet Accounts</div>
         {_loading ? (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            {[0,1,2,3].map(i => <div key={i} style={{ padding: "12px", borderRadius: 8, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}><Shimmer width={40} /><div style={{ marginTop: 8 }}><Shimmer width={60} /></div></div>)}
+            {[0,1,2,3].map(i => <div key={i} style={{ padding: "12px", borderRadius: 8, background: C.hoverBg, border: `1px solid ${C.border}` }}><Shimmer width={40} /><div style={{ marginTop: 8 }}><Shimmer width={60} /></div></div>)}
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -515,11 +535,11 @@ function UserDetailPanel({ data, onClose, onToast }) {
               const isRP = isRPType(w.wallet_type);
               return (
                 <div key={w.id || w.wallet_type} style={{ padding: "10px 12px", borderRadius: 8, background: `${m.color}08`, border: `1px solid ${m.color}20` }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 9, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", marginBottom: 3 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 9, color: C.muted, textTransform: "uppercase", marginBottom: 3 }}>
                     {m.icon} {m.label}
                   </div>
                   {w.account_number && (
-                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", fontFamily: "monospace", marginBottom: 4 }}>{w.account_number}</div>
+                    <div style={{ fontSize: 9, color: C.dim, fontFamily: "monospace", marginBottom: 4 }}>{w.account_number}</div>
                   )}
                   <div style={{ fontSize: 15, fontWeight: 900, color: m.color, fontFamily: "monospace" }}>
                     {isRP ? `${fmtN(w.balance)} RP` : fmt(w.balance)}
@@ -528,7 +548,7 @@ function UserDetailPanel({ data, onClose, onToast }) {
               );
             })}
             {(!mainWallets || mainWallets.length === 0) && (
-              <div style={{ gridColumn: "1/-1", fontSize: 11, color: "rgba(255,255,255,0.2)", textAlign: "center", padding: 10 }}>No wallet data</div>
+              <div style={{ gridColumn: "1/-1", fontSize: 11, color: C.dim, textAlign: "center", padding: 10 }}>No wallet data</div>
             )}
           </div>
         )}
@@ -542,7 +562,7 @@ function UserDetailPanel({ data, onClose, onToast }) {
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
               {casinos.map(c => (
                 <button key={c.casino_name} onClick={() => setSelectedCasino(c.casino_name)}
-                  style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, cursor: "pointer", border: `1px solid ${selectedCasino === c.casino_name ? "rgba(212,175,55,0.6)" : "rgba(255,255,255,0.1)"}`, background: selectedCasino === c.casino_name ? "rgba(212,175,55,0.12)" : "transparent", color: selectedCasino === c.casino_name ? "#D4AF37" : "rgba(255,255,255,0.45)", fontWeight: selectedCasino === c.casino_name ? 700 : 400 }}>
+                  style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, cursor: "pointer", border: `1px solid ${selectedCasino === c.casino_name ? "rgba(212,175,55,0.6)" : C.border}`, background: selectedCasino === c.casino_name ? "rgba(212,175,55,0.12)" : "transparent", color: selectedCasino === c.casino_name ? "#D4AF37" : C.muted, fontWeight: selectedCasino === c.casino_name ? 700 : 400 }}>
                   {c.casino_name}
                 </button>
               ))}
@@ -556,7 +576,7 @@ function UserDetailPanel({ data, onClose, onToast }) {
                 return (
                   <div key={w.wallet_type} style={{ padding: "10px 12px", borderRadius: 8, background: `${color}08`, border: `1px solid ${color}20` }}>
                     <div style={{ fontSize: 9, color, fontWeight: 700, textTransform: "uppercase", marginBottom: 4 }}>{label}</div>
-                    <div style={{ fontSize: 15, fontWeight: 900, fontFamily: "monospace", color: "white" }}>
+                    <div style={{ fontSize: 15, fontWeight: 900, fontFamily: "monospace", color: C.text }}>
                       {isRPType(w.wallet_type) ? `${fmtN(w.balance)} RP` : fmt(w.balance)}
                     </div>
                   </div>
@@ -564,16 +584,16 @@ function UserDetailPanel({ data, onClose, onToast }) {
               })}
             </div>
           ) : (
-            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.2)", textAlign: "center", padding: "8px 0", marginBottom: 10 }}>Select a casino above</div>
+            <div style={{ fontSize: 11, color: C.dim, textAlign: "center", padding: "8px 0", marginBottom: 10 }}>Select a casino above</div>
           )}
-          <div style={{ padding: "8px 10px", borderRadius: 6, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
-            <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", marginBottom: 6, letterSpacing: "0.08em" }}>Cash balance per casino</div>
+          <div style={{ padding: "8px 10px", borderRadius: 6, background: C.hoverBg, border: `1px solid ${C.border}` }}>
+            <div style={{ fontSize: 9, color: C.muted, textTransform: "uppercase", marginBottom: 6, letterSpacing: "0.08em" }}>Cash balance per casino</div>
             {casinos.map(c => {
               const cw  = (c.wallets || []).find(w => w.wallet_type === "C" || w.wallet_type === "cash" || w.label === "Cash");
               const bal = Number(cw?.balance || 0);
               return (
-                <div key={c.casino_name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, padding: "4px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                  <span style={{ color: "rgba(255,255,255,0.5)" }}>{c.casino_name}</span>
+                <div key={c.casino_name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, padding: "4px 0", borderBottom: `1px solid ${C.border}` }}>
+                  <span style={{ color: C.muted }}>{c.casino_name}</span>
                   <span style={{ fontFamily: "monospace", color: "#34D399", fontWeight: 700 }}>{fmt(bal)}</span>
                 </div>
               );
@@ -589,7 +609,7 @@ function UserDetailPanel({ data, onClose, onToast }) {
           <div style={{ display: "flex", gap: 4 }}>
             {[{ key: "all", label: "All" }, { key: "C", label: "Cash" }, { key: "NC", label: "NC" }, { key: "O", label: "OTP" }, { key: "RP", label: "RP" }].map(f => (
               <button key={f.key} onClick={() => { setTxState(s => ({ ...s, filter: f.key, page: 1 })); loadTx(1, f.key); }}
-                style={{ padding: "2px 8px", borderRadius: 4, fontSize: 9, cursor: "pointer", border: `1px solid ${txState.filter === f.key ? "rgba(212,175,55,0.6)" : "rgba(255,255,255,0.1)"}`, background: txState.filter === f.key ? "rgba(212,175,55,0.12)" : "transparent", color: txState.filter === f.key ? "#D4AF37" : "rgba(255,255,255,0.4)" }}>
+                style={{ padding: "2px 8px", borderRadius: 4, fontSize: 9, cursor: "pointer", border: `1px solid ${txState.filter === f.key ? "rgba(212,175,55,0.6)" : C.border}`, background: txState.filter === f.key ? "rgba(212,175,55,0.12)" : "transparent", color: txState.filter === f.key ? "#D4AF37" : C.muted }}>
                 {f.label}
               </button>
             ))}
@@ -600,14 +620,14 @@ function UserDetailPanel({ data, onClose, onToast }) {
           <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "4px 0" }}>
             {[0,1,2].map(i => (
               <div key={i} style={{ display: "grid", gridTemplateColumns: "28px 1fr auto", gap: 10, alignItems: "center", padding: "6px 0" }}>
-                <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,0.06)", animation: "pulse 1.4s ease-in-out infinite" }} />
+                <div style={{ width: 28, height: 28, borderRadius: "50%", background: C.hoverBg, animation: "pulse 1.4s ease-in-out infinite" }} />
                 <div><Shimmer width={120} /><div style={{ marginTop: 5 }}><Shimmer width={80} /></div></div>
                 <Shimmer width={50} />
               </div>
             ))}
           </div>
         ) : txState.results.length === 0 ? (
-          <div style={{ padding: 16, textAlign: "center", fontSize: 11, color: "rgba(255,255,255,0.2)" }}>No transactions found</div>
+          <div style={{ padding: 16, textAlign: "center", fontSize: 11, color: C.dim }}>No transactions found</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column" }}>
             {txState.results.map(tx => {
@@ -620,16 +640,16 @@ function UserDetailPanel({ data, onClose, onToast }) {
               return (
                 <div key={tx.id}>
                   <div onClick={() => setExpandedTx(isOpen ? null : tx.id)}
-                    style={{ display: "grid", gridTemplateColumns: "28px 1fr auto", gap: 10, padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.05)", cursor: "pointer", alignItems: "center" }}
-                    onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.02)"}
+                    style={{ display: "grid", gridTemplateColumns: "28px 1fr auto", gap: 10, padding: "10px 0", borderBottom: `1px solid ${C.border}`, cursor: "pointer", alignItems: "center" }}
+                    onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
                     onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                     <div style={{ width: 28, height: 28, borderRadius: "50%", background: wc.bg, color: wc.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, flexShrink: 0 }}>{wc.init}</div>
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: "white", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {typeLabel}
                         {tx.casino_name && <span style={{ marginLeft: 5, fontSize: 9, color: "#A78BFA", background: "rgba(167,139,250,0.1)", padding: "1px 5px", borderRadius: 3, border: "1px solid rgba(167,139,250,0.2)" }}>{tx.casino_name}</span>}
                       </div>
-                      <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>
+                      <div style={{ fontSize: 9, color: C.muted, marginTop: 2 }}>
                         {fmtDT(tx.created_at)}
                         {tx.transaction_reference && <span style={{ fontFamily: "monospace", marginLeft: 6 }}>{tx.transaction_reference}</span>}
                       </div>
@@ -638,10 +658,10 @@ function UserDetailPanel({ data, onClose, onToast }) {
                       <div style={{ fontSize: 12, fontWeight: 700, fontFamily: "monospace", color: isCredit ? "#34D399" : "#F87171" }}>
                         {isCredit ? "+" : "−"}{isRP ? `${fmtN(tx.amount)} RP` : fmt(tx.amount)}
                       </div>
-                      <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)" }}>bal: {isRP ? `${fmtN(tx.balance_after)} RP` : fmt(tx.balance_after)}</div>
+                      <div style={{ fontSize: 9, color: C.muted }}>bal: {isRP ? `${fmtN(tx.balance_after)} RP` : fmt(tx.balance_after)}</div>
                     </div>
                   </div>
-                  <div style={{ overflow: "hidden", maxHeight: isOpen ? 200 : 0, transition: "max-height 0.25s ease", background: "rgba(255,255,255,0.015)", borderBottom: isOpen ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
+                  <div style={{ overflow: "hidden", maxHeight: isOpen ? 200 : 0, transition: "max-height 0.25s ease", background: C.hoverBg, borderBottom: isOpen ? `1px solid ${C.border}` : "none" }}>
                     <div style={{ padding: "10px 12px", display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "8px 12px" }}>
                       {[
                         { label: "Before", value: isRP ? `${fmtN(tx.balance_before)} RP` : fmt(tx.balance_before) },
@@ -652,14 +672,14 @@ function UserDetailPanel({ data, onClose, onToast }) {
                         { label: "Wallet", value: WALLET_META[wt]?.label || wt },
                       ].map(({ label, value }) => (
                         <div key={label}>
-                          <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", marginBottom: 2 }}>{label}</div>
-                          <div style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.7)", fontFamily: "monospace" }}>{value}</div>
+                          <div style={{ fontSize: 9, color: C.muted, textTransform: "uppercase", marginBottom: 2 }}>{label}</div>
+                          <div style={{ fontSize: 10, fontWeight: 600, color: C.sub, fontFamily: "monospace" }}>{value}</div>
                         </div>
                       ))}
                       {tx.note && (
                         <div style={{ gridColumn: "1/-1" }}>
-                          <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", marginBottom: 2 }}>Note</div>
-                          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.55)" }}>{tx.note}</div>
+                          <div style={{ fontSize: 9, color: C.muted, textTransform: "uppercase", marginBottom: 2 }}>Note</div>
+                          <div style={{ fontSize: 10, color: C.muted }}>{tx.note}</div>
                         </div>
                       )}
                     </div>
@@ -679,55 +699,55 @@ function UserDetailPanel({ data, onClose, onToast }) {
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
           <Plane size={12} style={{ color: "#60A5FA" }} />
           <div style={S.sectionTitle}>Casino Visit History</div>
-          <div style={{ marginLeft: "auto", fontSize: 10, color: "rgba(255,255,255,0.35)" }}>{travelState.count} visits</div>
+          <div style={{ marginLeft: "auto", fontSize: 10, color: C.muted }}>{travelState.count} visits</div>
         </div>
         {(_loading || travelState.loading) ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {[0,1].map(i => <div key={i} style={{ borderRadius: 8, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", padding: 12 }}><Shimmer width={100} /><div style={{ marginTop: 8 }}><Shimmer width={200} /></div></div>)}
+            {[0,1].map(i => <div key={i} style={{ borderRadius: 8, background: C.hoverBg, border: `1px solid ${C.border}`, padding: 12 }}><Shimmer width={100} /><div style={{ marginTop: 8 }}><Shimmer width={200} /></div></div>)}
           </div>
         ) : travelState.results.length === 0 ? (
-          <div style={{ padding: 16, textAlign: "center", fontSize: 11, color: "rgba(255,255,255,0.2)" }}>No casino visits recorded</div>
+          <div style={{ padding: 16, textAlign: "center", fontSize: 11, color: C.dim }}>No casino visits recorded</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {travelState.results.map(t => {
               const vipColor = LEVEL_COLORS[(t.vip_level_at_time || 1)] || "#9CA3AF";
               const vipName  = LEVEL_NAMES[(t.vip_level_at_time || 1)]  || "VIP";
               return (
-                <div key={t.id} style={{ borderRadius: 8, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)", overflow: "hidden" }}>
+                <div key={t.id} style={{ borderRadius: 8, background: C.hoverBg, border: `1px solid ${C.border}`, overflow: "hidden" }}>
                   <div style={{ height: 2, background: `linear-gradient(90deg, ${vipColor}, transparent)` }} />
                   <div style={{ padding: "10px 12px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                       <div>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: "white" }}>{t.casino_name || "—"}</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{t.casino_name || "—"}</div>
                         <div style={{ display: "flex", gap: 5, marginTop: 3 }}>
                           <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 4, background: `${vipColor}18`, color: vipColor, border: `1px solid ${vipColor}30` }}>{vipName}</span>
                           {t.level_up_triggered && <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 4, background: "rgba(52,211,153,0.12)", color: "#34D399", border: "1px solid rgba(52,211,153,0.3)" }}>⬆ Leveled Up</span>}
                         </div>
                       </div>
                       <div style={{ textAlign: "right" }}>
-                        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", display: "flex", alignItems: "center", gap: 3 }}>
+                        <div style={{ fontSize: 10, color: C.muted, display: "flex", alignItems: "center", gap: 3 }}>
                           <Calendar size={9} />
                           {t.betting_date
                             ? new Date(t.betting_date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
                             : (t.created_at ? fmtDT(t.created_at) : "—")}
                         </div>
-                        {t.slip_number && <div style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", marginTop: 2, fontFamily: "monospace" }}>#{t.slip_number}</div>}
+                        {t.slip_number && <div style={{ fontSize: 9, color: C.dim, marginTop: 2, fontFamily: "monospace" }}>#{t.slip_number}</div>}
                       </div>
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 6 }}>
                       {[
-                        { label: "Bets",      value: (t.total_bets || 0).toLocaleString("en-IN"),                         color: "rgba(255,255,255,0.6)" },
+                        { label: "Bets",      value: (t.total_bets || 0).toLocaleString("en-IN"),                         color: C.sub },
                         { label: "Bet Amt",   value: `$${Number(t.total_bet_amount || 0).toLocaleString("en-IN")}`,        color: "#D4AF37"               },
                         { label: "RP Earned", value: `+${Number(t.rolling_points_added || 0).toLocaleString("en-IN")} RP`, color: "#A78BFA"               },
-                        { label: "Total RP",  value: `${Number(t.rolling_points_total || 0).toLocaleString("en-IN")} RP`,  color: "rgba(255,255,255,0.45)" },
+                        { label: "Total RP",  value: `${Number(t.rolling_points_total || 0).toLocaleString("en-IN")} RP`,  color: C.muted },
                       ].map(({ label, value, color }) => (
                         <div key={label}>
-                          <div style={{ fontSize: 8, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>{label}</div>
+                          <div style={{ fontSize: 8, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>{label}</div>
                           <div style={{ fontSize: 10, fontWeight: 700, color, fontFamily: "monospace" }}>{value}</div>
                         </div>
                       ))}
                     </div>
-                    {t.note && <div style={{ marginTop: 6, fontSize: 10, color: "rgba(255,255,255,0.3)", fontStyle: "italic" }}>{t.note}</div>}
+                    {t.note && <div style={{ marginTop: 6, fontSize: 10, color: C.muted, fontStyle: "italic" }}>{t.note}</div>}
                   </div>
                 </div>
               );
@@ -742,13 +762,13 @@ function UserDetailPanel({ data, onClose, onToast }) {
         <div style={S.sectionTitle}>⭐ VIP Rank Progress</div>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: lvlColor }}>{LEVEL_NAMES[curLvl] || `Level ${curLvl}`}</span>
-          <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", fontFamily: "monospace" }}>{pts.toLocaleString()} pts</span>
+          <span style={{ fontSize: 11, color: C.muted, fontFamily: "monospace" }}>{pts.toLocaleString()} pts</span>
         </div>
-        <div style={{ height: 8, borderRadius: 4, background: "rgba(255,255,255,0.05)", overflow: "hidden" }}>
+        <div style={{ height: 8, borderRadius: 4, background: C.hoverBg, overflow: "hidden" }}>
           <div style={{ width: `${progressPct}%`, height: "100%", background: lvlColor, boxShadow: `0 0 10px ${lvlColor}50`, transition: "width 0.5s ease" }} />
         </div>
         {nextPts && (
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "rgba(255,255,255,0.25)", marginTop: 5 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: C.dim, marginTop: 5 }}>
             <span>{LEVEL_NAMES[curLvl]}</span>
             <span>Next: {nextPts.toLocaleString()} pts → {LEVEL_NAMES[curLvl + 1] || `Level ${curLvl + 1}`}</span>
           </div>
@@ -762,26 +782,26 @@ function UserDetailPanel({ data, onClose, onToast }) {
         <DetailRow icon={<Users size={10} />}      label="Referred Count"    value={u?.referral_count ?? "0"} />
         <DetailRow icon={<DollarSign size={10} />} label="Referral Earnings" value={fmt(u?.referral_earnings || 0)} mono />
         <div style={{ marginTop: 10 }}>
-          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", textTransform: "uppercase", marginBottom: 6 }}>Referred By</div>
+          <div style={{ fontSize: 10, color: C.dim, textTransform: "uppercase", marginBottom: 6 }}>Referred By</div>
           {u?.referred_by_uid ? (
             <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: 6, background: "rgba(212,175,55,0.06)", border: "1px solid rgba(212,175,55,0.18)" }}>
               <User size={11} color="#D4AF37" />
               <span style={{ fontSize: 11, fontWeight: 700, color: "#D4AF37", fontFamily: "monospace" }}>{u.referred_by_uid}</span>
-              {u.referred_by_name && <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>· {u.referred_by_name}</span>}
+              {u.referred_by_name && <span style={{ fontSize: 10, color: C.muted }}>· {u.referred_by_name}</span>}
             </div>
           ) : (
-            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.2)" }}>None</div>
+            <div style={{ fontSize: 11, color: C.dim }}>None</div>
           )}
         </div>
         {u?.referred_users?.length > 0 && (
           <div style={{ marginTop: 10 }}>
-            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", textTransform: "uppercase", marginBottom: 6 }}>Referred Users ({u.referred_users.length})</div>
+            <div style={{ fontSize: 10, color: C.dim, textTransform: "uppercase", marginBottom: 6 }}>Referred Users ({u.referred_users.length})</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               {u.referred_users.map((r, i) => (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 6, background: "rgba(96,165,250,0.06)", border: "1px solid rgba(96,165,250,0.18)" }}>
                   <User size={10} color="#60A5FA" />
                   <span style={{ fontSize: 11, fontWeight: 700, color: "#60A5FA", fontFamily: "monospace" }}>{r.uid}</span>
-                  {r.name && <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>· {r.name}</span>}
+                  {r.name && <span style={{ fontSize: 10, color: C.muted }}>· {r.name}</span>}
                 </div>
               ))}
             </div>
@@ -797,6 +817,11 @@ function UserDetailPanel({ data, onClose, onToast }) {
         <DetailRow icon={<Calendar size={10} />}      label="Date of Birth"      value={u?.date_of_birth || "—"} />
         <DetailRow icon={<Calendar size={10} />}      label="Member Since"       value={fmtDT(u?.date_joined)} />
         <DetailRow icon={<Clock size={10} />}         label="Last Login"         value={u?.last_login ? fmtDT(u.last_login) : "Never"} />
+        <DetailRow icon={<Globe size={10} />}         label="Login Location"     value={
+          (u?.last_login_city || u?.last_login_country_name)
+            ? [u?.last_login_city, u?.last_login_region, u?.last_login_country_name].filter(Boolean).join(", ")
+            : "Unknown"
+        } />
         <DetailRow icon={<ShieldCheck size={10} />}   label="KYC Status"         value={
           <span style={{ color: KYC_COLOR[u?.kyc_status] || KYC_COLOR.pending, fontWeight: 700, textTransform: "capitalize" }}>{u?.kyc_status || "Pending"}</span>
         } />
@@ -819,30 +844,32 @@ function UserDetailPanel({ data, onClose, onToast }) {
    SMALL REUSABLE COMPONENTS
 ═══════════════════════════════════════════════════════════ */
 function BalanceCard({ label, sub, value, color, bg, border }) {
+  const { C } = useAdminTheme();
   return (
     <div style={{ padding: "14px 16px", borderRadius: 10, background: bg, border: `1px solid ${border}` }}>
       <div style={{ fontSize: 9, color, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 9, color: "rgba(255,255,255,0.25)", marginBottom: 6 }}>{sub}</div>
+      <div style={{ fontSize: 9, color: C.dim, marginBottom: 6 }}>{sub}</div>
       <div style={{ fontSize: 22, fontWeight: 900, fontFamily: "monospace", color }}>{value}</div>
     </div>
   );
 }
 
 function MiniPagination({ page, total, perPage, onChange }) {
+  const { C } = useAdminTheme();
   const totalPages = Math.max(1, Math.ceil(total / perPage));
   const start = (page - 1) * perPage + 1;
   const end   = Math.min(page * perPage, total);
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10, padding: "8px 0", borderTop: "1px solid rgba(255,255,255,0.05)", fontSize: 10, color: "rgba(255,255,255,0.35)" }}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10, padding: "8px 0", borderTop: `1px solid ${C.border}`, fontSize: 10, color: C.muted }}>
       <span>{start}–{end} of {total}</span>
       <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
         <button onClick={() => onChange(Math.max(1, page - 1))} disabled={page === 1}
-          style={{ padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: page === 1 ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.5)", cursor: page === 1 ? "not-allowed" : "pointer", fontSize: 10 }}>
+          style={{ padding: "3px 8px", borderRadius: 4, border: `1px solid ${C.border}`, background: "transparent", color: page === 1 ? C.dim : C.muted, cursor: page === 1 ? "not-allowed" : "pointer", fontSize: 10 }}>
           ← Prev
         </button>
         <span style={{ padding: "0 4px" }}>{page}/{totalPages}</span>
         <button onClick={() => onChange(Math.min(totalPages, page + 1))} disabled={page >= totalPages}
-          style={{ padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: page >= totalPages ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.5)", cursor: page >= totalPages ? "not-allowed" : "pointer", fontSize: 10 }}>
+          style={{ padding: "3px 8px", borderRadius: 4, border: `1px solid ${C.border}`, background: "transparent", color: page >= totalPages ? C.dim : C.muted, cursor: page >= totalPages ? "not-allowed" : "pointer", fontSize: 10 }}>
           Next →
         </button>
       </div>
@@ -884,12 +911,13 @@ function StatusBadge({ kycStatus, isActive }) {
 }
 
 function DetailRow({ icon, label, value, mono }) {
+  const { C } = useAdminTheme();
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "rgba(255,255,255,0.3)" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: `1px solid ${C.border}` }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: C.muted }}>
         {icon} {label}
       </div>
-      <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.7)", fontFamily: mono ? "monospace" : "inherit" }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: C.sub, fontFamily: mono ? "monospace" : "inherit" }}>
         {value}
       </div>
     </div>

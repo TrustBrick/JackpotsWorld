@@ -6,7 +6,10 @@ from authapp.views.auth_views import (
     AdminLoginView, CheckUserView,
     CountryListView,  # ← add this
 )
-from authapp.otp.otp_views import SendOTPView, VerifyOTPView
+from authapp.otp.otp_views import (
+    SendOTPView, VerifyOTPView,
+    ForgotPasswordRequestView, ResetPasswordConfirmView,
+)
 from authapp.views.auth_views import SuperAdminLoginView
 
 urlpatterns = [
@@ -16,6 +19,8 @@ urlpatterns = [
     
     path("auth/send-otp/",      SendOTPView.as_view()),
     path("auth/verify-otp/",    VerifyOTPView.as_view()),
+    path("auth/forgot-password/", ForgotPasswordRequestView.as_view()),
+    path("auth/reset-password/",  ResetPasswordConfirmView.as_view()),
     path("auth/token/refresh/", TokenRefreshView.as_view()),
     path("auth/check-user/",    CheckUserView.as_view()),
     path("auth/countries/",     CountryListView.as_view()),  # ← add this

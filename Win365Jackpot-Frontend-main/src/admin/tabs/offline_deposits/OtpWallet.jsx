@@ -11,6 +11,7 @@ import {
   ShieldAlert, Wallet,
 } from "lucide-react";
 import { adminFetch, API, fmt } from "../../helpers";
+import { useAdminTheme } from "../../context/AdminThemeContext";
 
 const COLOR = "#a78bfa";
 
@@ -24,25 +25,28 @@ const OTP_TYPES = [
   { code:"OTP_REFUND",    label:"OTP Refund" },
 ];
 
-const inp = (accent, err) => ({
-  background:"rgba(255,255,255,0.04)",
-  border:`1px solid ${err?"#f8717155":accent?accent+"44":"rgba(255,255,255,0.1)"}`,
-  color:"white", borderRadius:8, padding:"9px 12px", fontSize:13,
+// These take the current theme's C object since they're plain functions,
+// not components, and can't call hooks themselves. Usage: inp(accent, err, C)
+const inp = (accent, err, C) => ({
+  background:C.inputBg,
+  border:`1px solid ${err?"#f8717155":accent?accent+"44":C.border}`,
+  color:C.text, borderRadius:8, padding:"9px 12px", fontSize:13,
   width:"100%", outline:"none", boxSizing:"border-box",
 });
-const sel = (accent) => ({
-  background:"rgba(12,14,22,0.95)",
-  border:`1px solid ${accent?accent+"44":"rgba(255,255,255,0.12)"}`,
-  color:"white", borderRadius:8, padding:"9px 12px", fontSize:13,
+const sel = (accent, C) => ({
+  background:C.panelBg,
+  border:`1px solid ${accent?accent+"44":C.border2}`,
+  color:C.text, borderRadius:8, padding:"9px 12px", fontSize:13,
   width:"100%", outline:"none", boxSizing:"border-box", cursor:"pointer",
 });
-const lbl = {
+const lbl = (C) => ({
   display:"block", fontSize:10, fontWeight:700,
-  color:"rgba(255,255,255,0.4)", marginBottom:5,
+  color:C.muted, marginBottom:5,
   letterSpacing:"0.06em", textTransform:"uppercase",
-};
+});
 
 export default function OtpWallet({ userInfo, accounts, submitting, setSubmitting, onToast, refreshUser, adminWallet, loadAdminWallet }) {
+  const { C } = useAdminTheme();
   const adminBal    = adminWallet ? Number(adminWallet["otp_balance"] || 0) : 0;
   const userOtpAcct = accounts?.find(a => a.wallet_type === "O");
   const userOtpBal  = Number(userOtpAcct?.balance || 0);
@@ -94,13 +98,13 @@ export default function OtpWallet({ userInfo, accounts, submitting, setSubmittin
         </div>
         <div style={{ display:"flex", alignItems:"flex-end", gap:12, flexWrap:"wrap" }}>
           <div>
-            <div style={{ fontSize:32, fontWeight:900, fontFamily:"monospace", color:"white", lineHeight:1 }}>{fmt(adminBal)}</div>
-            <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", marginTop:4 }}>Available to distribute</div>
+            <div style={{ fontSize:32, fontWeight:900, fontFamily:"monospace", color:C.text, lineHeight:1 }}>{fmt(adminBal)}</div>
+            <div style={{ fontSize:10, color:C.muted, marginTop:4 }}>Available to distribute</div>
           </div>
           {userInfo && (
             <div style={{ marginLeft:"auto" }}>
               <div style={{ padding:"10px 16px", borderRadius:10, background:`${COLOR}10`, border:`1px solid ${COLOR}30`, textAlign:"center", minWidth:140 }}>
-                <div style={{ fontSize:9, color:"rgba(255,255,255,0.3)", marginBottom:4 }}>
+                <div style={{ fontSize:9, color:C.muted, marginBottom:4 }}>
                   <Wallet size={9} style={{ display:"inline", marginRight:3 }}/> User OTP Balance
                 </div>
                 <div style={{ fontSize:22, fontWeight:900, fontFamily:"monospace", color:COLOR }}>{fmt(userOtpBal)}</div>
@@ -122,7 +126,7 @@ export default function OtpWallet({ userInfo, accounts, submitting, setSubmittin
           <CheckCircle size={16} style={{ color:"#34d399", flexShrink:0 }}/>
           <div>
             <div style={{ fontSize:12, fontWeight:700, color:"#34d399" }}>OTP Credited Successfully</div>
-            <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", marginTop:2 }}>
+            <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
               ${lastTxn.amount} · {OTP_TYPES.find(o=>o.code===lastTxn.otpType)?.label} → {lastTxn.user}
               {lastTxn.newBal !== undefined && ` · New OTP Balance: ${fmt(lastTxn.newBal)}`}
             </div>
@@ -133,11 +137,11 @@ export default function OtpWallet({ userInfo, accounts, submitting, setSubmittin
       {/* Form */}
       <div style={{ padding:"16px", borderRadius:12, background:`${COLOR}04`, border:`1px solid ${COLOR}18` }}>
         {/* Header */}
-        <div style={{ marginBottom:14, paddingBottom:12, borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
-          <div style={{ display:"flex", alignItems:"center", gap:8, fontSize:13, fontWeight:700, color:"white", marginBottom:4 }}>
+        <div style={{ marginBottom:14, paddingBottom:12, borderBottom:`1px solid ${C.border}` }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8, fontSize:13, fontWeight:700, color:C.text, marginBottom:4 }}>
             <Zap size={13} style={{ color:COLOR }}/> OTP Wallet — Direct Credit
           </div>
-          <div style={{ fontSize:11, color:"rgba(255,255,255,0.35)" }}>
+          <div style={{ fontSize:11, color:C.muted }}>
             Instantly credits the OTP wallet. No claim required by the user.
           </div>
         </div>
@@ -145,9 +149,9 @@ export default function OtpWallet({ userInfo, accounts, submitting, setSubmittin
         {/* Amount + OTP Type + Note */}
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 2fr", gap:12, marginBottom:14 }}>
           <div>
-            <label style={lbl}><DollarSign size={9} style={{ display:"inline", marginRight:3 }}/>OTP Amount ($) *</label>
+            <label style={lbl(C)}><DollarSign size={9} style={{ display:"inline", marginRight:3 }}/>OTP Amount ($) *</label>
             <input value={amount} onChange={e => setAmount(e.target.value)} type="number" placeholder="e.g. 250"
-              style={inp(insufficient?"#f87171":COLOR, insufficient)}/>
+              style={inp(insufficient?"#f87171":COLOR, insufficient, C)}/>
             {amountNum > 0 && !insufficient && (
               <div style={{ fontSize:10, color:COLOR, marginTop:4, fontWeight:600, fontFamily:"monospace" }}>
                 Admin OTP: {fmt(adminBal)} → {fmt(Math.max(adminBal-amountNum,0))}
@@ -155,16 +159,16 @@ export default function OtpWallet({ userInfo, accounts, submitting, setSubmittin
             )}
           </div>
           <div>
-            <label style={lbl}>OTP Type</label>
-            <select value={otpType} onChange={e => setOtpType(e.target.value)} style={sel(COLOR)}>
+            <label style={lbl(C)}>OTP Type</label>
+            <select value={otpType} onChange={e => setOtpType(e.target.value)} style={sel(COLOR, C)}>
               {OTP_TYPES.map(o => <option key={o.code} value={o.code}>{o.label}</option>)}
             </select>
           </div>
           <div>
-            <label style={lbl}><FileText size={9} style={{ display:"inline", marginRight:3 }}/>Note</label>
+            <label style={lbl(C)}><FileText size={9} style={{ display:"inline", marginRight:3 }}/>Note</label>
             <input value={note} onChange={e => setNote(e.target.value)}
               placeholder={`e.g. OTP reward ${new Date().toLocaleDateString("en-IN")}`}
-              style={inp()}/>
+              style={inp(undefined, undefined, C)}/>
           </div>
         </div>
 
@@ -185,13 +189,13 @@ export default function OtpWallet({ userInfo, accounts, submitting, setSubmittin
             <div style={{ fontSize:9, color:COLOR, fontWeight:700, marginBottom:8, textTransform:"uppercase", letterSpacing:"0.08em" }}>Transaction Preview</div>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:8 }}>
               {[
-                ["Recipient",    userInfo.name||userInfo.email, "white"],
+                ["Recipient",    userInfo.name||userInfo.email, C.text],
                 ["Amount",       fmt(amountNum),                COLOR],
                 ["Type",         OTP_TYPES.find(o=>o.code===otpType)?.label, "#a78bfa"],
                 ["User OTP After", fmt(userOtpBal+amountNum),   "#34d399"],
               ].map(([l,v,c]) => (
                 <div key={l}>
-                  <div style={{ fontSize:9, color:"rgba(255,255,255,0.3)", marginBottom:2 }}>{l}</div>
+                  <div style={{ fontSize:9, color:C.muted, marginBottom:2 }}>{l}</div>
                   <div style={{ fontSize:12, fontWeight:800, color:c, fontFamily:"monospace", wordBreak:"break-all" }}>{v}</div>
                 </div>
               ))}
@@ -202,8 +206,8 @@ export default function OtpWallet({ userInfo, accounts, submitting, setSubmittin
         <button onClick={handleSubmit} disabled={!isValid} style={{
           width:"100%", display:"flex", alignItems:"center", justifyContent:"center",
           gap:8, padding:"12px 0", borderRadius:9, border:"none",
-          background: isValid ? COLOR : "rgba(255,255,255,0.06)",
-          color: isValid ? "#000" : "rgba(255,255,255,0.2)",
+          background: isValid ? COLOR : C.hoverBg,
+          color: isValid ? "#000" : C.dim,
           fontWeight:700, fontSize:13, cursor:isValid?"pointer":"not-allowed",
           transition:"opacity 0.15s",
         }}>

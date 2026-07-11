@@ -111,7 +111,7 @@ function FeaturedCard({ gift }) {
         position: 'relative',
         borderRadius: 16,
         overflow: 'hidden',
-        background: 'linear-gradient(135deg, #0f0a00 0%, #1a1200 50%, #0f0a00 100%)',
+        background: 'linear-gradient(135deg, var(--w365-card) 0%, var(--w365-bg-mid) 50%, var(--w365-card) 100%)',
         border: `1px solid ${gift.accent}35`,
         transition: 'box-shadow 0.3s ease, border-color 0.3s ease',
         cursor: 'default',
@@ -164,7 +164,7 @@ function FeaturedCard({ gift }) {
           </div>
           <TierBadge tier={gift.tier} color={gift.tierColor} />
           <div style={{ marginTop: 16, textAlign: 'center' }}>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 4 }}>Market Value</div>
+            <div style={{ fontSize: 9, color: 'rgba(var(--w365-text-rgb),0.35)', letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 4 }}>Market Value</div>
             <div style={{ fontSize: 26, fontWeight: 900, color: gift.accent }}>{gift.value}</div>
           </div>
         </div>
@@ -172,18 +172,18 @@ function FeaturedCard({ gift }) {
         {/* Right — content */}
         <div style={{ flex: 1, padding: '32px 36px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div>
-            <h3 style={{ fontSize: 'clamp(20px,3vw,28px)', fontWeight: 900, color: '#fff', margin: '0 0 4px' }}>
+            <h3 style={{ fontSize: 'clamp(20px,3vw,28px)', fontWeight: 900, color: 'var(--w365-text)', margin: '0 0 4px' }}>
               {gift.name}
             </h3>
             <p style={{ fontSize: 12, color: `${gift.accent}90`, margin: '0 0 14px', letterSpacing: '0.04em' }}>
               {gift.subtitle}
             </p>
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7, margin: '0 0 20px', maxWidth: 560 }}>
+            <p style={{ fontSize: 13, color: 'rgba(var(--w365-text-rgb),0.5)', lineHeight: 1.7, margin: '0 0 20px', maxWidth: 560 }}>
               {gift.description}
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 24px', marginBottom: 24 }}>
               {gift.perks.map((perk, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: 'rgba(255,255,255,0.65)' }}>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: 'rgba(var(--w365-text-rgb),0.65)' }}>
                   <span style={{ width: 5, height: 5, borderRadius: '50%', background: gift.accent, flexShrink: 0 }} />
                   {perk}
                 </div>
@@ -209,7 +209,7 @@ function FeaturedCard({ gift }) {
                 <ChevronRight size={13} />
               </motion.button>
             </Link>
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.1em' }}>
+            <span style={{ fontSize: 11, color: 'rgba(var(--w365-text-rgb),0.25)', letterSpacing: '0.1em' }}>
               Highroller exclusive
             </span>
           </div>
@@ -235,7 +235,7 @@ function GiftCard({ gift, index }) {
         position: 'relative',
         borderRadius: 14,
         overflow: 'hidden',
-        background: '#0d0d0d',
+        background: 'var(--w365-card)',
         border: `1px solid ${gift.accent}25`,
         display: 'flex', flexDirection: 'column',
         transition: 'box-shadow 0.3s ease, border-color 0.3s ease',
@@ -281,15 +281,15 @@ function GiftCard({ gift, index }) {
 
       {/* Content */}
       <div style={{ padding: '20px 20px 24px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <h3 style={{ fontSize: 17, fontWeight: 900, color: '#fff', margin: '0 0 3px' }}>{gift.name}</h3>
+        <h3 style={{ fontSize: 17, fontWeight: 900, color: 'var(--w365-text)', margin: '0 0 3px' }}>{gift.name}</h3>
         <p style={{ fontSize: 10, color: `${gift.accent}85`, margin: '0 0 10px', letterSpacing: '0.04em' }}>{gift.subtitle}</p>
-        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.65, margin: '0 0 14px', flex: 1 }}>
+        <p style={{ fontSize: 12, color: 'rgba(var(--w365-text-rgb),0.45)', lineHeight: 1.65, margin: '0 0 14px', flex: 1 }}>
           {gift.description}
         </p>
 
         <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
           {gift.perks.map((perk, i) => (
-            <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>
+            <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11, color: 'rgba(var(--w365-text-rgb),0.6)' }}>
               <span style={{ width: 4, height: 4, borderRadius: '50%', background: gift.accent, flexShrink: 0 }} />
               {perk}
             </li>
@@ -309,7 +309,7 @@ function GiftCard({ gift, index }) {
             </span>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 2 }}>
+            <div style={{ fontSize: 8, color: 'rgba(var(--w365-text-rgb),0.3)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 2 }}>
               Market Value
             </div>
             <div style={{ fontSize: 15, fontWeight: 900, color: gift.accent }}>{gift.value}</div>
@@ -354,7 +354,7 @@ export default function GiftsSection() {
         position: 'relative',
         padding: 'clamp(64px,10vw,120px) 0',
         overflow: 'hidden',
-        background: '#080808',
+        background: 'var(--w365-bg)',
       }}
     >
       {/* Subtle top gradient */}
@@ -390,7 +390,7 @@ export default function GiftsSection() {
             style={{
               fontSize: 'clamp(28px,6vw,60px)', fontWeight: 900,
               lineHeight: 1.1, marginBottom: 16,
-              color: '#fff',
+              color: 'var(--w365-text)',
             }}
           >
             <span style={{
@@ -400,7 +400,7 @@ export default function GiftsSection() {
               WIN MORE
             </span>
             <br />
-            <span style={{ fontSize: 'clamp(18px,4vw,40px)', color: 'rgba(255,255,255,0.85)' }}>
+            <span style={{ fontSize: 'clamp(18px,4vw,40px)', color: 'rgba(var(--w365-text-rgb),0.85)' }}>
               THAN JUST MONEY
             </span>
           </motion.h2>
@@ -416,7 +416,7 @@ export default function GiftsSection() {
             initial={{ opacity: 0 }}
             animate={headerInView ? { opacity: 1 } : {}}
             transition={{ delay: 0.3 }}
-            style={{ fontSize: 'clamp(13px,2vw,16px)', color: 'rgba(255,255,255,0.5)', maxWidth: 560, margin: '0 auto', lineHeight: 1.7 }}
+            style={{ fontSize: 'clamp(13px,2vw,16px)', color: 'rgba(var(--w365-text-rgb),0.5)', maxWidth: 560, margin: '0 auto', lineHeight: 1.7 }}
           >
             Highrollers play differently. Walk away with a{' '}
             <span style={{ color: '#D4AF37' }}>Rolex, BMW, Mercedes-Benz</span>{' '}
@@ -447,7 +447,7 @@ export default function GiftsSection() {
           style={{ marginBottom: 56 }}
         >
           <div style={{ textAlign: 'center', marginBottom: 36 }}>
-            <h3 style={{ fontSize: 'clamp(18px,3.5vw,28px)', fontWeight: 900, color: 'rgba(255,255,255,0.9)', margin: '0 0 8px' }}>
+            <h3 style={{ fontSize: 'clamp(18px,3.5vw,28px)', fontWeight: 900, color: 'rgba(var(--w365-text-rgb),0.9)', margin: '0 0 8px' }}>
               How to{' '}
               <span style={{
                 background: 'linear-gradient(135deg, #D4AF37, #F5E07A)',
@@ -456,7 +456,7 @@ export default function GiftsSection() {
                 Earn & Redeem
               </span>
             </h3>
-            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.1em' }}>
+            <p style={{ fontSize: 12, color: 'rgba(var(--w365-text-rgb),0.35)', letterSpacing: '0.1em' }}>
               4 simple steps to your dream prize
             </p>
           </div>
@@ -488,8 +488,8 @@ export default function GiftsSection() {
                   {step.n}
                 </div>
                 <div style={{ fontSize: 28, marginBottom: 12, marginTop: 4 }}>{step.icon}</div>
-                <div style={{ fontSize: 13, fontWeight: 800, color: 'rgba(255,255,255,0.85)', marginBottom: 6 }}>{step.label}</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>{step.desc}</div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: 'rgba(var(--w365-text-rgb),0.85)', marginBottom: 6 }}>{step.label}</div>
+                <div style={{ fontSize: 11, color: 'rgba(var(--w365-text-rgb),0.4)', lineHeight: 1.6 }}>{step.desc}</div>
                 {i < steps.length - 1 && (
                   <div style={{
                     position: 'absolute', right: -8, top: '50%', transform: 'translateY(-50%)',
@@ -515,10 +515,10 @@ export default function GiftsSection() {
           }}
         >
           <div style={{ fontSize: 40, marginBottom: 16 }}>🏆</div>
-          <h3 style={{ fontSize: 'clamp(20px,4vw,36px)', fontWeight: 900, color: '#fff', margin: '0 0 12px', lineHeight: 1.2 }}>
+          <h3 style={{ fontSize: 'clamp(20px,4vw,36px)', fontWeight: 900, color: 'var(--w365-text)', margin: '0 0 12px', lineHeight: 1.2 }}>
             Your Dream Prize Awaits
           </h3>
-          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', maxWidth: 480, margin: '0 auto 32px', lineHeight: 1.7 }}>
+          <p style={{ fontSize: 13, color: 'rgba(var(--w365-text-rgb),0.5)', maxWidth: 480, margin: '0 auto 32px', lineHeight: 1.7 }}>
             Register today, start playing as a Highroller, and watch your prize counter rise.{' '}
             <span style={{ color: '#D4AF37' }}>50,000+ members</span> are already on their way to something legendary.
           </p>

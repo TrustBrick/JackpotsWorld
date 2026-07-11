@@ -37,10 +37,20 @@ class PokerTournament(models.Model):
         return f"{self.name} ({self.casino_name})"
 
 
+REGISTRATION_STATUS_CHOICES = [
+    ("new",       "New"),
+    ("contacted", "Contacted"),
+    ("closed",    "Closed"),
+]
+
+
 class PokerRegistration(models.Model):
     tournament = models.ForeignKey(PokerTournament, on_delete=models.CASCADE, related_name="registrations")
     user       = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="poker_registrations")
+    status     = models.CharField(max_length=12, choices=REGISTRATION_STATUS_CHOICES, default="new", db_index=True)
+    admin_note = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["-created_at"]

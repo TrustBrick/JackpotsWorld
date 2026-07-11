@@ -55,3 +55,40 @@ class ReferralCommission(models.Model):
 
     def __str__(self):
         return f"{self.affiliate_id} earns {self.amount} from {self.referred_user_id}"
+
+
+class AffiliateClickLog(models.Model):
+    """One row per referral-link visit — recorded from the public landing
+    page (see AuthModal.jsx's existing ?ref= capture) before any signup
+    happens, so 'Total Clicks' can be tracked independently of conversions."""
+
+    affiliate = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="click_logs",
+    )
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=255, blank=True)
+    landing_path = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["affiliate", "created_at"])]
+
+    def __str__(self):
+        return f"Click for {self.affiliate_id} at {self.created_at}"
+
+
+class AffiliateLoginLog(models.Model):
+    """One row per successful affiliate login — written from AffiliateLoginView."""
+
+    affiliate = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="affiliate_login_logs",
+    )
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Login for {self.affiliate_id} at {self.created_at}"

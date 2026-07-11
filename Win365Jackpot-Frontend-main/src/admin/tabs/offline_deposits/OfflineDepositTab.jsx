@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { adminFetch, API, fmt, fmtDT } from "../../helpers";
+import { useAdminTheme } from "../../context/AdminThemeContext";
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 import RollingPoints from "./RollingPoints";
@@ -53,10 +54,12 @@ const MAIN_TABS = [
 ];
 
 // ─── STYLES ──────────────────────────────────────────────────────────────────
-const inp = (accent) => ({
-  background:"rgba(255,255,255,0.04)",
-  border:`1px solid ${accent?accent+"44":"rgba(255,255,255,0.1)"}`,
-  color:"white", borderRadius:8, padding:"9px 12px", fontSize:13,
+// Takes the current theme's C object since this is a plain function, not a
+// component, and can't call hooks itself. Usage: inp(accentColor, C)
+const inp = (accent, C) => ({
+  background:C.inputBg,
+  border:`1px solid ${accent?accent+"44":C.border}`,
+  color:C.text, borderRadius:8, padding:"9px 12px", fontSize:13,
   width:"100%", outline:"none", boxSizing:"border-box",
 });
 
@@ -64,6 +67,7 @@ const inp = (accent) => ({
 // ROOT COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
 export default function OfflineDepositTab({ onToast }) {
+  const { C } = useAdminTheme();
   const [tab,           setTab]          = useState("rolling");
   const [query,         setQuery]        = useState("");
   const [searchResults, setSearchResults]= useState([]);
@@ -162,8 +166,8 @@ const loadAccounts = async (uid) => {
       {/* ── TOP TABS ── */}
       <div style={{
         display:"flex", gap:6, marginBottom:20, padding:"4px",
-        borderRadius:12, background:"rgba(255,255,255,0.02)",
-        border:"1px solid rgba(255,255,255,0.06)", width:"fit-content",
+        borderRadius:12, background:C.hoverBg,
+        border:`1px solid ${C.border}`, width:"fit-content",
       }}>
         {MAIN_TABS.map(({ id, label, Icon, color }) => {
           const active   = tab === id;
@@ -178,15 +182,15 @@ const loadAccounts = async (uid) => {
               transition:"all 0.18s", border:"none",
               background: active ? `${color}18` : "transparent",
               outline: active ? `1px solid ${color}40` : "none",
-              color: active ? color : "rgba(255,255,255,0.4)",
+              color: active ? color : C.muted,
             }}>
               <Icon size={13}/> {label}
               {adminBal !== null && (
                 <span style={{
                   fontSize:9, fontWeight:800, fontFamily:"monospace",
                   padding:"1px 6px", borderRadius:10,
-                  background: active ? `${color}25` : "rgba(255,255,255,0.06)",
-                  color: active ? color : "rgba(255,255,255,0.3)",
+                  background: active ? `${color}25` : C.hoverBg,
+                  color: active ? color : C.muted,
                 }}>
                   {fmt(adminBal)}
                 </span>
@@ -202,7 +206,7 @@ const loadAccounts = async (uid) => {
         background:`${activeTab?.color}06`,
         border:`1px solid ${activeTab?.color}18`,
       }}>
-        <div style={{ fontSize:12, fontWeight:700, color:"white", marginBottom:10, display:"flex", alignItems:"center", gap:8 }}>
+        <div style={{ fontSize:12, fontWeight:700, color:C.text, marginBottom:10, display:"flex", alignItems:"center", gap:8 }}>
           <Search size={13} style={{ color:activeTab?.color }}/> Find User
         </div>
         <div style={{ display:"flex", gap:8 }}>
@@ -211,7 +215,7 @@ const loadAccounts = async (uid) => {
   onChange={e => handleSearchInput(e.target.value)}
   onKeyDown={e => e.key === "Enter" && search()}
   placeholder="Search by email, UID or name…"
-  style={inp(activeTab?.color)}
+  style={inp(activeTab?.color, C)}
 />
           <button onClick={search} disabled={searching} style={{
             padding:"9px 18px", borderRadius:8, border:"none",
@@ -229,23 +233,23 @@ const loadAccounts = async (uid) => {
           {searchResults.length > 0 && (
             <motion.div initial={{ opacity:0, y:-6 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }}
               style={{ marginTop:12, display:"flex", flexDirection:"column", gap:6 }}>
-              <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", marginBottom:2 }}>
+              <div style={{ fontSize:10, color:C.muted, marginBottom:2 }}>
                 {searchResults.length} user{searchResults.length!==1?"s":""} found
               </div>
               {searchResults.map(u => (
                 <div key={u.id} style={{
                   display:"flex", alignItems:"center", justifyContent:"space-between",
                   padding:"10px 14px", borderRadius:9,
-                  background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.08)",
+                  background:C.hoverBg, border:`1px solid ${C.border}`,
                   cursor:"pointer", transition:"border-color 0.15s",
                 }}
                   onMouseEnter={e => e.currentTarget.style.borderColor=`${activeTab?.color}40`}
-                  onMouseLeave={e => e.currentTarget.style.borderColor="rgba(255,255,255,0.08)"}>
+                  onMouseLeave={e => e.currentTarget.style.borderColor=C.border}>
                   <div>
-                    <div style={{ fontSize:13, fontWeight:700, color:"white" }}>{u.name||u.email}</div>
+                    <div style={{ fontSize:13, fontWeight:700, color:C.text }}>{u.name||u.email}</div>
                     <div style={{ display:"flex", gap:8, marginTop:3, alignItems:"center" }}>
                       <span style={{ fontSize:10, fontFamily:"monospace", color:"#60a5fa", background:"rgba(96,165,250,0.1)", padding:"1px 6px", borderRadius:4 }}>{u.user_uid}</span>
-                      <span style={{ fontSize:11, color:"rgba(255,255,255,0.35)" }}>{u.email}</span>
+                      <span style={{ fontSize:11, color:C.muted }}>{u.email}</span>
                       {u.vip_level && (
                         <span style={{ fontSize:10, fontWeight:700, color:VIP_COLORS[(u.vip_level||1)-1], background:`${VIP_COLORS[(u.vip_level||1)-1]}18`, padding:"1px 6px", borderRadius:4 }}>
                           {VIP_BY_LVL[u.vip_level]?.label||`VIP ${u.vip_level}`}
@@ -276,7 +280,7 @@ const loadAccounts = async (uid) => {
           }}>
             <div>
               <div style={{ fontSize:13, fontWeight:700, color:activeTab?.color }}>✓ {userInfo.name||userInfo.email}</div>
-              <div style={{ fontSize:10, color:"rgba(255,255,255,0.35)", marginTop:2 }}>
+              <div style={{ fontSize:10, color:C.muted, marginTop:2 }}>
                 {userInfo.user_uid} · {VIP_BY_LVL[userInfo.vip_level]?.label||`VIP ${userInfo.vip_level}`} · {userInfo.email}
               </div>
             </div>
@@ -314,13 +318,13 @@ const loadAccounts = async (uid) => {
       {userInfo && (
         <div style={{ marginTop:20 }}>
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
-            <div style={{ fontSize:13, fontWeight:700, color:"white" }}>
-              Session History — <span style={{ color:"rgba(255,255,255,0.5)" }}>{userInfo.name||userInfo.email}</span>
+            <div style={{ fontSize:13, fontWeight:700, color:C.text }}>
+              Session History — <span style={{ color:C.muted }}>{userInfo.name||userInfo.email}</span>
             </div>
             <button onClick={refreshUser} style={{
               display:"flex", alignItems:"center", gap:6, padding:"6px 12px",
               borderRadius:7, fontSize:11, fontWeight:600, background:"transparent",
-              border:"1px solid rgba(255,255,255,0.1)", color:"rgba(255,255,255,0.4)", cursor:"pointer",
+              border:`1px solid ${C.border}`, color:C.muted, cursor:"pointer",
             }}>
               <RefreshCw size={11}/> Refresh
             </button>
@@ -339,25 +343,26 @@ const VIP_BY_LVL_H = Object.fromEntries(
 );
 
 function HistoryTable({ history }) {
+  const { C } = useAdminTheme();
   return (
-    <div style={{ borderRadius:12, overflow:"hidden", border:"1px solid rgba(255,255,255,0.07)" }}>
+    <div style={{ borderRadius:12, overflow:"hidden", border:`1px solid ${C.border}` }}>
       <div style={{ overflowX:"auto" }}>
         <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11 }}>
           <thead>
-            <tr style={{ background:"rgba(255,255,255,0.02)" }}>
+            <tr style={{ background:C.hoverBg }}>
               {["Date","Type","Slip","Bet Date","Casino","VIP","Details","RP Added","RP Total","Cash Bal","LU?","By"].map(h => (
-                <th key={h} style={{ padding:"9px 11px", textAlign:"left", fontSize:9, color:"rgba(255,255,255,0.3)", fontWeight:700, textTransform:"uppercase", borderBottom:"1px solid rgba(255,255,255,0.07)", whiteSpace:"nowrap" }}>{h}</th>
+                <th key={h} style={{ padding:"9px 11px", textAlign:"left", fontSize:9, color:C.muted, fontWeight:700, textTransform:"uppercase", borderBottom:`1px solid ${C.border}`, whiteSpace:"nowrap" }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {history.length===0 ? (
-              <tr><td colSpan={12} style={{ padding:28, textAlign:"center", color:"rgba(255,255,255,0.2)", fontSize:12 }}>No sessions recorded yet.</td></tr>
+              <tr><td colSpan={12} style={{ padding:28, textAlign:"center", color:C.dim, fontSize:12 }}>No sessions recorded yet.</td></tr>
             ) : history.map(h => (
-              <tr key={h.id} style={{ borderBottom:"1px solid rgba(255,255,255,0.05)" }}
-                onMouseEnter={e => e.currentTarget.style.background="rgba(255,255,255,0.02)"}
+              <tr key={h.id} style={{ borderBottom:`1px solid ${C.border}` }}
+                onMouseEnter={e => e.currentTarget.style.background=C.hoverBg}
                 onMouseLeave={e => e.currentTarget.style.background=""}>
-                <td style={{ padding:"9px 11px", fontSize:10, color:"rgba(255,255,255,0.35)", whiteSpace:"nowrap" }}>{fmtDT(h.created_at)}</td>
+                <td style={{ padding:"9px 11px", fontSize:10, color:C.muted, whiteSpace:"nowrap" }}>{fmtDT(h.created_at)}</td>
                 <td style={{ padding:"9px 11px" }}>
                   <span style={{
                     fontSize:9, padding:"2px 7px", borderRadius:20, fontWeight:700,
@@ -368,14 +373,14 @@ function HistoryTable({ history }) {
                   </span>
                 </td>
                 <td style={{ padding:"9px 11px", fontSize:10, color:"#a78bfa", fontFamily:"monospace" }}>{h.slip_number||"—"}</td>
-                <td style={{ padding:"9px 11px", fontSize:10, color:"rgba(255,255,255,0.4)" }}>{h.betting_date?new Date(h.betting_date).toLocaleDateString("en-IN"):"—"}</td>
-                <td style={{ padding:"9px 11px", fontSize:10, color:"rgba(255,255,255,0.45)" }}>{h.casino_name||"—"}</td>
+                <td style={{ padding:"9px 11px", fontSize:10, color:C.muted }}>{h.betting_date?new Date(h.betting_date).toLocaleDateString("en-IN"):"—"}</td>
+                <td style={{ padding:"9px 11px", fontSize:10, color:C.muted }}>{h.casino_name||"—"}</td>
                 <td style={{ padding:"9px 11px" }}>
                   <span style={{ fontSize:9, color:VIP_COLORS_H[(h.vip_level_at_time||1)-1], fontWeight:700 }}>
                     {VIP_BY_LVL_H[h.vip_level_at_time]?.label||`L${h.vip_level_at_time}`}
                   </span>
                 </td>
-                <td style={{ padding:"9px 11px", fontSize:10, color:"rgba(255,255,255,0.4)" }}>
+                <td style={{ padding:"9px 11px", fontSize:10, color:C.muted }}>
                   {h.entry_type==="cash"
                     ? `Dep:${fmt(h.total_deposited)} Won:${fmt(h.total_won)} Wd:${fmt(h.total_withdrawn)}`
                     : `${h.total_bets||0} bets · $${Number(h.total_bet_amount||0).toLocaleString("en-IN")}`}
@@ -383,7 +388,7 @@ function HistoryTable({ history }) {
                 <td style={{ padding:"9px 11px", fontFamily:"monospace", color:"#a78bfa", fontWeight:700 }}>
                   {h.entry_type==="rolling_points"?`+${Number(h.rolling_points_added).toLocaleString("en-IN")}`:"—"}
                 </td>
-                <td style={{ padding:"9px 11px", fontFamily:"monospace", color:"white", fontWeight:600 }}>
+                <td style={{ padding:"9px 11px", fontFamily:"monospace", color:C.text, fontWeight:600 }}>
                   {h.entry_type==="rolling_points"?Number(h.rolling_points_total).toLocaleString("en-IN"):"—"}
                 </td>
                 <td style={{ padding:"9px 11px", fontFamily:"monospace", color:"#34d399", fontWeight:700 }}>
@@ -392,9 +397,9 @@ function HistoryTable({ history }) {
                 <td style={{ padding:"9px 11px", textAlign:"center" }}>
                   {h.level_up_triggered
                     ? <span style={{ color:"#34d399" }}>✅</span>
-                    : <span style={{ color:"rgba(255,255,255,0.15)" }}>—</span>}
+                    : <span style={{ color:C.dim }}>—</span>}
                 </td>
-                <td style={{ padding:"9px 11px", fontSize:10, color:"rgba(255,255,255,0.3)" }}>{h.recorded_by||"—"}</td>
+                <td style={{ padding:"9px 11px", fontSize:10, color:C.muted }}>{h.recorded_by||"—"}</td>
               </tr>
             ))}
           </tbody>

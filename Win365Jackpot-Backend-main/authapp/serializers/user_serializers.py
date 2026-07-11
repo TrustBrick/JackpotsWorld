@@ -19,6 +19,21 @@ from authapp.models import User, AdminProfile, ActivityLog
 
 PROFILE_LOCK_DAYS = 90
 
+
+def clean_full_phone(value):
+    """
+    Normalizes a phone number that already includes its dial code (e.g. the
+    frontend sends "+919876543210") down to "+" plus digits only, validating
+    a sane overall length. Shared by RegisterSerializer, UpdateProfileSerializer
+    and VerifyOTPView so all three registration/edit paths agree.
+    """
+    if not value:
+        return ""
+    cleaned = re.sub(r"[^\d]", "", value)
+    if len(cleaned) < 4 or len(cleaned) > 15:
+        raise serializers.ValidationError("Enter a valid phone number.")
+    return "+" + cleaned
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Password validator (strict)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -79,15 +94,8 @@ class RegisterSerializer(serializers.Serializer):
     # PHONE VALIDATION
     # ─────────────────────────────────────────────
     def validate_phone(self, value):
-        if not value:
-            return value
-        # Frontend sends full number like "+919876543210"
-        # Strip ONLY non-digit chars except leading +
-        cleaned = re.sub(r"[^\d]", "", value)  # pure digits, e.g. "919876543210"
-        if len(cleaned) < 4 or len(cleaned) > 15:
-            raise serializers.ValidationError("Enter a valid phone number.")
-        # Return as-is with + prefix (frontend already included dial code)
-        return "+" + cleaned  # e.g. "+919876543210"
+        # Frontend sends full number like "+919876543210" (dial code already included)
+        return clean_full_phone(value)
 
     def validate(self, attrs):
         confirm_password = attrs.get("confirm_password")
@@ -210,13 +218,14 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = [
             "id", "user_uid", "email", "name",
             "country", "dial_code", "phone",
-            "date_of_birth", "avatar", "avatar_url",
+            "date_of_birth", "avatar", "avatar_url", "preferred_language",
             "vip_level", "vip_xp", "vip_xp_needed", "vip_progress_pct",
             "wallet_balance", "bonus_balance",
             "total_deposited", "total_withdrawn", "total_won",
             "referral_code", "referral_code_used", "referral_count", "referral_earnings",
             "kyc_status", "is_verified",
             "date_joined", "last_login",
+            "last_login_city", "last_login_region", "last_login_country_name",
             "profile_last_updated", "profile_locked_until",
             "can_edit_profile", "days_until_unlock",
         ]
@@ -227,6 +236,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "total_deposited", "total_withdrawn", "total_won",
             "referral_code", "referral_count", "referral_earnings",
             "kyc_status", "is_verified", "date_joined", "last_login",
+            "last_login_city", "last_login_region", "last_login_country_name",
             "profile_last_updated", "profile_locked_until",
         )
 
@@ -249,7 +259,15 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class UpdateProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model  = User
-        fields = ["name", "date_of_birth", "country", "avatar", "avatar_url"]
+        fields = ["name", "date_of_birth", "country", "dial_code", "phone", "avatar", "avatar_url", "preferred_language"]
+
+    def validate_phone(self, value):
+        if not value:
+            return value
+        cleaned = clean_full_phone(value)
+        if User.objects.filter(phone=cleaned).exclude(pk=self.instance.pk).exists():
+            raise serializers.ValidationError("This mobile number is already registered.")
+        return cleaned
 
     def validate(self, attrs):
         user = self.instance

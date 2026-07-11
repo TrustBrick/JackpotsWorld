@@ -1,6 +1,7 @@
-import React, { Suspense, lazy } from 'react'
+import React, { Suspense, lazy, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import LandingPage from './pages/LandingPage'
+import { ThemeProvider } from './context/ThemeContext'
 
 // ── Route-level code splitting ─────────────────────────────────────────────
 // LandingPage stays eager (first paint); everything else is only needed
@@ -66,7 +67,16 @@ function AdminRoute({ children }) {
 
 // ── App ───────────────────────────────────────────────────────────────────────
 export default function App() {
+  // The public site's light/dark toggle was removed (theme now lives in the
+  // Back Office only) — clear any stale 'light' preference a visitor set
+  // before this change so the public site stays permanently dark, since
+  // there's no longer any UI to switch it back.
+  useEffect(() => {
+    localStorage.removeItem('w365-theme')
+  }, [])
+
   return (
+    <ThemeProvider>
     <BrowserRouter>
       <Suspense fallback={<RouteFallback />}>
       <Routes>
@@ -100,5 +110,6 @@ export default function App() {
       </Routes>
       </Suspense>
     </BrowserRouter>
+    </ThemeProvider>
   )
 }

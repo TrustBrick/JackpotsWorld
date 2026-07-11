@@ -37,8 +37,8 @@ export default function Footer() {
           <div>
             <div style={{ marginBottom: 16 }}>
                <div className="flex flex-col leading-none">
-                <img 
-    src='images/jackpotsworld_watermark.png' 
+                <img
+    src='/images/jackpotsworld_watermark.png'
     className="w-10 h-10 object-contain"
   />
     <span className="font-bold text-xl md:text-2xl gold-text font-black tracking-wider">Jackpots</span>

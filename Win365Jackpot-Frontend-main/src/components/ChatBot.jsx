@@ -1,20 +1,11 @@
 import React, { useState, useRef, useEffect, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 
+const API = import.meta.env.VITE_API_URL || ""
 const INACTIVITY_MS = 3 * 60 * 1000 // 3 minutes
+const HISTORY_KEY = "chatbot_messages"
 
-const SYSTEM_PROMPT = `You are a helpful live assistant for Jackpots World — Asia's #1 offline casino promotion platform. 
-You help users with:
-- Information about casino games (Baccarat, Slots, Roulette, Poker, Blackjack)
-- VIP & Highroller packages and membership tiers
-- Destination casinos (Vietnam, Macau, India, Sri Lanka, Philippines)
-- Registration and account help
-- Prizes and gifts (Rolex, BMW, Mercedes, Apple bundle)
-- Promotions and bonuses
-- WhatsApp/Telegram support: wa.me/jackpotsworld or t.me/jackpotsworld
-Keep responses short (2-3 sentences max), friendly and professional. Use casino-related language naturally.`
-
-const WELCOME = { role: "bot", text: "Welcome to Jackpots World! 🎰\nI'm your live assistant. Ask me about games, VIP packages, destinations, prizes or anything else!" }
+const WELCOME = { role: "bot", text: "Welcome to Jackpots World! 🎰\nI'm your live assistant. Ask me about registration, wallet, deposits, withdrawals, casinos, poker, events, promotions, VIP, referrals, affiliates, or responsible gambling!" }
 
 // SVG headset icon
 function HeadsetIcon({ size = 28 }) {
@@ -60,20 +51,35 @@ function TypingDots() {
   )
 }
 
+function loadStoredMessages() {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(HISTORY_KEY) || "null")
+    return Array.isArray(saved) && saved.length ? saved : [WELCOME]
+  } catch {
+    return [WELCOME]
+  }
+}
+
 export default function ChatBot() {
   const [open, setOpen]         = useState(false)
-  const [messages, setMessages] = useState([WELCOME])
+  const [messages, setMessages] = useState(loadStoredMessages)
   const [input, setInput]       = useState("")
   const [loading, setLoading]   = useState(false)
   const [unread, setUnread]     = useState(0)
   const bottomRef               = useRef(null)
   const inactivityRef           = useRef(null)
   const inputRef                = useRef(null)
+  const sessionIdRef            = useRef(typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : String(Date.now()))
 
   // auto-scroll
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages, loading])
+
+  // persist within the browser session (survives refresh, clears on browser close)
+  useEffect(() => {
+    try { sessionStorage.setItem(HISTORY_KEY, JSON.stringify(messages)) } catch {}
+  }, [messages])
 
   // clear unread when opened
   useEffect(() => {
@@ -85,11 +91,20 @@ export default function ChatBot() {
     if (open) setTimeout(() => inputRef.current?.focus(), 300)
   }, [open])
 
+  // allow other parts of the app (e.g. the Dashboard's Live Support tab) to
+  // open this same widget without needing a shared context provider
+  useEffect(() => {
+    const handler = () => setOpen(true)
+    window.addEventListener("open-chat", handler)
+    return () => window.removeEventListener("open-chat", handler)
+  }, [])
+
   const resetInactivity = useCallback(() => {
     clearTimeout(inactivityRef.current)
     inactivityRef.current = setTimeout(() => {
       setMessages([WELCOME])
       setUnread(0)
+      try { sessionStorage.removeItem(HISTORY_KEY) } catch {}
     }, INACTIVITY_MS)
   }, [])
 
@@ -111,24 +126,19 @@ export default function ChatBot() {
     setLoading(true)
 
     try {
-      // build conversation history for API (exclude welcome)
+      // build conversation history for the backend (exclude welcome)
       const history = [...messages, userMsg]
         .filter(m => m.text !== WELCOME.text)
         .map(m => ({ role: m.role === "user" ? "user" : "assistant", content: m.text }))
 
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const res = await fetch(`${API}/api/chat/message/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
-          system: SYSTEM_PROMPT,
-          messages: history,
-        }),
+        body: JSON.stringify({ message: text, session_id: sessionIdRef.current, history }),
       })
 
       const data = await res.json()
-      const reply = data?.content?.[0]?.text || "I'm having trouble connecting. Please try WhatsApp or Telegram for instant help."
+      const reply = data?.reply || "I couldn't find the answer. Please contact our support team."
 
       setMessages(prev => [...prev, { role: "bot", text: reply }])
       if (!open) setUnread(prev => prev + 1)
@@ -143,7 +153,15 @@ export default function ChatBot() {
   const handleKey = e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage() } }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 12 }}>
+    <div
+      style={{
+        position: "fixed",
+        bottom: "clamp(14px, 4vw, 24px)",
+        right: "clamp(12px, 3vw, 24px)",
+        zIndex: 50,
+        display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 12,
+      }}
+    >
 
       {/* ── Chat Window ── */}
       <AnimatePresence>
@@ -162,7 +180,7 @@ export default function ChatBot() {
               boxShadow: "0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(212,175,55,0.08)",
               display: "flex",
               flexDirection: "column",
-              height: 460,
+              height: "min(460px, 70vh)",
             }}
           >
             {/* Header */}

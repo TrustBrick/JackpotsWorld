@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   X, Mail, Eye, EyeOff, Key, User, Gift, Phone,
@@ -135,7 +136,7 @@ export function validateEmail(val) {
   return { ok: true, error: null }
 }
 
-export const DEFAULT_COUNTRY = { code: '+91', flag: '🇮🇳', name: 'India', digits: 10, placeholder: '0000000000', format: v => v }
+export const DEFAULT_COUNTRY = { code: '+91', iso2: 'IN', flag: '🇮🇳', name: 'India', digits: 10, placeholder: '0000000000', format: v => v }
 
 export const DIGIT_MAP = {
   '+91': 10, '+1': 10, '+44': 10, '+61': 9, '+971': 9, '+65': 8, '+49': 11, '+33': 9,
@@ -537,7 +538,7 @@ function SuccessScreen({ onGoLogin }) {
 }
 
 // ─── Sign In ──────────────────────────────────────────────────────────────────
-function SignInPanel({ onSuccess, onClose }) {
+function SignInPanel({ onSuccess, onClose, onForgotPassword }) {
   const navigate = useNavigate()
   const [email,    setEmail]    = useState('')
   const [pw,       setPw]       = useState('')
@@ -595,6 +596,169 @@ function SignInPanel({ onSuccess, onClose }) {
       </div>
       <ErrBox msg={error} />
       <GoldBtn onClick={handle} loading={loading} disabled={!email || !pw}>Sign in</GoldBtn>
+      <div style={{ textAlign: 'center', marginTop: 12 }}>
+        <button type="button" onClick={() => onForgotPassword?.()}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11.5, color: C.muted, padding: 0, fontFamily: 'inherit' }}>
+          Forgot password?
+        </button>
+      </div>
+    </motion.div>
+  )
+}
+
+// ─── Forgot Password ────────────────────────────────────────────────────────
+function ForgotPasswordPanel({ onBack, onDone }) {
+  const [step, setStep] = useState('email') // 'email' | 'reset'
+  const [email, setEmail] = useState('')
+  const [emailErr, setEmailErr] = useState('')
+  const [otp, setOtp] = useState(['', '', '', '', '', ''])
+  const [newPw, setNewPw] = useState('')
+  const [confirmPw, setConfirmPw] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [info, setInfo] = useState('')
+  const otpRefs = useRef([])
+
+  const handleOtpChange = (idx, val) => {
+    if (val.length > 1) {
+      const digits = val.replace(/\D/g, '').slice(0, 6).split('')
+      const next = [...otp]
+      digits.forEach((d, i) => { if (idx + i < 6) next[idx + i] = d })
+      setOtp(next)
+      otpRefs.current[Math.min(idx + digits.length, 5)]?.focus()
+      return
+    }
+    const digit = val.replace(/\D/g, '')
+    const next = [...otp]; next[idx] = digit; setOtp(next)
+    if (digit && idx < 5) otpRefs.current[idx + 1]?.focus()
+  }
+  const handleOtpKeyDown = (idx, e) => {
+    if (e.key === 'Backspace' && !otp[idx] && idx > 0) otpRefs.current[idx - 1]?.focus()
+  }
+  const otpValue = otp.join('')
+
+  const pwErrors = []
+  if (newPw.length < 8)           pwErrors.push('8 characters')
+  if (!/[A-Z]/.test(newPw))       pwErrors.push('uppercase')
+  if (!/[a-z]/.test(newPw))       pwErrors.push('lowercase')
+  if (!/[0-9]/.test(newPw))       pwErrors.push('number')
+  if (!/[!@#$%^&*]/.test(newPw))  pwErrors.push('special character')
+  const pwOk    = newPw.length > 0 && pwErrors.length === 0
+  const pwMatch = confirmPw && newPw === confirmPw
+
+  const handleRequestOtp = async () => {
+    const { ok, error: eErr } = validateEmail(email)
+    if (!ok) { setEmailErr(eErr); return }
+    setError(''); setLoading(true)
+    try {
+      const json = await apiFetch('/api/auth/forgot-password/', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      })
+      setInfo(json.message || 'If an account exists for this email, a reset code has been sent.')
+      setStep('reset')
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleReset = async () => {
+    if (otpValue.length !== 6) { setError('Enter the 6-digit code'); return }
+    if (!pwOk)    { setError('Password does not meet requirements'); return }
+    if (!pwMatch) { setError('Passwords do not match'); return }
+    setError(''); setLoading(true)
+    try {
+      await apiFetch('/api/auth/reset-password/', {
+        method: 'POST',
+        body: JSON.stringify({ email, otp: otpValue, new_password: newPw }),
+      })
+      onDone?.()
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (step === 'email') {
+    return (
+      <motion.div key="fp-email" initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -14 }}>
+        <div style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.6, marginBottom: 16 }}>
+          Enter the email on your account and we'll send you a 6-digit reset code.
+        </div>
+        <div style={W}>
+          <Label><Mail size={10} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />Email address</Label>
+          <FocusInput type="email" value={email} onChange={e => { setEmail(e.target.value.trim()); setEmailErr('') }}
+            placeholder="you@gmail.com" hasError={!!emailErr}
+            onKeyDown={e => e.key === 'Enter' && handleRequestOtp()} />
+          {emailErr && <Hint color={C.red} icon={AlertCircle}>{emailErr}</Hint>}
+        </div>
+        <ErrBox msg={error} />
+        <GoldBtn onClick={handleRequestOtp} loading={loading} disabled={!email}>Send reset code</GoldBtn>
+        <div style={{ textAlign: 'center', marginTop: 12 }}>
+          <button type="button" onClick={onBack}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: C.muted, padding: 0, fontFamily: 'inherit' }}>
+            ← Back to sign in
+          </button>
+        </div>
+      </motion.div>
+    )
+  }
+
+  return (
+    <motion.div key="fp-reset" initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -14 }}>
+      {info && (
+        <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.6, marginBottom: 16 }}>
+          {info}
+        </div>
+      )}
+      <div style={{ fontSize: 11.5, fontWeight: 600, color: C.muted, marginBottom: 6, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+        6-digit code
+      </div>
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 16 }}>
+        {otp.map((digit, idx) => (
+          <input
+            key={idx}
+            ref={el => otpRefs.current[idx] = el}
+            type="tel" inputMode="numeric" maxLength={6}
+            value={digit}
+            onChange={e => handleOtpChange(idx, e.target.value)}
+            onKeyDown={e => handleOtpKeyDown(idx, e)}
+            onFocus={e => e.target.select()}
+            style={{
+              width: 42, height: 48, textAlign: 'center', fontSize: 20, fontWeight: 900,
+              color: digit ? C.text : C.dim, background: C.bg,
+              border: `2px solid ${digit ? C.gold : C.border}`,
+              borderRadius: 8, outline: 'none', fontFamily: 'monospace',
+              caretColor: 'transparent',
+            }}
+          />
+        ))}
+      </div>
+      <div style={W}>
+        <Label>New password</Label>
+        <PwInput value={newPw} onChange={setNewPw} placeholder="Min. 8 characters" />
+        {newPw && !pwOk
+          ? <Hint color={C.red} icon={AlertCircle}>Needs uppercase, lowercase, number &amp; special character</Hint>
+          : pwOk ? <Hint color={C.green} icon={CheckCircle2}>Strong password</Hint> : null}
+      </div>
+      <div style={W}>
+        <Label>Confirm new password</Label>
+        <PwInput value={confirmPw} onChange={setConfirmPw} placeholder="Re-enter password" />
+        {confirmPw && !pwMatch && <Hint color={C.red} icon={AlertCircle}>Passwords do not match</Hint>}
+      </div>
+      <ErrBox msg={error} />
+      <GoldBtn onClick={handleReset} loading={loading} disabled={otpValue.length !== 6 || !pwOk || !pwMatch}>
+        Reset password
+      </GoldBtn>
+      <div style={{ textAlign: 'center', marginTop: 12 }}>
+        <button type="button" onClick={onBack}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: C.muted, padding: 0, fontFamily: 'inherit' }}>
+          ← Back to sign in
+        </button>
+      </div>
     </motion.div>
   )
 }
@@ -626,7 +790,15 @@ function RegisterPanel({ onRegistered }) {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const ref = params.get('ref')
-    if (ref) sessionStorage.setItem('referral_code', ref)
+    if (ref) {
+      sessionStorage.setItem('referral_code', ref)
+      // Best-effort click log — never blocks rendering or signup if it fails.
+      fetch(`${API || ''}/api/affiliate/track-click/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ referral_code: ref, landing_path: window.location.pathname }),
+      }).catch(() => {})
+    }
   }, [])
 
   const eTimer = useRef(null), pTimer = useRef(null)
@@ -638,7 +810,7 @@ function RegisterPanel({ onRegistered }) {
       .then(data => {
         if (!Array.isArray(data)) { setCountriesErr(true); return }
         const mapped = data
-          .map(c => ({ code: c.dial_code, flag: c.flag, name: c.name, digits: DIGIT_MAP[c.dial_code] || 10, placeholder: '0'.repeat(DIGIT_MAP[c.dial_code] || 10), format: v => v }))
+          .map(c => ({ code: c.dial_code, iso2: c.code, flag: c.flag, name: c.name, digits: DIGIT_MAP[c.dial_code] || 10, placeholder: '0'.repeat(DIGIT_MAP[c.dial_code] || 10), format: v => v }))
           .filter(c => c.code && c.code !== '+')
         setCountries(mapped)
         const india = mapped.find(c => c.code === '+91')
@@ -742,6 +914,8 @@ function RegisterPanel({ onRegistered }) {
   const registrationData = {
     name:           name.trim(),
     phone:          phone ? country.code + phone : undefined,
+    country:        country.iso2 || 'IN',
+    dial_code:      country.code,
     password:       pw,
     referral_code:  sessionStorage.getItem('referral_code') || '',
   }
@@ -836,6 +1010,7 @@ function RegisterPanel({ onRegistered }) {
 
 // ─── Modal ────────────────────────────────────────────────────────────────────
 export default function AuthModal({ isOpen, onClose, defaultTab = 'login', onAuthSuccess }) {
+  const { t: tr } = useTranslation()
   const [tab,     setTab]     = useState(defaultTab)
   const [success, setSuccess] = useState(false)
 
@@ -890,6 +1065,7 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'login', onAut
                 <div style={{ fontSize: 10.5, color: C.muted, letterSpacing: '0.15em', textTransform: 'uppercase', marginTop: 6 }}>
                   {success ? '✦ Registration complete'
                     : tab === 'login' ? '✦ Sign in to your account'
+                    : tab === 'forgot' ? '✦ Reset your password'
                     : '✦ Create a new account'}
                 </div>
               </div>
@@ -901,9 +1077,9 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'login', onAut
 
           {/* Body */}
           <div style={{ padding: '22px 26px 20px', overflowY: 'auto', maxHeight: '72vh' }}>
-            {!success && (
+            {!success && tab !== 'forgot' && (
               <div style={{ display: 'flex', background: C.bg, borderRadius: 9, padding: 3, marginBottom: 20, border: `1px solid ${C.border}` }}>
-                {[['login', 'Sign In'], ['register', 'Register']].map(([t, label]) => (
+                {[['login', tr('common.signIn')], ['register', tr('nav.register')]].map(([t, label]) => (
                   <button key={t} onClick={() => switchTab(t)} style={{
                     flex: 1, padding: '8px 0', fontSize: 13, fontWeight: tab === t ? 700 : 500,
                     color: tab === t ? C.text : C.muted,
@@ -919,13 +1095,15 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'login', onAut
               {success
                 ? <SuccessScreen key="ok" onGoLogin={() => { setSuccess(false); setTab('login') }} />
                 : tab === 'login'
-                  ? <SignInPanel key="li" onSuccess={onAuthSuccess} onClose={onClose} />
-                  : <RegisterPanel key="rg" onRegistered={() => setSuccess(true)} />}
+                  ? <SignInPanel key="li" onSuccess={onAuthSuccess} onClose={onClose} onForgotPassword={() => switchTab('forgot')} />
+                  : tab === 'forgot'
+                    ? <ForgotPasswordPanel key="fp" onBack={() => switchTab('login')} onDone={() => switchTab('login')} />
+                    : <RegisterPanel key="rg" onRegistered={() => setSuccess(true)} />}
             </AnimatePresence>
           </div>
 
           {/* Footer */}
-          {!success && (
+          {!success && tab !== 'forgot' && (
             <div style={{ padding: '12px 26px', background: C.bg, borderTop: `1px solid ${C.border}`, fontSize: 11.5, color: C.muted, textAlign: 'center', lineHeight: 1.7 }}>
               {tab === 'login'
                 ? <>New here?{' '}<span style={{ color: C.gold, cursor: 'pointer', fontWeight: 600 }} onClick={() => switchTab('register')}>Create an account</span></>

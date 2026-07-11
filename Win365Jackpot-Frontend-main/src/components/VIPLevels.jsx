@@ -134,7 +134,7 @@ export default function VIPLevels() {
       style={{
         position: 'relative',
         padding: '96px 16px',
-        background: '#0A0005',
+        background: 'var(--w365-bg)',
         overflow: 'hidden',
       }}
     >
@@ -174,7 +174,7 @@ export default function VIPLevels() {
           }}>
             VIP Program Levels
           </h2>
-          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+          <p style={{ fontSize: 14, color: 'rgba(var(--w365-text-rgb),0.3)', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
             Bronze · Silver · Gold · Jackpot I · II · III · Platinum · Diamond
           </p>
         </motion.div>
@@ -212,8 +212,8 @@ export default function VIPLevels() {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.25 }}
             style={{
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              background: 'rgba(var(--w365-text-rgb),0.03)',
+              border: '1px solid rgba(var(--w365-text-rgb),0.08)',
               borderRadius: 16,
               overflow: 'hidden',
               marginBottom: 40,
@@ -222,14 +222,14 @@ export default function VIPLevels() {
             {/* Panel header */}
             <div style={{
               padding: '18px 24px',
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
+              borderBottom: '1px solid rgba(var(--w365-text-rgb),0.06)',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             }}>
               <div>
-                <p style={{ fontSize: 16, fontWeight: 600, color: 'white', marginBottom: 2 }}>
+                <p style={{ fontSize: 16, fontWeight: 600, color: 'var(--w365-text)', marginBottom: 2 }}>
                   {activeTier.label}
                 </p>
-                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>
+                <p style={{ fontSize: 12, color: 'rgba(var(--w365-text-rgb),0.35)' }}>
                   {activeTier.benefits.length} of {ALL_BENEFITS.length} benefits included
                 </p>
               </div>
@@ -254,7 +254,7 @@ export default function VIPLevels() {
                     style={{
                       display: 'flex', alignItems: 'center', gap: 16,
                       padding: '14px 24px',
-                      borderBottom: i < ALL_BENEFITS.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                      borderBottom: i < ALL_BENEFITS.length - 1 ? '1px solid rgba(var(--w365-text-rgb),0.04)' : 'none',
                       opacity: included ? 1 : 0.3,
                       transition: 'opacity 0.2s',
                     }}
@@ -262,14 +262,14 @@ export default function VIPLevels() {
                     {/* dot */}
                     <div style={{
                       width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                      background: included ? (BENEFIT_COLORS[name] || '#888') : 'rgba(255,255,255,0.2)',
+                      background: included ? (BENEFIT_COLORS[name] || '#888') : 'rgba(var(--w365-text-rgb),0.2)',
                     }}/>
                     <div style={{ flex: 1 }}>
-                      <span style={{ fontSize: 14, fontWeight: 500, color: included ? 'white' : 'rgba(255,255,255,0.4)' }}>
+                      <span style={{ fontSize: 14, fontWeight: 500, color: included ? 'var(--w365-text)' : 'rgba(var(--w365-text-rgb),0.4)' }}>
                         {name}
                       </span>
                       {included && detail && (
-                        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginLeft: 10 }}>
+                        <span style={{ fontSize: 12, color: 'rgba(var(--w365-text-rgb),0.35)', marginLeft: 10 }}>
                           — {detail.desc}
                         </span>
                       )}
@@ -279,11 +279,11 @@ export default function VIPLevels() {
                       width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       background: included ? 'rgba(52,211,153,0.12)' : 'transparent',
-                      border: included ? '1px solid rgba(52,211,153,0.3)' : '1px solid rgba(255,255,255,0.1)',
+                      border: included ? '1px solid rgba(52,211,153,0.3)' : '1px solid rgba(var(--w365-text-rgb),0.1)',
                     }}>
                       {included
                         ? <svg width="10" height="10" viewBox="0 0 10 10"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="#34D399" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                        : <svg width="8" height="8" viewBox="0 0 8 8"><line x1="1" y1="1" x2="7" y2="7" stroke="rgba(255,255,255,0.2)" strokeWidth="1.2" strokeLinecap="round"/><line x1="7" y1="1" x2="1" y2="7" stroke="rgba(255,255,255,0.2)" strokeWidth="1.2" strokeLinecap="round"/></svg>
+                        : <svg width="8" height="8" viewBox="0 0 8 8"><line x1="1" y1="1" x2="7" y2="7" stroke="rgba(var(--w365-text-rgb),0.2)" strokeWidth="1.2" strokeLinecap="round"/><line x1="7" y1="1" x2="1" y2="7" stroke="rgba(var(--w365-text-rgb),0.2)" strokeWidth="1.2" strokeLinecap="round"/></svg>
                       }
                     </div>
                   </div>
@@ -311,7 +311,7 @@ export default function VIPLevels() {
             <p style={{ fontSize: 14, fontWeight: 600, color: '#D4AF37', marginBottom: 4 }}>
               Levels are permanent
             </p>
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', lineHeight: 1.65 }}>
+            <p style={{ fontSize: 13, color: 'rgba(var(--w365-text-rgb),0.4)', lineHeight: 1.65 }}>
               Your tier is a lifetime achievement. Total wagering accumulates across your entire account history and never resets — every bet builds your legacy.
             </p>
           </div>
@@ -331,11 +331,11 @@ function TierButton({ tier, isActive, onClick }) {
         borderRadius: 8,
         border: isActive
           ? '1px solid rgba(212,175,55,0.4)'
-          : '1px solid rgba(255,255,255,0.07)',
+          : '1px solid rgba(var(--w365-text-rgb),0.07)',
         background: isActive
           ? 'rgba(212,175,55,0.08)'
-          : 'rgba(255,255,255,0.02)',
-        color: isActive ? '#D4AF37' : 'rgba(255,255,255,0.35)',
+          : 'rgba(var(--w365-text-rgb),0.02)',
+        color: isActive ? '#D4AF37' : 'rgba(var(--w365-text-rgb),0.35)',
         fontSize: 12,
         fontWeight: isActive ? 600 : 400,
         cursor: 'pointer',
@@ -345,14 +345,14 @@ function TierButton({ tier, isActive, onClick }) {
       }}
       onMouseEnter={e => {
         if (!isActive) {
-          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'
-          e.currentTarget.style.color = 'rgba(255,255,255,0.6)'
+          e.currentTarget.style.borderColor = 'rgba(var(--w365-text-rgb),0.15)'
+          e.currentTarget.style.color = 'rgba(var(--w365-text-rgb),0.6)'
         }
       }}
       onMouseLeave={e => {
         if (!isActive) {
-          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
-          e.currentTarget.style.color = 'rgba(255,255,255,0.35)'
+          e.currentTarget.style.borderColor = 'rgba(var(--w365-text-rgb),0.07)'
+          e.currentTarget.style.color = 'rgba(var(--w365-text-rgb),0.35)'
         }
       }}
     >

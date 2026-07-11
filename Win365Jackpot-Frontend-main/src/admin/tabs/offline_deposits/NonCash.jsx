@@ -11,6 +11,7 @@ import {
   CheckCircle, AlertTriangle, Send, Info,
 } from "lucide-react";
 import { adminFetch, API, fmt } from "../../helpers";
+import { useAdminTheme } from "../../context/AdminThemeContext";
 
 const COLOR = "#60a5fa";
 
@@ -24,25 +25,28 @@ const GIFT_TYPES = [
   { code:"welcome",       label:"Welcome Bonus" },
 ];
 
-const inp = (accent, err) => ({
-  background:"rgba(255,255,255,0.04)",
-  border:`1px solid ${err?"#f8717155":accent?accent+"44":"rgba(255,255,255,0.1)"}`,
-  color:"white", borderRadius:8, padding:"9px 12px", fontSize:13,
+// These take the current theme's C object since they're plain functions,
+// not components, and can't call hooks themselves. Usage: inp(accent, err, C)
+const inp = (accent, err, C) => ({
+  background:C.inputBg,
+  border:`1px solid ${err?"#f8717155":accent?accent+"44":C.border}`,
+  color:C.text, borderRadius:8, padding:"9px 12px", fontSize:13,
   width:"100%", outline:"none", boxSizing:"border-box",
 });
-const sel = (accent) => ({
-  background:"rgba(12,14,22,0.95)",
-  border:`1px solid ${accent?accent+"44":"rgba(255,255,255,0.12)"}`,
-  color:"white", borderRadius:8, padding:"9px 12px", fontSize:13,
+const sel = (accent, C) => ({
+  background:C.panelBg,
+  border:`1px solid ${accent?accent+"44":C.border2}`,
+  color:C.text, borderRadius:8, padding:"9px 12px", fontSize:13,
   width:"100%", outline:"none", boxSizing:"border-box", cursor:"pointer",
 });
-const lbl = {
+const lbl = (C) => ({
   display:"block", fontSize:10, fontWeight:700,
-  color:"rgba(255,255,255,0.4)", marginBottom:5,
+  color:C.muted, marginBottom:5,
   letterSpacing:"0.06em", textTransform:"uppercase",
-};
+});
 
 export default function NonCash({ userInfo, submitting, setSubmitting, onToast, refreshUser, adminWallet }){
+  const { C } = useAdminTheme();
   const [amount,      setAmount]      = useState("");
   const [giftType,    setGiftType]    = useState("manual_gift");
   const [description, setDescription] = useState("");
@@ -116,8 +120,8 @@ onToast(j.message || formatError(j.error), r.ok);
           ].map(({ step, title, desc, color }) => (
             <div key={step} style={{ padding:"10px 12px", borderRadius:9, background:`${color}08`, border:`1px solid ${color}20`, textAlign:"center" }}>
               <div style={{ fontSize:20, fontWeight:900, fontFamily:"monospace", color, lineHeight:1, marginBottom:4 }}>{step}</div>
-              <div style={{ fontSize:11, fontWeight:700, color:"white", marginBottom:3 }}>{title}</div>
-              <div style={{ fontSize:10, color:"rgba(255,255,255,0.35)" }}>{desc}</div>
+              <div style={{ fontSize:11, fontWeight:700, color:C.text, marginBottom:3 }}>{title}</div>
+              <div style={{ fontSize:10, color:C.muted }}>{desc}</div>
             </div>
           ))}
         </div>
@@ -136,7 +140,7 @@ onToast(j.message || formatError(j.error), r.ok);
     alignItems:"center"
   }}>
     <div>
-      <div style={{ fontSize:10, color:"rgba(255,255,255,0.4)" }}>
+      <div style={{ fontSize:10, color:C.muted }}>
         ADMIN BONUS WALLET (NON-CASH)
       </div>
       <div style={{
@@ -167,7 +171,7 @@ onToast(j.message || formatError(j.error), r.ok);
           <CheckCircle size={16} style={{ color:"#34d399", flexShrink:0 }}/>
           <div>
             <div style={{ fontSize:12, fontWeight:700, color:"#34d399" }}>Gift Sent Successfully</div>
-            <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", marginTop:2 }}>
+            <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
               ${lastGift.amount} · {GIFT_TYPES.find(g=>g.code===lastGift.giftType)?.label} → {lastGift.user}
             </div>
           </div>
@@ -179,18 +183,18 @@ onToast(j.message || formatError(j.error), r.ok);
       {/* Form */}
       <div style={{ padding:"16px", borderRadius:12, background:"rgba(96,165,250,0.04)", border:"1px solid rgba(96,165,250,0.18)" }}>
         {/* Header */}
-        <div style={{ marginBottom:14, paddingBottom:12, borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
-          <div style={{ display:"flex", alignItems:"center", gap:8, fontSize:13, fontWeight:700, color:"white", marginBottom:4 }}>
+        <div style={{ marginBottom:14, paddingBottom:12, borderBottom:`1px solid ${C.border}` }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8, fontSize:13, fontWeight:700, color:C.text, marginBottom:4 }}>
             <Gift size={13} style={{ color:COLOR }}/> Send Bonus (Non-Cash)
           </div>
-          <div style={{ fontSize:11, color:"rgba(255,255,255,0.35)" }}>Creates a pending gift. The user must claim it before it's credited to their Non-Cash wallet.</div>
+          <div style={{ fontSize:11, color:C.muted }}>Creates a pending gift. The user must claim it before it's credited to their Non-Cash wallet.</div>
         </div>
 
         {/* Amount + Gift Type */}
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:12 }}>
           <div>
-            <label style={lbl}><DollarSign size={9} style={{ display:"inline", marginRight:3 }}/>Bonus Amount ($) *</label>
-            <input value={amount} onChange={e => setAmount(e.target.value)} type="number" placeholder="e.g. 500" style={inp(COLOR)}/>
+            <label style={lbl(C)}><DollarSign size={9} style={{ display:"inline", marginRight:3 }}/>Bonus Amount ($) *</label>
+            <input value={amount} onChange={e => setAmount(e.target.value)} type="number" placeholder="e.g. 500" style={inp(COLOR, undefined, C)}/>
             {amountNum > 0 && (
               <div style={{ fontSize:10, color:COLOR, marginTop:4, fontWeight:600, fontFamily:"monospace" }}>
                 ${amountNum.toLocaleString("en-IN")} Non-Cash bonus
@@ -198,8 +202,8 @@ onToast(j.message || formatError(j.error), r.ok);
             )}
           </div>
           <div>
-            <label style={lbl}><Tag size={9} style={{ display:"inline", marginRight:3 }}/>Bonus Type</label>
-            <select value={giftType} onChange={e => setGiftType(e.target.value)} style={sel(COLOR)}>
+            <label style={lbl(C)}><Tag size={9} style={{ display:"inline", marginRight:3 }}/>Bonus Type</label>
+            <select value={giftType} onChange={e => setGiftType(e.target.value)} style={sel(COLOR, C)}>
               {GIFT_TYPES.map(g => <option key={g.code} value={g.code}>{g.label}</option>)}
             </select>
           </div>
@@ -207,30 +211,30 @@ onToast(j.message || formatError(j.error), r.ok);
 
         {/* Description */}
         <div style={{ marginBottom:12 }}>
-          <label style={lbl}><FileText size={9} style={{ display:"inline", marginRight:3 }}/>Description (shown to user)</label>
+          <label style={lbl(C)}><FileText size={9} style={{ display:"inline", marginRight:3 }}/>Description (shown to user)</label>
           <input value={description} onChange={e => setDescription(e.target.value)}
             placeholder={`e.g. Welcome bonus for new member`}
-            style={inp(COLOR)}/>
+            style={inp(COLOR, undefined, C)}/>
         </div>
 
         {/* Expiry */}
         <div style={{ marginBottom:12 }}>
-          <label style={lbl}><Clock size={9} style={{ display:"inline", marginRight:3 }}/>Expiry (optional)</label>
+          <label style={lbl(C)}><Clock size={9} style={{ display:"inline", marginRight:3 }}/>Expiry (optional)</label>
           <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr", gap:8 }}>
-            <input value={expiryDate} onChange={e => setExpiryDate(e.target.value)} type="date" style={inp("#f59e0b")}/>
-            <input value={expiryTime} onChange={e => setExpiryTime(e.target.value)} type="time" style={inp("#f59e0b")}/>
+            <input value={expiryDate} onChange={e => setExpiryDate(e.target.value)} type="date" style={inp("#f59e0b", undefined, C)}/>
+            <input value={expiryTime} onChange={e => setExpiryTime(e.target.value)} type="time" style={inp("#f59e0b", undefined, C)}/>
           </div>
           {!expiryDate && (
-            <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", marginTop:4 }}>No expiry — gift remains claimable indefinitely</div>
+            <div style={{ fontSize:10, color:C.muted, marginTop:4 }}>No expiry — gift remains claimable indefinitely</div>
           )}
         </div>
 
         {/* Internal Note */}
         <div style={{ marginBottom:14 }}>
-          <label style={lbl}>Internal Note (not shown to user)</label>
+          <label style={lbl(C)}>Internal Note (not shown to user)</label>
           <input value={note} onChange={e => setNote(e.target.value)}
             placeholder="Internal reference note"
-            style={inp()}/>
+            style={inp(undefined, undefined, C)}/>
         </div>
 
         {/* Preview */}
@@ -239,15 +243,15 @@ onToast(j.message || formatError(j.error), r.ok);
             <div style={{ fontSize:9, color:COLOR, fontWeight:700, marginBottom:8, textTransform:"uppercase", letterSpacing:"0.08em" }}>Gift Preview</div>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8 }}>
               <div>
-                <div style={{ fontSize:9, color:"rgba(255,255,255,0.3)", marginBottom:2 }}>Recipient</div>
-                <div style={{ fontSize:12, fontWeight:700, color:"white" }}>{userInfo.name||userInfo.email}</div>
+                <div style={{ fontSize:9, color:C.muted, marginBottom:2 }}>Recipient</div>
+                <div style={{ fontSize:12, fontWeight:700, color:C.text }}>{userInfo.name||userInfo.email}</div>
               </div>
               <div>
-                <div style={{ fontSize:9, color:"rgba(255,255,255,0.3)", marginBottom:2 }}>Amount</div>
+                <div style={{ fontSize:9, color:C.muted, marginBottom:2 }}>Amount</div>
                 <div style={{ fontSize:16, fontWeight:900, fontFamily:"monospace", color:COLOR }}>${amountNum.toLocaleString("en-IN")}</div>
               </div>
               <div>
-                <div style={{ fontSize:9, color:"rgba(255,255,255,0.3)", marginBottom:2 }}>Type</div>
+                <div style={{ fontSize:9, color:C.muted, marginBottom:2 }}>Type</div>
                 <div style={{ fontSize:12, fontWeight:700, color:"#a78bfa" }}>{GIFT_TYPES.find(g=>g.code===giftType)?.label}</div>
               </div>
             </div>
@@ -257,8 +261,8 @@ onToast(j.message || formatError(j.error), r.ok);
         <button onClick={handleSubmit} disabled={!isValid} style={{
           width:"100%", display:"flex", alignItems:"center", justifyContent:"center",
           gap:8, padding:"12px 0", borderRadius:9, border:"none",
-          background: isValid ? COLOR : "rgba(255,255,255,0.06)",
-          color: isValid ? "#000" : "rgba(255,255,255,0.2)",
+          background: isValid ? COLOR : C.hoverBg,
+          color: isValid ? "#000" : C.dim,
           fontWeight:700, fontSize:13, cursor:isValid?"pointer":"not-allowed",
           transition:"opacity 0.15s",
         }}>

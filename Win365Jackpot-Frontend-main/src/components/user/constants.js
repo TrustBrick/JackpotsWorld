@@ -48,10 +48,12 @@ export const TABS = [
   { id: "packages",      label: "Packages",        icon: "Package"        },
   // { id: "favourites",    label: "Favourites",      icon: "Heart"          },
   // { id: "bonus",         label: "Bonus",           icon: "Star"           },
-  // { id: "rewards",       label: "Spin & Rewards",  icon: "Trophy"         },
+  { id: "rewards",       label: "Spin & Rewards",  icon: "Trophy"         },
   { id: "notifications", label: "Notifications",   icon: "Bell"           },
   { id: "referral",      label: "Referral",        icon: "Users"          },
   { id: "profile",       label: "Profile",         icon: "User"           },
+  { id: "support",              label: "Live Support",        icon: "LifeBuoy"    },
+  { id: "responsible_gambling", label: "Responsible Gambling", icon: "ShieldCheck" },
 ];
 
 export const TX_COLORS = {

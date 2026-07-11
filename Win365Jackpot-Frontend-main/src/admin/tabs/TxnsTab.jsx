@@ -6,9 +6,10 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-import { C, WALLET_CFG } from "../constants";
+import { WALLET_CFG } from "../constants";
 import { adminFetch, API, fmt, fmtDT } from "../helpers";
 import { Card, Spinner, Pagination } from "../components/SharedUI";
+import { useAdminTheme } from "../context/AdminThemeContext";
 
 // ─── TX type config ───────────────────────────────────────────────────────────
 const TX_TYPES = {
@@ -102,6 +103,8 @@ const WALLET_CFG_BY_RAW = {
 const PER_PAGE = 20;
 
 export default function TxnsTab({ onToast }) {
+  const { C } = useAdminTheme();
+  const { sInput, sSelect, sRefresh, thStyle, tdStyle } = buildStyles(C);
   const [txns,     setTxns]     = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [page,     setPage]     = useState(1);
@@ -144,7 +147,7 @@ export default function TxnsTab({ onToast }) {
       {/* ── Filters ── */}
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ position: "relative", flex: 1, minWidth: 250 }}>
-          <Search size={14} style={{ position: "absolute", left: 12, top: 11, color: "rgba(255,255,255,0.3)" }} />
+          <Search size={14} style={{ position: "absolute", left: 12, top: 11, color: C.muted }} />
           <input
             value={q}
             onChange={e => setQ(e.target.value)}
@@ -176,7 +179,7 @@ export default function TxnsTab({ onToast }) {
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 960 }}>
               <thead>
-                <tr style={{ background: "rgba(255,255,255,0.02)", borderBottom: `1px solid ${C.border}` }}>
+                <tr style={{ background: C.hoverBg, borderBottom: `1px solid ${C.border}` }}>
                   <th style={thStyle}>Reference / Date</th>
                   <th style={thStyle}>User</th>
                   <th style={thStyle}>Type</th>
@@ -190,7 +193,7 @@ export default function TxnsTab({ onToast }) {
               <tbody>
                 {txns.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ padding: 40, textAlign: "center", color: "rgba(255,255,255,0.2)", fontSize: 13 }}>
+                    <td colSpan={8} style={{ padding: 40, textAlign: "center", color: C.dim, fontSize: 13 }}>
                       No transactions found
                     </td>
                   </tr>
@@ -214,18 +217,18 @@ export default function TxnsTab({ onToast }) {
                       >
                         {/* Reference + Date */}
                         <td style={tdStyle}>
-                          <div style={{ fontFamily: "monospace", fontWeight: 700, color: "white", fontSize: 12 }}>
+                          <div style={{ fontFamily: "monospace", fontWeight: 700, color: C.text, fontSize: 12 }}>
                             {normalizeRef(tx.transaction_reference, txType)}
                           </div>
-                          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginTop: 3 }}>
+                          <div style={{ fontSize: 10, color: C.muted, marginTop: 3 }}>
                             {fmtDT(tx.created_at)}
                           </div>
                         </td>
 
                         {/* User */}
                         <td style={tdStyle}>
-                          <div style={{ fontWeight: 600, color: "white", fontSize: 12 }}>{tx.user_name || "—"}</div>
-                          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>{tx.user_uid}</div>
+                          <div style={{ fontWeight: 600, color: C.text, fontSize: 12 }}>{tx.user_name || "—"}</div>
+                          <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>{tx.user_uid}</div>
                         </td>
 
                         {/* Type */}
@@ -235,7 +238,7 @@ export default function TxnsTab({ onToast }) {
                               width: 7, height: 7, borderRadius: "50%",
                               background: cfg.color, display: "inline-block", flexShrink: 0,
                             }} />
-                            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.8)" }}>{cfg.label}</span>
+                            <span style={{ fontSize: 12, color: C.sub }}>{cfg.label}</span>
                             <span style={{
                               fontSize: 9, fontWeight: 700, color: cfg.color,
                               background: `${cfg.color}20`, padding: "1px 5px", borderRadius: 3,
@@ -260,7 +263,7 @@ export default function TxnsTab({ onToast }) {
                         <td style={{ ...tdStyle, textAlign: "right", fontFamily: "monospace" }}>
                           {isDr
                             ? <span style={{ color: "#f87171", fontWeight: 700 }}>−{fmt(tx.amount)}</span>
-                            : <span style={{ color: "rgba(255,255,255,0.15)" }}>—</span>
+                            : <span style={{ color: C.dim }}>—</span>
                           }
                         </td>
 
@@ -268,16 +271,16 @@ export default function TxnsTab({ onToast }) {
                         <td style={{ ...tdStyle, textAlign: "right", fontFamily: "monospace" }}>
                           {!isDr
                             ? <span style={{ color: "#34d399", fontWeight: 700 }}>+{fmt(tx.amount)}</span>
-                            : <span style={{ color: "rgba(255,255,255,0.15)" }}>—</span>
+                            : <span style={{ color: C.dim }}>—</span>
                           }
                         </td>
 
                         {/* Running balance */}
-                        <td style={{ ...tdStyle, textAlign: "right", fontFamily: "monospace", color: "rgba(255,255,255,0.55)" }}>
+                        <td style={{ ...tdStyle, textAlign: "right", fontFamily: "monospace", color: C.sub }}>
                           {fmt(tx.balance_after)}
                         </td>
 
-                        <td style={{ ...tdStyle, color: "rgba(255,255,255,0.3)" }}>
+                        <td style={{ ...tdStyle, color: C.muted }}>
                           {isExp ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                         </td>
                       </tr>
@@ -292,7 +295,7 @@ export default function TxnsTab({ onToast }) {
                                 animate={{ height: "auto", opacity: 1 }}
                                 exit={{ height: 0, opacity: 0 }}
                                 style={{
-                                  background: "rgba(255,255,255,0.01)",
+                                  background: C.hoverBg,
                                   overflow: "hidden",
                                   borderBottom: `1px solid ${C.border}`,
                                 }}
@@ -315,7 +318,7 @@ export default function TxnsTab({ onToast }) {
       {/* Divider row */}
       <div style={{
         gridColumn: "span 5",
-        borderTop: "1px solid rgba(255,255,255,0.06)",
+        borderTop: `1px solid ${C.border}`,
         paddingTop: 12,
         marginTop: 4,
         display: "flex",
@@ -331,12 +334,12 @@ export default function TxnsTab({ onToast }) {
         }}>
           Casino Wallet
         </span>
-        <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", fontWeight: 600 }}>
+        <span style={{ fontSize: 11, color: C.muted, fontWeight: 600 }}>
           {tx.casino_name}
         </span>
         <span style={{
-          fontSize: 9, color: "rgba(255,255,255,0.3)",
-          background: "rgba(255,255,255,0.05)",
+          fontSize: 9, color: C.muted,
+          background: C.hoverBg,
           padding: "2px 6px", borderRadius: 3,
         }}>
           {tx.wallet_type}
@@ -361,17 +364,17 @@ export default function TxnsTab({ onToast }) {
   {/* Note — always last, full width */}
   <div style={{ gridColumn: "span 5" }}>
     <div style={{
-      fontSize: 10, color: "rgba(255,255,255,0.3)",
+      fontSize: 10, color: C.muted,
       textTransform: "uppercase", marginBottom: 6,
       display: "flex", alignItems: "center", gap: 6,
     }}>
       <FileText size={10} /> Note
     </div>
     <div style={{
-      fontSize: 12, color: "rgba(255,255,255,0.6)",
-      background: "rgba(255,255,255,0.02)",
+      fontSize: 12, color: C.sub,
+      background: C.hoverBg,
       padding: "8px 12px", borderRadius: 8,
-      border: "1px solid rgba(255,255,255,0.06)",
+      border: `1px solid ${C.border}`,
     }}>
       {tx.note || "No note attached."}
     </div>
@@ -393,16 +396,17 @@ export default function TxnsTab({ onToast }) {
 
       <Pagination total={total} page={page} pageSize={PER_PAGE} onChange={p => { setPage(p); load(p); }} />
 
-      <style>{`.tx-row:hover { background: rgba(255,255,255,0.025); }`}</style>
+      <style>{`.tx-row:hover { background: ${C.hoverBg}; }`}</style>
     </div>
   );
 }
 
 function DetailItem({ label, value, color, icon }) {
+  const { C } = useAdminTheme();
   return (
     <div>
       <div style={{
-        fontSize: 10, color: "rgba(255,255,255,0.3)",
+        fontSize: 10, color: C.muted,
         textTransform: "uppercase", marginBottom: 5,
         display: "flex", alignItems: "center", gap: 5,
       }}>
@@ -410,7 +414,7 @@ function DetailItem({ label, value, color, icon }) {
       </div>
       <div style={{
         fontSize: 12, fontWeight: 700,
-        color: color || "rgba(255,255,255,0.75)",
+        color: color || C.sub,
         fontFamily: "monospace",
         wordBreak: "break-all",
       }}>
@@ -420,8 +424,12 @@ function DetailItem({ label, value, color, icon }) {
   );
 }
 
-const sInput   = { width: "100%", padding: "10px 14px 10px 38px", borderRadius: 10, background: "rgba(255,255,255,0.05)", border: `1px solid ${C.border}`, color: "white", fontSize: 13, outline: "none" };
-const sSelect  = { padding: "9px 12px", borderRadius: 10, background: "#111", border: `1px solid ${C.border}`, color: "white", fontSize: 13, outline: "none", cursor: "pointer" };
-const sRefresh = { padding: "10px", borderRadius: 10, background: "transparent", border: `1px solid ${C.border}`, color: "rgba(255,255,255,0.5)", cursor: "pointer" };
-const thStyle  = { padding: "11px 15px", textAlign: "left", fontSize: 10, color: "rgba(255,255,255,0.3)", fontWeight: 800, textTransform: "uppercase", whiteSpace: "nowrap" };
-const tdStyle  = { padding: "13px 15px", whiteSpace: "nowrap" };
+function buildStyles(C) {
+  return {
+    sInput:   { width: "100%", padding: "10px 14px 10px 38px", borderRadius: 10, background: C.inputBg, border: `1px solid ${C.border}`, color: C.text, fontSize: 13, outline: "none" },
+    sSelect:  { padding: "9px 12px", borderRadius: 10, background: C.inputBg, border: `1px solid ${C.border}`, color: C.text, fontSize: 13, outline: "none", cursor: "pointer" },
+    sRefresh: { padding: "10px", borderRadius: 10, background: "transparent", border: `1px solid ${C.border}`, color: C.muted, cursor: "pointer" },
+    thStyle:  { padding: "11px 15px", textAlign: "left", fontSize: 10, color: C.muted, fontWeight: 800, textTransform: "uppercase", whiteSpace: "nowrap" },
+    tdStyle:  { padding: "13px 15px", whiteSpace: "nowrap" },
+  };
+}

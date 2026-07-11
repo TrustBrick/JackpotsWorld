@@ -20,10 +20,9 @@ from ..views.admin_views import (
     AdminStaffConfirmView,
     AdminStaffRequestDeleteView,
     AdminStaffDeleteView,
-    AdminSpinWheelConfigView,
-    AdminSpinPrizeImageView,
     AdminCasinoVisitView,
     AdminCasinoVisitDeleteView,
+    AdminThemePreferenceView,
 )
 
 from ..views.admin_wallet_views import (
@@ -62,6 +61,9 @@ urlpatterns = [
     # ── Dashboard ─────────────────────────────────────
     path("stats/", AdminStatsView.as_view()),
 
+    # ── Admin self ────────────────────────────────────
+    path("me/theme/", AdminThemePreferenceView.as_view()),
+
     # ── Users ─────────────────────────────────────────
     path("users/", AdminUserListView.as_view()),
     path("users/<int:pk>/", AdminUserDetailView.as_view()),
@@ -99,10 +101,6 @@ urlpatterns = [
     path("deposits/history/", AdminDepositHistoryView.as_view()),
     path("deposits/casinos/", AdminCasinoListView.as_view()),
     path("deposits/check-slip/", AdminCheckSlipView.as_view()),
-
-    # ── Spin Wheel ────────────────────────────────────
-    path("spin-wheel/config/", AdminSpinWheelConfigView.as_view()),
-    path("spin-wheel/upload-image/", AdminSpinPrizeImageView.as_view()),
 
     # ── Casino Visits ─────────────────────────────────
     path("casino-visits/", AdminCasinoVisitView.as_view()),

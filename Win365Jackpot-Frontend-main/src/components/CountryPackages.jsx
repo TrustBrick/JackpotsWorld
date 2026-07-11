@@ -267,12 +267,12 @@ function ImageCarousel({ images, color, glow }) {
       </div>
 
       {/* Caption + dots */}
-      <div style={{ background: 'rgba(255,255,255,0.04)', borderTop: '1px solid rgba(212,175,55,0.15)', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-        <span className="font-body font-light" style={{ fontSize: 'clamp(0.72rem,2.8vw,0.85rem)', color: 'rgba(255,255,255,0.6)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{images[idx].label}</span>
+      <div style={{ background: 'var(--w365-surface-hi)', borderTop: '1px solid rgba(212,175,55,0.15)', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+        <span className="font-body font-light" style={{ fontSize: 'clamp(0.72rem,2.8vw,0.85rem)', color: 'rgba(var(--w365-text-rgb),0.6)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{images[idx].label}</span>
         <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexShrink: 0 }}>
           {images.map((_, i) => (
             <button key={i} onClick={() => jumpTo(i)}
-              style={{ padding: 0, border: 'none', cursor: 'pointer', borderRadius: i === idx ? 4 : '50%', width: i === idx ? 18 : 6, height: 6, background: i === idx ? color : 'rgba(255,255,255,0.2)', transition: 'all 0.25s', touchAction: 'manipulation' }}
+              style={{ padding: 0, border: 'none', cursor: 'pointer', borderRadius: i === idx ? 4 : '50%', width: i === idx ? 18 : 6, height: 6, background: i === idx ? color : 'rgba(var(--w365-text-rgb),0.2)', transition: 'all 0.25s', touchAction: 'manipulation' }}
             />
           ))}
         </div>
@@ -299,7 +299,7 @@ function VIPServicesGallery() {
           <h2 className=" font-bold gold-text" style={{ fontSize: 'clamp(1.5rem,6vw,3rem)', fontWeight: 900, marginBottom: 10 }}>
             THE VIP EXPERIENCE
           </h2>
-          <p className="font-body font-light" style={{ fontSize: 'clamp(0.82rem,3.2vw,1rem)', color: 'rgba(255,255,255,0.5)', maxWidth: 480, margin: '0 auto' }}>
+          <p className="font-body font-light" style={{ fontSize: 'clamp(0.82rem,3.2vw,1rem)', color: 'rgba(var(--w365-text-rgb),0.5)', maxWidth: 480, margin: '0 auto' }}>
             Every package includes world-class VIP amenities — from luxury spa retreats to exclusive nightlife.
           </p>
         </motion.div>
@@ -308,7 +308,7 @@ function VIPServicesGallery() {
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-start', marginBottom: 24, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
           {categories.map(cat => (
             <button key={cat} onClick={() => setActiveCategory(cat)} className="font-body font-light"
-              style={{ padding: '7px 16px', borderRadius: 50, border: `1px solid ${activeCategory === cat ? '#D4AF37' : 'rgba(255,255,255,0.15)'}`, background: activeCategory === cat ? 'rgba(212,175,55,0.15)' : 'transparent', color: activeCategory === cat ? '#D4AF37' : 'rgba(255,255,255,0.5)', fontSize: 'clamp(0.72rem,2.8vw,0.8rem)', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', letterSpacing: '0.04em', whiteSpace: 'nowrap', flexShrink: 0, touchAction: 'manipulation' }}>
+              style={{ padding: '7px 16px', borderRadius: 50, border: `1px solid ${activeCategory === cat ? '#D4AF37' : 'rgba(var(--w365-text-rgb),0.15)'}`, background: activeCategory === cat ? 'rgba(212,175,55,0.15)' : 'transparent', color: activeCategory === cat ? '#D4AF37' : 'rgba(var(--w365-text-rgb),0.5)', fontSize: 'clamp(0.72rem,2.8vw,0.8rem)', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', letterSpacing: '0.04em', whiteSpace: 'nowrap', flexShrink: 0, touchAction: 'manipulation' }}>
               {cat}
             </button>
           ))}
@@ -336,7 +336,7 @@ function VIPServicesGallery() {
 
         {/* Video highlights */}
 <div style={{ marginBottom: 36 }}>
-  <div className="font-body font-light" style={{ textAlign: 'center', fontSize: 'clamp(0.6rem,2.2vw,0.72rem)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 16 }}>
+  <div className="font-body font-light" style={{ textAlign: 'center', fontSize: 'clamp(0.6rem,2.2vw,0.72rem)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(var(--w365-text-rgb),0.3)', marginBottom: 16 }}>
     VIP Experience — Video Highlights
   </div>
   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%,280px),1fr))', gap: 12, justifyContent: 'center', maxWidth: 920, margin: '0 auto' }}>
@@ -356,7 +356,7 @@ function VIPServicesGallery() {
 </div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.7, delay: 0.3 }} style={{ textAlign: 'center' }}>
-          <p className="font-body font-light" style={{ color: 'rgba(255,255,255,0.4)', marginBottom: 14, fontSize: 'clamp(0.8rem,3vw,0.9rem)' }}>
+          <p className="font-body font-light" style={{ color: 'rgba(var(--w365-text-rgb),0.4)', marginBottom: 14, fontSize: 'clamp(0.8rem,3vw,0.9rem)' }}>
             Want to know more about VIP services? Chat with us instantly.
           </p>
           <div style={{ maxWidth: 320, margin: '0 auto' }}>
@@ -469,7 +469,7 @@ function PackagesSection() {
           <h2 className=" font-bold gold-text" style={{ fontSize: 'clamp(1.6rem,7vw,3.2rem)', fontWeight: 900, marginBottom: 12 }}>
             TOUR PACKAGES
           </h2>
-          <p className="font-body font-light" style={{ color: 'rgba(255,255,255,0.5)', maxWidth: 520, margin: '0 auto', fontSize: 'clamp(0.82rem,3.2vw,1rem)', lineHeight: 1.6 }}>
+          <p className="font-body font-light" style={{ color: 'rgba(var(--w365-text-rgb),0.5)', maxWidth: 520, margin: '0 auto', fontSize: 'clamp(0.82rem,3.2vw,1rem)', lineHeight: 1.6 }}>
             Every package includes <strong style={{ color: 'rgba(212,175,55,0.9)' }}>Free Flights · 5★ Hotel · All Meals · Free Drinks · VIP Casino Access</strong>.
             Available for all 5 destinations.
           </p>
@@ -486,7 +486,7 @@ function PackagesSection() {
     style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px' }}
   >
     <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>{item.icon}</span>
-    <span className="font-body font-light" style={{ fontSize: 'clamp(0.68rem,2.5vw,0.78rem)', color: 'rgba(255,255,255,0.6)' }}>
+    <span className="font-body font-light" style={{ fontSize: 'clamp(0.68rem,2.5vw,0.78rem)', color: 'rgba(var(--w365-text-rgb),0.6)' }}>
       {item.label}
     </span>
   </motion.div>
@@ -524,11 +524,11 @@ function PackagesSection() {
           <span style={{ fontSize: '1.8rem' }}>{pkg.icon}</span>
           <div>
             <div style={{ fontSize: '1.05rem', fontWeight: 900, color: pkg.color, lineHeight: 1 }}>{pkg.name}</div>
-            <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.35)', letterSpacing: '0.08em' }}>{pkg.duration} · All Destinations</div>
+            <div style={{ fontSize: '0.7rem', color: 'rgba(var(--w365-text-rgb),0.35)', letterSpacing: '0.08em' }}>{pkg.duration} · All Destinations</div>
           </div>
         </div>
         <div className="gold-text" style={{ fontSize: '1.7rem', fontWeight: 900 }}>{pkg.price}</div>
-        <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>per person</div>
+        <div style={{ fontSize: '0.68rem', color: 'rgba(var(--w365-text-rgb),0.3)', marginTop: 2 }}>per person</div>
       </div>
 
       {/* Details */}
@@ -540,7 +540,7 @@ function PackagesSection() {
           { icon: '🍽️', label: `Food: ${pkg.food}` },
           { icon: '🥂', label: `Liquor: ${pkg.liquor}` },
         ].map((row, j) => (
-          <div key={j} style={{ display: 'flex', alignItems: 'flex-start', gap: 7, fontSize: '0.8rem', color: 'rgba(255,255,255,0.65)', marginBottom: 6, lineHeight: 1.4 }}>
+          <div key={j} style={{ display: 'flex', alignItems: 'flex-start', gap: 7, fontSize: '0.8rem', color: 'rgba(var(--w365-text-rgb),0.65)', marginBottom: 6, lineHeight: 1.4 }}>
             <span style={{ flexShrink: 0 }}>{row.icon}</span>
             <span className="font-body font-light">{row.label}</span>
           </div>
@@ -556,15 +556,15 @@ function PackagesSection() {
     <div key={j} style={{
       display: 'flex', alignItems: 'center', gap: 8,
       fontSize: '0.75rem',
-      color: s.val ? 'rgba(255,255,255,0.72)' : 'rgba(255,255,255,0.22)',
+      color: s.val ? 'rgba(var(--w365-text-rgb),0.72)' : 'rgba(var(--w365-text-rgb),0.22)',
     }}>
       <span style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         width: 16, height: 16, borderRadius: '50%', flexShrink: 0,
-        background: s.val ? 'rgba(76,175,80,0.18)' : 'rgba(255,255,255,0.06)',
-        border: `1px solid ${s.val ? 'rgba(76,175,80,0.4)' : 'rgba(255,255,255,0.1)'}`,
+        background: s.val ? 'rgba(76,175,80,0.18)' : 'rgba(var(--w365-text-rgb),0.06)',
+        border: `1px solid ${s.val ? 'rgba(76,175,80,0.4)' : 'rgba(var(--w365-text-rgb),0.1)'}`,
         fontSize: '0.6rem', fontWeight: 700,
-        color: s.val ? '#4CAF50' : 'rgba(255,255,255,0.2)',
+        color: s.val ? '#4CAF50' : 'rgba(var(--w365-text-rgb),0.2)',
       }}>
         {s.val ? '✓' : '✗'}
       </span>
@@ -647,7 +647,7 @@ function PackagesSection() {
               </div>
               <div style={{
                 fontSize: 'clamp(0.65rem,2.2vw,0.75rem)',
-                color: 'rgba(255,255,255,0.4)', marginTop: 4, fontStyle: 'italic',
+                color: 'rgba(var(--w365-text-rgb),0.4)', marginTop: 4, fontStyle: 'italic',
               }}>
                 International Waters · Casino at Sea · Full Luxury Experience
               </div>
@@ -706,14 +706,14 @@ function PackagesSection() {
             </div>
             <div>
               <div style={{
-                fontSize: '0.62rem', color: 'rgba(255,255,255,0.3)',
+                fontSize: '0.62rem', color: 'rgba(var(--w365-text-rgb),0.3)',
                 textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2,
               }}>
                 {row.label}
               </div>
               <div style={{
                 fontSize: 'clamp(0.72rem,2.5vw,0.8rem)',
-                color: 'rgba(255,255,255,0.72)', fontWeight: 500,
+                color: 'rgba(var(--w365-text-rgb),0.72)', fontWeight: 500,
               }}>
                 {row.val}
               </div>
@@ -741,7 +741,7 @@ function PackagesSection() {
           <div key={j} style={{
             display: 'flex', alignItems: 'center', gap: 7,
             fontSize: 'clamp(0.68rem,2.5vw,0.76rem)',
-            color: 'rgba(255,255,255,0.65)',
+            color: 'rgba(var(--w365-text-rgb),0.65)',
           }}>
             <CheckCircle2 size={14} color="#22d3ee" strokeWidth={2.5} style={{ flexShrink: 0 }} />
             {item}
@@ -793,8 +793,8 @@ function PackagesSection() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.7, delay: 0.5 }}
           style={{ textAlign: 'center', marginTop: 48, padding: 'clamp(24px,6vw,40px) clamp(16px,4vw,24px)', border: '1px solid rgba(212,175,55,0.2)', borderRadius: 18, background: 'rgba(212,175,55,0.03)' }}>
           <div style={{ fontSize: '1.8rem', marginBottom: 10 }}>💬</div>
-          <h3 className=" font-bold text-white" style={{ fontSize: 'clamp(1rem,4.5vw,1.4rem)', fontWeight: 800, marginBottom: 8 }}>Not sure which package is right for you?</h3>
-          <p className="font-body font-light" style={{ color: 'rgba(255,255,255,0.45)', marginBottom: 20, fontSize: 'clamp(0.8rem,3vw,0.9rem)' }}>
+          <h3 className=" font-bold text-theme" style={{ fontSize: 'clamp(1rem,4.5vw,1.4rem)', fontWeight: 800, marginBottom: 8 }}>Not sure which package is right for you?</h3>
+          <p className="font-body font-light" style={{ color: 'rgba(var(--w365-text-rgb),0.45)', marginBottom: 20, fontSize: 'clamp(0.8rem,3vw,0.9rem)' }}>
             Our VIP travel consultants are available 24/7 on WhatsApp.
           </p>
           <div style={{ maxWidth: 340, margin: '0 auto' }}>
@@ -867,7 +867,7 @@ export default function CountryPackages() {
             <h2 className=" font-bold font-black gold-text" style={{ fontSize: 'clamp(1.7rem,7.5vw,3.2rem)', marginBottom: 10, lineHeight: 1.1 }}>
               CASINO DESTINATION
             </h2>
-            <p className="font-body font-light text-white/60 max-w-xl mx-auto" style={{ fontSize: 'clamp(0.82rem,3.2vw,1.1rem)' }}>
+            <p className="font-body font-light text-theme-muted max-w-xl mx-auto" style={{ fontSize: 'clamp(0.82rem,3.2vw,1.1rem)' }}>
               Popular spectacular casino destinations. One unforgettable journey.
             </p>
           </motion.div>
@@ -890,9 +890,9 @@ export default function CountryPackages() {
                   whiteSpace: 'nowrap', flexShrink: 0,
                   transition: 'all 0.3s', cursor: 'pointer',
                   touchAction: 'manipulation',
-                  border: active === i ? '1px solid #D4AF37' : '1px solid rgba(255,255,255,0.2)',
+                  border: active === i ? '1px solid #D4AF37' : '1px solid var(--w365-border)',
                   background: active === i ? 'linear-gradient(135deg,#D4AF37,#B8922B)' : 'transparent',
-                  color: active === i ? '#0A0005' : 'rgba(255,255,255,0.7)',
+                  color: active === i ? '#0A0005' : 'var(--w365-text-muted)',
                   boxShadow: active === i ? `0 0 18px ${c.glow}` : 'none',
                 }}
                 className="font-body font-light"
@@ -921,23 +921,23 @@ export default function CountryPackages() {
                     <span style={{ fontSize: 'clamp(1.3rem,5vw,1.8rem)' }}>{country.flag}</span>
                     <div>
                       <div className=" font-bold" style={{ fontSize: 'clamp(0.85rem,3.5vw,1.1rem)', fontWeight: 700, color: country.color, lineHeight: 1 }}>{country.name}</div>
-                      <div className="font-body font-light" style={{ fontSize: 'clamp(0.62rem,2.2vw,0.75rem)', color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>{country.tagline}</div>
+                      <div className="font-body font-light" style={{ fontSize: 'clamp(0.62rem,2.2vw,0.75rem)', color: 'rgba(var(--w365-text-rgb),0.4)', fontStyle: 'italic' }}>{country.tagline}</div>
                     </div>
                   </div>
                 </div>
                 {/* Top casinos */}
                 <div>
-                  <div className="font-body font-light" style={{ fontSize: 'clamp(0.58rem,2vw,0.65rem)', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>Top Casinos</div>
+                  <div className="font-body font-light" style={{ fontSize: 'clamp(0.58rem,2vw,0.65rem)', color: 'rgba(var(--w365-text-rgb),0.3)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>Top Casinos</div>
                   {country.casinos.split(', ').map((c2, j) => (
                     <div key={j} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                       <span style={{ width: 4, height: 4, borderRadius: '50%', background: country.color, flexShrink: 0 }} />
-                      <span className="font-body font-light" style={{ fontSize: 'clamp(0.68rem,2.5vw,0.82rem)', color: 'rgba(255,255,255,0.6)' }}>{c2}</span>
+                      <span className="font-body font-light" style={{ fontSize: 'clamp(0.68rem,2.5vw,0.82rem)', color: 'rgba(var(--w365-text-rgb),0.6)' }}>{c2}</span>
                     </div>
                   ))}
                 </div>
                 {/* Best for */}
                 <div>
-                  <div className="font-body font-light" style={{ fontSize: 'clamp(0.58rem,2vw,0.65rem)', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>Best For</div>
+                  <div className="font-body font-light" style={{ fontSize: 'clamp(0.58rem,2vw,0.65rem)', color: 'rgba(var(--w365-text-rgb),0.3)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>Best For</div>
                   <div className="font-body font-light" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: `${country.color}18`, border: `1px solid ${country.color}40`, borderRadius: 8, padding: 'clamp(5px,1.5vw,7px) clamp(8px,2.5vw,13px)', fontSize: 'clamp(0.68rem,2.5vw,0.83rem)', fontWeight: 600, color: country.color }}>
                     🎯 {country.bestFor}
                   </div>

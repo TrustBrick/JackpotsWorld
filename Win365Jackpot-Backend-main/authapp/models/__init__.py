@@ -28,6 +28,7 @@ from .wallet_models import (
 )
 
 from .casino_wallet_models import CasinoWalletAccount, CasinoWalletTransaction
+from .spin_models import SpinConfig, SpinSettings, SpinGlobalCounter, SpinHistory
 
 __all__ = [
     # User models
@@ -51,4 +52,8 @@ __all__ = [
     "NON_TRANSFERRABLE_WALLETS", 
     "CasinoWalletAccount",
     "CasinoWalletTransaction",
+    "SpinConfig",
+    "SpinSettings",
+    "SpinGlobalCounter",
+    "SpinHistory",
 ]

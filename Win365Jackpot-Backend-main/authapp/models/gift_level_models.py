@@ -57,13 +57,17 @@ class UserGift(models.Model):
     ]
 
     GIFT_TYPE_CHOICES = [
-        ("bonus",        "Bonus"),
-        ("cashback",     "Cashback"),
-        ("referral",     "Referral Bonus"),
-        ("vip_upgrade",  "VIP Upgrade Gift"),
-        ("tournament",   "Tournament Prize"),
-        ("welcome",      "Welcome Bonus"),
-        ("manual",       "Manual Gift"),
+        ("bonus",           "Bonus"),
+        ("cashback",        "Cashback"),
+        ("referral",        "Referral Bonus"),
+        ("vip_upgrade",     "VIP Upgrade Gift"),
+        ("tournament",      "Tournament Prize"),
+        ("welcome",         "Welcome Bonus"),
+        ("manual",          "Manual Gift"),
+        ("merchandise",     "Merchandise"),
+        ("gift_voucher",    "Gift Voucher"),
+        ("discount_voucher","Discount Voucher"),
+        ("spin_reward",     "Spin Wheel Reward"),
     ]
 
     user        = models.ForeignKey(

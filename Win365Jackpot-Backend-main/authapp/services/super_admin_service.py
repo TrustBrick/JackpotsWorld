@@ -31,6 +31,9 @@ def _gen_ref(prefix: str) -> str:
 # ─── Ensure user wallet exists ────────────────────────────────────────────────
 
 def _get_or_create_user_wallet(user, wallet_type: str) -> WalletAccount:
+    """Must be called inside a @db_transaction.atomic block (its one caller,
+    admin_transfer_to_user, is). Locks the row so a concurrent operation on
+    the same user's wallet can't race this read-modify-write."""
     acct, _ = WalletAccount.objects.get_or_create(
         user=user,
         wallet_type=wallet_type,
@@ -39,7 +42,7 @@ def _get_or_create_user_wallet(user, wallet_type: str) -> WalletAccount:
             "balance": Decimal("0"),
         },
     )
-    return acct
+    return WalletAccount.objects.select_for_update().get(pk=acct.pk)
 
 
 # ─── TXN type → wallet_type mapping for user wallets ─────────────────────────

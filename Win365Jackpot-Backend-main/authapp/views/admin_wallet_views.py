@@ -27,6 +27,7 @@ from authapp.models.wallet_models import (
 )
 from authapp.models.user_model import ActivityLog
 from authapp.models.super_admin_models import AdminWallet  # ← NEW import
+from authapp.permissions.admin_role_permissions import HasFinanceAccess
 
 from authapp.serializers.wallet_serializers import (
     WalletTransactionSerializer,
@@ -135,7 +136,7 @@ class AdminUserWalletAccountsView(APIView):
       - The user's 4 individual WalletAccount balances
       - The AdminWallet balances (so admin knows what's available to transfer)
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminUser, HasFinanceAccess]
 
     def get(self, request, user_id):
         from django.contrib.auth import get_user_model
@@ -212,7 +213,7 @@ class AdminWalletUpdateView(APIView):
     then credits the user's wallet.
     For other types: existing behaviour (direct user wallet update only).
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminUser, HasFinanceAccess]
 
     def post(self, request):
         from django.contrib.auth import get_user_model
@@ -426,7 +427,7 @@ class AdminWalletTransactionListView(APIView):
 
 
 class AdminWalletValidationListView(APIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminUser, HasFinanceAccess]
 
     def get(self, request):
         qs = WalletValidationLog.objects.select_related(
@@ -436,7 +437,7 @@ class AdminWalletValidationListView(APIView):
 
 
 class AdminBonusConfigView(APIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminUser, HasFinanceAccess]
 
     def get(self, request):
         configs = BonusConfig.objects.all().order_by("vip_level", "bonus_type")

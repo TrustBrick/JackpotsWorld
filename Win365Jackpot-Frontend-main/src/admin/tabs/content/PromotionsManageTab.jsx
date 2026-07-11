@@ -12,8 +12,11 @@ const FIELDS = [
   { name: "order",                        label: "Sort Order", type: "number", placeholder: "0" },
   { name: "description",                   label: "Description", type: "textarea", wide: true },
   { name: "benefits",                       label: "Benefits (one per line)", type: "list", wide: true },
-  { name: "image",                           label: "Promotion Image", type: "file", wide: true },
+  { name: "terms_conditions",                 label: "Terms & Conditions", type: "textarea", wide: true },
+  { name: "image",                           label: "Promotion Banner", type: "file", wide: true },
   { name: "casino_logo",                      label: "Casino Logo", type: "file", wide: true },
+  { name: "video",                             label: "Promotion Video (optional)", type: "file", accept: "video/*", wide: true },
+  { name: "gallery",                            label: "Gallery Images", type: "gallery", galleryEndpoint: "gallery", wide: true },
 ];
 
 const COLUMNS = [

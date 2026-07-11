@@ -19,6 +19,10 @@ from authapp.serializers import (
     AdminProfileSerializer,
     ActivityLogSerializer,
 )
+from authapp.permissions.admin_role_permissions import (
+    HasFinanceAccess, HasUserEditAccess, HasNotifAccess, HasVIPAccess,
+)
+from authapp.permissions.super_admin_permissions import IsSuperAdmin
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -282,7 +286,7 @@ class AdminUserDetailView(APIView):
 # ─────────────────────────────────────────────────────────────────────────────
 
 class AdminAddWalletView(APIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminUser, HasFinanceAccess]
 
     def post(self, request, pk):
         from authapp.views.admin_wallet_views import AdminWalletUpdateView
@@ -291,7 +295,7 @@ class AdminAddWalletView(APIView):
 
 
 class AdminAddBonusView(APIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminUser, HasFinanceAccess]
 
     def post(self, request, pk):
         try:
@@ -323,7 +327,7 @@ class AdminAddBonusView(APIView):
 # ─────────────────────────────────────────────────────────────────────────────
 
 class AdminSetVIPView(APIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminUser, HasVIPAccess]
 
     def post(self, request, pk):
         try:
@@ -365,7 +369,7 @@ class AdminCreateRewardView(APIView):
 # ─────────────────────────────────────────────────────────────────────────────
 
 class AdminSendNotificationView(APIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminUser, HasNotifAccess]
 
     def post(self, request):
         ActivityLog.log(
@@ -456,6 +460,10 @@ class AdminApproveTransactionView(APIView):
 
 # ─────────────────────────────────────────────────────────────────────────────
 # KYC
+# NOTE: these two classes are NOT wired up — admin_urls.py imports the real,
+# actively-used KYC views (with kyc_type, notifications, geo/audit data) from
+# authapp/views/admin_kyc_views.py instead. Kept here only for history; do not
+# edit these thinking they're what the "kyc/" admin endpoints actually call.
 # ─────────────────────────────────────────────────────────────────────────────
 
 class AdminKYCListView(APIView):
@@ -560,7 +568,11 @@ class AdminActivityLogView(APIView):
 # ─────────────────────────────────────────────────────────────────────────────
 
 class AdminStaffListView(APIView):
-    permission_classes = [IsAdminUser]
+    # Staff/admin-account management is super-admin only: granting another
+    # staff account any capability flag (see AdminStaffDetailView.patch) is a
+    # privilege-escalation surface, so it can't be gated by can_edit_users
+    # (a support admin could otherwise edit their own AdminProfile flags).
+    permission_classes = [IsSuperAdmin]
 
     def get(self, request):
         profiles = AdminProfile.objects.select_related("user").filter(is_active=True)
@@ -578,6 +590,13 @@ class AdminStaffListView(APIView):
 
         if not email or not password:
             return Response({"error": "Email and password are required."}, status=400)
+
+        from authapp.serializers.user_serializers import validate_strong_password
+        try:
+            validate_strong_password(password)
+        except Exception as exc:
+            detail = exc.detail if hasattr(exc, "detail") else str(exc)
+            return Response({"error": str(detail)}, status=400)
 
         if User.objects.filter(email=email).exists():
             return Response({"error": "Email already registered."}, status=400)
@@ -606,7 +625,7 @@ class AdminStaffListView(APIView):
 
 
 class AdminStaffConfirmView(APIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsSuperAdmin]
 
     def post(self, request):
         email = request.data.get("email", "").strip()
@@ -647,7 +666,7 @@ class AdminStaffConfirmView(APIView):
 
 
 class AdminStaffDetailView(APIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsSuperAdmin]
 
     def get(self, request, pk):
         try:
@@ -673,14 +692,14 @@ class AdminStaffDetailView(APIView):
 
 
 class AdminStaffRequestDeleteView(APIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsSuperAdmin]
 
     def post(self, request, pk):
         return Response({"message": "Delete request submitted for review."})
 
 
 class AdminStaffDeleteView(APIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsSuperAdmin]
 
     def delete(self, request, pk):
         try:
@@ -729,27 +748,6 @@ class AdminDepositHistoryView(APIView):
 # Spin Wheel
 # ─────────────────────────────────────────────────────────────────────────────
 
-class AdminSpinWheelConfigView(APIView):
-    permission_classes = [IsAdminUser]
-
-    def get(self, request):
-        return Response({"message": "Spin wheel config endpoint — model not yet wired."})
-
-    def post(self, request):
-        ActivityLog.log(
-            action="spin_wheel_updated", actor=request.user,
-            ip_address=get_client_ip(request),
-        )
-        return Response({"message": "Spin wheel updated."})
-
-
-class AdminSpinPrizeImageView(APIView):
-    permission_classes = [IsAdminUser]
-
-    def post(self, request):
-        return Response({"message": "Image upload endpoint — storage not yet wired."})
-
-
 # ─────────────────────────────────────────────────────────────────────────────
 # Casino Visits
 # ─────────────────────────────────────────────────────────────────────────────
@@ -773,3 +771,25 @@ class AdminCasinoVisitDeleteView(APIView):
 
     def delete(self, request, pk):
         return Response({"message": f"Casino visit {pk} deleted."})
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Admin self — theme preference
+# ─────────────────────────────────────────────────────────────────────────────
+
+class AdminThemePreferenceView(APIView):
+    """Per-admin-account dark/light preference for the Back Office UI only."""
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        profile, _ = AdminProfile.objects.get_or_create(user=request.user)
+        return Response({"theme_preference": profile.theme_preference})
+
+    def patch(self, request):
+        theme = request.data.get("theme_preference")
+        if theme not in ("dark", "light"):
+            return Response({"error": "theme_preference must be 'dark' or 'light'"}, status=400)
+        profile, _ = AdminProfile.objects.get_or_create(user=request.user)
+        profile.theme_preference = theme
+        profile.save(update_fields=["theme_preference"])
+        return Response({"theme_preference": profile.theme_preference})

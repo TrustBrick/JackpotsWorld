@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
@@ -8,6 +9,7 @@ import {
 import Navbar from '../components/Navbar'
 import AuthModal from '../components/AuthModal'
 import { fetchEventDetail, requestEventTicket } from '../services/eventService'
+import { getFallbackImage } from '../utils/mediaFallback'
 
 function formatDate(iso) {
   if (!iso) return ''
@@ -22,6 +24,7 @@ function formatTime(hms) {
 }
 
 export default function EventDetails() {
+  const { t } = useTranslation()
   const { id } = useParams()
   const navigate = useNavigate()
   const [event, setEvent] = useState(null)
@@ -29,6 +32,7 @@ export default function EventDetails() {
   const [error, setError] = useState(false)
   const [authOpen, setAuthOpen] = useState(false)
   const [ticketState, setTicketState] = useState({ loading: false, message: '' })
+  const [imgFailed, setImgFailed] = useState(false)
 
   const isLoggedIn = !!localStorage.getItem('access')
 
@@ -61,7 +65,7 @@ export default function EventDetails() {
           onClick={() => navigate('/events')}
           className="flex items-center gap-1.5 text-sm font-body text-white/50 hover:text-gold transition-colors mb-6"
         >
-          <ArrowLeft size={15} /> Back to Events
+          <ArrowLeft size={15} /> {t('events.backToEvents')}
         </button>
 
         {loading ? (
@@ -69,16 +73,21 @@ export default function EventDetails() {
         ) : error || !event ? (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-24 text-white/40">
             <AlertTriangle size={40} className="mb-4 text-red-400/60" />
-            <p className="font-body mb-4">Couldn't load this event.</p>
+            <p className="font-body mb-4">{t('events.couldNotLoadEvent')}</p>
             <button onClick={load} className="btn-outline-gold rounded-full px-5 py-2 text-sm font-bold flex items-center gap-2">
-              <RefreshCw size={14} /> Retry
+              <RefreshCw size={14} /> {t('common.retry')}
             </button>
           </motion.div>
         ) : (
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="casino-card overflow-hidden">
             <div className="relative h-56 md:h-72 overflow-hidden">
-              {event.image ? (
-                <img src={event.image} alt={event.name} className="w-full h-full object-cover" />
+              {!imgFailed ? (
+                <img
+                  src={event.image || getFallbackImage({ id: event.id, country: event.country })}
+                  alt={event.name}
+                  className="w-full h-full object-cover"
+                  onError={() => setImgFailed(true)}
+                />
               ) : (
                 <div className="w-full h-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, var(--w365-card), var(--w365-bg-mid))' }}>
                   <ImageOff size={32} className="text-gold/30" />
@@ -112,13 +121,13 @@ export default function EventDetails() {
 
               {!isLoggedIn ? (
                 <div className="flex flex-col md:flex-row items-center justify-between gap-4 px-5 py-4 rounded-xl" style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.2)' }}>
-                  <p className="text-white/60 text-sm font-body text-center md:text-left">Sign in to get your ticket for this event.</p>
+                  <p className="text-white/60 text-sm font-body text-center md:text-left">{t('events.signInToGetTicketEvent')}</p>
                   <div className="flex gap-2 shrink-0">
                     <button onClick={() => setAuthOpen(true)} className="btn-outline-gold flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase">
-                      <LogIn size={13} /> Sign In
+                      <LogIn size={13} /> {t('common.signIn')}
                     </button>
                     <button onClick={() => setAuthOpen(true)} className="btn-gold flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase">
-                      <UserPlus size={13} /> Sign Up
+                      <UserPlus size={13} /> {t('common.signUp')}
                     </button>
                   </div>
                 </div>
@@ -128,7 +137,7 @@ export default function EventDetails() {
                   disabled={ticketState.loading}
                   className="btn-gold w-full rounded-full py-3 text-sm font-bold tracking-widest uppercase disabled:opacity-60"
                 >
-                  {ticketState.loading ? 'Processing…' : 'Get Ticket'}
+                  {ticketState.loading ? t('common.processing') : t('common.getTicket')}
                 </button>
               )}
               {ticketState.message && (

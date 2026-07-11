@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Plane, Globe, Hash, Calendar, ChevronDown } from "lucide-react";
 import { C } from "../../constants";
 import { authFetch, API, fmtD } from "../../helpers";
 import { Card, Spinner } from "../../components/SharedUI";
 
-const VIP_NAMES = [
-  "VIP", "VIP Bronze", "Silver", "Gold",
-  "Jackpot I", "Jackpot II", "Jackpot III", "Jackpot Platinum", "Jackpot Diamond"
+const VIP_I18N_KEYS = [
+  "vip.vip", "vip.vipBronze", "vip.silver", "vip.gold",
+  "vip.jackpot1", "vip.jackpot2", "vip.jackpot3", "vip.jackpotPlatinum", "vip.jackpotDiamond"
 ];
 const VIP_COLORS = [
   "#9CA3AF", "#34D399", "#60A5FA", "#A78BFA",
@@ -16,6 +17,7 @@ const VIP_COLORS = [
 const PAGE_SIZE = 10;
 
 function CasinoDropdown({ value, onChange, options }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const ref = React.useRef(null);
 
@@ -28,7 +30,7 @@ function CasinoDropdown({ value, onChange, options }) {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const selected = value === "all" ? "All Casinos" : value;
+  const selected = value === "all" ? t("travel.allCasinos") : value;
   const isFiltered = value !== "all";
 
   return (
@@ -72,7 +74,7 @@ function CasinoDropdown({ value, onChange, options }) {
           boxShadow: "0 8px 24px rgba(0,0,0,0.6)",
         }}>
           {["all", ...options].map(opt => {
-            const label    = opt === "all" ? "All Casinos" : opt;
+            const label    = opt === "all" ? t("travel.allCasinos") : opt;
             const isActive = value === opt;
             return (
               <div
@@ -111,6 +113,7 @@ function CasinoDropdown({ value, onChange, options }) {
 }
 
 export default function TravelTab({ profile }) {
+  const { t } = useTranslation();
   const [travels,    setTravels]    = useState([]);
   const [loading,    setLoading]    = useState(true);
   const [casino,     setCasino]     = useState("all");
@@ -151,9 +154,9 @@ export default function TravelTab({ profile }) {
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
         <Plane size={16} style={{ color: C.blue }} />
-        <div style={{ fontSize: 13, fontWeight: 700, color: "white" }}>Casino Travel History</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "white" }}>{t("travel.header")}</div>
         <div style={{ marginLeft: "auto", fontSize: 11, color: "rgba(255,255,255,0.35)" }}>
-          {filtered.length} visit{filtered.length !== 1 ? "s" : ""}
+          {t("travel.visits", { count: filtered.length })}
         </div>
       </div>
 
@@ -171,9 +174,9 @@ export default function TravelTab({ profile }) {
     {/* Summary pills */}
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", flex: 1 }}>
       {[
-        { label: "Visits",     value: filtered.length,                          color: C.blue   },
-        { label: "Bet Amount", value: `$${totalBetAmt.toLocaleString("en-IN")}`, color: C.gold   },
-        { label: "RP Earned",  value: `${totalRP.toLocaleString("en-IN")} RP`,  color: C.purple },
+        { label: t("travel.visitsLabel"),     value: filtered.length,                          color: C.blue   },
+        { label: t("travel.betAmount"), value: `$${totalBetAmt.toLocaleString("en-IN")}`, color: C.gold   },
+        { label: t("travel.rpEarned"),  value: `${totalRP.toLocaleString("en-IN")} RP`,  color: C.purple },
       ].map(({ label, value, color }) => (
         <div key={label} style={{
           padding: "8px 14px", borderRadius: 8,
@@ -197,22 +200,22 @@ export default function TravelTab({ profile }) {
         <Card style={{ textAlign: "center", padding: 56 }}>
           <Plane size={40} style={{ color: "rgba(255,255,255,0.08)", margin: "0 auto 12px", display: "block" }} />
           <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 13 }}>
-            {casino !== "all" ? `No visits recorded for ${casino}` : "No casino visits recorded yet"}
+            {casino !== "all" ? t("travel.noVisitsForCasino", { casino }) : t("travel.noVisitsYet")}
           </div>
           <div style={{ color: "rgba(255,255,255,0.15)", fontSize: 11, marginTop: 6 }}>
-            Your visits will appear here after your first session entry
+            {t("travel.visitsWillAppear")}
           </div>
         </Card>
       ) : (
         <>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {paginated.map(t => {
-              const vipIdx   = (t.vip_level_at_time || 1) - 1;
+            {paginated.map(tv => {
+              const vipIdx   = (tv.vip_level_at_time || 1) - 1;
               const vipColor = VIP_COLORS[vipIdx] || VIP_COLORS[0];
-              const vipName  = VIP_NAMES[vipIdx]  || "VIP";
+              const vipName  = t(VIP_I18N_KEYS[vipIdx] || "vip.vip");
 
               return (
-                <Card key={t.id} style={{ padding: 0, overflow: "hidden" }}>
+                <Card key={tv.id} style={{ padding: 0, overflow: "hidden" }}>
                   <div style={{ height: 2, background: `linear-gradient(90deg, ${vipColor}, transparent)` }} />
 
                   <div style={{ padding: "14px 16px" }}>
@@ -227,7 +230,7 @@ export default function TravelTab({ profile }) {
                           <Globe size={15} style={{ color: C.blue }} />
                         </div>
                         <div>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: "white" }}>{t.casino_name || "—"}</div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: "white" }}>{tv.casino_name || "—"}</div>
                           <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
                             <span style={{
                               fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 4,
@@ -235,13 +238,13 @@ export default function TravelTab({ profile }) {
                             }}>
                               {vipName}
                             </span>
-                            {t.level_up_triggered && (
+                            {tv.level_up_triggered && (
                               <span style={{
                                 fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 4,
                                 background: "rgba(52,211,153,0.12)", color: C.green,
                                 border: "1px solid rgba(52,211,153,0.3)",
                               }}>
-                                ⬆ Leveled Up
+                                {t("travel.leveledUp")}
                               </span>
                             )}
                           </div>
@@ -251,13 +254,13 @@ export default function TravelTab({ profile }) {
                       <div style={{ textAlign: "right" }}>
                         <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", display: "flex", alignItems: "center", gap: 4, justifyContent: "flex-end" }}>
                           <Calendar size={10} />
-                          {t.betting_date
-                            ? new Date(t.betting_date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
-                            : fmtD(t.created_at)}
+                          {tv.betting_date
+                            ? new Date(tv.betting_date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+                            : fmtD(tv.created_at)}
                         </div>
-                        {t.slip_number && (
+                        {tv.slip_number && (
                           <div style={{ fontSize: 10, color: "rgba(255,255,255,0.2)", marginTop: 2, display: "flex", alignItems: "center", gap: 3, justifyContent: "flex-end" }}>
-                            <Hash size={9} /> {t.slip_number}
+                            <Hash size={9} /> {tv.slip_number}
                           </div>
                         )}
                       </div>
@@ -269,10 +272,10 @@ export default function TravelTab({ profile }) {
                       paddingTop: 12, borderTop: "1px solid rgba(255,255,255,0.06)",
                     }}>
                       {[
-                        { label: "Total Bets",  value: (t.total_bets || 0).toLocaleString("en-IN"),                          color: "rgba(255,255,255,0.55)" },
-                        { label: "Bet Amount",  value: `$${Number(t.total_bet_amount     || 0).toLocaleString("en-IN")}`,     color: C.gold   },
-                        { label: "RP Earned",   value: `+${Number(t.rolling_points_added || 0).toLocaleString("en-IN")} RP`, color: C.purple },
-                        { label: "Total RP",    value: `${Number(t.rolling_points_total  || 0).toLocaleString("en-IN")} RP`,  color: "rgba(255,255,255,0.55)" },
+                        { label: t("travel.totalBets"),  value: (tv.total_bets || 0).toLocaleString("en-IN"),                          color: "rgba(255,255,255,0.55)" },
+                        { label: t("travel.betAmount"),  value: `$${Number(tv.total_bet_amount     || 0).toLocaleString("en-IN")}`,     color: C.gold   },
+                        { label: t("travel.rpEarned"),   value: `+${Number(tv.rolling_points_added || 0).toLocaleString("en-IN")} RP`, color: C.purple },
+                        { label: t("travel.totalRp"),    value: `${Number(tv.rolling_points_total  || 0).toLocaleString("en-IN")} RP`,  color: "rgba(255,255,255,0.55)" },
                       ].map(({ label, value, color }) => (
                         <div key={label}>
                           <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>
@@ -283,9 +286,9 @@ export default function TravelTab({ profile }) {
                       ))}
                     </div>
 
-                    {t.note && (
+                    {tv.note && (
                       <div style={{ marginTop: 10, fontSize: 11, color: "rgba(255,255,255,0.3)", fontStyle: "italic" }}>
-                        {t.note}
+                        {tv.note}
                       </div>
                     )}
                   </div>
@@ -303,7 +306,7 @@ export default function TravelTab({ profile }) {
               fontSize: 12, color: "rgba(255,255,255,0.35)",
             }}>
               <span>
-                {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}
+                {t("tables.showingRange", { start: (page - 1) * PAGE_SIZE + 1, end: Math.min(page * PAGE_SIZE, filtered.length), total: filtered.length })}
               </span>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <button
@@ -315,8 +318,8 @@ export default function TravelTab({ profile }) {
                     color: page === 1 ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.55)",
                     cursor: page === 1 ? "not-allowed" : "pointer",
                   }}
-                >← Prev</button>
-                <span style={{ padding: "0 6px" }}>{page} / {totalPages}</span>
+                >{t("tables.prev")}</button>
+                <span style={{ padding: "0 6px" }}>{t("tables.pageOf", { page, total: totalPages })}</span>
                 <button
                   onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                   disabled={page >= totalPages}
@@ -326,7 +329,7 @@ export default function TravelTab({ profile }) {
                     color: page >= totalPages ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.55)",
                     cursor: page >= totalPages ? "not-allowed" : "pointer",
                   }}
-                >Next →</button>
+                >{t("tables.next")}</button>
               </div>
             </div>
           )}

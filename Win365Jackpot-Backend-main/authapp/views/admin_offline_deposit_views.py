@@ -102,10 +102,22 @@ TRANSFER_TYPES      = {"TAC"}   # Casino A ▼  →  Casino B ▲
 # ─── Helpers ─────────────────────────────────────────────────────────────────
 
 def _is_admin(user) -> bool:
-    return user.is_authenticated and user.is_staff
+    """
+    All views in this file move real money, so staff must also hold the
+    finance capability (AdminProfile.can_manage_finance) — superusers
+    always pass via HasFinanceAccess's own bypass.
+    """
+    from authapp.permissions.admin_role_permissions import _has_capability
+    return user.is_authenticated and user.is_staff and _has_capability(user, "can_manage_finance")
 
 
 def _get_or_create_wallet(user, wallet_type: str) -> WalletAccount:
+    """
+    Must be called inside a @transaction.atomic block (every caller in this
+    file is). Locks the row after get_or_create so concurrent credit/debit
+    requests against the same user's wallet serialize instead of losing an
+    update.
+    """
     acct, _ = WalletAccount.objects.get_or_create(
         user=user,
         wallet_type=wallet_type,
@@ -114,7 +126,7 @@ def _get_or_create_wallet(user, wallet_type: str) -> WalletAccount:
             "balance": Decimal("0"),
         },
     )
-    return acct
+    return WalletAccount.objects.select_for_update().get(pk=acct.pk)
 
 
 def _credit_main(user, wallet_type, amount, txn_type, note, actor) -> float:
@@ -183,6 +195,7 @@ def _write_rp_txn(user, amount: Decimal, txn_type: str, note: str, actor) -> flo
             "balance": Decimal("0"),
         },
     )
+    acct = WalletAccount.objects.select_for_update().get(pk=acct.pk)
     before = acct.balance
     acct.balance += amount
     acct.last_reason = txn_type

@@ -8,25 +8,33 @@ import {
 import { motion } from "framer-motion";
 import { Card, Spinner } from "../components/SharedUI";
 import { adminFetch, API, fmt, fmtN } from "../helpers";
-import { C, VIP_COLOR } from "../constants";
+import { VIP_COLOR } from "../constants";
+import { useAdminTheme } from "../context/AdminThemeContext";
 
 /* ─── DESIGN TOKENS ──────────────────────────────────────────── */
-const T = {
-  surface:     "#161b27",
-  surfaceHigh: "#1c2333",
-  border:      "rgba(255,255,255,0.07)",
-  borderHover: "rgba(255,255,255,0.13)",
-  text:        "#e8ecf0",
-  textMuted:   "rgba(232,236,240,0.45)",
-  textDim:     "rgba(232,236,240,0.22)",
-  green:  "#1db96a", greenMuted:  "rgba(29,185,106,0.12)",
-  red:    "#e5534b", redMuted:    "rgba(229,83,75,0.12)",
-  blue:   "#388bfd", blueMuted:   "rgba(56,139,253,0.12)",
-  amber:  "#d29922", amberMuted:  "rgba(210,153,34,0.12)",
-  purple: "#8957e5", purpleMuted: "rgba(137,87,229,0.12)",
-  teal:   "#2ea8a8", tealMuted:   "rgba(46,168,168,0.12)",
-  orange: "#db6d28", orangeMuted: "rgba(219,109,40,0.12)",
-};
+// This tab uses its own accent palette (T) layered on top of the shared
+// admin theme tokens (C) — neutrals (surface/border/text/muted/dim) are
+// derived from C so they flip correctly between dark/light, while the
+// semantic accent colors (green/red/blue/amber/purple/teal/orange) stay
+// fixed, same as VIP_COLOR / WALLET_CFG accents elsewhere in the admin panel.
+function buildT(C) {
+  return {
+    surface:     C.surface,
+    surfaceHigh: C.hoverBg,
+    border:      C.border,
+    borderHover: C.border2,
+    text:        C.text,
+    textMuted:   C.sub,
+    textDim:     C.dim,
+    green:  "#1db96a", greenMuted:  "rgba(29,185,106,0.12)",
+    red:    "#e5534b", redMuted:    "rgba(229,83,75,0.12)",
+    blue:   "#388bfd", blueMuted:   "rgba(56,139,253,0.12)",
+    amber:  "#d29922", amberMuted:  "rgba(210,153,34,0.12)",
+    purple: "#8957e5", purpleMuted: "rgba(137,87,229,0.12)",
+    teal:   "#2ea8a8", tealMuted:   "rgba(46,168,168,0.12)",
+    orange: "#db6d28", orangeMuted: "rgba(219,109,40,0.12)",
+  };
+}
 
 /* ─── VIP CONFIG ──────────────────────────────────────────────── */
 const VIP_META = [
@@ -55,7 +63,7 @@ const pill = (color, text) => (
   }}>{text}</span>
 );
 
-const sectionLabel = (text) => (
+const sectionLabel = (text, T) => (
   <div style={{
     fontSize: 10, fontWeight: 700, color: T.textDim,
     textTransform: "uppercase", letterSpacing: "0.09em",
@@ -65,6 +73,8 @@ const sectionLabel = (text) => (
 
 /* ─── STAT CARD ───────────────────────────────────────────────── */
 function StatCard({ label, value, sub, icon: Icon, color, format = "number" }) {
+  const { C } = useAdminTheme();
+  const T = buildT(C);
   const display = format === "currency" ? fmt(value) : fmtN(value);
   return (
     <motion.div
@@ -100,6 +110,8 @@ function StatCard({ label, value, sub, icon: Icon, color, format = "number" }) {
 
 /* ─── SECTION WRAPPER ─────────────────────────────────────────── */
 function Section({ title, icon: Icon, children, style = {} }) {
+  const { C } = useAdminTheme();
+  const T = buildT(C);
   return (
     <div style={{
       background: T.surface, borderRadius: 8,
@@ -120,6 +132,8 @@ function Section({ title, icon: Icon, children, style = {} }) {
 
 /* ─── FINANCE ROW ─────────────────────────────────────────────── */
 function FinRow({ label, value, color, icon: Icon, format = "currency" }) {
+  const { C } = useAdminTheme();
+  const T = buildT(C);
   return (
     <div style={{
       display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -147,6 +161,8 @@ function FinRow({ label, value, color, icon: Icon, format = "currency" }) {
    MAIN COMPONENT
 ═══════════════════════════════════════════════════════════════ */
 export default function AdminOverviewTab({ onToast }) {
+  const { C } = useAdminTheme();
+  const T = buildT(C);
   const [stats,      setStats]      = useState(null);
   const [loading,    setLoading]    = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -230,7 +246,7 @@ export default function AdminOverviewTab({ onToast }) {
       </div>
 
       {/* ── ROW 1: USER STATS ────────────────────────────────────── */}
-      {sectionLabel("User Accounts")}
+      {sectionLabel("User Accounts", T)}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 10 }}>
         <StatCard label="Total Users"     value={users.total}        icon={Users}     color={T.blue}   />
         <StatCard label="Active Now"      value={users.active_now}   icon={Activity}  color={T.green}  sub="within 1hr" />
@@ -319,7 +335,7 @@ export default function AdminOverviewTab({ onToast }) {
           ))}
 
           <div style={{ marginTop: 16 }}>
-            {sectionLabel("Quick Stats")}
+            {sectionLabel("Quick Stats", T)}
             {[
               { label: "Unique Casinos",    value: fmtN(casinos.unique_casinos),  color: T.teal   },
               { label: "Total Casino Visits", value: fmtN(casinos.total_visits),  color: T.blue   },
@@ -363,7 +379,7 @@ export default function AdminOverviewTab({ onToast }) {
                       </span>
                     </div>
                   </div>
-                  <div style={{ height: 4, borderRadius: 2, background: "rgba(255,255,255,0.05)", overflow: "hidden" }}>
+                  <div style={{ height: 4, borderRadius: 2, background: C.hoverBg, overflow: "hidden" }}>
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${pct}%` }}

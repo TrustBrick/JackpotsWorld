@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { RefreshCw } from "lucide-react";
 
 // ── Constants & Helpers ──────────────────────────────────────────────────────
 import { C, VIP_COLOR, TABS } from "./constants";
 import { authFetch, API } from "./helpers";
+import { revokeSession } from "../../services/authRevoke";
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
 import { Toast, UidBadge, LoadingScreen, ErrorScreen } from "./components/SharedUI";
 
 // ── Sidebar — also imports the breakpoint hook + width constants ───────────────
-import Sidebar, { useBreakpoint, SIDEBAR_WIDTH, RAIL_WIDTH } from "./components/Sidebar";
+import Sidebar, { useBreakpoint, SIDEBAR_WIDTH, RAIL_WIDTH, TAB_I18N_KEY } from "./components/Sidebar";
 
 // ── Tab Pages ─────────────────────────────────────────────────────────────────
 import OverviewTab       from "./tabs/Validations/OverviewTab";
@@ -25,6 +27,10 @@ import RewardsTab        from "./tabs/Validations/RewardsTab";
 import NotificationsTab  from "./tabs/Validations/NotificationsTab";
 import ReferralTab       from "./tabs/Validations/ReferralTab";
 import ProfileTab        from "./tabs/Validations/ProfileTab";
+import SupportTab        from "./tabs/Validations/SupportTab";
+import ResponsibleGamblingTab from "./tabs/Validations/ResponsibleGamblingTab";
+import SpinWheelModal     from "./SpinWheelModal";
+import ChatBot            from "../ChatBot";
 
 // ═════════════════════════════════════════════════════════════════════════════
 // BannedScreen
@@ -97,7 +103,8 @@ function BannedScreen({ message, supportEmail, onLogout }) {
 // Dashboard
 // ═════════════════════════════════════════════════════════════════════════════
 export default function Dashboard() {
- 
+  const { t } = useTranslation();
+
   const navigate = useNavigate();
   const bp       = useBreakpoint(); // ← reactive breakpoint
 
@@ -110,6 +117,7 @@ export default function Dashboard() {
   const [bannedMessage,      setBannedMessage]      = useState(null);
   const [bannedSupportEmail, setBannedSupportEmail] = useState(null);
   const [notifCount,         setNotifCount]         = useState(0);
+  const [showSpin,           setShowSpin]           = useState(false);
 
   // ── Compute responsive left margin ────────────────────────────────────────
   // desktop  → full sidebar width
@@ -178,11 +186,31 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [checked, fetchNotifCount]);
 
+  // Daily Login Spin Wheel — show once per calendar day, only if the user
+  // still has spins left this month. The "already shown today" flag is a
+  // pure UX nicety (don't show it in an admin's face every tab switch);
+  // the real spins-remaining cap is enforced server-side regardless.
+  useEffect(() => {
+    if (!checked) return;
+    const today = new Date().toISOString().slice(0, 10);
+    if (localStorage.getItem("spin_last_shown") === today) return;
+    authFetch(`${API}/api/spin/status/`)
+      .then(r => r?.json())
+      .then(d => {
+        if (d?.spins_remaining > 0) {
+          setShowSpin(true);
+          localStorage.setItem("spin_last_shown", today);
+        }
+      })
+      .catch(() => {});
+  }, [checked]);
+
   if (!checked) return null;
 
   const showToast = (msg, ok = true) => setToast({ msg, ok });
 
-  const logout = () => {
+  const logout = async () => {
+  await revokeSession("access", "refresh");
   ["access", "refresh", "user"].forEach(k => localStorage.removeItem(k));
   navigate("/");
 };
@@ -262,7 +290,10 @@ export default function Dashboard() {
     </div>
   ) : (
     <div style={{ fontSize: 18, fontWeight: 900, color: "white" }}>
-      {TABS.find(t => t.id === tab)?.label}
+      {(() => {
+        const found = TABS.find(x => x.id === tab);
+        return found ? (TAB_I18N_KEY[found.id] ? t(TAB_I18N_KEY[found.id]) : found.label) : "";
+      })()}
     </div>
   )}
 
@@ -303,6 +334,8 @@ export default function Dashboard() {
             {tab === "notifications" && <NotificationsTab onToast={showToast} onUnreadChange={setNotifCount} />}
             {tab === "referral"      && <ReferralTab      profile={profile} />}
             {tab === "profile"       && <ProfileTab       profile={profile} onToast={showToast} onRefresh={fetchDashboard} />}
+            {tab === "support"                && <SupportTab              onToast={showToast} />}
+            {tab === "responsible_gambling"    && <ResponsibleGamblingTab  onToast={showToast} />}
           </motion.div>
         </AnimatePresence>
       </main>
@@ -311,6 +344,12 @@ export default function Dashboard() {
       <AnimatePresence>
         {toast && <Toast msg={toast.msg} ok={toast.ok} onDone={() => setToast(null)} />}
       </AnimatePresence>
+
+      {/* Daily Login Spin Wheel */}
+      {showSpin && <SpinWheelModal onClose={() => setShowSpin(false)} />}
+
+      {/* AI Live Chat — opened via the Live Support tab's "Live Chat" card */}
+      <ChatBot />
     </div>
   );
 }

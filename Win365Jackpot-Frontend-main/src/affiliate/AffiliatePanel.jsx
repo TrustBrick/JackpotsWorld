@@ -1,16 +1,24 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  Key, Eye, EyeOff, AlertCircle, LogOut, Users, Wallet,
-  TrendingUp, CheckCircle2, Search, ChevronLeft, ChevronRight,
+  Key, Eye, EyeOff, AlertCircle, RefreshCw,
+  LayoutGrid, Megaphone, Percent, Users, HelpCircle, Activity, Bell, User, ShieldCheck,
 } from "lucide-react";
-import { API, affiliateFetch, fmt, fmtD } from "./helpers";
-
-const C = {
-  bg: "#06080E", surface: "rgba(255,255,255,0.03)", border: "rgba(255,255,255,0.07)",
-  gold: "#D4AF37", green: "#34D399", red: "#F87171", blue: "#60A5FA",
-};
+import { API, affiliateFetch } from "./helpers";
+import { revokeSession } from "../services/authRevoke";
+import AffiliateSidebar, { SIDEBAR_WIDTH, useBreakpoint } from "./AffiliateSidebar";
+import OverviewTab from "./tabs/OverviewTab";
+import CampaignsTab from "./tabs/CampaignsTab";
+import CommissionTab from "./tabs/CommissionTab";
+import ReferredUsersTab from "./tabs/ReferredUsersTab";
+import ActivityTab from "./tabs/ActivityTab";
+import NotificationsTab from "./tabs/NotificationsTab";
+import ProfileTab from "./tabs/ProfileTab";
+import KycTab from "./tabs/KycTab";
+import FaqTab from "./tabs/FaqTab";
+import ChatBot from "../components/ChatBot";
+import { C } from "../admin/constants";
 
 function Card({ children, style = {} }) {
   return (
@@ -112,158 +120,90 @@ function AffiliateLoginScreen({ onSuccess }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Dashboard
+// Dashboard — sidebar layout (Overview / Campaigns / Commission / Referred
+// Players / Activity / Notifications / Profile / FAQ), mirroring the user
+// dashboard's Sidebar.jsx pattern (same logo, same nav-item style).
 // ─────────────────────────────────────────────────────────────────────────────
 
-const PAGE_SIZE = 20;
+const TABS = [
+  { id: "overview", label: "Overview", icon: LayoutGrid, Component: OverviewTab },
+  { id: "campaigns", label: "Campaigns", icon: Megaphone, Component: CampaignsTab },
+  { id: "commission", label: "Commission", icon: Percent, Component: CommissionTab },
+  { id: "referred", label: "Referred Players", icon: Users, Component: ReferredUsersTab },
+  { id: "activity", label: "Activity", icon: Activity, Component: ActivityTab },
+  { id: "notifications", label: "Notifications", icon: Bell, Component: NotificationsTab },
+  { id: "kyc", label: "KYC Verification", icon: ShieldCheck, Component: KycTab },
+  { id: "profile", label: "Profile", icon: User, Component: ProfileTab },
+  { id: "faq", label: "FAQ", icon: HelpCircle, Component: FaqTab },
+];
 
 function AffiliateDashboard({ affiliateUser, onLogout }) {
-  const [stats, setStats] = useState(null);
-  const [referrals, setReferrals] = useState([]);
-  const [count, setCount] = useState(0);
-  const [page, setPage] = useState(1);
-  const [q, setQ] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [loading, setLoading] = useState(true);
+  const bp = useBreakpoint();
+  const [tab, setTab] = useState("overview");
+  const [unread, setUnread] = useState(0);
+  const [toast, setToast] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const active = TABS.find(t => t.id === tab) || TABS[0];
+  const Active = active.Component;
+  const mainMarginLeft = bp === "desktop" ? SIDEBAR_WIDTH : 0;
 
-  const loadDashboard = useCallback(async () => {
-    const res = await affiliateFetch(`${API}/api/affiliate/dashboard/`);
-    if (res?.ok) setStats(await res.json());
-  }, []);
+  const showToast = (msg, ok = true) => setToast({ msg, ok });
+  const refresh = () => setRefreshKey(k => k + 1);
 
-  const loadReferrals = useCallback(async () => {
-    setLoading(true);
-    const params = new URLSearchParams({ page, q, status: statusFilter });
-    const res = await affiliateFetch(`${API}/api/affiliate/referrals/?${params}`);
-    if (res?.ok) {
-      const json = await res.json();
-      setReferrals(json.results || []);
-      setCount(json.count || 0);
-    }
-    setLoading(false);
-  }, [page, q, statusFilter]);
-
-  useEffect(() => { loadDashboard(); }, [loadDashboard]);
-  useEffect(() => { loadReferrals(); }, [loadReferrals]);
-
-  const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Space Grotesk', sans-serif", padding: "0 0 60px" }}>
-      <div style={{ borderBottom: `1px solid ${C.border}`, padding: "18px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div>
-          <div style={{ fontSize: 18, fontWeight: 900, color: C.gold }}>JACKPOTS WORLD</div>
-          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", letterSpacing: "0.3em", textTransform: "uppercase" }}>Affiliate Portal</div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>{affiliateUser?.name || affiliateUser?.email}</div>
-          <button onClick={onLogout} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 8, background: "rgba(248,113,113,0.1)", border: `1px solid ${C.red}30`, color: C.red, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-            <LogOut size={13} /> Logout
+    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Space Grotesk', sans-serif", display: "flex" }}>
+      <AffiliateSidebar
+        C={C}
+        affiliateUser={affiliateUser}
+        activeTab={tab}
+        onTabChange={setTab}
+        onLogout={onLogout}
+        unread={unread}
+        tabs={TABS}
+      />
+
+      <main style={{
+        flex: 1, marginLeft: mainMarginLeft, padding: bp === "mobile" ? "64px 16px 24px" : 26,
+        transition: "margin-left 0.25s ease",
+        minHeight: "100vh", maxWidth: "100vw", boxSizing: "border-box",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 22 }}>
+          <div style={{ fontSize: 18, fontWeight: 900, color: "white" }}>{active.label}</div>
+          <button
+            onClick={refresh}
+            style={{
+              width: 32, height: 32, borderRadius: 8,
+              background: C.surface, border: `1px solid ${C.border}`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: "pointer", color: "rgba(255,255,255,0.4)",
+            }}
+          >
+            <RefreshCw size={13} />
           </button>
         </div>
-      </div>
 
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px" }}>
-        {/* Stat cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14, marginBottom: 24 }}>
-          {[
-            { label: "Total Referred", value: stats?.stats?.total_referred ?? "—", icon: Users, color: C.blue },
-            { label: "Active Referrals", value: stats?.stats?.active_referred ?? "—", icon: CheckCircle2, color: C.green },
-            { label: "Commission Earned", value: stats ? fmt(stats.stats.commission_earned) : "—", icon: TrendingUp, color: C.gold },
-            { label: "Commission Pending", value: stats ? fmt(stats.stats.commission_pending) : "—", icon: Wallet, color: "#FB923C" },
-            { label: "Commission Paid", value: stats ? fmt(stats.stats.commission_paid) : "—", icon: Wallet, color: C.green },
-          ].map(s => (
-            <Card key={s.label}>
-              <div style={{ width: 32, height: 32, borderRadius: 8, background: `${s.color}18`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
-                <s.icon size={14} style={{ color: s.color }} />
-              </div>
-              <div style={{ fontSize: 18, fontWeight: 900, color: "white", fontFamily: "monospace" }}>{s.value}</div>
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 2 }}>{s.label}</div>
-            </Card>
-          ))}
+        <Active key={refreshKey} onToast={showToast} onUnreadChange={setUnread} onRefresh={refresh} />
+      </main>
+
+      {toast && (
+        <div style={{
+          position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", zIndex: 300,
+          padding: "10px 18px", borderRadius: 10, fontSize: 13, fontWeight: 700,
+          background: toast.ok ? `${C.green}18` : `${C.red}18`,
+          border: `1px solid ${toast.ok ? C.green : C.red}40`,
+          color: toast.ok ? C.green : C.red,
+        }}>
+          {toast.msg}
         </div>
+      )}
 
-        {stats?.affiliate_profile && (
-          <Card style={{ marginBottom: 20, background: `${C.gold}06`, border: `1px solid ${C.gold}25` }}>
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)" }}>
-              Your commission rate: <b style={{ color: C.gold }}>{stats.affiliate_profile.commission_rate}%</b> of every referred player's cash deposit.
-            </div>
-          </Card>
-        )}
-
-        {/* Search + filter */}
-        <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
-          <div style={{ position: "relative", flex: 1, minWidth: 220 }}>
-            <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.3)" }} />
-            <input
-              value={q}
-              onChange={e => { setQ(e.target.value); setPage(1); }}
-              placeholder="Search by name, email or UID…"
-              style={{ width: "100%", padding: "9px 12px 9px 34px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: `1px solid ${C.border}`, color: "white", fontSize: 13, outline: "none", boxSizing: "border-box" }}
-            />
-          </div>
-          <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-            style={{ padding: "9px 12px", borderRadius: 8, background: "rgba(12,14,22,0.95)", border: `1px solid ${C.border}`, color: "white", fontSize: 13, outline: "none" }}>
-            <option value="">All Statuses</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-        </div>
-
-        {/* Referrals table */}
-        <Card style={{ padding: 0, overflow: "hidden" }}>
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-              <thead>
-                <tr style={{ background: "rgba(255,255,255,0.02)" }}>
-                  {["User", "Joined", "Status", "Earned", "Pending", "Paid"].map(h => (
-                    <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontSize: 10, color: "rgba(255,255,255,0.3)", fontWeight: 700, textTransform: "uppercase", borderBottom: `1px solid ${C.border}` }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr><td colSpan={6} style={{ padding: 28, textAlign: "center", color: "rgba(255,255,255,0.2)" }}>Loading…</td></tr>
-                ) : referrals.length === 0 ? (
-                  <tr><td colSpan={6} style={{ padding: 28, textAlign: "center", color: "rgba(255,255,255,0.2)" }}>No referrals yet.</td></tr>
-                ) : referrals.map(r => (
-                  <tr key={r.id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                    <td style={{ padding: "11px 14px" }}>
-                      <div style={{ fontWeight: 700, color: "white" }}>{r.name || r.email?.split("@")[0]}</div>
-                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>{r.email} · {r.user_uid}</div>
-                    </td>
-                    <td style={{ padding: "11px 14px", color: "rgba(255,255,255,0.5)" }}>{fmtD(r.date_joined)}</td>
-                    <td style={{ padding: "11px 14px" }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 20, background: r.is_active ? `${C.green}15` : "rgba(255,255,255,0.05)", color: r.is_active ? C.green : "rgba(255,255,255,0.4)" }}>
-                        {r.is_active ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-                    <td style={{ padding: "11px 14px", fontFamily: "monospace", color: C.gold, fontWeight: 700 }}>{fmt(r.commission_earned)}</td>
-                    <td style={{ padding: "11px 14px", fontFamily: "monospace", color: "#FB923C" }}>{fmt(r.commission_pending)}</td>
-                    <td style={{ padding: "11px 14px", fontFamily: "monospace", color: C.green }}>{fmt(r.commission_paid)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {totalPages > 1 && (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderTop: `1px solid ${C.border}` }}>
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>Page {page} of {totalPages} · {count} total</div>
-              <div style={{ display: "flex", gap: 6 }}>
-                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}
-                  style={{ width: 28, height: 28, borderRadius: 7, background: C.surface, border: `1px solid ${C.border}`, color: page <= 1 ? "rgba(255,255,255,0.15)" : "white", cursor: page <= 1 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <ChevronLeft size={14} />
-                </button>
-                <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}
-                  style={{ width: 28, height: 28, borderRadius: 7, background: C.surface, border: `1px solid ${C.border}`, color: page >= totalPages ? "rgba(255,255,255,0.15)" : "white", cursor: page >= totalPages ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <ChevronRight size={14} />
-                </button>
-              </div>
-            </div>
-          )}
-        </Card>
-      </div>
+      <ChatBot />
     </div>
   );
 }
@@ -278,14 +218,28 @@ export default function AffiliatePanel() {
   const [affiliateUser, setAffiliateUser] = useState(null);
 
   useEffect(() => {
-    try {
-      const user = JSON.parse(localStorage.getItem("affiliate_user") || "null");
-      const token = localStorage.getItem("affiliate_token");
-      if (user && token) { setAuthed(true); setAffiliateUser(user); }
-    } catch {}
+    const init = async () => {
+      try {
+        const user = JSON.parse(localStorage.getItem("affiliate_user") || "null");
+        const token = localStorage.getItem("affiliate_token");
+        if (!user || !token) return;
+
+        // Re-validate against the backend rather than trusting the
+        // client-supplied localStorage flag alone before showing the panel.
+        const r = await affiliateFetch(`${API}/api/affiliate/dashboard/`);
+        if (r && r.ok) {
+          setAuthed(true);
+          setAffiliateUser(user);
+        } else {
+          ["affiliate_token", "affiliate_refresh", "affiliate_user"].forEach(k => localStorage.removeItem(k));
+        }
+      } catch {}
+    };
+    init();
   }, []);
 
-  const logout = () => {
+  const logout = async () => {
+    await revokeSession("affiliate_token", "affiliate_refresh");
     ["affiliate_token", "affiliate_refresh", "affiliate_user"].forEach(k => localStorage.removeItem(k));
     navigate("/");
   };

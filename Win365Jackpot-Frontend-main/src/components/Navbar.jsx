@@ -1,12 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from 'react-scroll'
+import { useTranslation } from 'react-i18next'
 import {
   Menu, X, Gift, UserPlus, LogOut,
   ChevronDown, User, Crown, Wallet,
 } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import AuthModal from './AuthModal'
+import ChatBot from './ChatBot'
+
+// Maps each navLinks entry's stable `label` to its i18next key.
+const NAV_I18N_KEY = {
+  Home: 'nav.home',
+  'VIP Levels': 'nav.vipLevels',
+  Affiliates: 'nav.affiliates',
+  Poker: 'nav.poker',
+  Contacts: 'nav.contacts',
+  'Why Us': 'nav.whyUs',
+  Register: 'nav.register',
+  Gifts: 'nav.gifts',
+}
 
 // ─── Nav link config ──────────────────────────────────────────────────────────
 // type: 'scroll'  -> existing homepage sections (react-scroll on "/", falls
@@ -14,12 +28,12 @@ import AuthModal from './AuthModal'
 //       'route'   -> dedicated pages, navigated via React Router
 //       'contact' -> always scrolls to the homepage Contact section, from
 //                     any page (never opens a separate page)
+// Events / Destinations / Promotions were removed from here — their content
+// now lives inline on the home page beside the Packages section, reachable
+// via "View All" links instead of top-level nav entries.
 const navLinks = [
   { label: 'Home',         type: 'scroll',  to: 'hero'     },
   { label: 'VIP Levels',   type: 'scroll',  to: 'vip'      },
-  { label: 'Events',       type: 'route',   path: '/events'     },
-  { label: 'Destinations', type: 'scroll',  to: 'packages' },
-  { label: 'Promotions',   type: 'route',   path: '/promotions' },
   { label: 'Affiliates',   type: 'route',   path: '/affiliates' },
   { label: 'Poker',        type: 'route',   path: '/poker'      },
   { label: 'Contacts',     type: 'contact', to: 'contact'  },
@@ -148,6 +162,8 @@ function UserDropdown({ user, onLogout, onRequireAuth }) {
 
 // ─── Nav label (shared between the "Gifts" pill and plain text links) ────────
 function NavLabel({ link }) {
+  const { t } = useTranslation()
+  const label = NAV_I18N_KEY[link.label] ? t(NAV_I18N_KEY[link.label]) : link.label
   if (link.isGift) {
     return (
       <motion.span
@@ -162,7 +178,7 @@ function NavLabel({ link }) {
       >
         <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse shrink-0" style={{ boxShadow: '0 0 6px #D4AF37' }} />
         <Gift size={13} strokeWidth={2} className="shrink-0" />
-        Gifts
+        {label}
         <motion.span
           className="absolute inset-0 rounded-full"
           animate={{ opacity: [0, 0.15, 0] }}
@@ -174,12 +190,14 @@ function NavLabel({ link }) {
   }
   return (
     <span className="nav-link whitespace-nowrap text-[13px] lg:text-[14px] tracking-wide">
-      {link.label}
+      {label}
     </span>
   )
 }
 
 function NavLabelMobile({ link }) {
+  const { t } = useTranslation()
+  const label = NAV_I18N_KEY[link.label] ? t(NAV_I18N_KEY[link.label]) : link.label
   if (link.isGift) {
     return (
       <span
@@ -190,7 +208,7 @@ function NavLabelMobile({ link }) {
           color:      '#D4AF37',
         }}
       >
-        <Gift size={13} />Gifts 🎁
+        <Gift size={13} />{label} 🎁
       </span>
     )
   }
@@ -199,13 +217,14 @@ function NavLabelMobile({ link }) {
       className="nav-link block py-2.5 text-base border-b"
       style={{ borderColor: 'rgba(212,175,55,0.08)' }}
     >
-      {link.label}
+      {label}
     </span>
   )
 }
 
 // ─── Main Navbar ──────────────────────────────────────────────────────────────
 export default function Navbar() {
+  const { t }        = useTranslation()
   const [scrolled,   setScrolled]   = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [modalOpen,  setModalOpen]  = useState(false)
@@ -297,8 +316,8 @@ export default function Navbar() {
         transition={{ duration: 0.7, ease: 'easeOut' }}
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
           scrolled
-            ? 'backdrop-blur-md border-b border-gold/20 py-3'
-            : 'bg-transparent py-5'
+            ? 'backdrop-blur-md border-b border-gold/20 py-2'
+            : 'bg-transparent py-3'
         }`}
         style={scrolled ? { background: 'rgba(var(--w365-bg-rgb),0.95)' } : undefined}
       >
@@ -308,23 +327,23 @@ export default function Navbar() {
 {isHome ? (
   <Link to="hero" smooth duration={500} className="cursor-pointer flex items-center gap-2">
     <img
-      src='images/jackpotsworld_watermark.png'
-      className="w-5 h-5 object-contain"
+      src='/images/jackpotsworld_watermark.png'
+      className="w-7 h-7 object-contain"
     />
     <div className="flex flex-col leading-none">
-      <span className="font-bold text-md md:text-2xl gold-text font-black tracking-wider">Jackpots</span>
-      <span className="font-body text-xs md:text-xs tracking-[0.4em] text-gold/70 uppercase">World</span>
+      <span className="font-bold text-lg md:text-2xl gold-text font-black tracking-wider">Jackpots</span>
+      <span className="font-body text-xs md:text-xs tracking-[0.4em] uppercase" style={{ color: 'var(--w365-text)' }}>World</span>
     </div>
   </Link>
 ) : (
   <span onClick={() => navigate('/')} className="cursor-pointer flex items-center gap-2">
     <img
-      src='images/jackpotsworld_watermark.png'
-      className="w-5 h-5 object-contain"
+      src='/images/jackpotsworld_watermark.png'
+      className="w-7 h-7 object-contain"
     />
     <div className="flex flex-col leading-none">
-      <span className="font-bold text-md md:text-2xl gold-text font-black tracking-wider">Jackpots</span>
-      <span className="font-body text-xs md:text-xs tracking-[0.4em] text-gold/70 uppercase">World</span>
+      <span className="font-bold text-lg md:text-2xl gold-text font-black tracking-wider">Jackpots</span>
+      <span className="font-body text-xs md:text-xs tracking-[0.4em] uppercase" style={{ color: 'var(--w365-text)' }}>World</span>
     </div>
   </span>
 )}
@@ -373,7 +392,7 @@ export default function Navbar() {
                 className="btn-gold h-10 flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-bold tracking-widest uppercase whitespace-nowrap leading-none"
               >
                 <UserPlus size={13} />
-                Sign In / Sign Up
+                {t('nav.signInSignUp')}
               </motion.button>
             )}
           </div>
@@ -403,7 +422,7 @@ export default function Navbar() {
                   whiteSpace:    'nowrap',
                 }}
               >
-                <UserPlus size={11} /> Sign In / Sign Up
+                <UserPlus size={11} /> {t('nav.signInSignUp')}
               </button>
             )}
 
@@ -483,6 +502,8 @@ export default function Navbar() {
           )}
         </AnimatePresence>
       </motion.nav>
+
+      <ChatBot />
     </>
   )
 }

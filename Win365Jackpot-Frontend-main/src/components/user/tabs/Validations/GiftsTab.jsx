@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { C } from "../../constants";
 import {
   FiGift, FiLock, FiClock, FiCheckCircle, FiStar,
@@ -21,10 +22,10 @@ import {
 import { authFetch, API } from "../../helpers";
 import { Spinner } from "../../components/SharedUI";
 
-const VIP_NAMES = [
-  "VIP", "VIP Bronze", "Silver", "Gold",
-  "Jackpot I", "Jackpot II", "Jackpot III",
-  "Jackpot Platinum", "Jackpot Diamond",
+const VIP_I18N_KEYS = [
+  "vip.vip", "vip.vipBronze", "vip.silver", "vip.gold",
+  "vip.jackpot1", "vip.jackpot2", "vip.jackpot3",
+  "vip.jackpotPlatinum", "vip.jackpotDiamond",
 ];
 
 const VIP_COLORS = [
@@ -34,28 +35,28 @@ const VIP_COLORS = [
 
 // ─── Gift type config ─────────────────────────────────────────────────────────
 const GIFT_CONFIG = {
-  manual:      { Icon: FiGift,      color: "#60A5FA", bg: "rgba(96,165,250,0.08)",  border: "rgba(96,165,250,0.2)",  label: "Manual Gift",   tag: "bg" },
-  bonus:       { Icon: FiDollarSign,color: "#34D399", bg: "rgba(52,211,153,0.08)",  border: "rgba(52,211,153,0.2)",  label: "Bonus",         tag: "bonus" },
-  cashback:    { Icon: RiRefundLine, color: "#FB923C", bg: "rgba(251,146,60,0.08)",  border: "rgba(251,146,60,0.2)",  label: "Cashback",      tag: "cb" },
-  referral:    { Icon: RiGroupLine,  color: "#A78BFA", bg: "rgba(167,139,250,0.08)", border: "rgba(167,139,250,0.2)", label: "Referral",      tag: "ref" },
-  vip_upgrade: { Icon: RiVipCrownLine,color:"#D4AF37",bg: "rgba(212,175,55,0.08)",  border: "rgba(212,175,55,0.2)",  label: "VIP Upgrade",   tag: "vip" },
-  tournament:  { Icon: RiTrophyLine, color: "#FB923C", bg: "rgba(251,146,60,0.08)",  border: "rgba(251,146,60,0.2)",  label: "Tournament",    tag: "trn" },
-  welcome:     { Icon: FiStar,       color: "#34D399", bg: "rgba(52,211,153,0.08)",  border: "rgba(52,211,153,0.2)",  label: "Welcome",       tag: "new" },
+  manual:      { Icon: FiGift,      color: "#60A5FA", bg: "rgba(96,165,250,0.08)",  border: "rgba(96,165,250,0.2)",  labelKey: "gifts.manualGift",   tag: "bg" },
+  bonus:       { Icon: FiDollarSign,color: "#34D399", bg: "rgba(52,211,153,0.08)",  border: "rgba(52,211,153,0.2)",  labelKey: "gifts.bonusType",         tag: "bonus" },
+  cashback:    { Icon: RiRefundLine, color: "#FB923C", bg: "rgba(251,146,60,0.08)",  border: "rgba(251,146,60,0.2)",  labelKey: "gifts.cashback",      tag: "cb" },
+  referral:    { Icon: RiGroupLine,  color: "#A78BFA", bg: "rgba(167,139,250,0.08)", border: "rgba(167,139,250,0.2)", labelKey: "gifts.referralType",      tag: "ref" },
+  vip_upgrade: { Icon: RiVipCrownLine,color:"#D4AF37",bg: "rgba(212,175,55,0.08)",  border: "rgba(212,175,55,0.2)",  labelKey: "gifts.vipUpgrade",   tag: "vip" },
+  tournament:  { Icon: RiTrophyLine, color: "#FB923C", bg: "rgba(251,146,60,0.08)",  border: "rgba(251,146,60,0.2)",  labelKey: "gifts.tournament",    tag: "trn" },
+  welcome:     { Icon: FiStar,       color: "#34D399", bg: "rgba(52,211,153,0.08)",  border: "rgba(52,211,153,0.2)",  labelKey: "gifts.welcome",       tag: "new" },
 };
 
 // ─── Wallet config ────────────────────────────────────────────────────────────
 const WALLET_CONFIG = [
-  { type: "cash",           label: "Cash Balance",    sublabel: "Withdrawable",    Icon: FiDollarSign,  color: "#34D399" },
-  { type: "non_cash",       label: "Non-Cash",        sublabel: "Bonus Credits",   Icon: RiCoinLine,    color: "#A78BFA" },
-  { type: "otp",            label: "OTP Credits",     sublabel: "Verification",    Icon: RiTicketLine,  color: "#2DD4BF" },
-  { type: "rolling_points", label: "Rolling Points",  sublabel: "Reward Points",   Icon: RiTrophyLine,  color: "#D4AF37" },
+  { type: "cash",           labelKey: "gifts.cashBalance",       sublabelKey: "gifts.withdrawable",   Icon: FiDollarSign,  color: "#34D399" },
+  { type: "non_cash",       labelKey: "gifts.nonCashLabel",      sublabelKey: "gifts.bonusCredits",   Icon: RiCoinLine,    color: "#A78BFA" },
+  { type: "otp",            labelKey: "gifts.otpCreditsLabel",   sublabelKey: "gifts.verification",   Icon: RiTicketLine,  color: "#2DD4BF" },
+  { type: "rolling_points", labelKey: "gifts.rollingPointsLabel",sublabelKey: "gifts.rewardPoints",   Icon: RiTrophyLine,  color: "#D4AF37" },
 ];
 
 const FILTERS = [
-  { id: "all",     label: "All Gifts",   icon: FiPackage },
-  { id: "pending", label: "Claimable",   icon: FiGift },
-  { id: "claimed", label: "Claimed",     icon: FiCheckCircle },
-  { id: "expired", label: "Expired",     icon: FiClock },
+  { id: "all",     labelKey: "gifts.allGifts",   icon: FiPackage },
+  { id: "pending", labelKey: "gifts.claimable",   icon: FiGift },
+  { id: "claimed", labelKey: "gifts.claimed",     icon: FiCheckCircle },
+  { id: "expired", labelKey: "gifts.expired",     icon: FiClock },
 ];
 
 const fmtDate = (str) =>
@@ -68,6 +69,7 @@ const fmtAmount = (n) =>
 
 // ─── Countdown ────────────────────────────────────────────────────────────────
 function CountdownTimer({ expiresAt, onExpired }) {
+  const { t } = useTranslation();
   const calc = useCallback(() => {
     const diff = new Date(expiresAt) - new Date();
     if (diff <= 0) return null;
@@ -87,7 +89,7 @@ function CountdownTimer({ expiresAt, onExpired }) {
 
   if (!remaining) return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: "#F87171" }}>
-      <FiAlertCircle size={10} /> Expired
+      <FiAlertCircle size={10} /> {t("gifts.expired")}
     </span>
   );
 
@@ -103,7 +105,8 @@ function CountdownTimer({ expiresAt, onExpired }) {
 }
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
-function WalletCard({ type, label, sublabel, Icon, color, balance }) {
+function WalletCard({ type, labelKey, sublabelKey, Icon, color, balance }) {
+  const { t } = useTranslation();
   return (
     <div style={{
       background: "rgba(255,255,255,0.03)",
@@ -129,8 +132,8 @@ function WalletCard({ type, label, sublabel, Icon, color, balance }) {
             <Icon size={13} color={color} />
           </div>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.6)", letterSpacing: "0.03em" }}>{label}</div>
-            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>{sublabel}</div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.6)", letterSpacing: "0.03em" }}>{t(labelKey)}</div>
+            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>{t(sublabelKey)}</div>
           </div>
         </div>
       </div>
@@ -147,8 +150,10 @@ function WalletCard({ type, label, sublabel, Icon, color, balance }) {
 
 // ─── Gift Card ────────────────────────────────────────────────────────────────
 function GiftCard({ g, onClaim, claiming }) {
+  const { t } = useTranslation();
   const cfg = GIFT_CONFIG[g.gift_type] || GIFT_CONFIG.manual;
-  const { Icon, color, bg, border, label } = cfg;
+  const { Icon, color, bg, border, labelKey } = cfg;
+  const label = t(labelKey);
   const isClaimed   = g.status === "claimed";
   const isExpired   = g.status === "expired" || g.is_expired;
   const isClaimable = g.is_claimable;
@@ -193,13 +198,13 @@ function GiftCard({ g, onClaim, claiming }) {
           {isClaimed && (
             <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 20, background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.2)", flexShrink: 0 }}>
               <FiCheckCircle size={10} color="#34D399" />
-              <span style={{ fontSize: 10, color: "#34D399", fontWeight: 600 }}>Claimed</span>
+              <span style={{ fontSize: 10, color: "#34D399", fontWeight: 600 }}>{t("gifts.claimed")}</span>
             </div>
           )}
           {isExpired && (
             <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 20, background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.2)", flexShrink: 0 }}>
               <FiLock size={10} color="#F87171" />
-              <span style={{ fontSize: 10, color: "#F87171", fontWeight: 600 }}>Expired</span>
+              <span style={{ fontSize: 10, color: "#F87171", fontWeight: 600 }}>{t("gifts.expired")}</span>
             </div>
           )}
         </div>
@@ -224,11 +229,11 @@ function GiftCard({ g, onClaim, claiming }) {
           )}
           {isExpired && g.expires_at && (
             <span style={{ fontSize: 11, color: "rgba(248,113,113,0.6)", display: "flex", alignItems: "center", gap: 4 }}>
-              <FiClock size={10} /> Expired {fmtDate(g.expires_at)}
+              <FiClock size={10} /> {t("gifts.expired")} {fmtDate(g.expires_at)}
             </span>
           )}
           {g.created_at && (
-            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.2)" }}>Issued {fmtDate(g.created_at)}</span>
+            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.2)" }}>{t("gifts.issued", { date: fmtDate(g.created_at) })}</span>
           )}
         </div>
 
@@ -236,11 +241,11 @@ function GiftCard({ g, onClaim, claiming }) {
         <div style={{ marginTop: "auto" }}>
           {isClaimed ? (
             <div style={{ width: "100%", padding: "9px 0", borderRadius: 7, background: "rgba(52,211,153,0.06)", border: "1px solid rgba(52,211,153,0.15)", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12, color: "#34D399", fontWeight: 600 }}>
-              <FiCheckCircle size={12} /> Redeemed
+              <FiCheckCircle size={12} /> {t("gifts.redeemed")}
             </div>
           ) : isExpired ? (
             <div style={{ width: "100%", padding: "9px 0", borderRadius: 7, background: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.15)", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12, color: "#F87171", fontWeight: 600 }}>
-              <FiLock size={12} /> Unavailable
+              <FiLock size={12} /> {t("gifts.unavailable")}
             </div>
           ) : (
             <button
@@ -270,11 +275,11 @@ function GiftCard({ g, onClaim, claiming }) {
               onMouseLeave={e => { if (isClaimable) e.currentTarget.style.opacity = "1"; }}
             >
               {isLoading ? (
-                <><span style={{ width: 12, height: 12, border: "2px solid rgba(0,0,0,0.3)", borderTopColor: "#000", borderRadius: "50%", display: "inline-block", animation: "spin 0.6s linear infinite" }} /> Claiming…</>
+                <><span style={{ width: 12, height: 12, border: "2px solid rgba(0,0,0,0.3)", borderTopColor: "#000", borderRadius: "50%", display: "inline-block", animation: "spin 0.6s linear infinite" }} /> {t("gifts.claiming")}</>
               ) : isClaimable ? (
-                <><FiGift size={12} /> Claim Gift</>
+                <><FiGift size={12} /> {t("gifts.claimGift")}</>
               ) : (
-                <><FiLock size={12} /> Not Available</>
+                <><FiLock size={12} /> {t("gifts.notAvailable")}</>
               )}
             </button>
           )}
@@ -286,6 +291,7 @@ function GiftCard({ g, onClaim, claiming }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function GiftsTab({ onToast, onRefresh }) {
+  const { t } = useTranslation();
   const [gifts,     setGifts]     = useState([]);
   const [wallets,   setWallets]   = useState([]);
   const [levelData, setLevelData] = useState(null);
@@ -325,7 +331,7 @@ export default function GiftsTab({ onToast, onRefresh }) {
         const wr = await authFetch(`${API}/api/wallet/balances/`);
         if (wr.ok) { const wj = await wr.json(); setWallets(wj.accounts || wj || []); }
       }
-    } catch { onToast?.("Claim failed", false); }
+    } catch { onToast?.(t("bonus.claimFailed"), false); }
     setClaiming(null);
   };
 
@@ -345,7 +351,7 @@ export default function GiftsTab({ onToast, onRefresh }) {
   const ptsToNext = levelData?.points_to_next || 0;
   const progress  = levelData?.progress_pct || 0;
   const vipColor  = VIP_COLORS[(curLvl || 1) - 1] || VIP_COLORS[0];
-  const vipName   = VIP_NAMES[(curLvl || 1) - 1] || "VIP";
+  const vipName   = t(VIP_I18N_KEYS[(curLvl || 1) - 1] || "vip.vip");
 
   return (
     <div style={{ fontFamily: "'Space Grotesk', sans-serif", color: "rgba(255,255,255,0.85)", minHeight: "100vh" }}>
@@ -361,10 +367,10 @@ export default function GiftsTab({ onToast, onRefresh }) {
             <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(212,175,55,0.12)", border: "1px solid rgba(212,175,55,0.25)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <FiGift size={15} color="#D4AF37" />
             </div>
-            <h1 style={{ fontSize: 18, fontWeight: 700, color: "white", margin: 0, fontFamily: "'Space Grotesk', sans-serif", letterSpacing: "-0.02em" }}>Gifts & Rewards</h1>
+            <h1 style={{ fontSize: 18, fontWeight: 700, color: "white", margin: 0, fontFamily: "'Space Grotesk', sans-serif", letterSpacing: "-0.02em" }}>{t("gifts.giftsAndRewards")}</h1>
           </div>
           <p style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", margin: 0, fontFamily: "'Space Grotesk', sans-serif" }}>
-            Manage and claim your available rewards
+            {t("gifts.manageAndClaim")}
           </p>
         </div>
         <button
@@ -373,16 +379,16 @@ export default function GiftsTab({ onToast, onRefresh }) {
           style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.55)", fontSize: 12, cursor: refreshing ? "not-allowed" : "pointer", fontFamily: "'Space Grotesk', sans-serif" }}
         >
           <FiRefreshCw size={13} style={{ animation: refreshing ? "spin 0.7s linear infinite" : "none" }} />
-          Refresh
+          {t("common.refresh")}
         </button>
       </div>
 
       {/* ── SUMMARY STRIP ── */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 20 }}>
         {[
-          { label: "Claimable", value: claimableCount, icon: <FiGift size={13} />, color: "#D4AF37", sub: "Available now" },
-          { label: "Claimed",   value: claimedCount,   icon: <FiCheckCircle size={13} />, color: "#34D399", sub: "Redeemed" },
-          { label: "Pending Value", value: `$${Number(totalValue).toLocaleString("en-IN")}`, icon: <FiDollarSign size={13} />, color: "#60A5FA", sub: "Claimable total" },
+          { label: t("gifts.claimable"), value: claimableCount, icon: <FiGift size={13} />, color: "#D4AF37", sub: t("gifts.availableNow") },
+          { label: t("gifts.claimed"),   value: claimedCount,   icon: <FiCheckCircle size={13} />, color: "#34D399", sub: t("gifts.redeemed") },
+          { label: t("gifts.pendingValue"), value: `$${Number(totalValue).toLocaleString("en-IN")}`, icon: <FiDollarSign size={13} />, color: "#60A5FA", sub: t("gifts.claimable") },
         ].map(({ label, value, icon, color, sub }) => (
           <div key={label} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 8, padding: "12px 14px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6, color: "rgba(255,255,255,0.4)", fontSize: 11, fontFamily: "'Space Grotesk', sans-serif" }}>
@@ -398,11 +404,11 @@ export default function GiftsTab({ onToast, onRefresh }) {
       <section style={{ marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
           <div style={{ width: 3, height: 14, borderRadius: 2, background: "#D4AF37" }} />
-          <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.1em", fontFamily: "'Space Grotesk', sans-serif" }}>Wallet Balances</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.1em", fontFamily: "'Space Grotesk', sans-serif" }}>{t("dashboard.walletBalances")}</span>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
-          {WALLET_CONFIG.map(({ type, label, sublabel, Icon, color }) => (
-            <WalletCard key={type} type={type} label={label} sublabel={sublabel} Icon={Icon} color={color} balance={getBalance(type)} />
+          {WALLET_CONFIG.map(({ type, labelKey, sublabelKey, Icon, color }) => (
+            <WalletCard key={type} type={type} labelKey={labelKey} sublabelKey={sublabelKey} Icon={Icon} color={color} balance={getBalance(type)} />
           ))}
         </div>
       </section>
@@ -412,7 +418,7 @@ export default function GiftsTab({ onToast, onRefresh }) {
         <section style={{ marginBottom: 20 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
             <div style={{ width: 3, height: 14, borderRadius: 2, background: vipColor }} />
-            <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.1em", fontFamily: "'Space Grotesk', sans-serif" }}>VIP Status</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.1em", fontFamily: "'Space Grotesk', sans-serif" }}>{t("gifts.vipStatus")}</span>
           </div>
           <div style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${vipColor}22`, borderRadius: 10, padding: "16px 18px", position: "relative", overflow: "hidden" }}>
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, ${vipColor}80, transparent)` }} />
@@ -425,15 +431,15 @@ export default function GiftsTab({ onToast, onRefresh }) {
                 <div>
                   <div style={{ fontSize: 16, fontWeight: 800, color: vipColor, fontFamily: "'Space Grotesk', sans-serif" }}>{vipName}</div>
                   <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontFamily: "'Space Grotesk', sans-serif" }}>
-                    {pts.toLocaleString("en-IN")} pts accumulated
+                    {t("gifts.ptsAccumulated", { count: pts.toLocaleString("en-IN") })}
                   </div>
                 </div>
               </div>
               {nextPts && (
                 <div style={{ textAlign: "right" }}>
-                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: "'Space Grotesk', sans-serif" }}>Next level</div>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: "'Space Grotesk', sans-serif" }}>{t("gifts.nextLevel")}</div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "white", fontFamily: "'Space Grotesk', sans-serif" }}>{nextPts.toLocaleString("en-IN")}</div>
-                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", fontFamily: "'Space Grotesk', sans-serif" }}>{ptsToNext.toLocaleString("en-IN")} to go</div>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", fontFamily: "'Space Grotesk', sans-serif" }}>{t("gifts.toGo", { count: ptsToNext.toLocaleString("en-IN") })}</div>
                 </div>
               )}
             </div>
@@ -445,7 +451,7 @@ export default function GiftsTab({ onToast, onRefresh }) {
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "rgba(255,255,255,0.3)", fontFamily: "'Space Grotesk', sans-serif" }}>
               <span>Lv {curLvl} — {vipName}</span>
               <span style={{ color: vipColor, fontWeight: 600 }}>{progress.toFixed(1)}%</span>
-              {nextPts && <span>Lv {curLvl + 1} — {VIP_NAMES[curLvl] || `Level ${curLvl + 1}`}</span>}
+              {nextPts && <span>Lv {curLvl + 1} — {VIP_I18N_KEYS[curLvl] ? t(VIP_I18N_KEYS[curLvl]) : `Level ${curLvl + 1}`}</span>}
             </div>
           </div>
         </section>
@@ -457,13 +463,13 @@ export default function GiftsTab({ onToast, onRefresh }) {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <div style={{ width: 3, height: 14, borderRadius: 2, background: "#60A5FA" }} />
-            <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.1em", fontFamily: "'Space Grotesk', sans-serif" }}>Gift History</span>
-            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", fontFamily: "'Space Grotesk', sans-serif" }}>· {filtered.length} item{filtered.length !== 1 ? "s" : ""}</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.1em", fontFamily: "'Space Grotesk', sans-serif" }}>{t("gifts.giftHistory")}</span>
+            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", fontFamily: "'Space Grotesk', sans-serif" }}>· {t("gifts.itemsCount", { count: filtered.length })}</span>
           </div>
 
           {/* Filter tabs */}
           <div style={{ display: "flex", gap: 4, padding: "3px", background: "rgba(255,255,255,0.04)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.07)" }}>
-            {FILTERS.map(({ id, label, icon: Icon }) => {
+            {FILTERS.map(({ id, labelKey, icon: Icon }) => {
               const active = filter === id;
               return (
                 <button
@@ -482,7 +488,7 @@ export default function GiftsTab({ onToast, onRefresh }) {
                   }}
                 >
                   <Icon size={11} />
-                  {label}
+                  {t(labelKey)}
                   {id === "pending" && claimableCount > 0 && (
                     <span style={{ minWidth: 16, height: 16, borderRadius: 8, background: "#D4AF37", color: "#000", fontSize: 9, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "0 4px" }}>
                       {claimableCount}
@@ -504,8 +510,8 @@ export default function GiftsTab({ onToast, onRefresh }) {
             <div style={{ width: 48, height: 48, borderRadius: 12, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
               <FiPackage size={22} color="rgba(255,255,255,0.2)" />
             </div>
-            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", fontFamily: "'Space Grotesk', sans-serif" }}>No {filter === "all" ? "" : filter} gifts found</div>
-            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.2)", marginTop: 4, fontFamily: "'Space Grotesk', sans-serif" }}>Check back later for new rewards</div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", fontFamily: "'Space Grotesk', sans-serif" }}>{t("gifts.noGiftsFound", { filter: filter === "all" ? "" : filter })}</div>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.2)", marginTop: 4, fontFamily: "'Space Grotesk', sans-serif" }}>{t("gifts.checkBackLater")}</div>
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>

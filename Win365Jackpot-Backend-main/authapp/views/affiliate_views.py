@@ -15,6 +15,7 @@ User model, mirroring the AdminProfile / AdminLoginView pattern.
 from decimal import Decimal, InvalidOperation
 
 from django.db.models import Q, Sum
+from django.db.models.functions import TruncMonth
 from django.utils import timezone
 from rest_framework import permissions, status
 from rest_framework.response import Response
@@ -22,11 +23,15 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from authapp.models import User
-from authapp.models.affiliate_models import AffiliateProfile, ReferralCommission
+from authapp.models.affiliate_models import (
+    AffiliateProfile, ReferralCommission, AffiliateClickLog, AffiliateLoginLog,
+)
 from authapp.permissions.affiliate_permissions import IsAffiliate
 from authapp.permissions.super_admin_permissions import IsAdminOrSuperAdmin
+from authapp.utils.geolocation import resolve_geo_location
 from authapp.serializers.affiliate_serializers import (
     AffiliateProfileSerializer, ReferredUserSerializer, ReferralCommissionSerializer,
+    AffiliateClickLogSerializer, AffiliateLoginLogSerializer,
 )
 
 PAGE_SIZE = 20
@@ -65,11 +70,23 @@ class AffiliateLoginView(APIView):
         if not profile:
             return Response({"error": "This account is not registered as an affiliate."}, status=403)
         if not profile.is_active:
-            return Response({"error": "Your affiliate account has been deactivated."}, status=403)
+            # approved_by is only ever set once an admin has acted on this
+            # profile (see AdminGrantAffiliateView) — null means it's a fresh
+            # application still awaiting its first review, not a revocation.
+            if profile.approved_by is None:
+                return Response({"error": "Your affiliate application is pending review. We'll notify you once it's approved."}, status=403)
+            return Response({"error": "Your affiliate account has been deactivated. Contact support for details."}, status=403)
 
         user.last_login = timezone.now()
         user.last_login_ip = _get_client_ip(request)
         user.save(update_fields=["last_login", "last_login_ip"])
+        geo = resolve_geo_location(user.last_login_ip)
+        if geo:
+            user.last_login_city = geo.get("city", "")
+            user.last_login_region = geo.get("region", "")
+            user.last_login_country_name = geo.get("country_name", "")
+            user.save(update_fields=["last_login_city", "last_login_region", "last_login_country_name"])
+        AffiliateLoginLog.objects.create(affiliate=user, ip_address=user.last_login_ip)
 
         tokens = _get_tokens(user)
         return Response({
@@ -82,6 +99,35 @@ class AffiliateLoginView(APIView):
             "affiliate_profile": AffiliateProfileSerializer(profile).data,
             "tokens": tokens,
         })
+
+
+# ─── Referral link click tracking ───────────────────────────────────────────
+# Fired from the public landing page the moment a ?ref= link is visited
+# (see AuthModal.jsx), independent of whether the visitor ever signs up —
+# lets "Total Clicks" reflect real traffic, not just conversions.
+
+class AffiliateTrackClickView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        referral_code = (request.data.get("referral_code") or "").strip()
+        if not referral_code:
+            return Response({"error": "referral_code is required"}, status=400)
+
+        affiliate = User.objects.filter(referral_code=referral_code).first()
+        if not affiliate or not AffiliateProfile.objects.filter(user=affiliate, is_active=True).exists():
+            # Unknown/inactive referral code — silently no-op rather than
+            # error, since this is a best-effort background call the
+            # frontend fires on every landing-page visit.
+            return Response({"tracked": False}, status=200)
+
+        AffiliateClickLog.objects.create(
+            affiliate=affiliate,
+            ip_address=_get_client_ip(request),
+            user_agent=request.META.get("HTTP_USER_AGENT", "")[:255],
+            landing_path=(request.data.get("landing_path") or "")[:255],
+        )
+        return Response({"tracked": True}, status=201)
 
 
 # ─── Affiliate self-service application ─────────────────────────────────────
@@ -118,23 +164,100 @@ class AffiliateDashboardView(APIView):
     def get(self, request):
         profile = request.user.affiliate_profile
         referred_qs = User.objects.filter(referred_by=request.user)
+        commissions_qs = ReferralCommission.objects.filter(affiliate=request.user)
 
-        pending = ReferralCommission.objects.filter(affiliate=request.user, status="pending").aggregate(
-            total=Sum("amount")
-        )["total"] or Decimal("0")
-        paid = ReferralCommission.objects.filter(affiliate=request.user, status="paid").aggregate(
-            total=Sum("amount")
-        )["total"] or Decimal("0")
+        pending = commissions_qs.filter(status="pending").aggregate(total=Sum("amount"))["total"] or Decimal("0")
+        paid = commissions_qs.filter(status="paid").aggregate(total=Sum("amount"))["total"] or Decimal("0")
+        total_deposits = commissions_qs.aggregate(total=Sum("deposit_amount"))["total"] or Decimal("0")
+        qualified_players = commissions_qs.values("referred_user").distinct().count()
+        total_clicks = AffiliateClickLog.objects.filter(affiliate=request.user).count()
+
+        monthly = (
+            commissions_qs.annotate(month=TruncMonth("created_at"))
+            .values("month")
+            .annotate(total=Sum("amount"))
+            .order_by("-month")[:12]
+        )
 
         return Response({
             "affiliate_profile": AffiliateProfileSerializer(profile).data,
+            "referral_code": request.user.referral_code,
             "stats": {
+                "total_clicks": total_clicks,
                 "total_referred": referred_qs.count(),
                 "active_referred": referred_qs.filter(is_active=True).count(),
+                "total_qualified_players": qualified_players,
+                "total_deposits": float(total_deposits),
+                "qualified_deposits_count": commissions_qs.count(),
                 "commission_earned": float(pending + paid),
                 "commission_pending": float(pending),
                 "commission_paid": float(paid),
+                "available_balance": float(profile.total_pending),
             },
+            "monthly_earnings": [
+                {"month": m["month"].strftime("%Y-%m"), "total": float(m["total"])}
+                for m in monthly
+            ],
+        })
+
+
+class AffiliateCommissionsListView(APIView):
+    """GET /api/affiliate/commissions/?status=&page= — serves both Commission
+    History (no status filter) and Withdrawal History (status=paid) from the
+    same ReferralCommission table, since a "withdrawal" is simply a commission
+    that's been marked paid (see AdminMarkCommissionPaidView)."""
+    permission_classes = [IsAffiliate]
+
+    def get(self, request):
+        status_filter = request.GET.get("status", "").strip()
+        user_id = request.GET.get("user_id", "").strip()
+        page = max(1, int(request.GET.get("page", 1) or 1))
+
+        qs = ReferralCommission.objects.filter(affiliate=request.user).select_related("referred_user")
+        if status_filter in ("pending", "paid"):
+            qs = qs.filter(status=status_filter)
+        if user_id:
+            qs = qs.filter(referred_user_id=user_id)
+
+        count = qs.count()
+        start = (page - 1) * PAGE_SIZE
+        page_items = qs[start:start + PAGE_SIZE]
+
+        return Response({
+            "count": count,
+            "page": page,
+            "page_size": PAGE_SIZE,
+            "results": ReferralCommissionSerializer(page_items, many=True).data,
+        })
+
+
+class AffiliateClickLogListView(APIView):
+    permission_classes = [IsAffiliate]
+
+    def get(self, request):
+        page = max(1, int(request.GET.get("page", 1) or 1))
+        qs = AffiliateClickLog.objects.filter(affiliate=request.user)
+        count = qs.count()
+        start = (page - 1) * PAGE_SIZE
+        page_items = qs[start:start + PAGE_SIZE]
+        return Response({
+            "count": count, "page": page, "page_size": PAGE_SIZE,
+            "results": AffiliateClickLogSerializer(page_items, many=True).data,
+        })
+
+
+class AffiliateLoginHistoryListView(APIView):
+    permission_classes = [IsAffiliate]
+
+    def get(self, request):
+        page = max(1, int(request.GET.get("page", 1) or 1))
+        qs = AffiliateLoginLog.objects.filter(affiliate=request.user)
+        count = qs.count()
+        start = (page - 1) * PAGE_SIZE
+        page_items = qs[start:start + PAGE_SIZE]
+        return Response({
+            "count": count, "page": page, "page_size": PAGE_SIZE,
+            "results": AffiliateLoginLogSerializer(page_items, many=True).data,
         })
 
 
@@ -240,6 +363,15 @@ class AdminAffiliateListView(APIView):
 
     def get(self, request):
         profiles = AffiliateProfile.objects.select_related("user").order_by("-created_at")
+
+        status_filter = (request.GET.get("status") or "").strip().lower()
+        if status_filter == "pending":
+            profiles = profiles.filter(approved_by__isnull=True)
+        elif status_filter == "active":
+            profiles = profiles.filter(is_active=True, approved_by__isnull=False)
+        elif status_filter == "inactive":
+            profiles = profiles.filter(is_active=False, approved_by__isnull=False)
+
         results = [
             {
                 "user_id": p.user_id,

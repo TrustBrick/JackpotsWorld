@@ -12,11 +12,17 @@ class KYCSubmission(models.Model):
         ("rejected", "Rejected"),
     ]
 
+    KYC_TYPE_CHOICES = [
+        ("player",    "Player"),
+        ("affiliate", "Affiliate"),
+    ]
+
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="kyc",
     )
+    kyc_type = models.CharField(max_length=10, choices=KYC_TYPE_CHOICES, default="player", db_index=True)
     full_name        = models.CharField(max_length=150, blank=True)
     date_of_birth    = models.DateField(null=True, blank=True)
     document_type    = models.CharField(max_length=50, blank=True)

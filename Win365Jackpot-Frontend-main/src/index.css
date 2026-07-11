@@ -23,6 +23,25 @@ img, video, svg, picture { max-width: 100%; height: auto; }
   --w365-text-muted:  rgba(245,240,232,0.6);
   --w365-border:      rgba(212,175,55,0.3);
   --w365-bg-rgb:      10,0,5;
+  --w365-heading:     rgba(255,255,255,0.92);
+  --w365-surface-hi:  rgba(255,255,255,0.05);
+  --w365-watermark-opacity: 0.15;
+  --w365-text-rgb:    245,240,232;
+}
+
+/* ── Light theme overrides — same premium gold accent, ivory surfaces ───── */
+:root[data-theme="light"] {
+  --w365-bg:          #FBF7EF;
+  --w365-bg-mid:      #F3EBDA;
+  --w365-card:        #FFFDF8;
+  --w365-text:        #241505;
+  --w365-text-muted:  rgba(36,21,5,0.62);
+  --w365-border:      rgba(154,125,32,0.35);
+  --w365-bg-rgb:      251,247,239;
+  --w365-heading:     #1a0f02;
+  --w365-surface-hi:  rgba(154,125,32,0.06);
+  --w365-watermark-opacity: 0.06;
+  --w365-text-rgb:    36,21,5;
 }
 @layer base {
   * { scroll-behavior: smooth; }
@@ -220,7 +239,7 @@ img, video, svg, picture { max-width: 100%; height: auto; }
   font-family: 'Space Grotesk', sans-serif;
   font-size: 0.8rem;
   letter-spacing: 0.15em;
-  color: var(--w365-text-muted);
+  color: rgba(var(--w365-text-rgb), 0.88);
   transition: color 0.3s, text-shadow 0.3s;
 }
 .nav-link:hover {

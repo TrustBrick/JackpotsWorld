@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import {
   Gift, Wallet, Building2, Crown, ArrowDownLeft, ArrowUpRight,
   DollarSign, CreditCard, Zap, TrendingUp, ChevronRight, RefreshCw,
@@ -37,15 +38,15 @@ const T = {
 
 /* ─── VIP CONFIG ──────────────────────────────────────────────── */
 const VIP_LEVELS = [
-  { lvl: 1, label: "VIP",              min_pts: 0         },
-  { lvl: 2, label: "VIP Bronze",       min_pts: 5000      },
-  { lvl: 3, label: "Silver",           min_pts: 15000     },
-  { lvl: 4, label: "Gold",             min_pts: 30000     },
-  { lvl: 5, label: "Jackpot I",        min_pts: 75000     },
-  { lvl: 6, label: "Jackpot II",       min_pts: 150000    },
-  { lvl: 7, label: "Jackpot III",      min_pts: 350000    },
-  { lvl: 8, label: "Jackpot Platinum", min_pts: 750000    },
-  { lvl: 9, label: "Jackpot Diamond",  min_pts: 1500000   },
+  { lvl: 1, i18nKey: "vip.vip",              min_pts: 0         },
+  { lvl: 2, i18nKey: "vip.vipBronze",       min_pts: 5000      },
+  { lvl: 3, i18nKey: "vip.silver",           min_pts: 15000     },
+  { lvl: 4, i18nKey: "vip.gold",             min_pts: 30000     },
+  { lvl: 5, i18nKey: "vip.jackpot1",        min_pts: 75000     },
+  { lvl: 6, i18nKey: "vip.jackpot2",       min_pts: 150000    },
+  { lvl: 7, i18nKey: "vip.jackpot3",      min_pts: 350000    },
+  { lvl: 8, i18nKey: "vip.jackpotPlatinum", min_pts: 750000    },
+  { lvl: 9, i18nKey: "vip.jackpotDiamond",  min_pts: 1500000   },
 ];
 
 const LEVEL_COLORS = [
@@ -69,12 +70,12 @@ function getVipInfo(pts = 0) {
 /* ─── TX TYPE CONFIG ──────────────────────────────────────────── */
 const DEBIT_TYPES = new Set(["WAC", "TAC", "LAS"]);
 
-const TX_LABELS = {
-  DAC: "Casino Deposit", WAC: "Withdrawal", TAC: "Transfer", LAS: "Casino Loss",
-  WIN: "Winnings", LUB: "Level Bonus", WBA: "Weekly Bonus", MBA: "Monthly Bonus",
-  RMB: "Refund", GBE: "Encashment", CBG: "Cashback", CBGNC: "NC Cashback",
-  LUBNC: "NC Bonus", CBGOT: "OTP Cashback", LUBOT: "OTP Bonus",
-  ROP: "Rolling Points", MAN: "Manual",
+const TX_LABEL_KEYS = {
+  DAC: "dashboard.txDAC", WAC: "dashboard.txWAC", TAC: "dashboard.txTAC", LAS: "dashboard.txLAS",
+  WIN: "dashboard.txWIN", LUB: "dashboard.txLUB", WBA: "dashboard.txWBA", MBA: "dashboard.txMBA",
+  RMB: "dashboard.txRMB", GBE: "dashboard.txGBE", CBG: "dashboard.txCBG", CBGNC: "dashboard.txCBGNC",
+  LUBNC: "dashboard.txLUBNC", CBGOT: "dashboard.txCBGOT", LUBOT: "dashboard.txLUBOT",
+  ROP: "dashboard.txROP", MAN: "dashboard.txMAN",
 };
 
 /* ─── WALLET META ──────────────────────────────────────────────── */
@@ -83,10 +84,10 @@ const WALLET_ICONS = {
 };
 
 const WALLET_META = {
-  cash:           { label: "Cash Wallet",    abbr: "CASH", color: T.green,  desc: "Casino deposits & winnings" },
-  non_cash:       { label: "Non-Cash",       abbr: "NC",   color: T.blue,   desc: "Bonuses & rewards" },
-  otp:            { label: "OTP Credits",    abbr: "OTP",  color: T.purple, desc: "OTP promotional credits" },
-  rolling_points: { label: "Rolling Points", abbr: "RP",   color: T.amber,  desc: "Loyalty points" },
+  cash:           { labelKey: "walletMeta.cashLabel",    abbr: "CASH", color: T.green,  descKey: "walletMeta.cashDesc" },
+  non_cash:       { labelKey: "walletMeta.nonCashLabel", abbr: "NC",   color: T.blue,   descKey: "walletMeta.nonCashDesc" },
+  otp:            { labelKey: "walletMeta.otpLabel",     abbr: "OTP",  color: T.purple, descKey: "walletMeta.otpDesc" },
+  rolling_points: { labelKey: "walletMeta.rpLabel",      abbr: "RP",   color: T.amber,  descKey: "walletMeta.rpDesc" },
 };
 
 /* ─── SHARED STYLE HELPERS ─────────────────────────────────────── */
@@ -108,6 +109,7 @@ const sectionTitle = {
    MAIN COMPONENT  —  MOBILE-FIRST RESPONSIVE
 ═══════════════════════════════════════════════════════════════ */
 export default function OverviewTab({ profile, onTabChange, onToast }) {
+  const { t } = useTranslation();
   const [loading,    setLoading]    = useState(true);
   const [accounts,   setAccounts]   = useState([]);
   const [levelData,  setLevelData]  = useState(null);
@@ -144,7 +146,7 @@ export default function OverviewTab({ profile, onTabChange, onToast }) {
       }
     } catch (e) {
       console.error("Dashboard load error:", e);
-      onToast?.("Failed to refresh", "error");
+      onToast?.(t("dashboard.failedToRefresh"), "error");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -173,11 +175,11 @@ export default function OverviewTab({ profile, onTabChange, onToast }) {
       <div className="overview-topbar">
         <div style={{ minWidth: 0, flex: 1 }}>
           <div className="overview-greeting">
-            Hello, {profile?.name?.split(" ")[0] || profile?.email?.split("@")[0] || "Player"}
+            {t("dashboard.greeting", { name: profile?.name?.split(" ")[0] || profile?.email?.split("@")[0] || "Player" })}
           </div>
           <div className="overview-subgreeting">
             {new Date().toLocaleDateString("en-IN", { weekday: "long", month: "long", day: "numeric" })}
-            <span style={{ opacity: 0.5 }}> · UID: {profile?.user_uid || "—"}</span>
+            <span style={{ opacity: 0.5 }}> · {t("dashboard.uid", { uid: profile?.user_uid || "—" })}</span>
           </div>
         </div>
         <button
@@ -186,7 +188,7 @@ export default function OverviewTab({ profile, onTabChange, onToast }) {
           className="overview-refresh-btn"
         >
           <RefreshCw size={13} style={{ animation: refreshing ? "spin 1s linear infinite" : "none" }} />
-          <span>{refreshing ? "Refreshing…" : "Refresh"}</span>
+          <span>{refreshing ? t("dashboard.refreshing") : t("common.refresh")}</span>
         </button>
       </div>
 
@@ -200,14 +202,14 @@ export default function OverviewTab({ profile, onTabChange, onToast }) {
 
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="vip-info-row">
-              <span className="vip-label" style={{ color: T.text }}>{vip.current.label}</span>
-              
+              <span className="vip-label" style={{ color: T.text }}>{t(vip.current.i18nKey)}</span>
+
               {vip.next ? (
                 <span className="vip-next" style={{ color: T.textMuted }}>
-                  {(vip.next.min_pts - pts).toLocaleString("en-IN")} pts to {vip.next.label}
+                  {t("dashboard.ptsTo", { points: (vip.next.min_pts - pts).toLocaleString("en-IN"), level: t(vip.next.i18nKey) })}
                 </span>
               ) : (
-                <span style={pill(vip.color)}>MAX RANK</span>
+                <span style={pill(vip.color)}>{t("dashboard.maxRank")}</span>
               )}
             </div>
             <div style={{
@@ -223,7 +225,7 @@ export default function OverviewTab({ profile, onTabChange, onToast }) {
 
           <div className="vip-points">
             <div style={{ fontSize: 10, color: T.textMuted, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-              Rolling Points
+              {t("wallet.filterRollingPoints")}
             </div>
             <div style={{ fontSize: "clamp(18px, 4vw, 22px)", fontWeight: 700, color: T.text, marginTop: 2 }}>
               {pts.toLocaleString("en-IN")}
@@ -234,10 +236,11 @@ export default function OverviewTab({ profile, onTabChange, onToast }) {
 
       {/* ── WALLET CARDS ───────────────────────────────────────── */}
       <div style={{ marginTop: 20 }}>
-        <h3 style={sectionTitle}>Wallet Balances</h3>
+        <h3 style={sectionTitle}>{t("dashboard.walletBalances")}</h3>
         <div className="wallet-grid">
           {accounts.map(w => {
-            const meta = WALLET_META[w.wallet_type] || { label: w.wallet_type, abbr: "?", color: "#888", desc: "" };
+            const meta = WALLET_META[w.wallet_type] || { labelKey: null, abbr: "?", color: "#888", descKey: null };
+            const metaLabel = meta.labelKey ? t(meta.labelKey) : w.wallet_type;
             const Icon = WALLET_ICONS[w.wallet_type] || DollarSign;
             const isRP = w.wallet_type === "rolling_points";
             return (
@@ -258,7 +261,7 @@ export default function OverviewTab({ profile, onTabChange, onToast }) {
                   </div>
                   <span style={pill(meta.color)}>{meta.abbr}</span>
                 </div>
-                <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 4 }}>{meta.label}</div>
+                <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 4 }}>{metaLabel}</div>
                 <div style={{ fontSize: "clamp(18px, 4.5vw, 22px)", fontWeight: 700, color: T.text, wordBreak: "break-all" }}>
                   {isRP
                     ? `${Number(w.balance).toLocaleString("en-IN")} RP`
@@ -267,7 +270,7 @@ export default function OverviewTab({ profile, onTabChange, onToast }) {
                 </div>
                 <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${T.border}` }}>
                   <div style={{ fontSize: 10, color: T.textDim, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                    Total credited (lifetime)
+                    {t("dashboard.totalCreditedLifetime")}
                   </div>
                   <div style={{ fontSize: 12, fontWeight: 600, color: T.textMuted, marginTop: 2, wordBreak: "break-all" }}>
                     {isRP
@@ -289,7 +292,7 @@ export default function OverviewTab({ profile, onTabChange, onToast }) {
           <div className="panel-header">
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <Activity size={14} color={T.blue} />
-              <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>Recent Activity</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{t("dashboard.recentActivity")}</span>
             </div>
             <button
               onClick={() => onTabChange("wallet")}
@@ -299,7 +302,7 @@ export default function OverviewTab({ profile, onTabChange, onToast }) {
                 fontSize: 12, fontWeight: 600, color: T.blue, cursor: "pointer", padding: 4,
               }}
             >
-              View all <ChevronRight size={12} />
+              {t("dashboard.viewAll")} <ChevronRight size={12} />
             </button>
           </div>
 
@@ -307,14 +310,14 @@ export default function OverviewTab({ profile, onTabChange, onToast }) {
             {recentTx.length === 0 ? (
               <div style={{ padding: "32px 16px", textAlign: "center" }}>
                 <AlertCircle size={24} color={T.textDim} style={{ marginBottom: 8 }} />
-                <div style={{ fontSize: 12, color: T.textMuted }}>No transactions yet</div>
+                <div style={{ fontSize: 12, color: T.textMuted }}>{t("dashboard.noTransactionsYet")}</div>
               </div>
             ) : recentTx.map((tx, i) => {
               const txType = (tx.transaction_type || "").toUpperCase();
               const isDr   = DEBIT_TYPES.has(txType);
               const color  = isDr ? T.red : T.green;
               const wMeta  = WALLET_META[tx.wallet_type] || { abbr: tx.wallet_type, color: "#888" };
-              const label  = TX_LABELS[txType] || txType;
+              const label  = TX_LABEL_KEYS[txType] ? t(TX_LABEL_KEYS[txType]) : txType;
               const isRP   = tx.wallet_type === "rolling_points";
 
               return (
@@ -371,7 +374,7 @@ export default function OverviewTab({ profile, onTabChange, onToast }) {
           <div>
   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
     <BarChart2 size={14} color={T.amber} />
-    <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>Rolling Points Progress</span>
+    <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{t("dashboard.rollingPointsProgress")}</span>
   </div>
 
   {/* RP Progress only */}
@@ -383,7 +386,7 @@ export default function OverviewTab({ profile, onTabChange, onToast }) {
     return (
       <div key={w.wallet_type} style={{ marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
-          <span style={{ fontSize: 12, color: T.textMuted }}>Lifetime Rolling Points</span>
+          <span style={{ fontSize: 12, color: T.textMuted }}>{t("dashboard.lifetimeRollingPoints")}</span>
           <span style={{ fontSize: 13, fontWeight: 700, color: T.amber }}>
             {total.toLocaleString("en-IN")} RP
           </span>
@@ -398,8 +401,8 @@ export default function OverviewTab({ profile, onTabChange, onToast }) {
   {/* Weekly & Monthly Bonus — no progress bar, just display */}
   <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
     {[
-      { label: "Weekly Bonus",  key: "non_cash", icon: "📅" },
-      { label: "Monthly Bonus", key: "non_cash",  icon: "🗓️" },
+      { label: t("dashboard.weeklyBonus"),  key: "non_cash", icon: "📅" },
+      { label: t("dashboard.monthlyBonus"), key: "non_cash",  icon: "🗓️" },
     ].map(({ label, icon }) => (
       <div key={label} style={{
         display: "flex", justifyContent: "space-between", alignItems: "center",
@@ -421,14 +424,14 @@ export default function OverviewTab({ profile, onTabChange, onToast }) {
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
               <Shield size={14} color={T.purple} />
-              <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>Account Overview</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{t("wallet.accountOverview")}</span>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               {[
-                { icon: Gift,       label: "Total Bonuses Earned", value: fmt(profile?.total_bonus_earned || 0), color: T.purple },
-                { icon: Building2,  label: "Casinos Explored",     value: fmtN(profile?.casinos_visited  || 0),  color: T.blue   },
-                { icon: Users,      label: "Referral Network",     value: fmtN(profile?.referral_count   || 0),  color: T.teal   },
-                { icon: DollarSign, label: "Partner Earnings",     value: fmt(profile?.referral_earnings || 0),  color: T.green  },
+                { icon: Gift,       label: t("dashboard.totalBonusesEarned"), value: fmt(profile?.total_bonus_earned || 0), color: T.purple },
+                { icon: Building2,  label: t("dashboard.casinosExplored"),     value: fmtN(profile?.casinos_visited  || 0),  color: T.blue   },
+                { icon: Users,      label: t("dashboard.referralNetwork"),     value: fmtN(profile?.referral_count   || 0),  color: T.teal   },
+                { icon: DollarSign, label: t("dashboard.partnerEarnings"),     value: fmt(profile?.referral_earnings || 0),  color: T.green  },
               ].map(({ icon: Icon, label, value, color }) => (
                 <div
                   key={label}
@@ -454,7 +457,7 @@ export default function OverviewTab({ profile, onTabChange, onToast }) {
             paddingTop: 14, borderTop: `1px solid ${T.border}`,
           }}>
             <div style={{ flex: "1 1 120px" }}>
-              <div style={{ fontSize: 10, color: T.textDim, textTransform: "uppercase", letterSpacing: "0.06em" }}>Member since</div>
+              <div style={{ fontSize: 10, color: T.textDim, textTransform: "uppercase", letterSpacing: "0.06em" }}>{t("profile.memberSince")}</div>
               <div style={{ fontSize: 13, fontWeight: 600, color: T.text, marginTop: 2 }}>
                 {profile?.date_joined
                   ? new Date(profile.date_joined).toLocaleDateString("en-IN", { month: "short", year: "numeric" })
@@ -462,8 +465,8 @@ export default function OverviewTab({ profile, onTabChange, onToast }) {
               </div>
             </div>
             <div style={{ flex: "1 1 120px" }}>
-              <div style={{ fontSize: 10, color: T.textDim, textTransform: "uppercase", letterSpacing: "0.06em" }}>Status</div>
-              <span style={{ ...pill(T.green), marginTop: 4 }}>Active</span>
+              <div style={{ fontSize: 10, color: T.textDim, textTransform: "uppercase", letterSpacing: "0.06em" }}>{t("dashboard.status")}</div>
+              <span style={{ ...pill(T.green), marginTop: 4 }}>{t("dashboard.active")}</span>
             </div>
           </div>
         </div>

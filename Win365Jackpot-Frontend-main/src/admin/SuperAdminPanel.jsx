@@ -12,6 +12,8 @@ import {
   Eye, EyeOff, ArrowUpRight, ArrowDownLeft, Activity,
   CreditCard, User, Lock, Mail,
 } from "lucide-react";
+import { revokeSession } from "../services/authRevoke";
+import { AdminThemeProvider, useAdminTheme } from "./context/AdminThemeContext";
 
 // ─── API base ─────────────────────────────────────────────────────────────────
 const BASE = import.meta.env.VITE_API_URL || "";
@@ -211,6 +213,7 @@ function DataRow({ label, value, color, mono }) {
 // ─── Login ────────────────────────────────────────────────────────────────────
 function SuperAdminLogin({ onSuccess }) {
   useEffect(() => injectGlobalStyles(), []);
+  const { C } = useAdminTheme();
   const [email,   setEmail]   = useState("");
   const [pw,      setPw]      = useState("");
   const [showPw,  setShowPw]  = useState(false);
@@ -244,7 +247,7 @@ function SuperAdminLogin({ onSuccess }) {
   };
 
   return (
-    <div style={{ minHeight:"100vh", background:"#060810", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Space Grotesk',sans-serif", position:"relative", overflow:"hidden" }}>
+    <div style={{ minHeight:"100vh", background:C.bg, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Space Grotesk',sans-serif", position:"relative", overflow:"hidden" }}>
       {/* Background grid */}
       <div style={{ position:"absolute", inset:0, backgroundImage:"linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px)", backgroundSize:"48px 48px" }} />
       <div style={{ position:"absolute", top:"20%", left:"30%", width:400, height:400, borderRadius:"50%", background:"radial-gradient(circle,rgba(212,175,55,0.07) 0%,transparent 70%)", filter:"blur(40px)" }} />
@@ -255,30 +258,30 @@ function SuperAdminLogin({ onSuccess }) {
             <ShieldCheck size={24} color="#D4AF37" />
           </div>
           <div style={{ fontSize:11, fontWeight:700, color:"#D4AF37", textTransform:"uppercase", letterSpacing:"0.18em", marginBottom:8, fontFamily:"'Space Grotesk',sans-serif" }}>Super Admin</div>
-          <div style={{ fontSize:28, fontWeight:900, color:"white", fontFamily:"'Space Grotesk',sans-serif" }}>Control Panel</div>
-          <div style={{ fontSize:12, color:"rgba(255,255,255,0.3)", marginTop:8 }}>Superuser access only — all actions are logged</div>
+          <div style={{ fontSize:28, fontWeight:900, color:C.text, fontFamily:"'Space Grotesk',sans-serif" }}>Control Panel</div>
+          <div style={{ fontSize:12, color:C.muted, marginTop:8 }}>Superuser access only — all actions are logged</div>
         </div>
 
-        <div style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:16, padding:"30px 28px", backdropFilter:"blur(10px)" }}>
+        <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:16, padding:"30px 28px", backdropFilter:"blur(10px)" }}>
           <form onSubmit={login}>
             <div style={{ marginBottom:16 }}>
-              <label style={T.label}>Email Address</label>
+              <label style={{ ...T.label, color:C.muted }}>Email Address</label>
               <div style={{ position:"relative" }}>
-                <Mail size={13} style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", color:"rgba(255,255,255,0.3)" }} />
+                <Mail size={13} style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", color:C.muted }} />
                 <input type="email" value={email} autoFocus onChange={e => setEmail(e.target.value)}
                   placeholder="superadmin@domain.com"
-                  className="sa-input" style={{ ...T.input, paddingLeft:36 }} />
+                  className="sa-input" style={{ ...T.input, paddingLeft:36, background:C.inputBg, border:`1px solid ${C.border}`, color:C.text }} />
               </div>
             </div>
             <div style={{ marginBottom:22 }}>
-              <label style={T.label}>Password</label>
+              <label style={{ ...T.label, color:C.muted }}>Password</label>
               <div style={{ position:"relative" }}>
-                <Lock size={13} style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", color:"rgba(255,255,255,0.3)" }} />
+                <Lock size={13} style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", color:C.muted }} />
                 <input type={showPw ? "text" : "password"} value={pw} onChange={e => setPw(e.target.value)}
                   placeholder="••••••••••••"
-                  className="sa-input" style={{ ...T.input, paddingLeft:36, paddingRight:40 }} />
+                  className="sa-input" style={{ ...T.input, paddingLeft:36, paddingRight:40, background:C.inputBg, border:`1px solid ${C.border}`, color:C.text }} />
                 <button type="button" onClick={() => setShowPw(v => !v)}
-                  style={{ position:"absolute", right:12, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", color:"rgba(255,255,255,0.3)", display:"flex", alignItems:"center" }}>
+                  style={{ position:"absolute", right:12, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", color:C.muted, display:"flex", alignItems:"center" }}>
                   {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
               </div>
@@ -293,7 +296,7 @@ function SuperAdminLogin({ onSuccess }) {
             </Btn>
           </form>
         </div>
-        <div style={{ textAlign:"center", marginTop:16, fontSize:11, color:"rgba(255,255,255,0.18)" }}>
+        <div style={{ textAlign:"center", marginTop:16, fontSize:11, color:C.dim }}>
           Regular admins → /admin-panel
         </div>
       </div>
@@ -995,7 +998,16 @@ const TABS = [
 ];
 
 export default function SuperAdminPanel() {
+  return (
+    <AdminThemeProvider>
+      <SuperAdminPanelInner />
+    </AdminThemeProvider>
+  );
+}
+
+function SuperAdminPanelInner() {
   useEffect(() => injectGlobalStyles(), []);
+  const { C } = useAdminTheme();
 
   const [authed, setAuthed] = useState(false);
   const [saUser, setSaUser] = useState(null);
@@ -1030,7 +1042,8 @@ export default function SuperAdminPanel() {
   init();
 }, []);
 
-  const logout = () => {
+  const logout = async () => {
+    await revokeSession(TOKEN_KEY, REFRESH_KEY);
     [TOKEN_KEY, REFRESH_KEY, USER_KEY].forEach(k => localStorage.removeItem(k));
     setAuthed(false); setSaUser(null);
   };
@@ -1042,22 +1055,22 @@ export default function SuperAdminPanel() {
   const activeTab = TABS.find(t => t.id === tab);
 
   return (
-    <div style={T.page}>
+    <div style={{ ...T.page, background:C.bg, color:C.text }}>
       {/* ── Top bar ── */}
-      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:28, paddingBottom:20, borderBottom:"1px solid var(--border)" }}>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:28, paddingBottom:20, borderBottom:`1px solid ${C.border}` }}>
         <div style={{ display:"flex", alignItems:"center", gap:14 }}>
           <div style={{ width:40, height:40, borderRadius:10, background:"rgba(212,175,55,0.1)", border:"1px solid rgba(212,175,55,0.3)", display:"flex", alignItems:"center", justifyContent:"center" }}>
             <ShieldCheck size={18} color="#D4AF37" />
           </div>
           <div>
             <div style={{ fontSize:10, fontWeight:700, color:"#D4AF37", textTransform:"uppercase", letterSpacing:"0.16em", fontFamily:"'Space Grotesk',sans-serif" }}>Super Admin</div>
-            <div style={{ fontSize:18, fontWeight:900, fontFamily:"'Space Grotesk',sans-serif", lineHeight:1.2 }}>Control Panel</div>
+            <div style={{ fontSize:18, fontWeight:900, fontFamily:"'Space Grotesk',sans-serif", lineHeight:1.2, color:C.text }}>Control Panel</div>
           </div>
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:12 }}>
           <div style={{ textAlign:"right" }}>
-            <div style={{ fontSize:12, fontWeight:600, color:"white" }}>{saUser?.name || saUser?.email}</div>
-            <div style={{ fontSize:10, ...T.mono, color:"rgba(255,255,255,0.3)" }}>{saUser?.user_uid}</div>
+            <div style={{ fontSize:12, fontWeight:600, color:C.text }}>{saUser?.name || saUser?.email}</div>
+            <div style={{ fontSize:10, ...T.mono, color:C.muted }}>{saUser?.user_uid}</div>
           </div>
           <div style={{ padding:"5px 11px", borderRadius:7, background:"rgba(212,175,55,0.08)", border:"1px solid rgba(212,175,55,0.25)", fontSize:9, fontWeight:800, color:"#D4AF37", textTransform:"uppercase", letterSpacing:"0.1em", fontFamily:"'Space Grotesk',sans-serif" }}>
             Superuser
@@ -1067,12 +1080,12 @@ export default function SuperAdminPanel() {
       </div>
 
       {/* ── Nav tabs ── */}
-      <div style={{ display:"flex", gap:4, marginBottom:26, padding:"4px", borderRadius:12, background:"rgba(255,255,255,0.02)", border:"1px solid var(--border)", width:"fit-content" }}>
+      <div style={{ display:"flex", gap:4, marginBottom:26, padding:"4px", borderRadius:12, background:C.hoverBg, border:`1px solid ${C.border}`, width:"fit-content" }}>
         {TABS.map(t => {
           const active = tab === t.id;
           return (
             <button key={t.id} onClick={() => setTab(t.id)} className="sa-tab-btn"
-              style={{ display:"flex", alignItems:"center", gap:7, padding:"9px 18px", borderRadius:9, fontSize:12, fontWeight:active ? 700 : 500, cursor:"pointer", border:"none", background:active ? "rgba(255,255,255,0.07)" : "transparent", outline:active ? "1px solid rgba(255,255,255,0.13)" : "none", color:active ? "white" : "rgba(255,255,255,0.35)", fontFamily:"'Space Grotesk',sans-serif", transition:"all 0.15s" }}>
+              style={{ display:"flex", alignItems:"center", gap:7, padding:"9px 18px", borderRadius:9, fontSize:12, fontWeight:active ? 700 : 500, cursor:"pointer", border:"none", background:active ? C.hoverBg : "transparent", outline:active ? `1px solid ${C.border2}` : "none", color:active ? C.text : C.muted, fontFamily:"'Space Grotesk',sans-serif", transition:"all 0.15s" }}>
               <t.Icon size={13} color={active ? "#D4AF37" : undefined} />
               {t.label}
             </button>

@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Plane, Hotel, UtensilsCrossed, Wine, CheckCircle2, XCircle, MessageCircle } from "lucide-react";
 import { C } from "../../constants";
 import { Card } from "../../components/SharedUI";
@@ -12,24 +13,25 @@ function purchaseLink(pkg) {
 }
 
 export default function PackagesTab() {
+  const { t } = useTranslation();
   return (
     <div>
       <div style={{ marginBottom: 18 }}>
-        <div style={{ fontWeight: 700, color: "white", fontSize: 15, marginBottom: 4 }}>Casino Tour Packages</div>
+        <div style={{ fontWeight: 700, color: "white", fontSize: 15, marginBottom: 4 }}>{t("packages.casinoTourPackages")}</div>
         <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>
-          The same premium packages featured on our landing page — available across Vietnam, Macau, India, Sri Lanka & Philippines.
+          {t("packages.packagesDesc")}
         </div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 14 }}>
         {PACKAGES.map((pkg) => {
           const services = [
-            { label: "Airport VIP Service", val: pkg.airportVIP },
-            { label: "Jackpot Rewards", val: pkg.jackpotRewards },
-            { label: "VIP Transportation", val: pkg.vipTransport },
-            { label: "Spa Service", val: pkg.spa },
-            { label: "Shopping Voucher", val: pkg.shoppingVoucher },
-            { label: "Visa Assistance", val: pkg.visa },
+            { label: t("packages.airportVip"), val: pkg.airportVIP },
+            { label: t("packages.jackpotRewards"), val: pkg.jackpotRewards },
+            { label: t("packages.vipTransport"), val: pkg.vipTransport },
+            { label: t("packages.spa"), val: pkg.spa },
+            { label: t("packages.shoppingVoucher"), val: pkg.shoppingVoucher },
+            { label: t("packages.visa"), val: pkg.visa },
           ];
           return (
             <Card key={pkg.name} style={{ position: "relative", border: `1px solid ${pkg.color}30`, padding: 0, overflow: "hidden" }}>
@@ -48,19 +50,19 @@ export default function PackagesTab() {
                   <span style={{ fontSize: 26 }}>{pkg.icon}</span>
                   <div>
                     <div style={{ fontSize: 15, fontWeight: 900, color: pkg.color }}>{pkg.name}</div>
-                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>{pkg.duration} · All Destinations</div>
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>{pkg.duration} · {t("packages.allDestinations")}</div>
                   </div>
                 </div>
                 <div style={{ fontSize: 22, fontWeight: 900, color: C.gold }}>{pkg.price}</div>
-                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>per person</div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>{t("packages.perPerson")}</div>
               </div>
 
               <div style={{ padding: "14px 18px" }}>
                 {[
-                  { Icon: Plane, label: `Flight: ${pkg.flight}` },
-                  { Icon: Hotel, label: `Hotel: ${pkg.hotel}` },
-                  { Icon: UtensilsCrossed, label: `Food: ${pkg.food}` },
-                  { Icon: Wine, label: `Liquor: ${pkg.liquor}` },
+                  { Icon: Plane, label: t("packages.flight", { value: pkg.flight }) },
+                  { Icon: Hotel, label: t("packages.hotel", { value: pkg.hotel }) },
+                  { Icon: UtensilsCrossed, label: t("packages.food", { value: pkg.food }) },
+                  { Icon: Wine, label: t("packages.liquor", { value: pkg.liquor }) },
                 ].map((row, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "rgba(255,255,255,0.6)", marginBottom: 6 }}>
                     <row.Icon size={13} style={{ color: pkg.color, flexShrink: 0 }} />
@@ -86,7 +88,7 @@ export default function PackagesTab() {
                     background: "linear-gradient(135deg,#25D366,#128C7E)", color: "white",
                     fontWeight: 700, fontSize: 12, letterSpacing: "0.04em", textTransform: "uppercase",
                   }}>
-                    <MessageCircle size={14} /> Purchase — {pkg.name}
+                    <MessageCircle size={14} /> {t("packages.purchase", { name: pkg.name })}
                   </button>
                 </a>
               </div>

@@ -69,10 +69,10 @@ const TRUST_BADGES = [
 const FeatureCard = memo(({ Icon, color, bg, border, title, desc }) => (
   <div
     style={{
-      background: 'rgba(255,255,255,0.03)',
+      background: 'rgba(var(--w365-text-rgb),0.03)',
       backdropFilter: 'blur(6px)',
       WebkitBackdropFilter: 'blur(6px)',
-      border: `1px solid rgba(255,255,255,0.07)`,
+      border: `1px solid rgba(var(--w365-text-rgb),0.07)`,
       borderRadius: 16,
       padding: '24px 22px',
       cursor: 'default',
@@ -88,8 +88,8 @@ const FeatureCard = memo(({ Icon, color, bg, border, title, desc }) => (
     }}
     onMouseLeave={e => {
       e.currentTarget.style.transform = ''
-      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
-      e.currentTarget.style.background = 'rgba(255,255,255,0.02)'
+      e.currentTarget.style.borderColor = 'rgba(var(--w365-text-rgb),0.07)'
+      e.currentTarget.style.background = 'rgba(var(--w365-text-rgb),0.02)'
     }}
   >
     {/* Icon badge */}
@@ -106,13 +106,13 @@ const FeatureCard = memo(({ Icon, color, bg, border, title, desc }) => (
     <div>
       <div style={{
         fontSize: '0.95rem', fontWeight: 700,
-        color: 'rgba(255,255,255,0.92)',
+        color: 'rgba(var(--w365-text-rgb),0.92)',
         marginBottom: 7, letterSpacing: '-0.01em',
       }}>
         {title}
       </div>
       <p style={{
-        fontSize: '0.8rem', color: 'rgba(255,255,255,0.45)',
+        fontSize: '0.8rem', color: 'rgba(var(--w365-text-rgb),0.45)',
         lineHeight: 1.7, margin: 0,
       }}>
         {desc}
@@ -174,7 +174,7 @@ export default function WhyChooseUs() {
           </h2>
           <p className="font-body font-light" style={{
             fontSize: 'clamp(0.85rem,3.2vw,1.05rem)',
-            color: 'rgba(255,255,255,0.5)',
+            color: 'rgba(var(--w365-text-rgb),0.5)',
             maxWidth: 480, margin: '0 auto', lineHeight: 1.6,
           }}>
             We don't just book casino trips — we craft legendary experiences.
@@ -216,7 +216,7 @@ export default function WhyChooseUs() {
             Join 50,000+ Winning Players Across Asia
           </div>
           <p className="font-body font-light" style={{
-            color: 'rgba(255,255,255,0.45)',
+            color: 'rgba(var(--w365-text-rgb),0.45)',
             marginBottom: 28, maxWidth: 480,
             margin: '0 auto 28px',
             fontSize: 'clamp(0.82rem,3vw,0.95rem)',

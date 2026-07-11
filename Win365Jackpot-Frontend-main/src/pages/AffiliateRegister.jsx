@@ -195,7 +195,7 @@ function RegisterForm({ onSubmitted }) {
       .then(data => {
         if (!Array.isArray(data)) return
         const mapped = data
-          .map(c => ({ code: c.dial_code, flag: c.flag, name: c.name, digits: DIGIT_MAP[c.dial_code] || 10, placeholder: '0'.repeat(DIGIT_MAP[c.dial_code] || 10), format: v => v }))
+          .map(c => ({ code: c.dial_code, iso2: c.code, flag: c.flag, name: c.name, digits: DIGIT_MAP[c.dial_code] || 10, placeholder: '0'.repeat(DIGIT_MAP[c.dial_code] || 10), format: v => v }))
           .filter(c => c.code && c.code !== '+')
         setCountries(mapped)
         const india = mapped.find(c => c.code === '+91')
@@ -236,7 +236,13 @@ function RegisterForm({ onSubmitted }) {
     }
   }
 
-  const registrationData = { name: name.trim(), phone: country.code + phone, password: pw }
+  const registrationData = {
+    name: name.trim(),
+    phone: country.code + phone,
+    country: country.iso2 || 'IN',
+    dial_code: country.code,
+    password: pw,
+  }
 
   const handleVerified = async (verifyJson) => {
     const access = verifyJson?.tokens?.access

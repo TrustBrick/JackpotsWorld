@@ -1,6 +1,8 @@
 from rest_framework import serializers
 
-from authapp.models.affiliate_models import AffiliateProfile, ReferralCommission
+from authapp.models.affiliate_models import (
+    AffiliateProfile, ReferralCommission, AffiliateClickLog, AffiliateLoginLog,
+)
 
 
 class AffiliateProfileSerializer(serializers.ModelSerializer):
@@ -9,7 +11,7 @@ class AffiliateProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = AffiliateProfile
         fields = [
-            "commission_rate", "is_active", "total_earned", "total_paid",
+            "commission_rate", "is_active", "approved_by", "total_earned", "total_paid",
             "total_pending", "created_at",
         ]
 
@@ -43,3 +45,15 @@ class ReferralCommissionSerializer(serializers.ModelSerializer):
             "referred_user_name", "deposit_amount", "commission_rate", "amount",
             "status", "created_at", "paid_at",
         ]
+
+
+class AffiliateClickLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AffiliateClickLog
+        fields = ["id", "landing_path", "created_at"]
+
+
+class AffiliateLoginLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AffiliateLoginLog
+        fields = ["id", "ip_address", "created_at"]

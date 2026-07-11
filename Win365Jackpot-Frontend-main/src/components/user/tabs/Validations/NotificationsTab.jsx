@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Bell, RefreshCw, CheckCheck, CheckCircle2,
   ArrowDownToLine, ArrowUpFromLine, Gift,
@@ -30,7 +31,7 @@ const TYPE_CFG = {
 const POLL_INTERVAL = 30000;
 const PAGE_SIZE = 10;
 
-function fmtDate(str) {
+function fmtDate(str, t) {
   if (!str) return { relative: "", absolute: "" };
   const date  = new Date(str);
   const diff  = Date.now() - date.getTime();
@@ -38,10 +39,10 @@ function fmtDate(str) {
   const hours = Math.floor(diff / 3600000);
   const days  = Math.floor(diff / 86400000);
   let relative;
-  if (mins < 1)        relative = "Just now";
-  else if (mins < 60)  relative = `${mins}m ago`;
-  else if (hours < 24) relative = `${hours}h ago`;
-  else if (days < 7)   relative = `${days}d ago`;
+  if (mins < 1)        relative = t("notifications.justNow");
+  else if (mins < 60)  relative = t("notifications.minsAgo", { count: mins });
+  else if (hours < 24) relative = t("notifications.hoursAgo", { count: hours });
+  else if (days < 7)   relative = t("notifications.daysAgo", { count: days });
   else                 relative = date.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
   const absolute = date.toLocaleString("en-IN", {
     day: "2-digit", month: "short", year: "numeric",
@@ -91,6 +92,7 @@ function ExpandPanel({ open, children }) {
 }
 
 export default function NotificationsTab({ onToast, onUnreadChange }) {
+  const { t } = useTranslation();
   const [notifs,   setNotifs]   = useState([]);
   const [loading,  setLoading]  = useState(true);
   // KEY CHANGE: expanded is just a plain ref for instant toggle, 
@@ -145,6 +147,13 @@ export default function NotificationsTab({ onToast, onUnreadChange }) {
     return () => clearInterval(pollRef.current);
   }, [load]);
   useEffect(() => { setOpenId(null); }, [page]);
+
+  // Report the live unread count up to Dashboard so the sidebar badge
+  // updates the instant something is marked read here, instead of waiting
+  // for the next 5s poll tick in Dashboard.
+  useEffect(() => {
+    onUnreadChange?.(notifs.filter(n => !n.is_read).length);
+  }, [notifs, onUnreadChange]);
 
   // Fire-and-forget read mark — never blocks or re-renders the toggle
   const fireMarkRead = useCallback((id) => {
@@ -206,14 +215,14 @@ export default function NotificationsTab({ onToast, onUnreadChange }) {
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <Bell size={15} color={C.gold} />
           <span style={{ fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.9)", letterSpacing: "-0.01em" }}>
-            Notifications
+            {t("notifications.header")}
           </span>
           {unreadCount > 0 && (
             <span style={{
               background: "#e5534b", color: "white",
               fontSize: 10, fontWeight: 700,
               padding: "2px 7px", borderRadius: 20, lineHeight: 1.5,
-            }}>{unreadCount} unread</span>
+            }}>{t("notifications.unread", { count: unreadCount })}</span>
           )}
         </div>
 
@@ -229,7 +238,7 @@ export default function NotificationsTab({ onToast, onUnreadChange }) {
               touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
             }}
           >
-            <RefreshCw size={11} /> Refresh
+            <RefreshCw size={11} /> {t("common.refresh")}
           </button>
           <button
             onClick={() => { if (!marking && unreadCount > 0) markAllRead(); }}
@@ -245,7 +254,7 @@ export default function NotificationsTab({ onToast, onUnreadChange }) {
             }}
           >
             <CheckCheck size={11} />
-            {marking ? "Marking…" : "Mark all read"}
+            {marking ? t("notifications.marking") : t("notifications.markAllRead")}
           </button>
         </div>
       </div>
@@ -261,10 +270,10 @@ export default function NotificationsTab({ onToast, onUnreadChange }) {
         }}>
           <Mail size={32} style={{ opacity: 0.1, display: "block", margin: "0 auto 12px", color: "white" }} />
           <div style={{ fontWeight: 500, fontSize: 13, color: "rgba(255,255,255,0.3)", marginBottom: 4 }}>
-            No notifications yet
+            {t("notifications.noNotificationsYet")}
           </div>
           <div style={{ fontSize: 12, color: "rgba(255,255,255,0.15)" }}>
-            Activity on your account will appear here
+            {t("notifications.activityWillAppearHere")}
           </div>
         </div>
       ) : (
@@ -277,7 +286,7 @@ export default function NotificationsTab({ onToast, onUnreadChange }) {
           {pageNotifs.map((n, idx) => {
             const isOpen = openId === n.id;
             const isNew  = newIds.has(n.id);
-            const { relative, absolute } = fmtDate(n.created_at);
+            const { relative, absolute } = fmtDate(n.created_at, t);
             const cfg    = TYPE_CFG[n.icon] || TYPE_CFG[n.type] || TYPE_CFG.system;
             const Icon   = cfg.Icon;
             const isLast = idx === pageNotifs.length - 1;
@@ -351,7 +360,7 @@ export default function NotificationsTab({ onToast, onUnreadChange }) {
                           border: "1px solid rgba(230,168,23,0.3)",
                           animation: "blink 1.5s ease-in-out infinite",
                           letterSpacing: "0.04em",
-                        }}>NEW</span>
+                        }}>{t("notifications.new")}</span>
                       )}
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -360,7 +369,7 @@ export default function NotificationsTab({ onToast, onUnreadChange }) {
                         : <Mail     size={10} color={C.gold}                 style={{ flexShrink: 0 }} />
                       }
                       <span style={{ fontSize: 11, color: "rgba(255,255,255,0.28)" }}>
-                        {n.is_read ? "Read" : "Unread"} · {relative}
+                        {n.is_read ? t("notifications.read") : t("notifications.unreadLabel")} · {relative}
                       </span>
                     </div>
                   </div>
@@ -460,7 +469,7 @@ export default function NotificationsTab({ onToast, onUnreadChange }) {
                       <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                         <CheckCircle2 size={10} color="#29b676" />
                         <span style={{ fontSize: 11, color: "rgba(255,255,255,0.2)" }}>
-                          {n.is_read ? "Read" : "Opened"} · {absolute}
+                          {n.is_read ? t("notifications.read") : t("notifications.opened")} · {absolute}
                         </span>
                       </div>
                       <span style={{
@@ -492,7 +501,7 @@ export default function NotificationsTab({ onToast, onUnreadChange }) {
           fontSize: 12,
         }}>
           <span style={{ color: "rgba(255,255,255,0.3)" }}>
-            {rangeStart}–{rangeEnd} of {notifs.length} notifications
+            {t("notifications.showingRange", { start: rangeStart, end: rangeEnd, total: notifs.length })}
           </span>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <button
@@ -506,14 +515,14 @@ export default function NotificationsTab({ onToast, onUnreadChange }) {
                 cursor: page === 1 ? "not-allowed" : "pointer",
                 touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
               }}
-            >← Prev</button>
+            >{t("tables.prev")}</button>
             <span style={{
               padding: "4px 10px", fontSize: 12,
               color: "rgba(255,255,255,0.5)",
               background: "rgba(255,255,255,0.04)",
               border: "1px solid rgba(255,255,255,0.08)",
               borderRadius: 5,
-            }}>{page} / {totalPages}</span>
+            }}>{t("tables.pageOf", { page, total: totalPages })}</span>
             <button
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
@@ -525,7 +534,7 @@ export default function NotificationsTab({ onToast, onUnreadChange }) {
                 cursor: page >= totalPages ? "not-allowed" : "pointer",
                 touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
               }}
-            >Next →</button>
+            >{t("tables.next")}</button>
           </div>
         </div>
       )}

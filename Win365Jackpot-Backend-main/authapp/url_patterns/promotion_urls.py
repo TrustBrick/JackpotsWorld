@@ -5,6 +5,7 @@ from authapp.views.promotion_views import (
     PromotionDetailView,
     AdminPromotionListCreateView,
     AdminPromotionDetailView,
+    AdminPromotionGalleryImageDeleteView,
 )
 
 # Public — mounted at api/promotions/
@@ -17,4 +18,5 @@ public_urlpatterns = [
 admin_urlpatterns = [
     path("promotions/", AdminPromotionListCreateView.as_view()),
     path("promotions/<int:pk>/", AdminPromotionDetailView.as_view()),
+    path("promotions/<int:pk>/gallery/<int:image_id>/", AdminPromotionGalleryImageDeleteView.as_view()),
 ]

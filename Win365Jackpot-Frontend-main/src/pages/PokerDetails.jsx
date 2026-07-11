@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
@@ -8,6 +9,13 @@ import {
 import Navbar from '../components/Navbar'
 import AuthModal from '../components/AuthModal'
 import { fetchPokerDetail, registerForTournament } from '../services/pokerService'
+import { getFallbackImage } from '../utils/mediaFallback'
+
+const STATUS_LABEL_KEYS = {
+  upcoming: 'common.statusUpcoming',
+  live: 'common.statusLive',
+  completed: 'common.statusCompleted',
+}
 
 function formatDate(iso) {
   if (!iso) return ''
@@ -25,6 +33,7 @@ function fmtMoney(n) {
 }
 
 export default function PokerDetails() {
+  const { t } = useTranslation()
   const { id } = useParams()
   const navigate = useNavigate()
   const [tournament, setTournament] = useState(null)
@@ -32,6 +41,7 @@ export default function PokerDetails() {
   const [error, setError] = useState(false)
   const [authOpen, setAuthOpen] = useState(false)
   const [ticketState, setTicketState] = useState({ loading: false, message: '' })
+  const [imgFailed, setImgFailed] = useState(false)
 
   const isLoggedIn = !!localStorage.getItem('access')
 
@@ -61,7 +71,7 @@ export default function PokerDetails() {
           onClick={() => navigate('/poker')}
           className="flex items-center gap-1.5 text-sm font-body text-white/50 hover:text-gold transition-colors mb-6"
         >
-          <ArrowLeft size={15} /> Back to Poker
+          <ArrowLeft size={15} /> {t('poker.backToPoker')}
         </button>
 
         {loading ? (
@@ -69,16 +79,21 @@ export default function PokerDetails() {
         ) : error || !tournament ? (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-24 text-white/40">
             <AlertTriangle size={40} className="mb-4 text-red-400/60" />
-            <p className="font-body mb-4">Couldn't load this tournament.</p>
+            <p className="font-body mb-4">{t('poker.couldNotLoadTournament')}</p>
             <button onClick={load} className="btn-outline-gold rounded-full px-5 py-2 text-sm font-bold flex items-center gap-2">
-              <RefreshCw size={14} /> Retry
+              <RefreshCw size={14} /> {t('common.retry')}
             </button>
           </motion.div>
         ) : (
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="poker-card overflow-hidden">
             <div className="relative h-56 md:h-72 overflow-hidden">
-              {tournament.image ? (
-                <img src={tournament.image} alt={tournament.name} className="w-full h-full object-cover" />
+              {!imgFailed ? (
+                <img
+                  src={tournament.image || getFallbackImage({ id: tournament.id, country: tournament.location })}
+                  alt={tournament.name}
+                  className="w-full h-full object-cover"
+                  onError={() => setImgFailed(true)}
+                />
               ) : (
                 <div className="w-full h-full flex items-center justify-center" style={{ background: 'linear-gradient(160deg, rgba(28,28,30,0.9), rgba(18,18,20,0.9))' }}>
                   <ImageOff size={32} className="text-gold/30" />
@@ -88,7 +103,7 @@ export default function PokerDetails() {
               {tournament.status && (
                 <span className="absolute top-4 left-4 px-3 py-1 rounded-full text-[11px] font-bold tracking-widest uppercase"
                   style={{ background: 'rgba(212,175,55,0.15)', border: '1px solid rgba(212,175,55,0.5)', color: '#D4AF37' }}>
-                  {tournament.status}
+                  {STATUS_LABEL_KEYS[tournament.status] ? t(STATUS_LABEL_KEYS[tournament.status]) : tournament.status}
                 </span>
               )}
             </div>
@@ -104,8 +119,8 @@ export default function PokerDetails() {
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm font-body text-white/60 mb-6">
-                <div className="flex items-center gap-2"><Coins size={15} className="text-gold shrink-0" /> Buy-in: {fmtMoney(tournament.buy_in)}</div>
-                <div className="flex items-center gap-2"><Trophy size={15} className="text-gold shrink-0" /> Prize Pool: {fmtMoney(tournament.prize_pool)}</div>
+                <div className="flex items-center gap-2"><Coins size={15} className="text-gold shrink-0" /> {t('poker.buyIn')}: {fmtMoney(tournament.buy_in)}</div>
+                <div className="flex items-center gap-2"><Trophy size={15} className="text-gold shrink-0" /> {t('poker.prizePool')}: {fmtMoney(tournament.prize_pool)}</div>
                 <div className="flex items-center gap-2"><CalendarDays size={15} className="text-gold shrink-0" /> {formatDate(tournament.event_date)}</div>
                 {tournament.event_time && <div className="flex items-center gap-2"><Clock size={15} className="text-gold shrink-0" /> {formatTime(tournament.event_time)}</div>}
               </div>
@@ -116,13 +131,13 @@ export default function PokerDetails() {
 
               {!isLoggedIn ? (
                 <div className="flex flex-col md:flex-row items-center justify-between gap-4 px-5 py-4 rounded-xl" style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.2)' }}>
-                  <p className="text-white/60 text-sm font-body text-center md:text-left">Sign in to get your ticket for this tournament.</p>
+                  <p className="text-white/60 text-sm font-body text-center md:text-left">{t('poker.signInToGetTicket')}</p>
                   <div className="flex gap-2 shrink-0">
                     <button onClick={() => setAuthOpen(true)} className="btn-outline-gold flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase">
-                      <LogIn size={13} /> Sign In
+                      <LogIn size={13} /> {t('common.signIn')}
                     </button>
                     <button onClick={() => setAuthOpen(true)} className="btn-gold flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase">
-                      <UserPlus size={13} /> Sign Up
+                      <UserPlus size={13} /> {t('common.signUp')}
                     </button>
                   </div>
                 </div>
@@ -132,7 +147,7 @@ export default function PokerDetails() {
                   disabled={ticketState.loading}
                   className="btn-gold w-full rounded-full py-3 text-sm font-bold tracking-widest uppercase disabled:opacity-60"
                 >
-                  {ticketState.loading ? 'Processing…' : 'Get Ticket'}
+                  {ticketState.loading ? t('common.processing') : t('common.getTicket')}
                 </button>
               )}
               {ticketState.message && (

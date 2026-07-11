@@ -6,6 +6,8 @@ from authapp.views.poker_views import (
     PokerRegisterView,
     AdminPokerListCreateView,
     AdminPokerDetailView,
+    AdminPokerRegistrationListView,
+    AdminPokerRegistrationUpdateView,
 )
 
 # Public — mounted at api/poker/
@@ -19,4 +21,6 @@ public_urlpatterns = [
 admin_urlpatterns = [
     path("poker/", AdminPokerListCreateView.as_view()),
     path("poker/<int:pk>/", AdminPokerDetailView.as_view()),
+    path("poker/registrations/", AdminPokerRegistrationListView.as_view()),
+    path("poker/registrations/<int:pk>/", AdminPokerRegistrationUpdateView.as_view()),
 ]

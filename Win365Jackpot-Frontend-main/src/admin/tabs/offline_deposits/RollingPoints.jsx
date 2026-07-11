@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { adminFetch, API, fmt } from "../../helpers";
+import { useAdminTheme } from "../../context/AdminThemeContext";
 
 // ─── VIP CONFIG ───────────────────────────────────────────────────────────────
 const VIP_LEVELS = [
@@ -37,54 +38,58 @@ function getVipFromRP(rp) {
 }
 
 // ─── STYLES ──────────────────────────────────────────────────────────────────
-const inp = (accent, err) => ({
-  background:"rgba(255,255,255,0.04)", border:`1px solid ${err?"#f8717155":accent?accent+"44":"rgba(255,255,255,0.1)"}`,
-  color:"white", borderRadius:8, padding:"9px 12px", fontSize:13,
+// These take the current theme's C object since they're plain functions,
+// not components, and can't call hooks themselves. Usage: inp(accent, err, C)
+const inp = (accent, err, C) => ({
+  background:C.inputBg, border:`1px solid ${err?"#f8717155":accent?accent+"44":C.border}`,
+  color:C.text, borderRadius:8, padding:"9px 12px", fontSize:13,
   width:"100%", outline:"none", boxSizing:"border-box",
 });
-const sel = (accent) => ({
-  background:"rgba(12,14,22,0.95)", border:`1px solid ${accent?accent+"44":"rgba(255,255,255,0.12)"}`,
-  color:"white", borderRadius:8, padding:"9px 12px", fontSize:13,
+const sel = (accent, C) => ({
+  background:C.panelBg, border:`1px solid ${accent?accent+"44":C.border2}`,
+  color:C.text, borderRadius:8, padding:"9px 12px", fontSize:13,
   width:"100%", outline:"none", boxSizing:"border-box", cursor:"pointer",
 });
-const lbl = {
+const lbl = (C) => ({
   display:"block", fontSize:10, fontWeight:700,
-  color:"rgba(255,255,255,0.4)", marginBottom:5,
+  color:C.muted, marginBottom:5,
   letterSpacing:"0.06em", textTransform:"uppercase",
-};
+});
 
 // ─── SUBCOMPONENTS ────────────────────────────────────────────────────────────
 function StatBox({ label, value, color, sub }) {
+  const { C } = useAdminTheme();
   return (
     <div style={{ padding:"11px 13px", borderRadius:10, background:`${color}07`, border:`1px solid ${color}18` }}>
-      <div style={{ fontSize:9, color:"rgba(255,255,255,0.3)", textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:4 }}>{label}</div>
+      <div style={{ fontSize:9, color:C.muted, textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:4 }}>{label}</div>
       <div style={{ fontSize:16, fontWeight:900, color, fontFamily:"monospace" }}>{value}</div>
-      {sub && <div style={{ fontSize:9, color:"rgba(255,255,255,0.25)", marginTop:3 }}>{sub}</div>}
+      {sub && <div style={{ fontSize:9, color:C.dim, marginTop:3 }}>{sub}</div>}
     </div>
   );
 }
 
 function RefTable() {
+  const { C } = useAdminTheme();
   return (
-    <div style={{ borderRadius:10, overflow:"hidden", border:"1px solid rgba(255,255,255,0.08)", marginBottom:4 }}>
-      <div style={{ padding:"10px 14px", borderBottom:"1px solid rgba(255,255,255,0.08)", fontSize:11, fontWeight:700, color:"white", background:"rgba(255,255,255,0.02)" }}>
+    <div style={{ borderRadius:10, overflow:"hidden", border:`1px solid ${C.border}`, marginBottom:4 }}>
+      <div style={{ padding:"10px 14px", borderBottom:`1px solid ${C.border}`, fontSize:11, fontWeight:700, color:C.text, background:C.hoverBg }}>
         VIP Reference — RP = Game Level Points (unified) · Formula: $Bet Amount ÷ 100
       </div>
       <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11 }}>
         <thead>
-          <tr style={{ background:"rgba(255,255,255,0.02)" }}>
+          <tr style={{ background:C.hoverBg }}>
             {["Level","Min RP","Rolling %","RP Rate","Level-Up RP"].map(h => (
-              <th key={h} style={{ padding:"8px 12px", textAlign:"left", fontSize:9, color:"rgba(255,255,255,0.3)", fontWeight:700, textTransform:"uppercase", borderBottom:"1px solid rgba(255,255,255,0.07)" }}>{h}</th>
+              <th key={h} style={{ padding:"8px 12px", textAlign:"left", fontSize:9, color:C.muted, fontWeight:700, textTransform:"uppercase", borderBottom:`1px solid ${C.border}` }}>{h}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {VIP_LEVELS.map((v,i) => (
-            <tr key={v.lvl} style={{ borderBottom:"1px solid rgba(255,255,255,0.05)" }}
-              onMouseEnter={e => e.currentTarget.style.background="rgba(255,255,255,0.02)"}
+            <tr key={v.lvl} style={{ borderBottom:`1px solid ${C.border}` }}
+              onMouseEnter={e => e.currentTarget.style.background=C.hoverBg}
               onMouseLeave={e => e.currentTarget.style.background=""}>
               <td style={{ padding:"8px 12px", fontWeight:700, color:VIP_COLORS[i] }}>{v.label}</td>
-              <td style={{ padding:"8px 12px", fontFamily:"monospace", color:"rgba(255,255,255,0.5)" }}>{v.min_rp.toLocaleString("en-IN")}</td>
+              <td style={{ padding:"8px 12px", fontFamily:"monospace", color:C.muted }}>{v.min_rp.toLocaleString("en-IN")}</td>
               <td style={{ padding:"8px 12px", fontFamily:"monospace", color:"#fb923c" }}>{(v.rolling_pct*100).toFixed(0)}%</td>
               <td style={{ padding:"8px 12px", fontFamily:"monospace", color:"#a78bfa", fontWeight:700 }}>×{v.rp_rate.toFixed(2)}</td>
               <td style={{ padding:"8px 12px", fontFamily:"monospace", color:VIP_COLORS[i], fontWeight:700 }}>{v.lu_points.toLocaleString("en-IN")}</td>
@@ -98,6 +103,7 @@ function RefTable() {
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function RollingPoints({ userInfo, accounts, submitting, setSubmitting, onToast, refreshUser }) {
+  const { C, theme } = useAdminTheme();
   const [showRef,       setShowRef]       = useState(false);
   const [rCasino,       setRCasino]       = useState("");
   const [country,       setCountry]       = useState("");
@@ -204,8 +210,8 @@ export default function RollingPoints({ userInfo, accounts, submitting, setSubmi
           display:"flex", alignItems:"center", gap:6, padding:"6px 12px", borderRadius:7,
           fontSize:11, fontWeight:600, cursor:"pointer",
           background:showRef?"rgba(96,165,250,0.1)":"transparent",
-          border:`1px solid ${showRef?"rgba(96,165,250,0.4)":"rgba(255,255,255,0.1)"}`,
-          color:showRef?"#60a5fa":"rgba(255,255,255,0.4)",
+          border:`1px solid ${showRef?"rgba(96,165,250,0.4)":C.border}`,
+          color:showRef?"#60a5fa":C.muted,
         }}>
           <Info size={11}/> {showRef?"Hide":"Show"} VIP Reference
           {showRef ? <ChevronUp size={10}/> : <ChevronDown size={10}/>}
@@ -231,7 +237,7 @@ export default function RollingPoints({ userInfo, accounts, submitting, setSubmi
 
       {/* No active casino accounts — blocks the whole form */}
       {userInfo && loadingPlayerCasinos && (
-        <div style={{ padding:"12px 14px", borderRadius:10, background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.08)", fontSize:12, color:"rgba(255,255,255,0.4)" }}>
+        <div style={{ padding:"12px 14px", borderRadius:10, background:C.hoverBg, border:`1px solid ${C.border}`, fontSize:12, color:C.muted }}>
           Loading this player's casino accounts…
         </div>
       )}
@@ -246,11 +252,11 @@ export default function RollingPoints({ userInfo, accounts, submitting, setSubmi
       <div style={{ padding:"16px", borderRadius:12, background:"rgba(167,139,250,0.04)", border:"1px solid rgba(167,139,250,0.18)", opacity: hasNoCasinoAccounts ? 0.45 : 1, pointerEvents: hasNoCasinoAccounts ? "none" : "auto" }}>
 
         {/* Header */}
-        <div style={{ marginBottom:14, paddingBottom:12, borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
-          <div style={{ display:"flex", alignItems:"center", fontSize:13, fontWeight:700, color:"white" }}>
+        <div style={{ marginBottom:14, paddingBottom:12, borderBottom:`1px solid ${C.border}` }}>
+          <div style={{ display:"flex", alignItems:"center", fontSize:13, fontWeight:700, color:C.text }}>
             <TrendingUp size={13} style={{ color:COLOR, marginRight:8 }}/> Rolling Points Entry
           </div>
-          <div style={{ fontSize:11, color:"rgba(255,255,255,0.35)", marginTop:4 }}>
+          <div style={{ fontSize:11, color:C.muted, marginTop:4 }}>
             RP = Total Bet Amount ÷ 100. Same value as game level points.
           </div>
         </div>
@@ -260,15 +266,15 @@ export default function RollingPoints({ userInfo, accounts, submitting, setSubmi
 
           {/* Slip Number */}
           <div>
-            <label style={lbl}><Hash size={9} style={{ display:"inline", marginRight:3 }}/>Slip Number *</label>
+            <label style={lbl(C)}><Hash size={9} style={{ display:"inline", marginRight:3 }}/>Slip Number *</label>
             <input
               value={rSlipNumber}
               onChange={e => { setRSlipNumber(e.target.value); setRSlipError(""); }}
               onBlur={e => checkSlipUnique(e.target.value)}
               placeholder="e.g. SLP-20260420-001"
-              style={inp("#a78bfa", !!rSlipError)}
+              style={inp("#a78bfa", !!rSlipError, C)}
             />
-            {rSlipChecking && <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", marginTop:4 }}>Checking…</div>}
+            {rSlipChecking && <div style={{ fontSize:10, color:C.muted, marginTop:4 }}>Checking…</div>}
             {rSlipError && !rSlipChecking && (
               <div style={{ fontSize:10, color:"#f87171", marginTop:4, fontWeight:600, display:"flex", alignItems:"center", gap:4 }}>
                 <AlertTriangle size={9}/>{rSlipError}
@@ -281,7 +287,7 @@ export default function RollingPoints({ userInfo, accounts, submitting, setSubmi
 
           {/* Betting Date — only today's date is allowed (no past, no future) */}
           <div>
-            <label style={lbl}><Calendar size={9} style={{ display:"inline", marginRight:3 }}/>Betting Date *</label>
+            <label style={lbl(C)}><Calendar size={9} style={{ display:"inline", marginRight:3 }}/>Betting Date *</label>
             <input
               value={rBettingDate}
               onChange={e => setRBettingDate(e.target.value)}
@@ -289,8 +295,8 @@ export default function RollingPoints({ userInfo, accounts, submitting, setSubmi
               min={TODAY}
               max={TODAY}
               style={{
-                ...inp(rBettingDate && rBettingDate !== TODAY ? "#f87171" : "#60a5fa", rBettingDate && rBettingDate !== TODAY),
-                colorScheme: "dark",
+                ...inp(rBettingDate && rBettingDate !== TODAY ? "#f87171" : "#60a5fa", rBettingDate && rBettingDate !== TODAY, C),
+                colorScheme: theme === "dark" ? "dark" : "light",
               }}
             />
             {rBettingDate && rBettingDate !== TODAY && (
@@ -302,8 +308,8 @@ export default function RollingPoints({ userInfo, accounts, submitting, setSubmi
 
           {/* Country — only countries where this player has actually deposited */}
           <div>
-            <label style={lbl}>Country *</label>
-            <select value={country} onChange={e => { setCountry(e.target.value); setRCasino(""); }} style={sel("#60a5fa")}>
+            <label style={lbl(C)}>Country *</label>
+            <select value={country} onChange={e => { setCountry(e.target.value); setRCasino(""); }} style={sel("#60a5fa", C)}>
               <option value="">— Country —</option>
               {Object.keys(playerCasinos).map(c => <option key={c} value={c}>{c}</option>)}
             </select>
@@ -320,8 +326,8 @@ export default function RollingPoints({ userInfo, accounts, submitting, setSubmi
         {/* Casino */}
         {country && (
           <div style={{ marginBottom:12 }}>
-            <label style={lbl}>Casino Name *</label>
-            <select value={rCasino} onChange={e => setRCasino(e.target.value)} style={sel("#60a5fa")}>
+            <label style={lbl(C)}>Casino Name *</label>
+            <select value={rCasino} onChange={e => setRCasino(e.target.value)} style={sel("#60a5fa", C)}>
               <option value="">— Select casino —</option>
               {casinosForCountry.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
             </select>
@@ -332,18 +338,18 @@ export default function RollingPoints({ userInfo, accounts, submitting, setSubmi
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:12, marginBottom:14 }}>
 
           <div>
-            <label style={lbl}>Total Bets (info)</label>
+            <label style={lbl(C)}>Total Bets (info)</label>
             <input
               value={rTotalBets}
               onChange={e => setRTotalBets(e.target.value)}
               type="number"
               placeholder="e.g. 500"
-              style={inp("#a78bfa")}
+              style={inp("#a78bfa", undefined, C)}
             />
           </div>
 
           <div>
-            <label style={lbl}>
+            <label style={lbl(C)}>
               Total Bet Amount ($) * <span style={{ color:"#a78bfa", fontWeight:400 }}>÷100=RP</span>
             </label>
             <input
@@ -351,7 +357,7 @@ export default function RollingPoints({ userInfo, accounts, submitting, setSubmi
               onChange={e => { setRTotalBetAmt(e.target.value); setRRpOverride(""); }}
               type="number"
               placeholder="e.g. 50000"
-              style={inp("#f59e0b")}
+              style={inp("#f59e0b", undefined, C)}
             />
             {betAmt > 0 && (
               <div style={{ fontSize:10, color:"#f59e0b", marginTop:4, fontWeight:600 }}>
@@ -361,7 +367,7 @@ export default function RollingPoints({ userInfo, accounts, submitting, setSubmi
           </div>
 
           <div>
-            <label style={lbl}>Rolling % (auto)</label>
+            <label style={lbl(C)}>Rolling % (auto)</label>
             <div style={{
               padding:"9px 12px", borderRadius:8,
               background:"rgba(251,146,60,0.08)", border:"1px solid rgba(251,146,60,0.25)",
@@ -374,8 +380,8 @@ export default function RollingPoints({ userInfo, accounts, submitting, setSubmi
           </div>
 
           <div>
-            <label style={lbl}>
-              Rolling Points <span style={{ color:"rgba(255,255,255,0.3)", fontWeight:400 }}>(override)</span>
+            <label style={lbl(C)}>
+              Rolling Points <span style={{ color:C.muted, fontWeight:400 }}>(override)</span>
             </label>
             <input
               value={rRpOverride !== "" ? rRpOverride : (betAmt > 0 ? rpAutoCalc.toFixed(2) : "")}
@@ -383,7 +389,7 @@ export default function RollingPoints({ userInfo, accounts, submitting, setSubmi
               onFocus={() => { if (rRpOverride === "" && betAmt > 0) setRRpOverride(rpAutoCalc.toFixed(2)); }}
               type="number"
               placeholder={betAmt > 0 ? rpAutoCalc.toFixed(2) : "Enter bet amount first"}
-              style={inp(rRpOverride !== "" ? "#34d399" : "#a78bfa")}
+              style={inp(rRpOverride !== "" ? "#34d399" : "#a78bfa", undefined, C)}
             />
             {rRpOverride !== "" && (
               <div style={{ fontSize:10, color:"#34d399", marginTop:4, fontWeight:600 }}>
@@ -406,11 +412,11 @@ export default function RollingPoints({ userInfo, accounts, submitting, setSubmi
               {[
                 ["Bet Amount", `$${betAmt.toLocaleString("en-IN")}`,                                         "#f59e0b"],
                 ["RP Earned",  `+${rpAdded.toFixed(2)}`,                                                     "#a78bfa"],
-                ["New Total",  projRPTotal.toLocaleString("en-IN",{maximumFractionDigits:0}),                willVipLU?"#34d399":"white"],
+                ["New Total",  projRPTotal.toLocaleString("en-IN",{maximumFractionDigits:0}),                willVipLU?"#34d399":C.text],
                 ["VIP After",  projVip.label,                                                                 willVipLU?"#34d399":VIP_COLORS[projVip.lvl-1]],
               ].map(([l,v,c]) => (
                 <div key={l}>
-                  <div style={{ fontSize:9, color:"rgba(255,255,255,0.3)", marginBottom:3 }}>{l}</div>
+                  <div style={{ fontSize:9, color:C.muted, marginBottom:3 }}>{l}</div>
                   <div style={{ fontSize:14, fontWeight:800, color:c, fontFamily:"monospace" }}>
                     {v}{l === "VIP After" && willVipLU ? " 🎉" : ""}
                   </div>
@@ -427,12 +433,12 @@ export default function RollingPoints({ userInfo, accounts, submitting, setSubmi
 
         {/* Note */}
         <div style={{ marginBottom:12 }}>
-          <label style={lbl}>Session Note</label>
+          <label style={lbl(C)}>Session Note</label>
           <input
             value={rNote}
             onChange={e => setRNote(e.target.value)}
             placeholder="e.g. Saturday night session, Table 4"
-            style={inp()}
+            style={inp(undefined, undefined, C)}
           />
         </div>
 
@@ -440,8 +446,8 @@ export default function RollingPoints({ userInfo, accounts, submitting, setSubmi
         <button onClick={submitRP} disabled={!isValid} style={{
           width:"100%", display:"flex", alignItems:"center", justifyContent:"center",
           gap:8, padding:"12px 0", borderRadius:9, border:"none",
-          background: isValid ? "#7c3aed" : "rgba(255,255,255,0.06)",
-          color: isValid ? "white" : "rgba(255,255,255,0.2)",
+          background: isValid ? "#7c3aed" : C.hoverBg,
+          color: isValid ? "white" : C.dim,
           fontWeight:700, fontSize:13,
           cursor: isValid ? "pointer" : "not-allowed",
           transition: "background 0.2s",

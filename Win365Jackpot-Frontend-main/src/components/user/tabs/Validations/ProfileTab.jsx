@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import {
   User, Shield, Eye, EyeOff, Upload,
   Mail, Key, Lock, CheckCircle, Clock,
@@ -70,6 +71,7 @@ function InfoRow({ label, value, mono }) {
 }
 
 function LockBanner({ daysLeft, lastUpdated }) {
+  const { t } = useTranslation();
   return (
     <div style={{
       padding: "11px 14px", borderRadius: 9, marginBottom: 14,
@@ -79,16 +81,16 @@ function LockBanner({ daysLeft, lastUpdated }) {
       <Lock size={14} style={{ color: "#fbbf24", marginTop: 1, flexShrink: 0 }} />
       <div style={{ minWidth: 0 }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: "#fbbf24", marginBottom: 2 }}>
-          Name &amp; Date of Birth locked
+          {t("profile.nameDobLocked")}
         </div>
         <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", lineHeight: 1.6 }}>
-          These fields can be changed once every 90 days.
+          {t("profile.lockedFieldsNote")}
           {lastUpdated && (
-            <> Last changed on <b style={{ color: "white" }}>
+            <> {t("profile.lastChangedOn")} <b style={{ color: "white" }}>
               {new Date(lastUpdated).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
             </b>.</>
           )}
-          {" "}Unlocks in <b style={{ color: "#fbbf24" }}>{daysLeft} day{daysLeft !== 1 ? "s" : ""}</b>.
+          {" "}{t("profile.unlocksIn", { count: daysLeft })}
         </div>
       </div>
     </div>
@@ -99,6 +101,7 @@ function LockBanner({ daysLeft, lastUpdated }) {
    MAIN EXPORT — Mobile-first responsive
 ═══════════════════════════════════════════════════════════════════════════ */
 export default function ProfileTab({ profile, onToast, onRefresh }) {
+  const { t } = useTranslation();
   /* ── profile form ── */
   const [form, setForm] = useState({
     name:          profile?.name          || "",
@@ -131,7 +134,7 @@ export default function ProfileTab({ profile, onToast, onRefresh }) {
     if (form.country       !== (profile?.country       || "")) payload.country       = form.country;
 
     if (!Object.keys(payload).length) {
-      onToast("No changes to save", false);
+      onToast(t("profile.noChangesToSave"), false);
       setSaving(false);
       return;
     }
@@ -143,14 +146,14 @@ export default function ProfileTab({ profile, onToast, onRefresh }) {
       });
       const j = await r.json();
       if (r.ok) {
-        onToast("Profile updated!", true);
+        onToast(t("profile.profileUpdated"), true);
         onRefresh();
       } else {
         const msg = j.non_field_errors?.[0] || j.detail || JSON.stringify(j);
         onToast(msg, false);
       }
     } catch {
-      onToast("Something went wrong", false);
+      onToast(t("system.genericError"), false);
     }
     setSaving(false);
   };
@@ -169,20 +172,20 @@ export default function ProfileTab({ profile, onToast, onRefresh }) {
         body: fd,
       });
       const j = await r.json();
-      onToast(r.ok ? "Photo updated!" : (j.detail || "Upload failed"), r.ok);
+      onToast(r.ok ? t("profile.photoUpdated") : (j.detail || t("system.uploadFailed")), r.ok);
       if (r.ok) onRefresh();
     } catch {
-      onToast("Upload failed", false);
+      onToast(t("system.uploadFailed"), false);
     }
     setUploading(false);
   };
 
   const sendOTP = async () => {
     if (!pwForm.current_password || !pwForm.new_password) {
-      onToast("Fill in both fields", false); return;
+      onToast(t("profile.fillBothFields"), false); return;
     }
     if (pwForm.new_password === pwForm.current_password) {
-      onToast("New password must differ", false); return;
+      onToast(t("profile.newPasswordMustDiffer"), false); return;
     }
     setOtpSending(true);
     try {
@@ -191,16 +194,16 @@ export default function ProfileTab({ profile, onToast, onRefresh }) {
         body: JSON.stringify({ current_password: pwForm.current_password }),
       });
       const j = await r.json();
-      if (r.ok) { setPwStep(2); onToast("OTP sent to email", true); }
-      else onToast(j.error || "Could not send OTP", false);
+      if (r.ok) { setPwStep(2); onToast(t("profile.otpSentToEmail"), true); }
+      else onToast(j.error || t("profile.couldNotSendOtp"), false);
     } catch {
-      onToast("Something went wrong", false);
+      onToast(t("system.genericError"), false);
     }
     setOtpSending(false);
   };
 
   const confirmPassword = async () => {
-    if (!otpCode) { onToast("Enter the OTP", false); return; }
+    if (!otpCode) { onToast(t("profile.enterTheOtp"), false); return; }
     setPwSaving(true);
     try {
       const r = await authFetch(`${API}/api/user/change-password/`, {
@@ -208,14 +211,14 @@ export default function ProfileTab({ profile, onToast, onRefresh }) {
         body: JSON.stringify({ ...pwForm, otp: otpCode }),
       });
       const j = await r.json();
-      onToast(r.ok ? "Password changed!" : (j.error || "Invalid OTP"), r.ok);
+      onToast(r.ok ? t("profile.passwordChanged") : (j.error || t("profile.invalidOtp")), r.ok);
       if (r.ok) {
         setPwForm({ current_password: "", new_password: "" });
         setOtpCode("");
         setPwStep(1);
       }
     } catch {
-      onToast("Something went wrong", false);
+      onToast(t("system.genericError"), false);
     }
     setPwSaving(false);
   };
@@ -275,7 +278,7 @@ export default function ProfileTab({ profile, onToast, onRefresh }) {
           <Card>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
               <User size={14} style={{ color: C.gold }} />
-              <span style={{ fontWeight: 700, fontSize: 13 }}>Personal Information</span>
+              <span style={{ fontWeight: 700, fontSize: 13 }}>{t("profile.personalInformation")}</span>
             </div>
 
             {/* Avatar row */}
@@ -315,7 +318,7 @@ export default function ProfileTab({ profile, onToast, onRefresh }) {
                   {profile?.name || "—"}
                 </div>
                 <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginBottom: 5 }}>
-                  {uploading ? "Uploading…" : "Tap pencil to update photo"}
+                  {uploading ? t("profile.uploading") : t("profile.tapToUpdatePhoto")}
                 </div>
                 <VIPBadge level={profile?.vip_level} />
               </div>
@@ -323,12 +326,12 @@ export default function ProfileTab({ profile, onToast, onRefresh }) {
 
             {/* Locked read-only fields */}
             <div style={{ marginBottom: 12 }}>
-              <FieldLabel>Email <span style={{ color: "#f97316", marginLeft: 4 }}>LOCKED</span></FieldLabel>
+              <FieldLabel>{t("profile.emailLabel")} <span style={{ color: "#f97316", marginLeft: 4 }}>{t("profile.locked")}</span></FieldLabel>
               <TextInput value={profile?.email || ""} disabled style={{ opacity: 0.4, cursor: "not-allowed" }} readOnly />
             </div>
 
             <div style={{ marginBottom: 16 }}>
-              <FieldLabel>Phone <span style={{ color: "#f97316", marginLeft: 4 }}>LOCKED</span></FieldLabel>
+              <FieldLabel>{t("profile.phoneLabel")} <span style={{ color: "#f97316", marginLeft: 4 }}>{t("profile.locked")}</span></FieldLabel>
               <TextInput value={profile?.phone || ""} disabled style={{ opacity: 0.4, cursor: "not-allowed" }} readOnly />
             </div>
 
@@ -337,13 +340,13 @@ export default function ProfileTab({ profile, onToast, onRefresh }) {
             {/* Editable fields */}
             <div style={{ marginBottom: 12 }}>
               <FieldLabel>
-                Full Name
+                {t("profile.fullName")}
                 {!canEdit && <Lock size={10} style={{ color: "#fbbf24", marginLeft: 5, verticalAlign: "middle" }} />}
               </FieldLabel>
               <TextInput
                 value={form.name}
                 onChange={e => setForm({ ...form, name: e.target.value })}
-                placeholder="Your full name"
+                placeholder={t("profile.namePlaceholder")}
                 disabled={!canEdit}
                 style={!canEdit ? { opacity: 0.45, cursor: "not-allowed" } : {}}
               />
@@ -351,7 +354,7 @@ export default function ProfileTab({ profile, onToast, onRefresh }) {
 
             <div style={{ marginBottom: 12 }}>
               <FieldLabel>
-                Date of Birth
+                {t("profile.dateOfBirth")}
                 {!canEdit && <Lock size={10} style={{ color: "#fbbf24", marginLeft: 5, verticalAlign: "middle" }} />}
               </FieldLabel>
               <TextInput
@@ -364,11 +367,11 @@ export default function ProfileTab({ profile, onToast, onRefresh }) {
             </div>
 
             <div style={{ marginBottom: 18 }}>
-              <FieldLabel>Country</FieldLabel>
+              <FieldLabel>{t("profile.country")}</FieldLabel>
               <TextInput
                 value={form.country}
                 onChange={e => setForm({ ...form, country: e.target.value })}
-                placeholder="e.g. India"
+                placeholder={t("profile.countryPlaceholder")}
               />
             </div>
 
@@ -377,7 +380,7 @@ export default function ProfileTab({ profile, onToast, onRefresh }) {
               disabled={saving}
               style={{ width: "100%", justifyContent: "center", minHeight: 44 }}
             >
-              {saving ? "Saving…" : "Save Changes"}
+              {saving ? t("profile.saving") : t("profile.saveChanges")}
             </Btn>
           </Card>
 
@@ -385,18 +388,18 @@ export default function ProfileTab({ profile, onToast, onRefresh }) {
           <Card>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
               <CheckCircle size={14} style={{ color: kycColor }} />
-              <span style={{ fontWeight: 700, fontSize: 13 }}>Account Summary</span>
+              <span style={{ fontWeight: 700, fontSize: 13 }}>{t("profile.accountSummary")}</span>
             </div>
 
-            <InfoRow label="User ID"        value={profile?.user_uid}        mono />
-            <InfoRow label="KYC Status"     value={
+            <InfoRow label={t("profile.userId")}        value={profile?.user_uid}        mono />
+            <InfoRow label={t("profile.kycStatus")}     value={
               <span style={{ color: kycColor, fontWeight: 700, textTransform: "capitalize" }}>
-                {profile?.kyc_status || "Not submitted"}
+                {profile?.kyc_status || t("profile.notSubmitted")}
               </span>
             } />
-            <InfoRow label="Referral Code"  value={profile?.referral_code}   mono />
-            <InfoRow label="Referred Users" value={profile?.referral_count ?? "0"} />
-            <InfoRow label="Member Since"   value={
+            <InfoRow label={t("profile.referralCode")}  value={profile?.referral_code}   mono />
+            <InfoRow label={t("profile.referredUsers")} value={profile?.referral_count ?? "0"} />
+            <InfoRow label={t("profile.memberSince")}   value={
               profile?.date_joined
                 ? new Date(profile.date_joined).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
                 : "—"
@@ -410,17 +413,17 @@ export default function ProfileTab({ profile, onToast, onRefresh }) {
               }}>
                 <Calendar size={12} style={{ color: "rgba(255,255,255,0.3)", flexShrink: 0, marginTop: 2 }} />
                 <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", lineHeight: 1.5, minWidth: 0 }}>
-                  Profile last updated:{" "}
+                  {t("profile.profileLastUpdated")}{" "}
                   <span style={{ color: "rgba(255,255,255,0.7)" }}>
                     {new Date(lastUpdated).toLocaleDateString("en-IN", {
                       day: "numeric", month: "short", year: "numeric",
                     })}
                   </span>
                   {!canEdit && (
-                    <> · Editable again in <span style={{ color: "#fbbf24" }}>{daysLeft}d</span></>
+                    <> · <span style={{ color: "#fbbf24" }}>{t("profile.editableAgainIn", { days: daysLeft })}</span></>
                   )}
                   {canEdit && lastUpdated && (
-                    <> · <span style={{ color: "#34d399" }}>Editable now</span></>
+                    <> · <span style={{ color: "#34d399" }}>{t("profile.editableNow")}</span></>
                   )}
                 </div>
               </div>
@@ -435,7 +438,7 @@ export default function ProfileTab({ profile, onToast, onRefresh }) {
           <Card>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 18 }}>
               <Shield size={14} style={{ color: C.purple || "#a78bfa" }} />
-              <span style={{ fontWeight: 700, fontSize: 13 }}>Security &amp; Password</span>
+              <span style={{ fontWeight: 700, fontSize: 13 }}>{t("profile.securityPassword")}</span>
             </div>
 
             {pwStep === 1 ? (
@@ -448,12 +451,12 @@ export default function ProfileTab({ profile, onToast, onRefresh }) {
                 }}>
                   <Mail size={12} style={{ color: "#60a5fa", marginTop: 1, flexShrink: 0 }} />
                   <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", lineHeight: 1.6 }}>
-                    An OTP will be sent to your registered email to confirm the password change.
+                    {t("profile.otpEmailNotice")}
                   </div>
                 </div>
 
                 <div style={{ marginBottom: 12 }}>
-                  <FieldLabel>Current Password</FieldLabel>
+                  <FieldLabel>{t("profile.currentPassword")}</FieldLabel>
                   <div style={{ position: "relative" }}>
                     <TextInput
                       type={showPw ? "text" : "password"}
@@ -482,12 +485,12 @@ export default function ProfileTab({ profile, onToast, onRefresh }) {
                 </div>
 
                 <div style={{ marginBottom: 20 }}>
-                  <FieldLabel>New Password</FieldLabel>
+                  <FieldLabel>{t("profile.newPassword")}</FieldLabel>
                   <TextInput
                     type={showPw ? "text" : "password"}
                     value={pwForm.new_password}
                     onChange={e => setPwForm({ ...pwForm, new_password: e.target.value })}
-                    placeholder="Min 8 characters"
+                    placeholder={t("profile.newPasswordPlaceholder")}
                     autoComplete="new-password"
                   />
                 </div>
@@ -498,7 +501,7 @@ export default function ProfileTab({ profile, onToast, onRefresh }) {
                     {(() => {
                       const len = pwForm.new_password.length;
                       const strength = len < 6 ? 0 : len < 8 ? 1 : len < 12 ? 2 : 3;
-                      const labels   = ["Too short", "Weak", "Good", "Strong"];
+                      const labels   = [t("profile.passwordTooShort"), t("profile.passwordWeak"), t("profile.passwordGood"), t("profile.passwordStrong")];
                       const colors   = ["#f87171", "#f97316", "#fbbf24", "#34d399"];
                       return (
                         <>
@@ -524,7 +527,7 @@ export default function ProfileTab({ profile, onToast, onRefresh }) {
                   style={{ width: "100%", justifyContent: "center", gap: 7, minHeight: 44 }}
                 >
                   <Mail size={13} />
-                  {otpSending ? "Sending OTP…" : "Send OTP to Email"}
+                  {otpSending ? t("profile.sendingOtp") : t("profile.sendOtpToEmail")}
                 </Btn>
               </>
             ) : (
@@ -538,16 +541,16 @@ export default function ProfileTab({ profile, onToast, onRefresh }) {
                   <CheckCircle size={14} style={{ color: "#34d399", flexShrink: 0, marginTop: 1 }} />
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: "#34d399", marginBottom: 3 }}>
-                      OTP Sent!
+                      {t("profile.otpSent")}
                     </div>
                     <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", lineHeight: 1.6, wordBreak: "break-word" }}>
-                      Check <b style={{ color: "white" }}>{profile?.email}</b> — valid for 10 minutes.
+                      {t("profile.otpCheckEmail", { email: profile?.email })}
                     </div>
                   </div>
                 </div>
 
                 <div style={{ marginBottom: 20 }}>
-                  <FieldLabel>Enter OTP</FieldLabel>
+                  <FieldLabel>{t("profile.enterOtp")}</FieldLabel>
                   <TextInput
                     value={otpCode}
                     onChange={e => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
@@ -564,7 +567,7 @@ export default function ProfileTab({ profile, onToast, onRefresh }) {
                     }}
                   />
                   <div style={{ marginTop: 6, fontSize: 10, color: "rgba(255,255,255,0.3)", textAlign: "center" }}>
-                    {otpCode.length}/6 digits entered
+                    {t("profile.digitsEntered", { count: otpCode.length })}
                   </div>
                 </div>
 
@@ -575,14 +578,14 @@ export default function ProfileTab({ profile, onToast, onRefresh }) {
                     style={{ justifyContent: "center", gap: 7 }}
                   >
                     <Key size={13} />
-                    {pwSaving ? "Changing…" : "Confirm & Change"}
+                    {pwSaving ? t("profile.changing") : t("profile.confirmAndChange")}
                   </Btn>
                   <Btn
                     outline
                     onClick={() => { setPwStep(1); setOtpCode(""); }}
                     style={{ justifyContent: "center", flex: "0 1 100px" }}
                   >
-                    Back
+                    {t("profile.back")}
                   </Btn>
                 </div>
               </>
@@ -593,9 +596,9 @@ export default function ProfileTab({ profile, onToast, onRefresh }) {
           <Card style={{ background: "rgba(255,255,255,0.015)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
               <AlertTriangle size={13} style={{ color: "#f97316" }} />
-              <span style={{ fontWeight: 700, fontSize: 13 }}>Login Activity</span>
+              <span style={{ fontWeight: 700, fontSize: 13 }}>{t("profile.loginActivity")}</span>
             </div>
-            <InfoRow label="Last login" value={
+            <InfoRow label={t("profile.lastLogin")} value={
               profile?.last_login
                 ? new Date(profile.last_login).toLocaleString("en-IN", {
                     day: "numeric", month: "short", year: "numeric",
@@ -603,9 +606,9 @@ export default function ProfileTab({ profile, onToast, onRefresh }) {
                   })
                 : "—"
             } />
-            <InfoRow label="Account verified" value={
+            <InfoRow label={t("profile.accountVerified")} value={
               <span style={{ color: profile?.is_verified ? "#34d399" : "#f87171" }}>
-                {profile?.is_verified ? "Yes" : "No"}
+                {profile?.is_verified ? t("profile.yes") : t("profile.no")}
               </span>
             } />
             <div style={{
@@ -613,7 +616,7 @@ export default function ProfileTab({ profile, onToast, onRefresh }) {
               background: "rgba(249,115,22,0.06)", border: "1px solid rgba(249,115,22,0.15)",
               fontSize: 11, color: "rgba(255,255,255,0.4)", lineHeight: 1.6,
             }}>
-              If you notice any suspicious activity, change your password immediately and contact support.
+              {t("profile.suspiciousActivityNote")}
             </div>
           </Card>
         </div>

@@ -14,6 +14,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
 from authapp.models.kyc_model import KYCSubmission
+from authapp.utils.file_validation import validate_uploaded_image
 
 
 def _get_real_ip(request):
@@ -66,7 +67,16 @@ class UserKYCSubmitView(APIView):
         if not doc_front or not selfie:
             return Response({"error": "Front document image and selfie are required."}, status=400)
 
+        for f in (doc_front, doc_back, selfie):
+            if f:
+                try:
+                    validate_uploaded_image(f)
+                except Exception as exc:
+                    detail = exc.detail if hasattr(exc, "detail") else str(exc)
+                    return Response({"error": str(detail)}, status=400)
+
         defaults = {
+            "kyc_type":        "affiliate" if hasattr(user, "affiliate_profile") else "player",
             "full_name":       full_name,
             "date_of_birth":   date_of_birth,
             "document_type":   document_type,

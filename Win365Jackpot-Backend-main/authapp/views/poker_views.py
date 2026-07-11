@@ -4,7 +4,9 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
 from authapp.models.poker_models import PokerTournament, PokerRegistration
-from authapp.serializers.poker_serializers import PokerTournamentSerializer
+from authapp.serializers.poker_serializers import (
+    PokerTournamentSerializer, PokerRegistrationAdminSerializer,
+)
 from authapp.permissions.super_admin_permissions import IsAdminOrSuperAdmin
 
 
@@ -64,3 +66,22 @@ class AdminPokerDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = PokerTournament.objects.all()
     serializer_class = PokerTournamentSerializer
     permission_classes = [IsAdminOrSuperAdmin]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Admin — Back Office lead capture ("who clicked Get Ticket")
+# ─────────────────────────────────────────────────────────────────────────────
+
+class AdminPokerRegistrationListView(generics.ListAPIView):
+    """GET /api/admin-panel/poker/registrations/"""
+    queryset = PokerRegistration.objects.select_related("user", "tournament").order_by("-created_at")
+    serializer_class = PokerRegistrationAdminSerializer
+    permission_classes = [IsAdminOrSuperAdmin]
+
+
+class AdminPokerRegistrationUpdateView(generics.UpdateAPIView):
+    """PATCH /api/admin-panel/poker/registrations/<id>/ — update status/admin_note."""
+    queryset = PokerRegistration.objects.all()
+    serializer_class = PokerRegistrationAdminSerializer
+    permission_classes = [IsAdminOrSuperAdmin]
+    http_method_names = ["patch"]

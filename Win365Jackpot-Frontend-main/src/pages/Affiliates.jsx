@@ -5,8 +5,10 @@ import {
   Users, TrendingUp, Percent, Layers, FileText, ChevronDown,
   LogIn, UserPlus, CheckCircle2,
 } from 'lucide-react'
+import { useTheme } from '../context/ThemeContext'
 import Navbar from '../components/Navbar'
 import PageHeader from '../components/shared/PageHeader'
+import { commissionTiers } from '../affiliate/commissionTiers'
 
 // ── Static content ───────────────────────────────────────────────────────────
 // This is copy-only content for now. If you later want this editable from an
@@ -18,13 +20,6 @@ const benefits = [
   { icon: Percent,    title: 'Tiered Commission', text: 'Commission rates increase automatically as your referred player volume grows.' },
   { icon: Layers,     title: 'Multi-Casino Reach', text: 'Promote our full network of partner casinos, events, and promotions under one affiliate account.' },
   { icon: Users,      title: 'Dedicated Support', text: 'A dedicated affiliate manager to help with marketing assets, tracking, and payouts.' },
-]
-
-const commissionTiers = [
-  { tier: 'Starter',  referrals: '1 – 10 active players',   rate: '15% revenue share' },
-  { tier: 'Growth',   referrals: '11 – 50 active players',  rate: '20% revenue share' },
-  { tier: 'Elite',    referrals: '51 – 150 active players', rate: '25% revenue share' },
-  { tier: 'Legacy',   referrals: '150+ active players',     rate: '30% revenue share' },
 ]
 
 const howItWorks = [
@@ -91,9 +86,10 @@ function FaqItem({ faq, isOpen, onToggle }) {
 export default function Affiliates() {
   const [openFaq, setOpenFaq]   = useState(0)
   const navigate = useNavigate()
+  const { theme } = useTheme()
 
   return (
-    <div className="min-h-screen" style={{ background: '#0A0005' }}>
+    <div key={theme} className="min-h-screen" style={{ background: 'var(--w365-bg)' }}>
       <Navbar />
 
       <PageHeader

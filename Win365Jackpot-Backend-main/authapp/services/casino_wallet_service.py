@@ -31,6 +31,12 @@ logger = logging.getLogger(__name__)
 
 
 def _get_or_create_casino_wallet(user, casino_name: str, wallet_type: str, country: str = None) -> CasinoWalletAccount:
+    """
+    Must be called inside a @db_transaction.atomic block (every caller in
+    this module is). Locks the row after get_or_create so concurrent
+    credit/debit requests against the same casino wallet serialize instead
+    of losing an update.
+    """
     acct, created = CasinoWalletAccount.objects.get_or_create(
         user=user,
         casino_name=casino_name,
@@ -41,6 +47,7 @@ def _get_or_create_casino_wallet(user, casino_name: str, wallet_type: str, count
             "country": country or "",
         }
     )
+    acct = CasinoWalletAccount.objects.select_for_update().get(pk=acct.pk)
     # Backfill country on legacy rows that predate this field, or self-heal
     # a blank one, whenever a country is actually supplied by the caller.
     if country and not acct.country:

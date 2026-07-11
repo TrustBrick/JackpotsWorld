@@ -261,7 +261,7 @@ export default function Testimonials() {
           <h2 className=" font-bold text-4xl md:text-5xl font-black gold-text mb-4">
             REAL WINNERS, REAL STOREIS
           </h2>
-          <p className="font-body font-light text-lg text-white/60">Thousands have won. You could be next.</p>
+          <p className="font-body font-light text-lg text-theme-muted">Thousands have won. You could be next.</p>
         </motion.div>
 
         {/* ── Main testimonial card ── */}
@@ -286,7 +286,7 @@ export default function Testimonials() {
               ))}
             </div>
 
-            <p className="font-body font-light text-lg md:text-xl text-white/80 leading-relaxed mb-6 max-w-2xl mx-auto italic">
+            <p className="font-body font-light text-lg md:text-xl text-[rgba(var(--w365-text-rgb),0.8)] leading-relaxed mb-6 max-w-2xl mx-auto italic">
               "{t.text}"
             </p>
 
@@ -298,8 +298,8 @@ export default function Testimonials() {
             </div>
 
             <div>
-              <div className=" font-bold font-bold text-white text-base">{t.name}</div>
-              <div className="font-body font-light text-sm text-white/50">{t.flag} {t.city}</div>
+              <div className=" font-bold font-bold text-theme text-base">{t.name}</div>
+              <div className="font-body font-light text-sm text-[rgba(var(--w365-text-rgb),0.5)]">{t.flag} {t.city}</div>
             </div>
           </motion.div>
         </AnimatePresence>

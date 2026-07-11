@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import ChatBot from './ChatBot'
 
 const WA_NUMBER = '+917795281999'
 const WA_MESSAGE = encodeURIComponent("Hi! I'm interested in a casino package from jackpotsworld.com 🎰 Please help me!")
@@ -216,8 +215,6 @@ export default function WhatsAppButton() {
           </svg>
         </div>
       </motion.a>
-
-          {/* <ChatBot /> */}
     </div>
   )
 }

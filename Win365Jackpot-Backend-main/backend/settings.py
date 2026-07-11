@@ -127,7 +127,6 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = True
 
 CSRF_TRUSTED_ORIGINS = [
     "https://win365jackpot.com",
@@ -141,13 +140,20 @@ CSRF_TRUSTED_ORIGINS = [
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-        "rest_framework.authentication.TokenAuthentication",
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
+    'DEFAULT_THROTTLE_RATES': {
+        'login': '10/min',
+        'admin-login': '10/min',
+        'otp-send': '5/min',
+        'otp-verify': '10/min',
+        'register': '10/min',
+        'check-user': '20/min',
+    },
 }
 
 # ── JWT ───────────────────────────────────────────────────────────────────────

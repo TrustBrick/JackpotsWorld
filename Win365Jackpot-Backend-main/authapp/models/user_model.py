@@ -88,6 +88,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     avatar                = models.ImageField(upload_to="avatars/", null=True, blank=True)
     avatar_url            = models.URLField(blank=True, null=True)
 
+    # ISO 639-1 code (e.g. "en", "hi"), or "zh-CN"/"zh-TW" for the two Chinese
+    # variants — matches the language codes used by the frontend's i18next config.
+    preferred_language    = models.CharField(max_length=8, default="en")
+
     # ── VIP ───────────────────────────────────────────────────────────────────
     vip_level = models.PositiveSmallIntegerField(choices=VIP_LEVELS, default=1, db_index=True)
     vip_xp    = models.IntegerField(default=0)
@@ -123,7 +127,14 @@ class User(AbstractBaseUser, PermissionsMixin):
     date_joined   = models.DateTimeField(default=timezone.now, db_index=True)
     last_login    = models.DateTimeField(null=True, blank=True, db_index=True)
     last_login_ip = models.GenericIPAddressField(null=True, blank=True)
-    
+
+    # ── Login geolocation (resolved from last_login_ip via a free IP-lookup
+    # service at login/signup time — best-effort, left blank if the lookup
+    # fails or the IP is a private/loopback address) ─────────────────────────
+    last_login_city         = models.CharField(max_length=100, blank=True)
+    last_login_region       = models.CharField(max_length=100, blank=True)
+    last_login_country_name = models.CharField(max_length=100, blank=True)
+
 
     objects = UserManager()
 
@@ -189,6 +200,9 @@ class AdminProfile(models.Model):
     can_send_notifs    = models.BooleanField(default=True)
     can_manage_vip     = models.BooleanField(default=True)
     is_active          = models.BooleanField(default=True)
+
+    THEME_CHOICES = [("dark", "Dark"), ("light", "Light")]
+    theme_preference = models.CharField(max_length=10, choices=THEME_CHOICES, default="dark")
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { Gift, Trophy, Building2, CheckCircle } from "lucide-react";
 import { C } from "../../constants";
 import { authFetch, API, fmt, fmtN, fmtD } from "../../helpers";
 import { Card, Btn, Spinner, StatusBadge, Pagination } from "../../components/SharedUI";
 
 export default function BonusTab({ profile, onToast, onRefresh }) {
+  const { t } = useTranslation();
   const [history, setHistory]         = useState([]);
   const [loading, setLoading]         = useState(true);
   const [claiming, setClaiming]       = useState(false);
@@ -39,8 +41,8 @@ export default function BonusTab({ profile, onToast, onRefresh }) {
       const r = await authFetch(`${API}/api/bonus/claim/`, { method: "POST" });
       const j = await r.json();
       if (r.ok) { setClaimSuccess(true); onRefresh(); loadHistory(1); }
-      else onToast(j.error || "Claim failed", false);
-    } catch { onToast("Something went wrong", false); }
+      else onToast(j.error || t("bonus.claimFailed"), false);
+    } catch { onToast(t("system.genericError"), false); }
     setClaiming(false);
   };
 
@@ -49,9 +51,9 @@ export default function BonusTab({ profile, onToast, onRefresh }) {
       {/* Summary cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14, marginBottom: 22 }}>
         {[
-          { label: "Bonus Balance",      value: fmt(bonusBalance),                   icon: Gift,      color: C.purple },
-          { label: "Total Bonus Earned", value: fmt(profile?.total_bonus_earned),    icon: Trophy,    color: C.gold   },
-          { label: "Casinos Visited",    value: fmtN(profile?.casinos_visited || 0), icon: Building2, color: C.blue   },
+          { label: t("bonus.bonusBalance"),      value: fmt(bonusBalance),                   icon: Gift,      color: C.purple },
+          { label: t("bonus.totalBonusEarned"), value: fmt(profile?.total_bonus_earned),    icon: Trophy,    color: C.gold   },
+          { label: t("bonus.casinosVisited"),    value: fmtN(profile?.casinos_visited || 0), icon: Building2, color: C.blue   },
         ].map(s => (
           <Card key={s.label}>
             <div style={{ width: 34, height: 34, borderRadius: 9, background: `${s.color}18`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
@@ -71,11 +73,11 @@ export default function BonusTab({ profile, onToast, onRefresh }) {
       }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "white", marginBottom: 4 }}>Claim Bonus Points</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "white", marginBottom: 4 }}>{t("bonus.claimBonusPoints")}</div>
             <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", lineHeight: 1.6 }}>
               {canClaim
-                ? "🎉 Threshold reached! Claim $1,500 to be credited on your next casino deposit."
-                : `Need ${fmt(CLAIM_THRESHOLD - bonusBalance)} more to reach the claim threshold.`}
+                ? t("bonus.thresholdReached", { amount: "$1,500" })
+                : t("bonus.needMoreToReach", { amount: fmt(CLAIM_THRESHOLD - bonusBalance) })}
             </div>
           </div>
           {canClaim && <CheckCircle size={26} style={{ color: C.gold, flexShrink: 0, marginLeft: 16 }} />}
@@ -83,8 +85,8 @@ export default function BonusTab({ profile, onToast, onRefresh }) {
 
         <div style={{ marginBottom: 14 }}>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "rgba(255,255,255,0.35)", marginBottom: 5 }}>
-            <span>{fmt(bonusBalance)} accumulated</span>
-            <span style={{ color: canClaim ? C.gold : "rgba(255,255,255,0.35)" }}>Goal: {fmt(CLAIM_THRESHOLD)}</span>
+            <span>{t("bonus.accumulated", { amount: fmt(bonusBalance) })}</span>
+            <span style={{ color: canClaim ? C.gold : "rgba(255,255,255,0.35)" }}>{t("bonus.goal", { amount: fmt(CLAIM_THRESHOLD) })}</span>
           </div>
           <div style={{ height: 7, borderRadius: 4, background: "rgba(255,255,255,0.07)", overflow: "hidden" }}>
             <motion.div
@@ -103,26 +105,26 @@ export default function BonusTab({ profile, onToast, onRefresh }) {
           style={{ width: "100%", justifyContent: "center", opacity: canClaim ? 1 : 0.5 }}
         >
           <Gift size={13} />
-          {claiming ? "Submitting…" : canClaim ? "Claim $1,500 Bonus" : `Locked — Need ${fmt(CLAIM_THRESHOLD - bonusBalance)} more`}
+          {claiming ? t("bonus.submitting") : canClaim ? t("bonus.claimAmountBonus", { amount: "$1,500" }) : t("bonus.lockedNeedMore", { amount: fmt(CLAIM_THRESHOLD - bonusBalance) })}
         </Btn>
       </Card>
 
       {/* History table */}
-      <div style={{ fontSize: 12, fontWeight: 700, color: "white", marginBottom: 10 }}>Bonus History</div>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "white", marginBottom: 10 }}>{t("bonus.bonusHistory")}</div>
       <Card style={{ padding: 0, overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
           <thead>
             <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-              {["Txn ID", "Date", "Bonus Added", "Deposit Amount", "Note", "Status"].map(h => (
+              {[t("bonus.txnId"), t("tables.date"), t("bonus.bonusAdded"), t("bonus.depositAmount"), t("tables.note"), t("tables.status")].map(h => (
                 <th key={h} style={{ padding: "11px 14px", textAlign: "left", fontSize: 10, color: "rgba(255,255,255,0.3)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} style={{ padding: 28, textAlign: "center", color: "rgba(255,255,255,0.25)" }}>Loading…</td></tr>
+              <tr><td colSpan={6} style={{ padding: 28, textAlign: "center", color: "rgba(255,255,255,0.25)" }}>{t("common.loading")}</td></tr>
             ) : history.length === 0 ? (
-              <tr><td colSpan={6} style={{ padding: 36, textAlign: "center", color: "rgba(255,255,255,0.2)" }}>No bonus transactions yet</td></tr>
+              <tr><td colSpan={6} style={{ padding: 36, textAlign: "center", color: "rgba(255,255,255,0.2)" }}>{t("bonus.noBonusTransactionsYet")}</td></tr>
             ) : history.map(item => (
               <tr key={item.id} style={{ borderBottom: `1px solid ${C.border}` }}
                 onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.02)"}
@@ -155,13 +157,13 @@ export default function BonusTab({ profile, onToast, onRefresh }) {
               style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 1001, width: "100%", maxWidth: 380, padding: "0 20px" }}>
               <Card style={{ padding: 30, textAlign: "center" }}>
                 <div style={{ fontSize: 44, marginBottom: 14 }}>🎉</div>
-                <div style={{ fontSize: 18, fontWeight: 900, color: C.gold, marginBottom: 8 }}>Claim Submitted!</div>
+                <div style={{ fontSize: 18, fontWeight: 900, color: C.gold, marginBottom: 8 }}>{t("bonus.claimSubmitted")}</div>
                 <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", lineHeight: 1.7, marginBottom: 22 }}>
-                  Your claim of <b style={{ color: "white" }}>$1,500</b> is submitted.<br />
-                  Our team will contact you within <b style={{ color: C.green }}>12–24 hours</b> via WhatsApp or call.
+                  {t("bonus.claimSubmittedMsg", { amount: "$1,500" })}<br />
+                  {t("bonus.teamWillContact", { hours: "12–24 hours" })}
                 </div>
                 <Btn onClick={() => setClaimSuccess(false)} style={{ width: "100%", justifyContent: "center" }}>
-                  <CheckCircle size={13} /> Got it!
+                  <CheckCircle size={13} /> {t("bonus.gotIt")}
                 </Btn>
               </Card>
             </motion.div>

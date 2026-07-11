@@ -4,7 +4,9 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
 from authapp.models.events_models import CasinoEvent, EventTicketRequest
-from authapp.serializers.events_serializers import CasinoEventSerializer
+from authapp.serializers.events_serializers import (
+    CasinoEventSerializer, EventTicketRequestAdminSerializer,
+)
 from authapp.permissions.super_admin_permissions import IsAdminOrSuperAdmin
 
 
@@ -87,3 +89,22 @@ class AdminEventDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = CasinoEvent.objects.all()
     serializer_class = CasinoEventSerializer
     permission_classes = [IsAdminOrSuperAdmin]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Admin — Back Office lead capture ("who clicked Get Ticket")
+# ─────────────────────────────────────────────────────────────────────────────
+
+class AdminEventTicketRequestListView(generics.ListAPIView):
+    """GET /api/admin-panel/events/tickets/"""
+    queryset = EventTicketRequest.objects.select_related("user", "event").order_by("-created_at")
+    serializer_class = EventTicketRequestAdminSerializer
+    permission_classes = [IsAdminOrSuperAdmin]
+
+
+class AdminEventTicketRequestUpdateView(generics.UpdateAPIView):
+    """PATCH /api/admin-panel/events/tickets/<id>/ — update status/admin_note."""
+    queryset = EventTicketRequest.objects.all()
+    serializer_class = EventTicketRequestAdminSerializer
+    permission_classes = [IsAdminOrSuperAdmin]
+    http_method_names = ["patch"]

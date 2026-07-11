@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { Building2, CalendarDays, Clock, MapPin, Coins, Trophy, ArrowRight, ImageOff } from 'lucide-react'
@@ -25,12 +26,18 @@ const STATUS_COLORS = {
   live: '#ff3366',
   completed: 'rgba(255,255,255,0.4)',
 }
+const STATUS_LABEL_KEYS = {
+  upcoming: 'common.statusUpcoming',
+  live: 'common.statusLive',
+  completed: 'common.statusCompleted',
+}
 
 /**
  * PokerCard — premium dark-graphite/gold/glass tournament card.
  * Consumes the PokerTournamentSerializer shape from GET /api/poker/.
  */
 function PokerCard({ tournament }) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const statusColor = STATUS_COLORS[tournament.status] || '#888'
   const [imgFailed, setImgFailed] = useState(false)
@@ -60,23 +67,23 @@ function PokerCard({ tournament }) {
           {tournament.status === 'live' && (
             <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: statusColor, boxShadow: `0 0 6px ${statusColor}` }} />
           )}
-          {tournament.status}
+          {tournament.status && (STATUS_LABEL_KEYS[tournament.status] ? t(STATUS_LABEL_KEYS[tournament.status]) : tournament.status)}
         </span>
       </div>
 
       <div className="flex flex-col flex-1 p-5 gap-3">
-        <h3 className="font-black text-lg text-white/90 leading-snug">{tournament.name}</h3>
+        <h3 className="font-black text-lg text-[rgba(var(--w365-text-rgb),0.90)] leading-snug">{tournament.name}</h3>
 
         {(tournament.casino_name || tournament.location) && (
-          <p className="text-white/55 text-xs font-body flex items-center gap-1.5">
+          <p className="text-[rgba(var(--w365-text-rgb),0.55)] text-xs font-body flex items-center gap-1.5">
             <Building2 size={13} className="text-gold shrink-0" />
             {[tournament.casino_name, tournament.location].filter(Boolean).join(' · ')}
           </p>
         )}
 
-        <div className="grid grid-cols-2 gap-2 text-xs font-body text-white/60 mt-1">
+        <div className="grid grid-cols-2 gap-2 text-xs font-body text-[rgba(var(--w365-text-rgb),0.60)] mt-1">
           <div className="flex items-center gap-1.5">
-            <Coins size={13} className="text-gold shrink-0" /> Buy-in: {fmtMoney(tournament.buy_in)}
+            <Coins size={13} className="text-gold shrink-0" /> {t('poker.buyIn')}: {fmtMoney(tournament.buy_in)}
           </div>
           <div className="flex items-center gap-1.5">
             <Trophy size={13} className="text-gold shrink-0" /> {fmtMoney(tournament.prize_pool)}
@@ -98,7 +105,7 @@ function PokerCard({ tournament }) {
             onClick={() => navigate(`/poker/${tournament.id}`)}
             className="btn-outline-gold flex-1 flex items-center justify-center gap-1.5 rounded-full py-2.5 text-xs font-bold tracking-widest uppercase"
           >
-            Register
+            {t('common.register')}
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.02 }}
@@ -106,7 +113,7 @@ function PokerCard({ tournament }) {
             onClick={() => navigate(`/poker/${tournament.id}`)}
             className="btn-gold flex-1 flex items-center justify-center gap-1.5 rounded-full py-2.5 text-xs font-bold tracking-widest uppercase"
           >
-            Get Ticket
+            {t('common.getTicket')}
             <ArrowRight size={13} />
           </motion.button>
         </div>
