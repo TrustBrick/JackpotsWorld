@@ -270,6 +270,8 @@ class ActivityLog(models.Model):
         ("notification_sent", "Notification Sent"),
         ("staff_created", "Staff Created"),
         ("settings_changed", "Settings Changed"),
+        ("two_factor_enabled", "Two-Factor Enabled"),
+        ("two_factor_disabled", "Two-Factor Disabled"),
         ("other", "Other"),
     ]
 

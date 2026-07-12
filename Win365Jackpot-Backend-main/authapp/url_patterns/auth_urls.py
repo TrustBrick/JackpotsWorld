@@ -10,13 +10,13 @@ from authapp.otp.otp_views import (
     SendOTPView, VerifyOTPView,
     ForgotPasswordRequestView, ResetPasswordConfirmView,
 )
-from authapp.views.auth_views import SuperAdminLoginView
+from authapp.views.auth_views import SuperAdminLoginView, SuperAdminVerify2FAView
 
 urlpatterns = [
     path("auth/register/",      RegisterView.as_view()),
     path("auth/login/",         LoginView.as_view()),
     path("auth/logout/",        LogoutView.as_view()),
-    
+
     path("auth/send-otp/",      SendOTPView.as_view()),
     path("auth/verify-otp/",    VerifyOTPView.as_view()),
     path("auth/forgot-password/", ForgotPasswordRequestView.as_view()),
@@ -26,4 +26,5 @@ urlpatterns = [
     path("auth/countries/",     CountryListView.as_view()),  # ← add this
     path("auth/admin-login/",        AdminLoginView.as_view()),
     path("auth/super-admin-login/",  SuperAdminLoginView.as_view()),
+    path("auth/super-admin-verify-2fa/", SuperAdminVerify2FAView.as_view()),
 ]

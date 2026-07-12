@@ -22,12 +22,15 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from authapp.models import User, AdminProfile, ActivityLog
 from authapp.models.affiliate_models import AffiliateProfile
+from authapp.models.two_factor_models import TwoFactorAuth
 from authapp.serializers import RegisterSerializer, LoginSerializer, UserProfileSerializer
 from authapp.throttles import (
     LoginRateThrottle, AdminLoginRateThrottle, RegisterRateThrottle, CheckUserRateThrottle,
 )
 from authapp.utils.account_lockout import is_locked_out, record_failed_attempt, reset_attempts
 from authapp.utils.geolocation import resolve_geo_location
+from authapp.utils.ip_allowlist import is_superadmin_ip_allowed
+from authapp.utils.two_factor import make_2fa_pending_token, verify_2fa_pending_token, verify_totp_or_backup_code
 from authapp.data.countries import COUNTRIES
 
 def _handle_referral_on_signup(new_user, referral_code_used: str):
@@ -288,6 +291,53 @@ class CheckUserView(APIView):
 
 # ─── Admin Login ─────────────────────────────────────────────────────────────
 
+def _finish_super_admin_login(user, ip, request):
+    """Shared tail end of Super Admin login — reached directly from
+    SuperAdminLoginView when 2FA isn't enabled, or from
+    SuperAdminVerify2FAView once the code checks out."""
+    profile, _ = AdminProfile.objects.get_or_create(
+        user=user,
+        defaults={"role": "superadmin"}
+    )
+    if profile.role != "superadmin":
+        profile.role = "superadmin"
+        profile.save(update_fields=["role"])
+
+    profile.last_login_ip = ip
+    profile.last_login    = timezone.now()
+    profile.login_count  += 1
+    profile.save(update_fields=["last_login_ip", "last_login", "login_count"])
+
+    user.last_login    = timezone.now()
+    user.last_login_ip = ip
+    user.save(update_fields=["last_login", "last_login_ip"])
+    geo = _apply_login_geo(user, ip)
+
+    ActivityLog.log(
+        action="admin_login",
+        actor=user,
+        description=f"Super Admin login from {ip}",
+        ip_address=ip,
+        user_agent=get_ua(request),
+        meta={"success": True, "role": "superadmin", **({"geo": geo} if geo else {})},
+    )
+
+    tokens = get_tokens(user)
+    return Response({
+        "user": {
+            "id":           user.id,
+            "user_uid":     user.user_uid,
+            "email":        user.email,
+            "name":         user.name,
+            "is_staff":     user.is_staff,
+            "is_superuser": user.is_superuser,
+            "role":         profile.role,
+            "theme_preference": profile.theme_preference,
+        },
+        "tokens": tokens,
+    })
+
+
 class SuperAdminLoginView(APIView):
     permission_classes = [permissions.AllowAny]
     throttle_classes = [AdminLoginRateThrottle]
@@ -296,6 +346,15 @@ class SuperAdminLoginView(APIView):
         email    = request.data.get("email", "").strip().lower()
         password = request.data.get("password", "")
         ip       = get_client_ip(request)
+
+        if not is_superadmin_ip_allowed(ip):
+            ActivityLog.log(
+                action="admin_login",
+                description=f"Blocked super admin login attempt from disallowed IP: {ip}",
+                ip_address=ip,
+                meta={"email": email, "success": False, "role": "superadmin", "reason": "ip_not_allowed"},
+            )
+            return Response({"error": "Access denied from this location."}, status=403)
 
         if not email or not password:
             return Response({"error": "Email and password required"}, status=400)
@@ -328,47 +387,55 @@ class SuperAdminLoginView(APIView):
         if not user.is_active:
             return Response({"error": "Account disabled."}, status=403)
 
-        profile, _ = AdminProfile.objects.get_or_create(
-            user=user,
-            defaults={"role": "superadmin"}
-        )
-        if profile.role != "superadmin":
-            profile.role = "superadmin"
-            profile.save(update_fields=["role"])
+        two_factor = TwoFactorAuth.objects.filter(user=user, is_enabled=True).first()
+        if two_factor:
+            return Response({
+                "requires_2fa": True,
+                "pending_token": make_2fa_pending_token(user),
+            })
 
-        profile.last_login_ip = ip
-        profile.last_login    = timezone.now()
-        profile.login_count  += 1
-        profile.save(update_fields=["last_login_ip", "last_login", "login_count"])
+        return _finish_super_admin_login(user, ip, request)
 
-        user.last_login    = timezone.now()
-        user.last_login_ip = ip
-        user.save(update_fields=["last_login", "last_login_ip"])
-        geo = _apply_login_geo(user, ip)
 
-        ActivityLog.log(
-            action="admin_login",
-            actor=user,
-            description=f"Super Admin login from {ip}",
-            ip_address=ip,
-            user_agent=get_ua(request),
-            meta={"success": True, "role": "superadmin", **({"geo": geo} if geo else {})},
-        )
+class SuperAdminVerify2FAView(APIView):
+    """Second step of Super Admin login when 2FA is enabled — accepts
+    either a live TOTP code or a one-time backup code."""
+    permission_classes = [permissions.AllowAny]
+    throttle_classes = [AdminLoginRateThrottle]
 
-        tokens = get_tokens(user)
-        return Response({
-            "user": {
-                "id":           user.id,
-                "user_uid":     user.user_uid,
-                "email":        user.email,
-                "name":         user.name,
-                "is_staff":     user.is_staff,
-                "is_superuser": user.is_superuser,
-                "role":         profile.role,
-                "theme_preference": profile.theme_preference,
-            },
-            "tokens": tokens,
-        })
+    def post(self, request):
+        pending_token = request.data.get("pending_token", "")
+        code          = request.data.get("code", "")
+        ip            = get_client_ip(request)
+
+        if not is_superadmin_ip_allowed(ip):
+            return Response({"error": "Access denied from this location."}, status=403)
+
+        user_id = verify_2fa_pending_token(pending_token)
+        if not user_id:
+            return Response({"error": "This login attempt has expired. Please log in again."}, status=400)
+
+        user = User.objects.filter(pk=user_id, is_superuser=True, is_staff=True, is_active=True).first()
+        if not user:
+            return Response({"error": "This login attempt is no longer valid. Please log in again."}, status=400)
+
+        two_factor = TwoFactorAuth.objects.filter(user=user, is_enabled=True).first()
+        if not two_factor:
+            # 2FA was disabled between step 1 and step 2 — treat as invalid,
+            # force a fresh login rather than silently granting access.
+            return Response({"error": "This login attempt is no longer valid. Please log in again."}, status=400)
+
+        if not verify_totp_or_backup_code(two_factor, code):
+            ActivityLog.log(
+                action="admin_login",
+                actor=user,
+                description=f"Failed 2FA verification: {user.email}",
+                ip_address=ip,
+                meta={"email": user.email, "success": False, "role": "superadmin", "stage": "2fa"},
+            )
+            return Response({"error": "Invalid code."}, status=400)
+
+        return _finish_super_admin_login(user, ip, request)
 
 
 class AdminLoginView(APIView):

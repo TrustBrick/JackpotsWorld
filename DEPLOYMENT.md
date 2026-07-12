@@ -2,7 +2,7 @@
 
 **One** Apache Passenger Python app owns the entire `jackpotsworld.vip` domain. Django serves the DRF API *and* the built React SPA from the same origin — there is no `api.`, `admin.`, or `superadmin.` subdomain and no separate Apache-served frontend document root. This matters because shared GoDaddy hosting gives you no root/vhost access to hand-split routing between Apache and Passenger, so the split happens inside Django instead, using Whitenoise.
 
-No business logic, models, serializers, views, or UI were changed except where explicitly noted (audit-log additions, a `settings_changed` log action, and closing two failed-login logging gaps — all additive, none change what a request returns).
+No *existing* business logic, models, serializers, views, or UI were changed except where explicitly noted (audit-log additions, a `settings_changed` log action, and closing two failed-login logging gaps — all additive, none change what a request returns). Two-Factor Authentication and the Super Admin IP allowlist are genuinely new, explicitly-requested capabilities layered on top — new models/views/UI, not modifications to what already existed.
 
 ## How the single-domain routing works
 
@@ -42,7 +42,36 @@ If you later decide you genuinely want isolated subdomains (e.g. for a WAF rule 
 - **Audit logging gaps closed**: `LoginView` and `SuperAdminLoginView` logged successful logins but not failed attempts (`AdminLoginView` already did) — both now log `success: False` on bad credentials, matching the existing pattern. Admin-configurable settings (`BonusConfig`, `SpinConfig`, `SpinSettings`) had zero audit trail — all three now call `ActivityLog.log(action="settings_changed", ...)` on create/update/delete. New `ActivityLog.ACTION_CHOICES` entry: `settings_changed` (migration `0029`).
 - **Security headers**: added `SECURE_REFERRER_POLICY = "same-origin"` (always on) and env-gated HSTS (`SECURE_HSTS_SECONDS`/`_INCLUDE_SUBDOMAINS`/`_PRELOAD`, default off — see the env var table for when to turn it on). `SECURE_BROWSER_XSS_FILTER`, `SECURE_CONTENT_TYPE_NOSNIFF`, and `X_FRAME_OPTIONS=DENY` already existed.
 - **www → apex redirect**: new `WWWRedirectMiddleware` (`authapp/middleware/canonical_host.py`), first in `MIDDLEWARE`, 301-redirects any `www.<host>` request to the bare apex domain with the full path/query preserved. Verified with a live request in this pass.
-- **Not done this pass (flagged as future work, not silently skipped)**: 2FA for Super Admin and IP-allowlisting for the Super Admin portal — both called out as optional in the request that drove this change. They're real new features (TOTP enrollment/verification UI and flow, or IP-allowlist middleware + admin UI to manage the list), not deployment config, and deserve their own scoped pass rather than being bolted on here.
+- **Two-Factor Authentication and IP allowlisting for Super Admin** — see the dedicated sections below. Both were previously flagged as optional/future work; this pass implements them fully (backend + enrollment UI), verified end-to-end against a real browser and a real local MySQL database.
+
+## Two-Factor Authentication (Super Admin)
+
+TOTP-based 2FA (Google Authenticator, Authy, 1Password, etc.), available to any Super Admin from the new **Security** tab in the Super Admin panel. Not mandatory — each Super Admin opts in individually.
+
+**How it works:**
+1. **Enroll** (`Security` tab → `Enable 2FA`): `POST /api/super-admin/2fa/setup/` generates a TOTP secret and returns a QR code (`qrcode` + Pillow, rendered server-side as a base64 PNG — no frontend QR library needed) plus the raw secret for manual entry. 2FA is **not** enabled yet at this point.
+2. **Confirm**: entering the 6-digit code your authenticator app now shows calls `POST /api/super-admin/2fa/confirm/`, which verifies it, flips `is_enabled=True`, and returns 8 one-time backup codes — shown exactly once, never retrievable again (only hashes are stored, via `TwoFactorBackupCode.generate_set`).
+3. **Login** now happens in two steps once 2FA is enabled: `POST /api/auth/super-admin-login/` checks the password and, if 2FA is on, returns `{"requires_2fa": true, "pending_token": "..."}` instead of tokens — no JWT is issued yet. `pending_token` is a stateless, signed, 5-minute-expiry token (`django.core.signing.TimestampSigner`, no DB/cache row needed). The frontend then shows a code-entry screen and calls `POST /api/auth/super-admin-verify-2fa/` with `{pending_token, code}`; only on success are real JWTs issued. `code` accepts either a live TOTP code or an unused backup code interchangeably.
+4. **Disable / regenerate backup codes** both require the current password **and** a valid code — a stolen/leaked JWT alone can't turn 2FA off (`TwoFactorDisableView`, `TwoFactorRegenerateBackupCodesView`).
+
+Every enable/disable is logged to `ActivityLog` (`two_factor_enabled`/`two_factor_disabled` — migration `0031`), and failed 2FA code attempts during login are logged the same way failed passwords already are.
+
+**Verified this pass**, both via direct API calls against a real local MySQL database and a full live-browser run: enroll → confirm → login requiring 2FA → wrong code rejected → correct code accepted → backup code accepted and marked one-time-use (reuse rejected) → disable requires correct password+code → login no longer requires 2FA after disabling.
+
+**No new env vars for 2FA itself** — it's fully self-service per Super Admin account, nothing to configure at deploy time.
+
+## Super Admin IP allowlist (optional)
+
+`SUPERADMIN_IP_ALLOWLIST` — comma-separated IPs and/or CIDR ranges (e.g. `203.0.113.5,198.51.100.0/24`). Blank (default) means unrestricted, matching how every other env-driven setting in this project defaults to off until configured.
+
+Enforced in **three** places, not just at login, so a stolen/leaked JWT doesn't bypass it:
+1. `SuperAdminLoginView` — rejects a login attempt outright (403) from a disallowed IP, before even checking the password.
+2. `SuperAdminVerify2FAView` — same check on the second login step.
+3. `IsSuperAdmin` permission class — checked on **every** authenticated Super Admin API request, so an already-issued token used from outside the allowlist is rejected too.
+
+Parsed once at process start from the env var (`authapp/utils/ip_allowlist.py`), same as `ALLOWED_HOSTS` — changing it requires a Passenger restart. **Verified this pass**: login blocked from a disallowed IP, allowed from an allowlisted IP/CIDR, and an already-issued token rejected when replayed from a disallowed IP but accepted from an allowlisted one.
+
+If you enable this, know your own current IP first (`curl ifconfig.me` or similar) and include it — there's no recovery UI if every Super Admin locks themselves out; you'd need server/DB access to clear the env var.
 
 ## Database — MySQL, production-ready
 
@@ -53,7 +82,7 @@ If you later decide you genuinely want isolated subdomains (e.g. for a WAF rule 
 - **Driver**: `PyMySQL` (pure Python), shimmed as `MySQLdb` in `backend/__init__.py`, instead of `mysqlclient` — shared hosting won't give you a C compiler or MySQL dev headers.
 - **Connection reuse**: `CONN_MAX_AGE` (default 60s, via `DB_CONN_MAX_AGE`) + `CONN_HEALTH_CHECKS = True`.
 - **Indexes & constraints**: extensive throughout the model layer (`WalletAccount` unique-together on `(user, wallet_type)`, `WalletTransaction.transaction_reference` unique+indexed, composite indexes on `User`, `Notification`, etc.).
-- **Migrations**: all 29 migrations are consistent with the current models and were verified applied end-to-end against a real local MySQL instance.
+- **Migrations**: all 31 migrations are consistent with the current models and were verified applied end-to-end against a real local MySQL instance.
 
 ---
 
@@ -63,9 +92,14 @@ If you later decide you genuinely want isolated subdomains (e.g. for a WAF rule 
 jackpotsworld_api/                  ← cPanel "Application Root" for the (only) Python app
 ├── authapp/
 │   ├── management/commands/
-│   │   └── create_default_admins.py   ← NEW — seeds Super Admin/Admin from env vars
-│   └── middleware/
-│       └── canonical_host.py          ← NEW — www -> apex redirect
+│   │   └── create_default_admins.py   ← seeds Super Admin/Admin from env vars
+│   ├── middleware/
+│   │   └── canonical_host.py          ← www -> apex redirect
+│   ├── models/two_factor_models.py    ← TwoFactorAuth, TwoFactorBackupCode
+│   ├── views/two_factor_views.py      ← 2FA setup/confirm/disable/regenerate endpoints
+│   └── utils/
+│       ├── ip_allowlist.py            ← SUPERADMIN_IP_ALLOWLIST enforcement
+│       └── two_factor.py              ← TOTP verify + pending-login-token helpers
 ├── backend/
 │   ├── __init__.py                 (PyMySQL shim)
 │   ├── settings.py                 (updated — FRONTEND_DIST_DIR / WHITENOISE_ROOT / DB / cache / security headers)
@@ -160,6 +194,10 @@ ADMIN_EMAIL=<admin@jackpotsworld.vip, or leave blank>
 ADMIN_PASSWORD=<a strong password>
 ADMIN_NAME=Admin
 
+# Optional — see "Super Admin IP allowlist" above. Leave blank to leave the
+# Super Admin portal unrestricted.
+SUPERADMIN_IP_ALLOWLIST=
+
 TURNSTILE_SECRET_KEY=<your real key>
 ```
 
@@ -245,7 +283,7 @@ Only one certificate to manage (no `api.`/`admin.`/`superadmin.` subdomains):
 - [ ] A deliberately-bad API URL, e.g. `https://jackpotsworld.vip/api/does-not-exist/`, returns a real 404 — **not** the SPA's HTML with a 200
 
 **Database**
-- [ ] `python manage.py showmigrations authapp` on the server shows every migration as `[X]` applied (all 29)
+- [ ] `python manage.py showmigrations authapp` on the server shows every migration as `[X]` applied (all 31)
 - [ ] A file upload (e.g. KYC/avatar) saves and is reachable at `https://jackpotsworld.vip/media/...`
 - [ ] `jackpotsworld_api/logs/django.log` has no unexpected errors after a smoke test
 
@@ -264,3 +302,16 @@ Only one certificate to manage (no `api.`/`admin.`/`superadmin.` subdomains):
 - [ ] Hitting a bad `/api/...` or `/admin/...` URL shows a plain Django 404, not a Python traceback (confirms `DEBUG=False`)
 - [ ] Gmail App Password and DB password are freshly generated, not the ones from the dev `.env`
 - [ ] `SUPERADMIN_PASSWORD`/`ADMIN_PASSWORD` are strong, unique, and not reused from anywhere else
+
+**Two-Factor Authentication**
+- [ ] Super Admin panel → Security tab → Enable 2FA → scan QR with an authenticator app → confirm code → 8 backup codes shown once
+- [ ] Log out and back in with that account — a "Two-factor verification" step appears before the dashboard loads
+- [ ] A wrong 6-digit code is rejected; the correct current code succeeds
+- [ ] A backup code works once; reusing the same one is rejected
+- [ ] Disabling 2FA requires the current password AND a valid code — a wrong password alone is rejected
+- [ ] After disabling, logging in no longer prompts for a 2FA code
+
+**Super Admin IP allowlist (if configured)**
+- [ ] With `SUPERADMIN_IP_ALLOWLIST` set, logging in from an IP outside the list returns 403 "Access denied from this location"
+- [ ] Logging in from an allowlisted IP/CIDR works normally
+- [ ] A valid Super Admin token used from outside the allowlist is rejected on API calls, not just at login
