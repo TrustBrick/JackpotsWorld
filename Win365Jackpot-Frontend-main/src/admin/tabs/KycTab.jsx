@@ -140,7 +140,7 @@ export default function KycTab({ onToast }) {
               <thead>
                 <tr style={{ background: C.hoverBg, textAlign: "left" }}>
                   {["UID","Email","Name","Phone","Type","Submitted","IP Address","Geo","Status","Actions"].map(h => (
-                    <th key={h} style={{ padding: "10px 12px", borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap", color: C.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>{h}</th>
+                    <th key={h} style={{ padding: "10px 12px", borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap", color: C.sub, fontWeight: 800, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em", textShadow: "0 0 8px rgba(212,175,55,0.25)" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -486,6 +486,9 @@ function KYCDetailPanel({ C, u, onClose, onApprove, onReject, onBan, onUnban }) 
         <DocImage C={C} label="Front"  url={u.doc_front_url} />
         <DocImage C={C} label="Back"   url={u.doc_back_url} />
         <DocImage C={C} label="Selfie" url={u.selfie_url} />
+        {u.id_proof_file_url && (
+          <DocImage C={C} label={u.id_proof_type === "income_proof" ? "Income Proof" : "Address Proof"} url={u.id_proof_file_url} />
+        )}
       </Section>
 
       {/* Actions */}

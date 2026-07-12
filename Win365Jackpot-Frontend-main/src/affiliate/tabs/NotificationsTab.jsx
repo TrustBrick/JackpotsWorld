@@ -34,7 +34,13 @@ export default function NotificationsTab({ onUnreadChange }) {
     setLoading(false);
   }, [onUnreadChange]);
 
-  useEffect(() => { load(); }, [load]);
+  // Poll for new notifications so the list updates in real time without
+  // requiring the affiliate to manually revisit this tab.
+  useEffect(() => {
+    load();
+    const id = setInterval(load, 30_000);
+    return () => clearInterval(id);
+  }, [load]);
 
   const markAllRead = async () => {
     setMarking(true);
@@ -69,11 +75,11 @@ export default function NotificationsTab({ onUnreadChange }) {
 
       <Card style={{ padding: 0, overflow: "hidden" }}>
         {loading ? (
-          <div style={{ padding: 32, textAlign: "center", color: "rgba(255,255,255,0.2)", fontSize: 12 }}>Loading…</div>
+          <div style={{ padding: 32, textAlign: "center", color: "rgba(255,255,255,0.4)", fontSize: 12 }}>Loading…</div>
         ) : items.length === 0 ? (
           <div style={{ padding: 40, textAlign: "center" }}>
             <Bell size={28} style={{ color: "rgba(255,255,255,0.15)", marginBottom: 8 }} />
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.25)" }}>No notifications yet</div>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.45)" }}>No notifications yet</div>
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column" }}>
@@ -94,7 +100,7 @@ export default function NotificationsTab({ onUnreadChange }) {
                   )}
                 </div>
                 {n.message && <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", marginTop: 4, lineHeight: 1.5 }}>{n.message}</div>}
-                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", marginTop: 6 }}>{fmtD(n.created_at)}</div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", marginTop: 6 }}>{fmtD(n.created_at)}</div>
               </div>
             ))}
           </div>

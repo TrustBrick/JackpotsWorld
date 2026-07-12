@@ -12,7 +12,7 @@ class AffiliateProfileSerializer(serializers.ModelSerializer):
         model = AffiliateProfile
         fields = [
             "commission_rate", "is_active", "approved_by", "total_earned", "total_paid",
-            "total_pending", "created_at",
+            "total_pending", "can_view_player_transactions", "created_at",
         ]
 
     def get_total_pending(self, obj):
@@ -28,6 +28,8 @@ class ReferredUserSerializer(serializers.Serializer):
     date_joined = serializers.DateTimeField()
     is_active = serializers.BooleanField()
     kyc_status = serializers.CharField()
+    user_level = serializers.IntegerField()
+    country = serializers.CharField(allow_blank=True, allow_null=True)
     commission_earned = serializers.DecimalField(max_digits=14, decimal_places=2)
     commission_pending = serializers.DecimalField(max_digits=14, decimal_places=2)
     commission_paid = serializers.DecimalField(max_digits=14, decimal_places=2)

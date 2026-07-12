@@ -19,6 +19,9 @@ import {
   CheckCircle2, AlertCircle, ArrowRight, Loader2,
   ChevronDown, Search, Lock, Star,
 } from "lucide-react";
+import { useAutoFetch } from "../hooks/useAutoFetch";
+import { fetchLocations } from "../services/locationService";
+import { fetchTourPackages } from "../services/landingService";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -44,10 +47,10 @@ const C = {
   yellow:      "#e3b341",
 };
 
-// ─── Static options ────────────────────────────────────────────────────────────
-const DESTINATIONS = ["Macao", "Philippines", "India", "Sri Lanka", "Vietnam"];
+// ─── Static option fallbacks (used only until the admin-managed lists load) ───
+const FALLBACK_DESTINATIONS = ["Macao", "Philippines", "India", "Sri Lanka", "Vietnam"];
 
-const PACKAGES = [
+const FALLBACK_PACKAGES = [
   "VIP",
   "Classic",
   "Premium",
@@ -56,7 +59,6 @@ const PACKAGES = [
   "Elite",
   "Royal",
   "Sovereign",
-
 ];
 
 // ─── Atoms (same as AuthModal) ────────────────────────────────────────────────
@@ -420,7 +422,7 @@ function SuccessScreen({ onReset }) {
         <CheckCircle2 size={30} color={C.green} />
       </motion.div>
       <div style={{ fontSize: 19, fontWeight: 800, color: C.text, marginBottom: 10,
-        fontFamily: "Georgia, serif", letterSpacing: "-0.01em" }}>
+        fontFamily: "Manrope, sans-serif", letterSpacing: "-0.01em" }}>
         You're on the list!
       </div>
       <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.7, marginBottom: 28, maxWidth: 280, margin: "0 auto 28px" }}>
@@ -447,6 +449,16 @@ export default function Register() {
 
   const [countries,        setCountries]        = useState([]);
   const [countriesLoading, setCountriesLoading] = useState(true);
+
+  const { data: locationsData } = useAutoFetch(fetchLocations, {}, { intervalMs: 60_000 });
+  const DESTINATIONS = Array.isArray(locationsData) && locationsData.length > 0
+    ? locationsData.map(l => l.name)
+    : FALLBACK_DESTINATIONS;
+
+  const { data: tourPackagesData } = useAutoFetch(fetchTourPackages, {}, { intervalMs: 60_000 });
+  const PACKAGES = Array.isArray(tourPackagesData) && tourPackagesData.length > 0
+    ? tourPackagesData.map(p => p.name)
+    : FALLBACK_PACKAGES;
 
   const [errors,    setErrors]    = useState({});
   const [loading,   setLoading]   = useState(false);
@@ -546,7 +558,7 @@ export default function Register() {
         background: 'transparent',
         display: "flex", alignItems: "center", justifyContent: "center",
         padding: "32px 16px",
-        // fontFamily: "-apple-system, 'Segoe UI', sans-serif",
+        // fontFamily: "'Manrope', sans-serif",
         position: "relative",
         overflow: "hidden",
       }}>

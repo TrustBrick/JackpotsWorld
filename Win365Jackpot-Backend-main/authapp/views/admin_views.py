@@ -1,7 +1,7 @@
 # authapp/views/admin_views.py
 
 from django.utils import timezone
-from django.db.models import Q, Sum, Count
+from django.db.models import Q, Sum, Count, Exists, OuterRef
 from django.contrib.auth.hashers import make_password
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -14,6 +14,7 @@ from authapp.models import (
     WalletAccount, WalletTransaction,
     OTPRecord, PendingAdminCreation,
 )
+from authapp.models.affiliate_models import AffiliateProfile
 from authapp.serializers import (
     UserProfileSerializer,
     AdminProfileSerializer,
@@ -196,11 +197,14 @@ class AdminUserListView(APIView):
     def get(self, request):
         search = request.query_params.get("q", "").strip()
         vip    = request.query_params.get("vip", "").strip()
+        role   = request.query_params.get("role", "").strip().lower()
 
         # ✅ FIX 3a: Removed kyc_status="approved" filter — it was hiding
         # banned users (whose KYC status may still be approved) and made
         # the admin unable to see/manage them at all.
-        qs = User.objects.filter(is_staff=False).order_by("-date_joined")
+        qs = User.objects.filter(is_staff=False).annotate(
+            is_affiliate=Exists(AffiliateProfile.objects.filter(user=OuterRef("pk")))
+        ).order_by("-date_joined")
 
         if search:
             qs = qs.filter(
@@ -213,10 +217,18 @@ class AdminUserListView(APIView):
         if vip:
             qs = qs.filter(vip_level=vip)
 
+        if role == "affiliate":
+            qs = qs.filter(is_affiliate=True)
+        elif role == "player":
+            qs = qs.filter(is_affiliate=False)
+
         paginator = AdminUserPagination()
         page = paginator.paginate_queryset(qs, request)
         serializer = UserProfileSerializer(page, many=True)
-        return paginator.get_paginated_response(serializer.data)
+        data = serializer.data
+        for row, u in zip(data, page):
+            row["is_affiliate"] = u.is_affiliate
+        return paginator.get_paginated_response(data)
 
 
 # ✅ FIX 3b: Removed the duplicate AdminUserDetailView class that appeared
@@ -239,6 +251,7 @@ class AdminUserDetailView(APIView):
         )
 
         data = UserProfileSerializer(user).data
+        data["is_affiliate"]     = AffiliateProfile.objects.filter(user=user).exists()
         data["referred_by_uid"]  = user.referred_by.user_uid if user.referred_by else None
         data["referred_by_name"] = user.referred_by.name if user.referred_by else None
         data["referred_users"]   = [

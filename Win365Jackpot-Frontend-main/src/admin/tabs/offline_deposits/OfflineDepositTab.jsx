@@ -161,7 +161,7 @@ const loadAccounts = async (uid) => {
 };
 
   return (
-    <div style={{ maxWidth:1100, fontFamily:"'Space Grotesk',sans-serif" }}>
+    <div style={{ maxWidth:1100, fontFamily:"'Manrope',sans-serif" }}>
 
       {/* ── TOP TABS ── */}
       <div style={{
@@ -351,13 +351,13 @@ function HistoryTable({ history }) {
           <thead>
             <tr style={{ background:C.hoverBg }}>
               {["Date","Type","Slip","Bet Date","Casino","VIP","Details","RP Added","RP Total","Cash Bal","LU?","By"].map(h => (
-                <th key={h} style={{ padding:"9px 11px", textAlign:"left", fontSize:9, color:C.muted, fontWeight:700, textTransform:"uppercase", borderBottom:`1px solid ${C.border}`, whiteSpace:"nowrap" }}>{h}</th>
+                <th key={h} style={{ padding:"9px 11px", textAlign:"left", fontSize:9, color:C.sub, fontWeight:800, textTransform:"uppercase", borderBottom:`1px solid ${C.border}`, whiteSpace:"nowrap", textShadow:"0 0 8px rgba(212,175,55,0.25)" }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {history.length===0 ? (
-              <tr><td colSpan={12} style={{ padding:28, textAlign:"center", color:C.dim, fontSize:12 }}>No sessions recorded yet.</td></tr>
+              <tr><td colSpan={12} style={{ padding:28, textAlign:"center", color:C.muted, fontSize:12 }}>No sessions recorded yet.</td></tr>
             ) : history.map(h => (
               <tr key={h.id} style={{ borderBottom:`1px solid ${C.border}` }}
                 onMouseEnter={e => e.currentTarget.style.background=C.hoverBg}

@@ -1,11 +1,19 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Users, Wallet, TrendingUp, CheckCircle2, Copy, Check, Link2, MousePointerClick, Banknote, Star, PiggyBank } from "lucide-react";
+import { Users, Wallet, TrendingUp, CheckCircle2, Copy, Check, Link2, MousePointerClick, Banknote, Star, PiggyBank, Award } from "lucide-react";
 import { API, affiliateFetch, fmt } from "../helpers";
 
 const C = {
   bg: "#06080E", surface: "rgba(255,255,255,0.03)", border: "rgba(255,255,255,0.07)",
   gold: "#D4AF37", green: "#34D399", red: "#F87171", blue: "#60A5FA",
 };
+
+// Kept in sync with admin/tabs/UsersTab.jsx's LEVEL_NAMES — affiliate and
+// admin panels intentionally don't share components, so this is a local copy.
+const LEVEL_NAMES = [
+  "", "VIP", "VIP Bronze", "Silver", "Gold",
+  "Jackpot I", "Jackpot II", "Jackpot III",
+  "Jackpot Platinum", "Jackpot Diamond", "Master",
+];
 
 function Card({ children, style = {} }) {
   return (
@@ -98,6 +106,22 @@ export default function OverviewTab() {
             <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 2 }}>{s.label}</div>
           </Card>
         ))}
+
+        {/* Player Level — most common VIP level among this affiliate's referred players */}
+        <Card>
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: `${C.gold}18`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
+            <Award size={14} style={{ color: C.gold }} />
+          </div>
+          <div style={{ fontSize: 18, fontWeight: 900, color: "white", fontFamily: "monospace" }}>
+            {stats?.player_level ? (LEVEL_NAMES[stats.player_level.most_common_level] || `Level ${stats.player_level.most_common_level}`) : "—"}
+          </div>
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 2 }}>
+            Player Level
+            {stats?.player_level && (
+              <> · Most common among {stats.player_level.total_leveled_players} referred player{stats.player_level.total_leveled_players === 1 ? "" : "s"}</>
+            )}
+          </div>
+        </Card>
       </div>
 
       {/* Monthly earnings */}

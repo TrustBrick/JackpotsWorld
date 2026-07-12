@@ -58,8 +58,8 @@ export function Select({ label, value, onChange, options, placeholder = "Selectâ
       {label && <label style={{ display: "block", fontSize: 11, color: C.muted, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>{label}</label>}
       <select value={value} onChange={e => onChange(e.target.value)}
         style={{ width: "100%", padding: "11px 14px", borderRadius: 10, background: C.inputBg, border: `1px solid ${C.border}`, color: C.text, fontSize: 14, outline: "none", boxSizing: "border-box" }}>
-        {placeholder && <option value="">{placeholder}</option>}
-        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        {placeholder && <option value="" style={{ background: C.surface, color: C.text }}>{placeholder}</option>}
+        {options.map(o => <option key={o.value} value={o.value} style={{ background: C.surface, color: C.text }}>{o.label}</option>)}
       </select>
     </div>
   );
@@ -154,7 +154,7 @@ export function Pagination({ page, total, perPage = 20, onChange }) {
   if (totalPages <= 1) return null;
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderTop: `1px solid ${C.border}` }}>
-      <div style={{ fontSize: 12, color: C.dim }}>
+      <div style={{ fontSize: 12, color: C.muted }}>
         Showing {Math.min((page - 1) * perPage + 1, total)}â€“{Math.min(page * perPage, total)} of {fmtN(total)}
       </div>
       <div style={{ display: "flex", gap: 6 }}>
@@ -181,14 +181,14 @@ export function Table({ headers, children, loading, colSpan, emptyText = "No rec
         <thead>
           <tr style={{ borderBottom: `1px solid ${C.border}`, background: C.hoverBg }}>
             {headers.map((h, i) => (
-              <th key={i} style={{ padding: "12px 14px", textAlign: "left", fontSize: 10, color: C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", whiteSpace: "nowrap" }}>{h}</th>
+              <th key={i} style={{ padding: "12px 14px", textAlign: "left", fontSize: 10, color: C.sub, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", whiteSpace: "nowrap", textShadow: "0 0 8px rgba(212,175,55,0.25)" }}>{h}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {loading
             ? <tr><td colSpan={colSpan || headers.length} style={{ padding: 40, textAlign: "center", color: C.muted }}><Spinner /></td></tr>
-            : children || <tr><td colSpan={colSpan || headers.length} style={{ padding: 40, textAlign: "center", color: C.dim, fontSize: 13 }}>{emptyText}</td></tr>
+            : children || <tr><td colSpan={colSpan || headers.length} style={{ padding: 40, textAlign: "center", color: C.muted, fontSize: 13 }}>{emptyText}</td></tr>
           }
         </tbody>
       </table>

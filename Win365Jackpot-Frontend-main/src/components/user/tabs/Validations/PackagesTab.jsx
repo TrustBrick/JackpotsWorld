@@ -3,17 +3,77 @@ import { useTranslation } from "react-i18next";
 import { Plane, Hotel, UtensilsCrossed, Wine, CheckCircle2, XCircle, MessageCircle } from "lucide-react";
 import { C } from "../../constants";
 import { Card } from "../../components/SharedUI";
-import { PACKAGES, WHATSAPP_NUMBER } from "../../../../data/packagesData";
+import { useAutoFetch } from "../../../../hooks/useAutoFetch";
+import { fetchTourPackages, fetchLandingSettings } from "../../../../services/landingService";
 
-function purchaseLink(pkg) {
+const FALLBACK_PACKAGES = [
+  { name: "VIP", price: "$5,000", icon: "🃏", color: "#9E9E9E", badge: null,
+    duration: "3 Nights", flight: "Economy", hotel: "Standard 3★ (3N)",
+    food: "Casino", liquor: "Over the Gaming Table (Local)",
+    airportVIP: false, jackpotRewards: true, vipTransport: false,
+    spa: false, shoppingVoucher: false, visa: false },
+  { name: "Classic", price: "$10,000", icon: "🎴", color: "#78909C", badge: null,
+    duration: "3 Nights", flight: "Economy", hotel: "Standard 4★ (3N)",
+    food: "Casino", liquor: "Over the Gaming Table (Local Premium)",
+    airportVIP: false, jackpotRewards: true, vipTransport: false,
+    spa: true, shoppingVoucher: false, visa: true },
+  { name: "Premium", price: "$15,000", icon: "🎲", color: "#D4AF37", badge: "Popular",
+    duration: "3 Nights", flight: "Economy", hotel: "Standard 5★ (3N)",
+    food: "Casino", liquor: "Over the Gaming Table (Premium)",
+    airportVIP: false, jackpotRewards: true, vipTransport: false,
+    spa: true, shoppingVoucher: false, visa: true },
+  { name: "Prestige", price: "$20,000", icon: "🏆", color: "#F5A623", badge: null,
+    duration: "3 Nights", flight: "Economy", hotel: "Executive 5★ (3N)",
+    food: "Casino", liquor: "Over the Gaming Table (Imported Premium)",
+    airportVIP: false, jackpotRewards: true, vipTransport: false,
+    spa: true, shoppingVoucher: false, visa: true },
+  { name: "Signature", price: "$25,000", icon: "✍️", color: "#26C6DA", badge: null,
+    duration: "3 Nights", flight: "Economy", hotel: "Premium 5★ (3N)",
+    food: "Casino", liquor: "Over the Gaming Table (Imported Premium)",
+    airportVIP: true, jackpotRewards: true, vipTransport: true,
+    spa: true, shoppingVoucher: true, visa: true },
+  { name: "Elite", price: "$50,000", icon: "💎", color: "#B9F2FF", badge: "Best Value",
+    duration: "3 Nights", flight: "Business", hotel: "Suite 5★ (3N)",
+    food: "Casino/Hotel", liquor: "Imported Premium",
+    airportVIP: true, jackpotRewards: true, vipTransport: true, vipTransportNote: "*",
+    spa: true, spaNote: "*", shoppingVoucher: true, shoppingNote: "*", visa: true },
+  { name: "Royal", price: "$100,000", icon: "👑", color: "#FFD700", badge: null,
+    duration: "4 Nights", flight: "Business", hotel: "Executive Suite 5★ (4N)",
+    food: "Casino/Hotel", liquor: "Imported Premium",
+    airportVIP: true, jackpotRewards: true, vipTransport: true, vipTransportNote: "**",
+    spa: true, spaNote: "**", shoppingVoucher: true, shoppingNote: "**", visa: true },
+  { name: "Sovereign", price: "$250,000+", icon: "⚜️", color: "#C9A84C", badge: "🤫 Invite Only",
+    duration: "7 Nights", flight: "Business", hotel: "Presidential Suite (7N)",
+    food: "Casino/Hotel", liquor: "Imported Premium",
+    airportVIP: true, jackpotRewards: true, vipTransport: true, vipTransportNote: "**",
+    spa: true, spaNote: "***", shoppingVoucher: true, shoppingNote: "***", visa: true },
+];
+
+const DEFAULT_WHATSAPP_NUMBER = "917795281999";
+
+function mapTourPackage(p) {
+  if (p.airportVIP !== undefined) return p; // already fallback shape
+  return {
+    name: p.name, price: p.price, icon: p.icon, color: p.color, badge: p.badge || null,
+    duration: p.duration, flight: p.flight, hotel: p.hotel, food: p.food, liquor: p.liquor,
+    airportVIP: p.airport_vip, jackpotRewards: p.jackpot_rewards, vipTransport: p.vip_transport,
+    spa: p.spa, shoppingVoucher: p.shopping_voucher, visa: p.visa,
+  };
+}
+
+function purchaseLink(pkg, whatsappNumber) {
   const msg = encodeURIComponent(
     `Hi! I'm interested in purchasing the *${pkg.name}* Casino Tour Package (${pkg.price}). Please share more details.`
   );
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`;
+  return `https://wa.me/${whatsappNumber}?text=${msg}`;
 }
 
 export default function PackagesTab() {
   const { t } = useTranslation();
+  const { data: packagesData } = useAutoFetch(fetchTourPackages, {}, { intervalMs: 60_000 });
+  const { data: settings } = useAutoFetch(fetchLandingSettings, {}, { intervalMs: 60_000 });
+  const PACKAGES = (Array.isArray(packagesData) && packagesData.length > 0 ? packagesData : FALLBACK_PACKAGES).map(mapTourPackage);
+  const whatsappNumber = settings?.whatsapp_number || DEFAULT_WHATSAPP_NUMBER;
   return (
     <div>
       <div style={{ marginBottom: 18 }}>
@@ -74,14 +134,14 @@ export default function PackagesTab() {
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 14 }}>
                   {services.map((s, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11, color: s.val ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.22)" }}>
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11, color: s.val ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.42)" }}>
                       {s.val ? <CheckCircle2 size={12} style={{ color: C.green }} /> : <XCircle size={12} />}
                       {s.label}
                     </div>
                   ))}
                 </div>
 
-                <a href={purchaseLink(pkg)} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+                <a href={purchaseLink(pkg, whatsappNumber)} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
                   <button style={{
                     width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                     padding: "11px 0", borderRadius: 10, border: "none", cursor: "pointer",

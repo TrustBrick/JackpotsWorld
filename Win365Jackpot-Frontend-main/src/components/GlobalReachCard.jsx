@@ -2,9 +2,12 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { Globe2 } from 'lucide-react'
 import { useInView } from 'react-intersection-observer'
+import { useAutoFetch } from '../hooks/useAutoFetch'
+import { fetchLandingSettings } from '../services/landingService'
 
 export default function GlobalReachCard() {
   const { ref, inView } = useInView({ threshold: 0.15, triggerOnce: true })
+  const { data: settings } = useAutoFetch(fetchLandingSettings, {}, { intervalMs: 60_000 })
 
   return (
     <motion.div
@@ -32,7 +35,7 @@ export default function GlobalReachCard() {
       </div>
 
       <h3 className="font-black text-xl md:text-2xl gold-text mb-2">
-        Experience World-Class Casino Gaming Across
+        {settings?.global_reach_tagline || 'Experience World-Class Casino Gaming Across'}
       </h3>
 
       <p

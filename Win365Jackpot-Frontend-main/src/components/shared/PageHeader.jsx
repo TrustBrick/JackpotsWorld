@@ -27,7 +27,7 @@ export default function PageHeader({ eyebrow, title, subtitle }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
           className="gold-text font-black text-3xl md:text-5xl tracking-wide mb-4"
-          style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+          style={{ fontFamily: "'Manrope', sans-serif" }}
         >
           {title}
         </motion.h1>

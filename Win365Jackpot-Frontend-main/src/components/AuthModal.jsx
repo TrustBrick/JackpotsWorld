@@ -6,6 +6,7 @@ import {
   X, Mail, Eye, EyeOff, Key, User, Gift, Phone,
   Loader2, CheckCircle2, AlertCircle, ArrowRight, ChevronDown, ShieldCheck, RotateCcw,
 } from 'lucide-react'
+import { setSession } from '../services/authStorage'
 
 const API = import.meta.env.VITE_API_URL
 
@@ -542,8 +543,10 @@ function SignInPanel({ onSuccess, onClose, onForgotPassword }) {
   const navigate = useNavigate()
   const [email,    setEmail]    = useState('')
   const [pw,       setPw]       = useState('')
+  const [remember, setRemember] = useState(false)
   const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState('')
+  const [isAffiliateAcct, setIsAffiliateAcct] = useState(false)
   const [emailErr, setEmailErr] = useState('')
 
   const onEmailBlur = () => {
@@ -556,19 +559,25 @@ function SignInPanel({ onSuccess, onClose, onForgotPassword }) {
     const { ok: eok, error: eErr } = validateEmail(email)
     if (!eok) { setEmailErr(eErr); return }
     if (!pw)  { setError('Password is required'); return }
-    setError(''); setLoading(true)
+    setError(''); setIsAffiliateAcct(false); setLoading(true)
     try {
       const json = await apiFetch('/api/auth/login/', {
         method: 'POST',
         body: JSON.stringify({ email, password: pw }),
       })
-      localStorage.setItem('access',  json.tokens.access)
-      localStorage.setItem('refresh', json.tokens.refresh)
-      localStorage.setItem('user',    JSON.stringify(json.user))
+      setSession(
+        { access: 'access', refresh: 'refresh', user: 'user' },
+        json.tokens, json.user, remember,
+      )
       onSuccess?.(json.user)
       navigate('/dashboard')
       onClose?.()
     } catch (err) {
+      if (err instanceof ApiError && err.data?.is_affiliate) {
+        setIsAffiliateAcct(true)
+        setError(err.message)
+        return
+      }
       if (err instanceof ApiError && err.data?.email) {
         setEmailErr(Array.isArray(err.data.email) ? err.data.email[0] : err.data.email)
         return
@@ -594,7 +603,24 @@ function SignInPanel({ onSuccess, onClose, onForgotPassword }) {
         <Label><Key size={10} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />Password</Label>
         <PwInput value={pw} onChange={setPw} onKeyDown={kd} />
       </div>
-      <ErrBox msg={error} />
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, cursor: 'pointer', userSelect: 'none' }}>
+        <input type="checkbox" checked={remember} onChange={e => setRemember(e.target.checked)}
+          style={{ width: 15, height: 15, accentColor: C.gold, cursor: 'pointer' }} />
+        <span style={{ fontSize: 12.5, color: C.muted }}>Remember me</span>
+      </label>
+      {isAffiliateAcct ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '10px 13px', background: C.redBg, border: `1.5px solid ${C.redBorder}`, borderRadius: 8, marginBottom: 14, fontSize: 12.5, color: C.red, lineHeight: 1.5 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+            <AlertCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} />{error}
+          </div>
+          <button type="button" onClick={() => navigate('/affiliate-login')}
+            style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: C.gold, cursor: 'pointer', fontSize: 12.5, fontWeight: 700, padding: 0, fontFamily: 'inherit' }}>
+            Go to Affiliate Login →
+          </button>
+        </div>
+      ) : (
+        <ErrBox msg={error} />
+      )}
       <GoldBtn onClick={handle} loading={loading} disabled={!email || !pw}>Sign in</GoldBtn>
       <div style={{ textAlign: 'center', marginTop: 12 }}>
         <button type="button" onClick={() => onForgotPassword?.()}
@@ -1031,7 +1057,7 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'login', onAut
           position: 'fixed', inset: 0, zIndex: 200,
           background: 'rgba(1,4,9,0.88)', backdropFilter: 'blur(10px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: 16, fontFamily: "-apple-system,'Segoe UI',sans-serif",
+          padding: 16, fontFamily: "'Manrope', sans-serif",
         }}
         onClick={onClose}>
 
@@ -1059,7 +1085,7 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'login', onAut
             <div style={{ position: 'absolute', top: -50, left: '50%', transform: 'translateX(-50%)', width: 200, height: 100, borderRadius: '50%', background: 'rgba(212,175,55,0.08)', filter: 'blur(36px)', pointerEvents: 'none' }} />
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
               <div>
-                <div style={{ fontSize: 21, fontWeight: 900, letterSpacing: 3, color: '#fff', fontFamily: 'Georgia, serif', lineHeight: 1 }}>
+                <div style={{ fontSize: 21, fontWeight: 900, letterSpacing: 3, color: '#fff', fontFamily: 'Manrope, sans-serif', lineHeight: 1 }}>
                   <span style={{ color: C.gold }}>JACKPOTS</span>WORLD
                 </div>
                 <div style={{ fontSize: 10.5, color: C.muted, letterSpacing: '0.15em', textTransform: 'uppercase', marginTop: 6 }}>

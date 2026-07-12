@@ -7,6 +7,14 @@ const C = {
   gold: "#D4AF37", green: "#34D399", red: "#F87171", blue: "#60A5FA",
 };
 
+// Kept in sync with admin/tabs/UsersTab.jsx's LEVEL_NAMES — affiliate and
+// admin panels intentionally don't share components, so this is a local copy.
+const LEVEL_NAMES = [
+  "", "VIP", "VIP Bronze", "Silver", "Gold",
+  "Jackpot I", "Jackpot II", "Jackpot III",
+  "Jackpot Platinum", "Jackpot Diamond", "Master",
+];
+
 function Card({ children, style = {} }) {
   return (
     <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, ...style }}>
@@ -57,9 +65,9 @@ export default function ReferredUsersTab() {
         </div>
         <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
           style={{ padding: "9px 12px", borderRadius: 8, background: "rgba(12,14,22,0.95)", border: `1px solid ${C.border}`, color: "white", fontSize: 13, outline: "none" }}>
-          <option value="">All Statuses</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
+          <option value="" style={{ background: "rgba(12,14,22,0.95)", color: "white" }}>All Statuses</option>
+          <option value="active" style={{ background: "rgba(12,14,22,0.95)", color: "white" }}>Active</option>
+          <option value="inactive" style={{ background: "rgba(12,14,22,0.95)", color: "white" }}>Inactive</option>
         </select>
       </div>
 
@@ -69,21 +77,27 @@ export default function ReferredUsersTab() {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
             <thead>
               <tr style={{ background: "rgba(255,255,255,0.02)" }}>
-                {["Player", "Joined", "Status", "Earned", "Transactions"].map(h => (
-                  <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontSize: 10, color: "rgba(255,255,255,0.3)", fontWeight: 700, textTransform: "uppercase", borderBottom: `1px solid ${C.border}` }}>{h}</th>
+                {["UID", "Player", "Level", "Joined", "Status", "Earned", "Transactions"].map(h => (
+                  <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontSize: 10, color: "rgba(255,255,255,0.55)", fontWeight: 800, textTransform: "uppercase", borderBottom: `1px solid ${C.border}`, textShadow: "0 0 8px rgba(212,175,55,0.25)" }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={5} style={{ padding: 28, textAlign: "center", color: "rgba(255,255,255,0.2)" }}>Loading…</td></tr>
+                <tr><td colSpan={7} style={{ padding: 28, textAlign: "center", color: "rgba(255,255,255,0.4)" }}>Loading…</td></tr>
               ) : referrals.length === 0 ? (
-                <tr><td colSpan={5} style={{ padding: 28, textAlign: "center", color: "rgba(255,255,255,0.2)" }}>No referred players yet.</td></tr>
+                <tr><td colSpan={7} style={{ padding: 28, textAlign: "center", color: "rgba(255,255,255,0.4)" }}>No referred players yet.</td></tr>
               ) : referrals.map(r => (
                 <tr key={r.id} style={{ borderBottom: `1px solid ${C.border}` }}>
+                  <td style={{ padding: "11px 14px", fontFamily: "monospace", fontSize: 11, color: "rgba(255,255,255,0.5)" }}>{r.user_uid}</td>
                   <td style={{ padding: "11px 14px" }}>
                     <div style={{ fontWeight: 700, color: "white" }}>{r.name || r.email?.split("@")[0]}</div>
-                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>{r.email} · {r.user_uid}</div>
+                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)" }}>{r.email}</div>
+                  </td>
+                  <td style={{ padding: "11px 14px" }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 20, background: `${C.gold}15`, color: C.gold }}>
+                      {LEVEL_NAMES[r.user_level] || `Level ${r.user_level}`}
+                    </span>
                   </td>
                   <td style={{ padding: "11px 14px", color: "rgba(255,255,255,0.5)" }}>{fmtD(r.date_joined)}</td>
                   <td style={{ padding: "11px 14px" }}>
@@ -133,15 +147,20 @@ export default function ReferredUsersTab() {
 function PlayerTransactionsModal({ player, onClose }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [forbidden, setForbidden] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
       const res = await affiliateFetch(`${API}/api/affiliate/commissions/?user_id=${player.id}`);
-      if (res?.ok && !cancelled) {
-        const json = await res.json();
-        setRows(json.results || []);
+      if (!cancelled) {
+        if (res?.status === 403) {
+          setForbidden(true);
+        } else if (res?.ok) {
+          const json = await res.json();
+          setRows(json.results || []);
+        }
       }
       if (!cancelled) setLoading(false);
     })();
@@ -166,15 +185,19 @@ function PlayerTransactionsModal({ player, onClose }) {
           </div>
           <div style={{ overflowY: "auto", flex: 1 }}>
             {loading ? (
-              <div style={{ padding: 28, textAlign: "center", color: "rgba(255,255,255,0.2)", fontSize: 12 }}>Loading…</div>
+              <div style={{ padding: 28, textAlign: "center", color: "rgba(255,255,255,0.4)", fontSize: 12 }}>Loading…</div>
+            ) : forbidden ? (
+              <div style={{ padding: 28, textAlign: "center", color: "rgba(255,255,255,0.35)", fontSize: 12, lineHeight: 1.6 }}>
+                Transaction visibility is not enabled for your account.<br />Contact your account manager to request access.
+              </div>
             ) : rows.length === 0 ? (
-              <div style={{ padding: 28, textAlign: "center", color: "rgba(255,255,255,0.2)", fontSize: 12 }}>No transactions for this player yet.</div>
+              <div style={{ padding: 28, textAlign: "center", color: "rgba(255,255,255,0.4)", fontSize: 12 }}>No transactions for this player yet.</div>
             ) : (
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                 <thead>
                   <tr style={{ background: "rgba(255,255,255,0.02)" }}>
                     {["Date", "Amount", "Status"].map(h => (
-                      <th key={h} style={{ padding: "9px 14px", textAlign: "left", fontSize: 10, color: "rgba(255,255,255,0.3)", fontWeight: 700, textTransform: "uppercase", borderBottom: `1px solid ${C.border}` }}>{h}</th>
+                      <th key={h} style={{ padding: "9px 14px", textAlign: "left", fontSize: 10, color: "rgba(255,255,255,0.55)", fontWeight: 800, textTransform: "uppercase", borderBottom: `1px solid ${C.border}`, textShadow: "0 0 8px rgba(212,175,55,0.25)" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>

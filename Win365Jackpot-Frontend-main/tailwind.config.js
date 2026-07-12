@@ -4,9 +4,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-  heading: ['Space Grotesk', 'sans-serif'],
-  body: ['Space Grotesk', 'sans-serif'],
-  sans: ['Space Grotesk', 'sans-serif'],
+  heading: ['Manrope', 'sans-serif'],
+  body: ['Manrope', 'sans-serif'],
+  sans: ['Manrope', 'sans-serif'],
 },
       colors: {
         gold: { DEFAULT:'#D4AF37', light:'#F5D060', dark:'#9A7D20' },

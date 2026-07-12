@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
+import { useAutoFetch } from '../hooks/useAutoFetch'
+import { fetchTestimonials } from '../services/landingService'
+import { flagFromCountryCode } from '../utils/countryFlags'
 
-// ─── Testimonial data (main cards) ───────────────────────────────────────────
-const testimonials = [
+// ─── Testimonial data (main cards, fallback used only until the API responds) ─
+const FALLBACK_TESTIMONIALS = [
   {
     name: 'Rajesh K.', city: 'Mumbai, India',       flag: '🇮🇳', rating: 5,
     won: '$8.5 Lakhs', dest: 'Macau',   color: '#FF6F00', seed: 'rajesh',
@@ -227,6 +230,13 @@ export default function Testimonials() {
   const [scrollCards]             = useState(() => makeInitialPool(60))
   const { ref, inView }           = useInView({ threshold: 0.1, triggerOnce: true })
 
+  const { data: testimonialsData } = useAutoFetch(fetchTestimonials, {}, { intervalMs: 60_000 })
+  const testimonials = (Array.isArray(testimonialsData) && testimonialsData.length > 0 ? testimonialsData : FALLBACK_TESTIMONIALS).map(t => ({
+    name: t.name, city: t.city, flag: flagFromCountryCode(t.country_code) || t.flag,
+    rating: t.rating, won: t.won || t.amount_won, dest: t.dest || t.destination,
+    color: t.color || t.accent_color, avatar: t.avatar, seed: t.seed, text: t.text,
+  }))
+
   // Split into two rows for opposite directions
   const row1 = scrollCards.slice(0,  30)
   const row2 = scrollCards.slice(30, 60)
@@ -234,9 +244,9 @@ export default function Testimonials() {
   useEffect(() => {
     const timer = setInterval(() => setCurrent(p => (p + 1) % testimonials.length), 5000)
     return () => clearInterval(timer)
-  }, [])
+  }, [testimonials.length])
 
-  const t = testimonials[current]
+  const t = testimonials[current % testimonials.length] || testimonials[0]
 
   return (
     <section className="relative py-24 px-4 overflow-hidden" ref={ref}>
@@ -277,7 +287,7 @@ export default function Testimonials() {
             <div className="absolute top-6 left-8 text-8xl font-serif text-gold/10 leading-none select-none">"</div>
 
             <div className="flex justify-center mb-4">
-              <Avatar src={MAIN_PHOTOS[t.seed]} name={t.name} color={t.color} size="lg" />
+              <Avatar src={t.avatar || MAIN_PHOTOS[t.seed]} name={t.name} color={t.color} size="lg" />
             </div>
 
             <div className="flex justify-center gap-1 mb-4">

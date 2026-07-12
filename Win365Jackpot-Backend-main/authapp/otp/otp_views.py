@@ -8,6 +8,7 @@ Flow:
   POST /api/auth/verify-otp/ { email, otp, mode, name?, phone?, referral_code? }
 """
 
+import logging
 from datetime import timedelta
 from django.utils import timezone
 from rest_framework import permissions
@@ -20,6 +21,13 @@ from authapp.serializers import UserProfileSerializer
 from authapp.serializers.user_serializers import validate_strong_password, clean_full_phone
 from authapp.throttles import OTPSendRateThrottle, OTPVerifyRateThrottle
 from .otp_utils import generate_otp, send_otp_email
+
+logger = logging.getLogger(__name__)
+
+# Safe, generic message returned to API clients on any email delivery
+# failure — the real exception (including any SMTP provider details) is
+# logged server-side by otp_utils.send_otp_email, never sent to the client.
+EMAIL_DELIVERY_ERROR = "We couldn't send the verification email right now. Please try again in a few minutes or contact support."
 
 
 def get_tokens(user):
@@ -51,7 +59,7 @@ class SendOTPView(APIView):
 
         # Delete any stale OTPs for this email + mode
         OTPRecord.objects.filter(email=email, mode=mode).delete()
-        OTPRecord.objects.create(
+        record = OTPRecord.objects.create(
             email=email,
             phone="",
             otp=otp,
@@ -61,11 +69,12 @@ class SendOTPView(APIView):
 
         try:
             send_otp_email(email, otp)
-        except Exception as e:
-            return Response(
-                {"success": False, "error": f"Failed to send OTP email: {e}"},
-                status=500
-            )
+        except Exception:
+            # Full exception detail is already logged inside send_otp_email —
+            # don't leak SMTP provider internals to the client, and don't
+            # leave a valid-but-never-delivered OTP record usable.
+            record.delete()
+            return Response({"success": False, "error": EMAIL_DELIVERY_ERROR}, status=500)
         return Response({"message": "OTP sent successfully"})
 
 
@@ -196,7 +205,10 @@ class ForgotPasswordRequestView(APIView):
         try:
             send_otp_email(email, otp)
         except Exception:
-            pass  # still return the generic response — don't leak delivery failures
+            # Full exception detail is already logged inside send_otp_email.
+            # Still return the generic response — never reveal to the client
+            # whether the account exists or whether delivery succeeded.
+            logger.warning("Password reset email could not be delivered for %s", email)
 
         return generic_response
 

@@ -11,12 +11,17 @@ const C = {
 };
 
 const DOCUMENT_TYPES = [
-  "Government ID",
   "Passport",
+  "Government ID",
   "Driving License",
   "PAN Card (India)",
   "National ID",
-  "Address Proof",
+];
+
+const ID_PROOF_TYPES = [
+  { value: "",              label: "None" },
+  { value: "address_proof", label: "Address Proof" },
+  { value: "income_proof",  label: "Income Proof" },
 ];
 
 function Card({ children, style = {} }) {
@@ -94,6 +99,8 @@ export default function KycTab({ onToast }) {
   const [docFront, setDocFront] = useState(null);
   const [docBack, setDocBack] = useState(null);
   const [selfie, setSelfie] = useState(null);
+  const [idProofType, setIdProofType] = useState("");
+  const [idProofFile, setIdProofFile] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -117,6 +124,8 @@ export default function KycTab({ onToast }) {
     fd.append("doc_front", docFront);
     if (docBack) fd.append("doc_back", docBack);
     fd.append("selfie", selfie);
+    if (idProofType) fd.append("id_proof_type", idProofType);
+    if (idProofFile) fd.append("id_proof_file", idProofFile);
 
     setSubmitting(true);
     const res = await affiliateFetch(`${API}/api/kyc/submit/`, { method: "POST", body: fd });
@@ -124,6 +133,7 @@ export default function KycTab({ onToast }) {
     if (res?.ok) {
       onToast?.("KYC submitted — under review.", true);
       setDocFront(null); setDocBack(null); setSelfie(null);
+      setIdProofType(""); setIdProofFile(null);
       load();
     } else {
       const j = await res?.json().catch(() => ({}));
@@ -198,14 +208,29 @@ export default function KycTab({ onToast }) {
           <div>
             <label style={labelStyle}>Document Type</label>
             <select value={documentType} onChange={e => setDocumentType(e.target.value)} style={inputStyle}>
-              {DOCUMENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+              {DOCUMENT_TYPES.map(t => <option key={t} value={t} style={{ background: "#0A0C14", color: "white" }}>{t}</option>)}
             </select>
           </div>
           <div>
             <label style={labelStyle}>Document Number</label>
             <input value={documentNumber} onChange={e => setDocumentNumber(e.target.value)} style={inputStyle} placeholder="Document number" />
           </div>
+          <div>
+            <label style={labelStyle}>ID Proof</label>
+            <select value={idProofType} onChange={e => { setIdProofType(e.target.value); if (!e.target.value) setIdProofFile(null); }} style={inputStyle}>
+              {ID_PROOF_TYPES.map(t => <option key={t.value} value={t.value} style={{ background: "#0A0C14", color: "white" }}>{t.label}</option>)}
+            </select>
+          </div>
         </div>
+
+        {idProofType && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 14 }}>
+            <FileDrop
+              label={ID_PROOF_TYPES.find(t => t.value === idProofType)?.label || "ID Proof"}
+              file={idProofFile} onChange={setIdProofFile} icon={FileText}
+            />
+          </div>
+        )}
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 16 }}>
           <FileDrop label="Document — Front" required file={docFront} onChange={setDocFront} icon={FileText} />

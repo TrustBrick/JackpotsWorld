@@ -247,9 +247,12 @@ function RegisterForm({ onSubmitted }) {
   const handleVerified = async (verifyJson) => {
     const access = verifyJson?.tokens?.access
     if (access) {
-      localStorage.setItem('access', access)
-      localStorage.setItem('refresh', verifyJson.tokens.refresh)
-      if (verifyJson.user) localStorage.setItem('user', JSON.stringify(verifyJson.user))
+      // This access token is only ever used for the one call below, right
+      // here — never persisted. The registration flow bootstraps a fresh
+      // User via the normal OTP-verify endpoint, then immediately attaches
+      // an AffiliateProfile to it; the visitor is expected to authenticate
+      // via /affiliate-login afterward (see SuccessScreen.onGoLogin below),
+      // not be left with a live Player session sitting in storage.
       // apiFetch (shared with AuthModal) never attaches a bearer token — this
       // endpoint requires one, so call it directly with the fresh token.
       try {
@@ -340,7 +343,7 @@ export default function AffiliateRegister() {
         <div style={{
           background: C.surface, borderRadius: 14, border: `1px solid ${C.border}`,
           boxShadow: '0 0 0 1px rgba(212,175,55,0.06), 0 28px 72px rgba(0,0,0,0.45)',
-          padding: '26px 26px 22px', fontFamily: "-apple-system,'Segoe UI',sans-serif",
+          padding: '26px 26px 22px', fontFamily: "'Manrope', sans-serif",
         }}>
           <AnimatePresence mode="wait">
             {success

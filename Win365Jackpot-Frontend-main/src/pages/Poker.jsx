@@ -9,6 +9,7 @@ import PokerCard from '../components/poker/PokerCard'
 import AuthModal from '../components/AuthModal'
 import { fetchPokerTournaments } from '../services/pokerService'
 import { useAutoFetch } from '../hooks/useAutoFetch'
+import { getToken } from '../services/authStorage'
 
 const EMPTY_PARAMS = {}
 const STATUS_ORDER = { live: 0, upcoming: 1, completed: 2 }
@@ -18,7 +19,7 @@ export default function Poker() {
   const { theme } = useTheme()
   const [authOpen, setAuthOpen] = useState(false)
   const [authTab, setAuthTab] = useState('login')
-  const isLoggedIn = !!localStorage.getItem('access')
+  const isLoggedIn = !!getToken('access')
 
   const { data, loading, error, reload } = useAutoFetch(fetchPokerTournaments, EMPTY_PARAMS, { intervalMs: 60_000 })
   const tournaments = useMemo(() => {

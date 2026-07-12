@@ -212,15 +212,15 @@ export default function CashWallet({ userInfo, accounts, casinos, submitting, se
             <div>
               <label style={lbl(C)}>Country</label>
               <select value={country} onChange={e => setCountry(e.target.value)} style={sel(COLOR, C)}>
-                <option value="">— Select country —</option>
-                {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+                <option value="" style={{ background: C.panelBg, color: C.text }}>— Select country —</option>
+                {COUNTRIES.map(c => <option key={c} value={c} style={{ background: C.panelBg, color: C.text }}>{c}</option>)}
               </select>
             </div>
             <div>
               <label style={lbl(C)}>Casino</label>
               <select value={casinoName} onChange={e => setCasinoName(e.target.value)} disabled={!country} style={sel(casinoName?"#34d399":COLOR, C)}>
-                <option value="">— Select casino —</option>
-                {casinosForCountry.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+                <option value="" style={{ background: C.panelBg, color: C.text }}>— Select casino —</option>
+                {casinosForCountry.map(c => <option key={c.name} value={c.name} style={{ background: C.panelBg, color: C.text }}>{c.name}</option>)}
               </select>
             </div>
           </div>
@@ -277,21 +277,21 @@ export default function CashWallet({ userInfo, accounts, casinos, submitting, se
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:12 }}>
             <div style={{ padding:"10px 12px", borderRadius:8, background:C.hoverBg, border:`1px solid ${C.border}` }}>
               <div style={{ fontSize:9, color:C.muted, marginBottom:3, fontWeight:700, textTransform:"uppercase" }}>From</div>
-              <div style={{ fontSize:13, fontWeight:600, color:casinoName?C.text:C.dim }}>{casinoName||"— not selected —"}</div>
+              <div style={{ fontSize:13, fontWeight:600, color:casinoName?C.text:C.muted }}>{casinoName||"— not selected —"}</div>
             </div>
             <div>
               <label style={lbl(C)}>To Country</label>
               <select value={toCountry} onChange={e => { setToCountry(e.target.value); setToCasino(""); }} style={sel("#60a5fa", C)}>
-                <option value="">— Select —</option>
-                {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+                <option value="" style={{ background: C.panelBg, color: C.text }}>— Select —</option>
+                {COUNTRIES.map(c => <option key={c} value={c} style={{ background: C.panelBg, color: C.text }}>{c}</option>)}
               </select>
             </div>
             {toCountry && (
               <div style={{ gridColumn:"2/3" }}>
                 <label style={lbl(C)}>To Casino</label>
                 <select value={toCasino} onChange={e => setToCasino(e.target.value)} style={sel("#60a5fa", C)}>
-                  <option value="">— Select —</option>
-                  {toCasinosForCountry.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+                  <option value="" style={{ background: C.panelBg, color: C.text }}>— Select —</option>
+                  {toCasinosForCountry.map(c => <option key={c.name} value={c.name} style={{ background: C.panelBg, color: C.text }}>{c.name}</option>)}
                 </select>
               </div>
             )}
@@ -303,10 +303,10 @@ export default function CashWallet({ userInfo, accounts, casinos, submitting, se
           <div>
             <label style={lbl(C)}>Transaction Type</label>
             <select value={txnType} onChange={e => setTxnType(e.target.value)} style={sel(opColor, C)} disabled={opMode==="transfer"}>
-              {opMode==="credit"   && CREDIT_TYPES.map(t => <option key={t.code} value={t.code}>{t.code} — {t.label}</option>)}
-              {opMode==="debit"    && DEBIT_TYPES.map(t  => <option key={t.code} value={t.code}>{t.code} — {t.label}</option>)}
-              {opMode==="transfer" && <option value="TAC">TAC — Casino Transfer</option>}
-              {opMode==="main"     && MAIN_ACCOUNT_TYPES.map(t => <option key={t.code} value={t.code}>{t.code} — {t.label}</option>)}
+              {opMode==="credit"   && CREDIT_TYPES.map(t => <option key={t.code} value={t.code} style={{ background: C.panelBg, color: C.text }}>{t.code} — {t.label}</option>)}
+              {opMode==="debit"    && DEBIT_TYPES.map(t  => <option key={t.code} value={t.code} style={{ background: C.panelBg, color: C.text }}>{t.code} — {t.label}</option>)}
+              {opMode==="transfer" && <option value="TAC" style={{ background: C.panelBg, color: C.text }}>TAC — Casino Transfer</option>}
+              {opMode==="main"     && MAIN_ACCOUNT_TYPES.map(t => <option key={t.code} value={t.code} style={{ background: C.panelBg, color: C.text }}>{t.code} — {t.label}</option>)}
             </select>
           </div>
           <div>

@@ -107,22 +107,22 @@ export default function ActivityTab() {
             <thead>
               <tr style={{ background: "rgba(255,255,255,0.02)" }}>
                 {cfg.columns.map(h => (
-                  <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontSize: 10, color: "rgba(255,255,255,0.3)", fontWeight: 700, textTransform: "uppercase", borderBottom: `1px solid ${C.border}` }}>{h}</th>
+                  <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontSize: 10, color: "rgba(255,255,255,0.55)", fontWeight: 800, textTransform: "uppercase", borderBottom: `1px solid ${C.border}`, textShadow: "0 0 8px rgba(212,175,55,0.25)" }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {type === "bonus" ? (
                 <tr>
-                  <td colSpan={cfg.columns.length} style={{ padding: 32, textAlign: "center", color: "rgba(255,255,255,0.25)" }}>
+                  <td colSpan={cfg.columns.length} style={{ padding: 32, textAlign: "center", color: "rgba(255,255,255,0.45)" }}>
                     <Gift size={22} style={{ marginBottom: 8, opacity: 0.4 }} />
                     <div>No bonus rewards yet — coming soon.</div>
                   </td>
                 </tr>
               ) : loading ? (
-                <tr><td colSpan={cfg.columns.length} style={{ padding: 28, textAlign: "center", color: "rgba(255,255,255,0.2)" }}>Loading…</td></tr>
+                <tr><td colSpan={cfg.columns.length} style={{ padding: 28, textAlign: "center", color: "rgba(255,255,255,0.4)" }}>Loading…</td></tr>
               ) : rows.length === 0 ? (
-                <tr><td colSpan={cfg.columns.length} style={{ padding: 28, textAlign: "center", color: "rgba(255,255,255,0.2)" }}>No {cfg.label.toLowerCase()} yet.</td></tr>
+                <tr><td colSpan={cfg.columns.length} style={{ padding: 28, textAlign: "center", color: "rgba(255,255,255,0.4)" }}>No {cfg.label.toLowerCase()} yet.</td></tr>
               ) : rows.map(r => (
                 <tr key={r.id} style={{ borderBottom: `1px solid ${C.border}` }}>
                   {cfg.row(r).map((cell, i) => (

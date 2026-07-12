@@ -161,7 +161,7 @@ export default function OtpWallet({ userInfo, accounts, submitting, setSubmittin
           <div>
             <label style={lbl(C)}>OTP Type</label>
             <select value={otpType} onChange={e => setOtpType(e.target.value)} style={sel(COLOR, C)}>
-              {OTP_TYPES.map(o => <option key={o.code} value={o.code}>{o.label}</option>)}
+              {OTP_TYPES.map(o => <option key={o.code} value={o.code} style={{ background: C.panelBg, color: C.text }}>{o.label}</option>)}
             </select>
           </div>
           <div>

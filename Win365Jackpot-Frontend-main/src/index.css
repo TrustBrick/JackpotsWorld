@@ -1,5 +1,5 @@
 
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -48,7 +48,7 @@ img, video, svg, picture { max-width: 100%; height: auto; }
   body {
     background-color: var(--w365-bg);
     color: var(--w365-text);
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: 'Manrope', sans-serif;
     overflow-x: hidden;
     transition: background-color 0.4s ease, color 0.4s ease;
   }
@@ -110,7 +110,7 @@ img, video, svg, picture { max-width: 100%; height: auto; }
     background: linear-gradient(135deg, #9A7D20, #D4AF37, #F5D060, #D4AF37);
     background-size: 200% auto;
     color: #0A0005;
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: 'Manrope', sans-serif;
     font-weight: 700;
     letter-spacing: 0.1em;
     transition: all 0.3s ease;
@@ -126,7 +126,7 @@ img, video, svg, picture { max-width: 100%; height: auto; }
     background: transparent;
     border: 2px solid #D4AF37;
     color: #D4AF37;
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: 'Manrope', sans-serif;
     font-weight: 600;
     letter-spacing: 0.1em;
     transition: all 0.3s ease;
@@ -236,7 +236,7 @@ img, video, svg, picture { max-width: 100%; height: auto; }
 
 /* Responsive nav */
 .nav-link {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: 'Manrope', sans-serif;
   font-size: 0.8rem;
   letter-spacing: 0.15em;
   color: rgba(var(--w365-text-rgb), 0.88);

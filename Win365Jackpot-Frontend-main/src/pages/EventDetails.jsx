@@ -10,6 +10,7 @@ import Navbar from '../components/Navbar'
 import AuthModal from '../components/AuthModal'
 import { fetchEventDetail, requestEventTicket } from '../services/eventService'
 import { getFallbackImage } from '../utils/mediaFallback'
+import { getToken } from '../services/authStorage'
 
 function formatDate(iso) {
   if (!iso) return ''
@@ -34,7 +35,7 @@ export default function EventDetails() {
   const [ticketState, setTicketState] = useState({ loading: false, message: '' })
   const [imgFailed, setImgFailed] = useState(false)
 
-  const isLoggedIn = !!localStorage.getItem('access')
+  const isLoggedIn = !!getToken('access')
 
   const load = () => {
     setLoading(true)

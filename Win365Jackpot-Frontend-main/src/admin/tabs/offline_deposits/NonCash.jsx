@@ -204,7 +204,7 @@ onToast(j.message || formatError(j.error), r.ok);
           <div>
             <label style={lbl(C)}><Tag size={9} style={{ display:"inline", marginRight:3 }}/>Bonus Type</label>
             <select value={giftType} onChange={e => setGiftType(e.target.value)} style={sel(COLOR, C)}>
-              {GIFT_TYPES.map(g => <option key={g.code} value={g.code}>{g.label}</option>)}
+              {GIFT_TYPES.map(g => <option key={g.code} value={g.code} style={{ background: C.panelBg, color: C.text }}>{g.label}</option>)}
             </select>
           </div>
         </div>

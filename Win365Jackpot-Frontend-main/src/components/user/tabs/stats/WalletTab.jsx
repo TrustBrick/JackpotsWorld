@@ -288,7 +288,7 @@ function WalletBalances({ accounts, levelData, loading, profile }) {
     <div style={{ fontSize:10, color:"rgba(255,255,255,0.4)", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:4 }}>
       {t("wallet.mainBalance")}
     </div>
-    <div style={{ fontSize:10, color:"rgba(255,255,255,0.25)", marginBottom:8 }}>
+    <div style={{ fontSize:10, color:"rgba(255,255,255,0.45)", marginBottom:8 }}>
       {t("wallet.mainBalanceSub")}
     </div>
     <div style={{ fontSize:26, fontWeight:900, fontFamily:"monospace", color:"#34d399" }}>
@@ -299,7 +299,7 @@ function WalletBalances({ accounts, levelData, loading, profile }) {
     <div style={{ fontSize:10, color:"rgba(255,255,255,0.4)", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:4 }}>
       {t("wallet.totalMainBalance")}
     </div>
-    <div style={{ fontSize:10, color:"rgba(255,255,255,0.25)", marginBottom:8 }}>
+    <div style={{ fontSize:10, color:"rgba(255,255,255,0.45)", marginBottom:8 }}>
       {t("wallet.totalMainBalanceSub")}
     </div>
     <div style={{ fontSize:26, fontWeight:900, fontFamily:"monospace", color:"#60a5fa" }}>
@@ -355,7 +355,7 @@ function WalletBalances({ accounts, levelData, loading, profile }) {
                 }}
               >
                 {casinoData.casinos.map(c => (
-                  <option key={c.casino_name} value={c.casino_name}>
+                  <option key={c.casino_name} value={c.casino_name} style={{ background: "rgba(20,20,28,0.98)", color: "white" }}>
                     {c.casino_name}
                   </option>
                 ))}
@@ -607,7 +607,7 @@ function TransactionHistory({ onToast }) {
                       }}>
                         {isRP ? Number(tx.amount).toLocaleString() : `${isCredit ? "+" : "−"}${fmt(tx.amount)}`}
                       </div>
-                      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>
+                      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", marginTop: 2 }}>
                         {isRP ? `${Number(tx.balance_after).toLocaleString()} RP` : fmt(tx.balance_after)}
                       </div>
                       <span style={{

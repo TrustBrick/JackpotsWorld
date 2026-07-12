@@ -9,6 +9,7 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom'
 import AuthModal from './AuthModal'
 import ChatBot from './ChatBot'
+import { getToken, getUser, clearSession } from '../services/authStorage'
 
 // Maps each navLinks entry's stable `label` to its i18next key.
 const NAV_I18N_KEY = {
@@ -128,7 +129,7 @@ function UserDropdown({ user, onLogout, onRequireAuth }) {
             <div className="py-1.5">
               <button
                 onClick={() => {
-  const token = localStorage.getItem('access')
+  const token = getToken('access')
 
   if (!token) {
   onRequireAuth?.()
@@ -242,8 +243,8 @@ export default function Navbar() {
   }, [])
 
   useEffect(() => {
-  const saved = localStorage.getItem('user')
-  if (saved) setUser(JSON.parse(saved))
+  const saved = getUser('user')
+  if (saved) setUser(saved)
 }, [])
 
   // ── Cross-page scroll support ──────────────────────────────────────────────
@@ -289,15 +290,15 @@ export default function Navbar() {
 
   const handleLogout = () => {
     setUser(null)
-    localStorage.removeItem('user')
-    localStorage.removeItem('access')    // ← was 'user_token'
-    localStorage.removeItem('refresh')   // ← was 'user_refresh'
+    clearSession(['user', 'access', 'refresh'])
 }
 
   const handleAuthSuccess = (userData) => {
+  // Tokens/user are already persisted by SignInPanel's own handle() (which
+  // knows the chosen Remember Me value) — this just updates the navbar's
+  // own display state, without re-writing storage and overriding that choice.
   setModalOpen(false)
   setUser(userData)
-  localStorage.setItem('user', JSON.stringify(userData))
   setTimeout(() => navigate('/dashboard'), 50)
 }
 

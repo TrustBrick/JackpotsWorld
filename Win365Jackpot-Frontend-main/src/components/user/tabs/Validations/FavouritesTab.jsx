@@ -114,7 +114,7 @@ function RemoveBtn({ id, removing, onRemove }) {
 
 function EmptyState({ icon, text }) {
   return (
-    <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: 48, color: "rgba(255,255,255,0.2)" }}>
+    <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: 48, color: "rgba(255,255,255,0.4)" }}>
       <div style={{ opacity: 0.2, margin: "0 auto 12px", width: "fit-content" }}>{icon}</div>
       {text}
     </div>

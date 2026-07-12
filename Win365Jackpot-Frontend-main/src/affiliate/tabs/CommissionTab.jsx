@@ -51,7 +51,7 @@ export default function CommissionTab() {
               <thead>
                 <tr style={{ background: "rgba(255,255,255,0.02)" }}>
                   {["Tier", "Active Referrals", "Commission Rate"].map(h => (
-                    <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontSize: 10, color: "rgba(255,255,255,0.3)", fontWeight: 700, textTransform: "uppercase", borderBottom: `1px solid ${C.border}` }}>{h}</th>
+                    <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontSize: 10, color: "rgba(255,255,255,0.55)", fontWeight: 800, textTransform: "uppercase", borderBottom: `1px solid ${C.border}`, textShadow: "0 0 8px rgba(212,175,55,0.25)" }}>{h}</th>
                   ))}
                 </tr>
               </thead>

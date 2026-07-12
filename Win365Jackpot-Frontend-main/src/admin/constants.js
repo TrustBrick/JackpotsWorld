@@ -69,6 +69,7 @@ export const ADMIN_TABS = [
   { id:"poker",         label:"Manage Poker",      icon:"Spade" },
   { id:"promotions",    label:"Manage Promotions", icon:"Gift" },
   { id:"locations",     label:"Manage Locations",  icon:"MapPin" },
+  { id:"landing",       label:"Landing Page",      icon:"LayoutTemplate" },
   { id:"affiliates",    label:"Affiliates",        icon:"Handshake" },
   { id:"logs",          label:"Activity Logs",    icon:"Activity"   },
   // { id:"staff",         label:"Staff",            icon:"UserCog"    },

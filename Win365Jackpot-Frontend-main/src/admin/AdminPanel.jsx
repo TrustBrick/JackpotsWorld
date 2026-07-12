@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart3, Users, Wallet, Building2, Crown, Gift,
   Bell, FileText, Shield, Activity, UserCog, LogOut, Key,
-  Eye, EyeOff, AlertCircle, CalendarDays, Spade, Handshake, MapPin,
+  Eye, EyeOff, AlertCircle, CalendarDays, Spade, Handshake, MapPin, LayoutTemplate,
 } from "lucide-react";
 
 import OverviewTab       from "./tabs/OverviewTab";
@@ -22,6 +22,7 @@ import EventsManageTab      from "./tabs/content/EventsManageTab";
 import PokerManageTab       from "./tabs/content/PokerManageTab";
 import PromotionsManageTab  from "./tabs/content/PromotionsManageTab";
 import LocationsManageTab   from "./tabs/content/LocationsManageTab";
+import LandingManageTab     from "./tabs/content/LandingManageTab";
 import AffiliatesTab        from "./tabs/AffiliatesTab";
 
 import { Card, Toast } from "./components/SharedUI";
@@ -36,7 +37,7 @@ import AdminThemeToggle from "./components/AdminThemeToggle";
 
 const ICON_MAP = {
   BarChart3, Users, Wallet, Building2, Crown, Gift,
-  Bell, FileText, Shield, Activity, UserCog, CalendarDays, Spade, Handshake, MapPin,
+  Bell, FileText, Shield, Activity, UserCog, CalendarDays, Spade, Handshake, MapPin, LayoutTemplate,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -78,7 +79,7 @@ function AdminLoginScreen({ onSuccess }) {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Space Grotesk', sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Manrope', sans-serif" }}>
       <div style={{ position: "fixed", inset: 0, pointerEvents: "none" }}>
         <div style={{ position: "absolute", top: "20%", left: "50%", transform: "translate(-50%,-50%)", width: 600, height: 600, borderRadius: "50%", background: `radial-gradient(circle, ${C.gold}18, transparent 60%)` }} />
       </div>
@@ -217,6 +218,7 @@ function AdminPanelInner() {
       case "poker":     return <PokerManageTab       {...props} />;
       case "promotions":return <PromotionsManageTab  {...props} />;
       case "locations": return <LocationsManageTab   {...props} />;
+      case "landing":   return <LandingManageTab     {...props} />;
       case "affiliates":return <AffiliatesTab        {...props} />;
       case "logs":      return <LogsTab           {...props} />;
       case "staff":     return <StaffTab          {...props} />;
@@ -225,7 +227,7 @@ function AdminPanelInner() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Space Grotesk', sans-serif", display: "flex" }}>
+    <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Manrope', sans-serif", display: "flex" }}>
 
       {/* ── Sidebar ── */}
       <aside style={{
@@ -248,7 +250,7 @@ function AdminPanelInner() {
       <span className="font-bold text-xl md:text-2xl gold-text font-black tracking-wider">Jackpots</span>
       <span className="font-body text-xs tracking-[0.4em] text-gold/70 uppercase">World</span>
     </div>
-            <div style={{ fontSize: 10, color: C.dim, letterSpacing: "0.3em", textTransform: "uppercase" }}>Admin Panel</div>
+            <div style={{ fontSize: 10, color: C.muted, letterSpacing: "0.3em", textTransform: "uppercase" }}>Admin Panel</div>
           </div>
           <AdminThemeToggle size={28} />
         </div>
@@ -257,7 +259,7 @@ function AdminPanelInner() {
         {adminUser && (
           <div style={{ marginBottom: 16, padding: "10px 12px", borderRadius: 10, background: `${C.gold}10`, border: `1px solid ${C.gold}20` }}>
             <div style={{ fontSize: 11, color: C.gold, fontWeight: 700 }}>{adminUser.email}</div>
-            <div style={{ fontSize: 10, color: C.dim, marginTop: 2 }}>{adminUser.role || "Admin"}</div>
+            <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>{adminUser.role || "Admin"}</div>
           </div>
         )}
 
@@ -306,7 +308,7 @@ function AdminPanelInner() {
           <div style={{ fontSize: 18, fontWeight: 900, color: C.text }}>
             {ADMIN_TABS.find(t => t.id === tab)?.label || "Overview"}
           </div>
-          <div style={{ marginLeft: "auto", fontSize: 11, color: C.dim, fontFamily: "monospace" }}>
+          <div style={{ marginLeft: "auto", fontSize: 11, color: C.muted, fontFamily: "monospace" }}>
             {adminUser?.user_uid || adminUser?.email || ""}
           </div>
         </div>

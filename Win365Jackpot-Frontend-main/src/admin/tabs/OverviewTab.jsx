@@ -25,7 +25,7 @@ function buildT(C) {
     borderHover: C.border2,
     text:        C.text,
     textMuted:   C.sub,
-    textDim:     C.dim,
+    textDim:     C.muted,
     green:  "#1db96a", greenMuted:  "rgba(29,185,106,0.12)",
     red:    "#e5534b", redMuted:    "rgba(229,83,75,0.12)",
     blue:   "#388bfd", blueMuted:   "rgba(56,139,253,0.12)",

@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { Gem, CalendarDays, MapPinned, Gift, MapPin } from 'lucide-react'
 import { useAutoFetch } from '../hooks/useAutoFetch'
 import { fetchLocations } from '../services/locationService'
+import { fetchHeroStats, fetchLandingSettings } from '../services/landingService'
 import { flagFromCountryCode } from '../utils/countryFlags'
 
 // ─── CSS ───────────────────────────────────────────────────────────────────
@@ -53,6 +54,10 @@ const CSS = `
   @keyframes w365-countries-marquee {
     from { transform: translateX(0); }
     to   { transform: translateX(-50%); }
+  }
+  @keyframes badgeGlow {
+    0%,100% { box-shadow: 0 0 10px rgba(212,175,55,0.35), 0 0 0 1px rgba(212,175,55,0.15) inset; }
+    50%      { box-shadow: 0 0 26px rgba(212,175,55,0.85), 0 0 48px rgba(212,175,55,0.3), 0 0 0 1px rgba(212,175,55,0.3) inset; }
   }
   @media (prefers-reduced-motion: reduce) {
     .w365-countries-track { animation: none !important; }
@@ -104,7 +109,7 @@ const FloatingCard = memo(({ suit, val, pos, delay, red }) => (
       borderRadius:8,
       display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
       fontWeight:800,
-      fontFamily:"'Space Grotesk', sans-serif",
+      fontFamily:"'Manrope', sans-serif",
       fontSize:'clamp(8px,1.4vw,11px)',
       color: red ? '#ff4466' : '#D4AF37',
       animation:`cardGlow 2.5s ${delay}s ease-in-out infinite`,
@@ -154,7 +159,7 @@ const FloatingLuxury = memo(({ Icon, logo, label, pos, delay, color }) => {
         color, opacity:0.85,
         fontWeight:900,
         letterSpacing:'0.13em',
-        fontFamily:"'Space Grotesk', sans-serif",
+        fontFamily:"'Manrope', sans-serif",
       }}>
         {label}
       </div>
@@ -253,14 +258,14 @@ function WinnerFeedDesktop() {
               <span style={{ width:8, height:8, borderRadius:'50%', background:'#4ade80', flexShrink:0, animation:'pulse-dot 2s infinite' }} />
               <div style={{ minWidth:0 }}>
                 <div style={{
-                  fontFamily:"'Space Grotesk', sans-serif", fontSize:12,
+                  fontFamily:"'Manrope', sans-serif", fontSize:12,
                   color:'rgba(255,255,255,0.9)', fontWeight:600,
                   overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
                 }}>
                   🏆 <span style={{ color:'#D4AF37' }}>{w.amount}</span> — {w.name}
                 </div>
                 <div style={{
-                  fontFamily:"'Space Grotesk', sans-serif", fontSize:10,
+                  fontFamily:"'Manrope', sans-serif", fontSize:10,
                   color:'rgba(255,255,255,0.4)', marginTop:2,
                   overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
                 }}>
@@ -299,14 +304,14 @@ function WinnerFeedMobile() {
             <span style={{ width:6, height:6, borderRadius:'50%', background:'#4ade80', flexShrink:0, animation:'pulse-dot 2s infinite' }} />
             <div style={{ minWidth:0 }}>
               <div style={{
-                fontFamily:"'Space Grotesk', sans-serif", fontWeight:700,
+                fontFamily:"'Manrope', sans-serif", fontWeight:700,
                 fontSize:'clamp(8px,2.2vw,9.5px)', color:'#fff',
                 overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
               }}>
                 🏆 <span style={{ color:'#D4AF37' }}>{w.amount}</span> {w.name}
               </div>
               <div style={{
-                fontFamily:"'Space Grotesk', sans-serif",
+                fontFamily:"'Manrope', sans-serif",
                 fontSize:'clamp(7px,1.9vw,8px)', color:'rgba(255,255,255,0.45)',
                 overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
               }}>
@@ -348,7 +353,7 @@ export default function Hero() {
     update()
     const ro = new ResizeObserver(update)
     ro.observe(el)
-    // Web-font swap (e.g. Space Grotesk finishing load) can reflow the badge
+    // Web-font swap (e.g. Manrope finishing load) can reflow the badge
     // narrower after the first measurement without ResizeObserver firing
     // again reliably in every browser, so re-measure once fonts settle too.
     document.fonts?.ready?.then(update)
@@ -364,6 +369,9 @@ export default function Hero() {
   const { data: locationsData } = useAutoFetch(fetchLocations, {}, { intervalMs: 60_000 })
   const locations = Array.isArray(locationsData) && locationsData.length > 0 ? locationsData : FALLBACK_LOCATIONS
   const countriesTrack = [...locations, ...locations]
+
+  const { data: settings } = useAutoFetch(fetchLandingSettings, {}, { intervalMs: 60_000 })
+  const { data: heroStatsData } = useAutoFetch(fetchHeroStats, {}, { intervalMs: 60_000 })
 
   // Background video loop fallback — some encodes don't honor the native
   // `loop` attribute reliably in every browser, so force-restart on end/pause.
@@ -390,12 +398,14 @@ useEffect(() => {
     return () => clearInterval(id)
   }, [])
 
-  const stats = [
-    { value:'20K+',          label:'Players'   },
-    { value:dailyCr.display, label:'Won Today' },
-    { value:'10+',            label:'Countries' },
-    { value:'24/7',          label:'Support'   },
+  const FALLBACK_STATS = [
+    { label:'Players',   value:'20K+' },
+    { label:'Won Today', value:dailyCr.display },
+    { label:'Countries', value:'10+' },
+    { label:'Support',   value:'24/7' },
   ]
+  const stats = (Array.isArray(heroStatsData) && heroStatsData.length > 0 ? heroStatsData : FALLBACK_STATS)
+    .map(s => s.label?.toLowerCase() === 'won today' ? { ...s, value: dailyCr.display } : s)
 
   return (
     <section
@@ -425,7 +435,7 @@ useEffect(() => {
           objectFit:'cover', zIndex:0, pointerEvents:'none',
         }}
       >
-        <source src="/videos/hero-background.mp4" type="video/mp4" />
+        <source src={settings?.hero_background_video || "/videos/hero-background.mp4"} type="video/mp4" />
       </video>
 
       {/* Color-grading overlay — keeps the video in the site's dark magenta/gold
@@ -540,18 +550,22 @@ useEffect(() => {
           initial={{ opacity:0, y:-20 }} animate={{ opacity:1, y:0 }}
           transition={{ delay:0.2, duration:0.45 }}
           style={{
-            display:'inline-flex', alignItems:'center', gap:8,
-            border:'1px solid rgba(212,175,55,0.35)', borderRadius:999,
-            padding:'6px 16px', marginBottom:'clamp(12px,3vw,24px)',
-            background:'rgba(212,175,55,0.07)',
-            fontFamily:"'Space Grotesk', sans-serif",
-            fontSize:'clamp(8px,1.8vw,10px)', fontWeight:700,
-            letterSpacing:'0.18em', textTransform:'uppercase',
-            color:'rgba(212,175,55,0.8)',
+            display:'inline-flex', alignItems:'center', gap:9,
+            border:'1.5px solid rgba(245,224,122,0.7)', borderRadius:999,
+            padding:'8px 20px', marginBottom:'clamp(12px,3vw,24px)',
+            background:'rgba(212,175,55,0.16)',
+            fontFamily:"'Manrope', sans-serif",
+            fontSize:'clamp(9px,2vw,11.5px)', fontWeight:900,
+            letterSpacing:'0.16em',
+            color:'#F5E07A',
+            textShadow:'0 0 12px rgba(212,175,55,0.7)',
+            animation:'badgeGlow 2.6s ease-in-out infinite',
           }}
         >
-          <span style={{ width:6, height:6, borderRadius:'50%', background:'#4ade80', flexShrink:0, animation:'pulse-dot 2s infinite', display:'inline-block' }} />
-          Asia's #1 Offline Casino Promotion Platform
+          <span style={{ width:7, height:7, borderRadius:'50%', background:'#4ade80', flexShrink:0, animation:'pulse-dot 2s infinite', display:'inline-block' }} />
+          {(settings?.hero_badge_text || "Asia's #1 Offline Casinos VIP's Platform")
+            .toUpperCase()
+            .replace(/'S\b/g, "'s")}
         </motion.div>
 
         {/* H1 */}
@@ -559,7 +573,7 @@ useEffect(() => {
           initial={{ opacity:0, y:32 }} animate={{ opacity:1, y:0 }}
           transition={{ delay:0.35, duration:0.65 }}
           style={{
-            fontFamily:"'Poppins', sans-serif",
+            fontFamily:"'Manrope', sans-serif",
             fontWeight:700,
             fontSize:'clamp(52px,13vw,120px)',
             lineHeight:0.9,
@@ -598,14 +612,14 @@ useEffect(() => {
             border:'1px solid rgba(212,175,55,0.35)', borderRadius:999,
             padding:'6px 16px', marginBottom:'clamp(12px,3vw,24px)',
             background:'rgba(212,175,55,0.07)',
-            fontFamily:"'Space Grotesk', sans-serif",
+            fontFamily:"'Manrope', sans-serif",
             fontSize:'clamp(8px,1.8vw,10px)', fontWeight:700,
             letterSpacing:'0.18em', textTransform:'uppercase',
             color:'rgba(212,175,55,0.8)',
           }}
         >
           <span style={{ width:6, height:6, borderRadius:'50%', background:'#4ade80', flexShrink:0, animation:'pulse-dot 2s infinite', display:'inline-block' }} />
-          Experience World-Class Casino Gaming Across
+          {settings?.global_reach_tagline || 'Experience World-Class Casino Gaming Across'}
         </motion.div>
 
         {/* Countries ribbon — same size/position/layout as before (pinned to
@@ -626,7 +640,7 @@ useEffect(() => {
             backgroundSize:'220% auto',
             animation:'shimmer 4.5s linear infinite',
             boxShadow:'0 0 16px rgba(212,175,55,0.5), 0 4px 14px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.55), inset 0 -1px 2px rgba(120,80,10,0.35)',
-            fontFamily:"'Space Grotesk', sans-serif",
+            fontFamily:"'Manrope', sans-serif",
             fontSize:'clamp(8px,1.8vw,10px)', fontWeight:700,
             letterSpacing:'0.18em', textTransform:'uppercase',
             color:'#1a0010',
@@ -666,13 +680,13 @@ useEffect(() => {
           initial={{ opacity:0 }} animate={{ opacity:1 }}
           transition={{ delay:0.82 }}
           style={{
-            fontFamily:"'Space Grotesk', sans-serif",
+            fontFamily:"'Manrope', sans-serif",
             color:'rgba(255,255,255,0.28)',
             fontSize:'clamp(8px,2vw,11px)', letterSpacing:'0.14em',
             marginBottom:'clamp(20px,4vw,32px)',
           }}
         >
-          www.jackpotsworld.casino
+          {settings?.hero_tagline || 'www.jackpotsworld.casino'}
         </motion.p>
 
         {/* CTAs */}
@@ -689,14 +703,14 @@ useEffect(() => {
                 backgroundSize:'200% auto',
                 color:'#1a0010', border:'none', borderRadius:999,
                 padding:'clamp(10px,2.5vw,14px) clamp(18px,4.5vw,38px)',
-                fontFamily:"'Space Grotesk', sans-serif",
+                fontFamily:"'Manrope', sans-serif",
                 fontSize:'clamp(9px,2.2vw,13px)', fontWeight:900,
                 letterSpacing:'0.13em', textTransform:'uppercase',
                 cursor:'pointer',
                 boxShadow:'0 0 28px rgba(212,175,55,0.4)',
                 touchAction:'manipulation',
               }}
-            >🎰 Register — FREE</motion.button>
+            >{settings?.hero_cta_primary_label || '🎰 Register — FREE'}</motion.button>
           </Link>
           <Link to="packages-all" smooth duration={600} offset={-80}>
             <motion.button
@@ -707,12 +721,12 @@ useEffect(() => {
                 border:'1.5px solid rgba(212,175,55,0.45)',
                 borderRadius:999,
                 padding:'clamp(10px,2.5vw,14px) clamp(18px,4.5vw,38px)',
-                fontFamily:"'Space Grotesk', sans-serif",
+                fontFamily:"'Manrope', sans-serif",
                 fontSize:'clamp(9px,2.2vw,13px)', fontWeight:700,
                 letterSpacing:'0.13em', textTransform:'uppercase',
                 cursor:'pointer', touchAction:'manipulation',
               }}
-            >Packages ✨</motion.button>
+            >{settings?.hero_cta_secondary_label || 'Packages ✨'}</motion.button>
           </Link>
         </motion.div>
 
@@ -748,7 +762,7 @@ useEffect(() => {
                 border:'1.5px solid rgba(212,175,55,0.45)',
                 borderRadius:999,
                 padding:'clamp(10px,2.5vw,14px) clamp(18px,4.5vw,38px)',
-                fontFamily:"'Space Grotesk', sans-serif",
+                fontFamily:"'Manrope', sans-serif",
                 fontSize:'clamp(9px,2.2vw,13px)', fontWeight:700,
                 letterSpacing:'0.13em', textTransform:'uppercase',
                 cursor:'pointer', touchAction:'manipulation',
@@ -792,7 +806,7 @@ useEffect(() => {
     >
       <div
         style={{
-          fontFamily: "'Space Grotesk', sans-serif",
+          fontFamily: "'Manrope', sans-serif",
           fontWeight: 700,
           fontSize: 'clamp(16px,3.8vw,28px)',
           background: 'linear-gradient(135deg,#D4AF37,#F5E07A)',
@@ -807,7 +821,7 @@ useEffect(() => {
       </div>
       <div
         style={{
-          fontFamily: "'Space Grotesk', sans-serif",
+          fontFamily: "'Manrope', sans-serif",
           color: 'rgba(255,255,255,0.45)',
           fontSize: 'clamp(6px,1.4vw,9px)',
           letterSpacing: '0.16em',
@@ -831,7 +845,7 @@ useEffect(() => {
         animation:'scrollBounce 1.6s 2s ease-in-out infinite',
         transform:'translateX(-50%)',
       }}>
-        <div style={{ fontFamily:"'Space Grotesk', sans-serif", fontSize:7, letterSpacing:'0.2em', textTransform:'uppercase' }}>Scroll</div>
+        <div style={{ fontFamily:"'Manrope', sans-serif", fontSize:7, letterSpacing:'0.2em', textTransform:'uppercase' }}>Scroll</div>
         <div style={{ width:1, height:'clamp(20px,4vw,40px)', background:'linear-gradient(to bottom, rgba(212,175,55,0.4), transparent)' }} />
       </div>
     </section>

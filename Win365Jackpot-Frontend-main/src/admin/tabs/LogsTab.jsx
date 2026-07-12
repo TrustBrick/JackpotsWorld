@@ -59,7 +59,7 @@ function fmtDT(iso) {
 const getS = (C) => ({
   // Layout
   root: {
-    fontFamily: "'Space Grotesk', sans-serif",
+    fontFamily: "'Manrope', sans-serif",
     color: C.sub,
     minHeight: "100vh",
   },
@@ -127,8 +127,8 @@ const getS = (C) => ({
   table: { width: "100%", borderCollapse: "collapse", fontSize: 12 },
   th: {
     padding: "11px 14px", textAlign: "left",
-    fontSize: 10, fontWeight: 700, letterSpacing: "0.08em",
-    color: C.muted, textTransform: "uppercase",
+    fontSize: 10, fontWeight: 800, letterSpacing: "0.08em",
+    color: C.sub, textTransform: "uppercase", textShadow: "0 0 8px rgba(212,175,55,0.25)",
     background: C.hoverBg,
     borderBottom: `1px solid ${C.border}`,
     fontFamily: "inherit",
@@ -168,7 +168,7 @@ const getS = (C) => ({
     border: `1px solid ${C.border2}`,
     borderRadius: 14, overflow: "hidden",
     display: "flex", flexDirection: "column",
-    fontFamily: "'Space Grotesk', sans-serif",
+    fontFamily: "'Manrope', sans-serif",
   },
   modalHeader: {
     padding: "16px 20px",
@@ -476,7 +476,7 @@ export default function LogsTab({ onToast }) {
               <tbody>
                 {logs.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ padding: "48px 0", textAlign: "center", color: C.dim, fontSize: 12 }}>
+                    <td colSpan={6} style={{ padding: "48px 0", textAlign: "center", color: C.muted, fontSize: 12 }}>
                       <Activity size={24} style={{ display: "block", margin: "0 auto 8px", opacity: 0.3 }} />
                       No logs found
                     </td>

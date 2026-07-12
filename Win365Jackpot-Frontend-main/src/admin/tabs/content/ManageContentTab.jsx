@@ -7,12 +7,13 @@ import { useAdminTheme } from "../../context/AdminThemeContext";
 function fieldToFormValue(field, item) {
   if (field.type === "list") return (item?.[field.name] || []).join("\n");
   if (field.type === "gallery") return ""; // tracked separately via existingGallery, not form state
+  if (field.type === "boolean") return item ? !!item[field.name] : !!field.default;
   return item?.[field.name] ?? field.default ?? "";
 }
 
 function emptyForm(fields) {
   const initial = {};
-  fields.forEach(f => { initial[f.name] = f.default ?? ""; });
+  fields.forEach(f => { initial[f.name] = f.type === "boolean" ? !!f.default : (f.default ?? ""); });
   return initial;
 }
 
@@ -114,6 +115,10 @@ export default function ManageContentTab({ resourceLabel, apiPath, fields, colum
       if (f.type === "list") {
         val = JSON.stringify(String(val || "").split("\n").map(s => s.trim()).filter(Boolean));
       }
+      if (f.type === "boolean") {
+        fd.append(f.name, val ? "true" : "false");
+        return;
+      }
       if (val !== undefined && val !== null && val !== "") fd.append(f.name, val);
     });
 
@@ -131,6 +136,19 @@ export default function ManageContentTab({ resourceLabel, apiPath, fields, colum
       onToast?.((Array.isArray(firstError) ? firstError[0] : firstError) || "Failed", false);
     }
     setSubmitting(false);
+  };
+
+  const toggleActive = async (item) => {
+    const fd = new FormData();
+    fd.append("is_active", item.is_active ? "false" : "true");
+    const r = await adminFetch(`${API}${apiPath}${item.id}/`, { method: "PATCH", body: fd });
+    if (!r) { onToast?.("Session expired", false); return; }
+    if (r.ok) {
+      setItems(prev => prev.map(i => i.id === item.id ? { ...i, is_active: !item.is_active } : i));
+      onToast?.(item.is_active ? `${resourceLabel} disabled` : `${resourceLabel} enabled`, true);
+    } else {
+      onToast?.("Failed to update status", false);
+    }
   };
 
   const remove = async (item) => {
@@ -178,7 +196,7 @@ export default function ManageContentTab({ resourceLabel, apiPath, fields, colum
                     onChange={e => setForm(prev => ({ ...prev, [f.name]: e.target.value }))}
                     style={inputStyle}
                   >
-                    {f.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    {f.options.map(o => <option key={o.value} value={o.value} style={{ background: C.surface, color: C.text }}>{o.label}</option>)}
                   </select>
                 ) : f.type === "asyncSelect" ? (
                   <select
@@ -186,11 +204,21 @@ export default function ManageContentTab({ resourceLabel, apiPath, fields, colum
                     onChange={e => setForm(prev => ({ ...prev, [f.name]: e.target.value }))}
                     style={inputStyle}
                   >
-                    <option value="">{f.placeholder || "— None —"}</option>
+                    <option value="" style={{ background: C.surface, color: C.text }}>{f.placeholder || "— None —"}</option>
                     {(asyncOptions[f.name] || []).map(o => (
-                      <option key={o.id} value={o.id}>{o[f.optionLabelKey || "name"]}</option>
+                      <option key={o.id} value={o.id} style={{ background: C.surface, color: C.text }}>{o[f.optionLabelKey || "name"]}</option>
                     ))}
                   </select>
+                ) : f.type === "boolean" ? (
+                  <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", padding: "9px 0" }}>
+                    <input
+                      type="checkbox"
+                      checked={!!form[f.name]}
+                      onChange={e => setForm(prev => ({ ...prev, [f.name]: e.target.checked }))}
+                      style={{ width: 16, height: 16, cursor: "pointer" }}
+                    />
+                    <span style={{ fontSize: 12, color: C.muted }}>{f.checkboxLabel || "Yes"}</span>
+                  </label>
                 ) : f.type === "file" ? (
                   <div>
                     <input
@@ -200,7 +228,7 @@ export default function ManageContentTab({ resourceLabel, apiPath, fields, colum
                       style={{ ...inputStyle, padding: "6px 8px" }}
                     />
                     {!files[f.name] && typeof form[f.name] === "string" && form[f.name] && (
-                      <div style={{ fontSize: 10, color: C.dim, marginTop: 4 }}>
+                      <div style={{ fontSize: 10, color: C.muted, marginTop: 4 }}>
                         Current: <a href={form[f.name]} target="_blank" rel="noreferrer" style={{ color: C.gold }}>view file</a>
                       </div>
                     )}
@@ -214,7 +242,7 @@ export default function ManageContentTab({ resourceLabel, apiPath, fields, colum
                       onChange={e => setFiles(prev => ({ ...prev, [f.name]: Array.from(e.target.files || []) }))}
                       style={{ ...inputStyle, padding: "6px 8px" }}
                     />
-                    <div style={{ fontSize: 10, color: C.dim, marginTop: 4 }}>
+                    <div style={{ fontSize: 10, color: C.muted, marginTop: 4 }}>
                       {editingId ? "Selecting files here adds them to the existing gallery below." : "You can select multiple images at once."}
                     </div>
                     {(existingGallery[f.name] || []).length > 0 && (
@@ -269,9 +297,14 @@ export default function ManageContentTab({ resourceLabel, apiPath, fields, colum
               </td>
             ))}
             <td style={{ padding: "11px 14px" }}>
-              <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 20, background: item.is_active ? `${C.green}18` : `${C.red}18`, color: item.is_active ? C.green : C.red }}>
+              <button
+                type="button"
+                onClick={() => toggleActive(item)}
+                title={item.is_active ? "Click to disable" : "Click to enable"}
+                style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 20, background: item.is_active ? `${C.green}18` : `${C.red}18`, color: item.is_active ? C.green : C.red, border: "none", cursor: "pointer" }}
+              >
                 {item.is_active ? "Active" : "Inactive"}
-              </span>
+              </button>
             </td>
             <td style={{ padding: "11px 14px", whiteSpace: "nowrap" }}>
               <button onClick={() => openEdit(item)} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", marginRight: 10 }}>

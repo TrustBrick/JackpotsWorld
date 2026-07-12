@@ -134,7 +134,7 @@ export function StatusBadge({ status }) {
     rejected:  { color: C.red,                      bg: `${C.red}15`,                     label: "Rejected"  },
     completed: { color: C.green,                    bg: `${C.green}15`,                   label: "Completed" },
     active:    { color: C.blue,                     bg: `${C.blue}15`,                    label: "Active"    },
-    locked:    { color: "rgba(255,255,255,0.3)",    bg: "rgba(255,255,255,0.05)",          label: "Locked"    },
+    locked:    { color: "rgba(255,255,255,0.5)",    bg: "rgba(255,255,255,0.05)",          label: "Locked"    },
   }[status?.toLowerCase()] || { color: "rgba(255,255,255,0.4)", bg: "rgba(255,255,255,0.05)", label: status || "—" };
 
   return (

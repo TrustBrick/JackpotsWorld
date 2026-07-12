@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { API, affiliateFetch } from "./helpers";
 import { revokeSession } from "../services/authRevoke";
+import { setSession, getToken, getUser, clearSession } from "../services/authStorage";
 import AffiliateSidebar, { SIDEBAR_WIDTH, useBreakpoint } from "./AffiliateSidebar";
 import OverviewTab from "./tabs/OverviewTab";
 import CampaignsTab from "./tabs/CampaignsTab";
@@ -36,6 +37,7 @@ function AffiliateLoginScreen({ onSuccess }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
+  const [remember, setRemember] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -52,9 +54,10 @@ function AffiliateLoginScreen({ onSuccess }) {
       });
       const json = await res.json();
       if (res.ok) {
-        localStorage.setItem("affiliate_token", json.tokens?.access);
-        localStorage.setItem("affiliate_refresh", json.tokens?.refresh);
-        localStorage.setItem("affiliate_user", JSON.stringify(json.user));
+        setSession(
+          { access: "affiliate_token", refresh: "affiliate_refresh", user: "affiliate_user" },
+          json.tokens, json.user, remember,
+        );
         onSuccess();
       } else {
         setError(json.error || "Invalid affiliate credentials.");
@@ -64,14 +67,14 @@ function AffiliateLoginScreen({ onSuccess }) {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Space Grotesk', sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Manrope', sans-serif" }}>
       <div style={{ position: "fixed", inset: 0, pointerEvents: "none" }}>
         <div style={{ position: "absolute", top: "20%", left: "50%", transform: "translate(-50%,-50%)", width: 600, height: 600, borderRadius: "50%", background: `radial-gradient(circle, ${C.gold}18, transparent 60%)` }} />
       </div>
       <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} style={{ width: "100%", maxWidth: 420, padding: "0 20px" }}>
         <div style={{ textAlign: "center", marginBottom: 36 }}>
           <div style={{ fontSize: 28, fontWeight: 900, color: C.gold, letterSpacing: 3, marginBottom: 4 }}>JACKPOTS WORLD</div>
-          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", letterSpacing: "0.4em", textTransform: "uppercase" }}>Affiliate Portal</div>
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", letterSpacing: "0.4em", textTransform: "uppercase" }}>Affiliate Portal</div>
         </div>
         <Card style={{ padding: 28 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
@@ -100,6 +103,11 @@ function AffiliateLoginScreen({ onSuccess }) {
                 </button>
               </div>
             </div>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, cursor: "pointer", userSelect: "none" }}>
+              <input type="checkbox" checked={remember} onChange={e => setRemember(e.target.checked)}
+                style={{ width: 15, height: 15, accentColor: C.gold, cursor: "pointer" }} />
+              <span style={{ fontSize: 12.5, color: "rgba(255,255,255,0.4)" }}>Remember me</span>
+            </label>
             {error && (
               <div style={{ padding: "10px 14px", borderRadius: 10, background: `${C.red}12`, border: `1px solid ${C.red}30`, color: C.red, fontSize: 12, marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
                 <AlertCircle size={13} /> {error}
@@ -156,8 +164,24 @@ function AffiliateDashboard({ affiliateUser, onLogout }) {
     return () => clearTimeout(t);
   }, [toast]);
 
+  // Poll the unread notification count independently of which tab is active,
+  // so the sidebar bell badge stays live even while NotificationsTab isn't mounted.
+  useEffect(() => {
+    let cancelled = false;
+    const loadUnread = async () => {
+      const res = await affiliateFetch(`${API}/api/user/notifications/`);
+      if (!res?.ok || cancelled) return;
+      const json = await res.json();
+      const results = Array.isArray(json) ? json : (json.results || []);
+      setUnread(results.filter(n => !n.is_read).length);
+    };
+    loadUnread();
+    const id = setInterval(loadUnread, 30_000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
+
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Space Grotesk', sans-serif", display: "flex" }}>
+    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Manrope', sans-serif", display: "flex" }}>
       <AffiliateSidebar
         C={C}
         affiliateUser={affiliateUser}
@@ -220,8 +244,8 @@ export default function AffiliatePanel() {
   useEffect(() => {
     const init = async () => {
       try {
-        const user = JSON.parse(localStorage.getItem("affiliate_user") || "null");
-        const token = localStorage.getItem("affiliate_token");
+        const user = getUser("affiliate_user");
+        const token = getToken("affiliate_token");
         if (!user || !token) return;
 
         // Re-validate against the backend rather than trusting the
@@ -231,7 +255,7 @@ export default function AffiliatePanel() {
           setAuthed(true);
           setAffiliateUser(user);
         } else {
-          ["affiliate_token", "affiliate_refresh", "affiliate_user"].forEach(k => localStorage.removeItem(k));
+          clearSession(["affiliate_token", "affiliate_refresh", "affiliate_user"]);
         }
       } catch {}
     };
@@ -240,14 +264,14 @@ export default function AffiliatePanel() {
 
   const logout = async () => {
     await revokeSession("affiliate_token", "affiliate_refresh");
-    ["affiliate_token", "affiliate_refresh", "affiliate_user"].forEach(k => localStorage.removeItem(k));
-    navigate("/");
+    clearSession(["affiliate_token", "affiliate_refresh", "affiliate_user"]);
+    navigate("/", { replace: true });
   };
 
   if (!authed) {
     return (
       <AffiliateLoginScreen onSuccess={() => {
-        try { setAffiliateUser(JSON.parse(localStorage.getItem("affiliate_user") || "null")); } catch {}
+        setAffiliateUser(getUser("affiliate_user"));
         setAuthed(true);
       }} />
     );

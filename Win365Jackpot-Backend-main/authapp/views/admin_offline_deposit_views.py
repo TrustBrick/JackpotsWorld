@@ -610,10 +610,10 @@ class AdminOfflineDepositsView(APIView):
             if not casino or not country:
                 return _reject("❌ This player is not registered for the selected casino.")
 
-            # Betting date must be exactly today — no backdated or future entries.
+            # Betting date may be any past date up to today — future dates are rejected.
             today = timezone.now().date()
-            if betting_date and str(betting_date) != str(today):
-                return _reject("❌ Only today's date is allowed for betting entries.")
+            if betting_date and str(betting_date) > str(today):
+                return _reject("❌ Future dates are not allowed for betting entries.")
 
             # Casino must actually belong to the selected country (reference catalog).
             if not Casino.objects.filter(country=country, name=casino, is_active=True).exists():
@@ -715,6 +715,16 @@ class AdminOfflineDepositsView(APIView):
                 levelup_points_needed=VIP_CONFIG[new_vip_level]["lu_points"],
                 level_up_triggered=level_up_triggered, note=note, recorded_by=actor,
             )
+
+            # Referral commission — only created once the Bet Slip (slip_number)
+            # has been entered and verified (the uniqueness check above already
+            # confirmed it), per "no commission until Bet Slip is verified".
+            if slip_number:
+                try:
+                    from authapp.services.affiliate_service import record_referral_commission
+                    record_referral_commission(user, bet_amount, source_ref=slip_number)
+                except Exception as e:
+                    logger.warning("referral commission failed for RP entry: %s", e)
 
             ActivityLog.log(
                 action="rolling_points_added", actor=actor, target_user=user,

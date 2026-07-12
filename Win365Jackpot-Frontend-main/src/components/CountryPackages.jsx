@@ -23,9 +23,25 @@ import {
    Recommended: 1400x800px, landscape, <300KB
 ───────────────────────────────────────────── */
 
-import { WHATSAPP_NUMBER, PACKAGES } from '../data/packagesData'
+import { useAutoFetch } from '../hooks/useAutoFetch'
+import { fetchDestinations, fetchVipServiceImages, fetchTourPackages, fetchLandingSettings } from '../services/landingService'
+import { flagFromCountryCode } from '../utils/countryFlags'
 
-const countries = [
+const DEFAULT_WHATSAPP_NUMBER = '917795281999'
+
+function useWhatsAppNumber() {
+  const { data } = useAutoFetch(fetchLandingSettings, {}, { intervalMs: 60_000 })
+  return data?.whatsapp_number || DEFAULT_WHATSAPP_NUMBER
+}
+
+function hexToRgba(hex, alpha) {
+  const h = (hex || '#D4AF37').replace('#', '')
+  const bigint = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16)
+  const r = (bigint >> 16) & 255, g = (bigint >> 8) & 255, b = bigint & 255
+  return `rgba(${r},${g},${b},${alpha})`
+}
+
+const FALLBACK_COUNTRIES = [
   {
     flag: '🇻🇳', name: 'Vietnam', tagline: 'Paradise of the Orient',
     color: '#D32F2F', glow: 'rgba(211,47,47,0.3)',
@@ -88,7 +104,7 @@ const countries = [
   },
 ]
 
-const VIP_SERVICES = [
+const FALLBACK_VIP_SERVICES = [
   { src: '/images/vip/massage-1.jpg',   label: 'Classic Massage',     category: 'Wellness' },
   { src: '/images/vip/massage-2.png',   label: 'Luxury Spa',          category: 'Wellness' },
   { src: '/images/vip/bar-1.jpg',       label: 'Premium Bar Counter',  category: 'Bar & Drinks' },
@@ -119,13 +135,14 @@ const INCLUSIONS = [
 
 /* ── WHATSAPP BUTTON ── */
 function WhatsAppBtn({ label = 'Enquire on WhatsApp', pkg = '' }) {
+  const whatsappNumber = useWhatsAppNumber()
   const msg = encodeURIComponent(
     pkg
       ? `Hi! I'm interested in the *${pkg}* Casino Tour Package. Please share more details.`
       : `Hi! I'm interested in your Casino Tour Packages. Please share more details.`
   )
   return (
-    <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textDecoration: 'none' }}>
+    <a href={`https://wa.me/${whatsappNumber}?text=${msg}`} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textDecoration: 'none' }}>
       <motion.button
         whileHover={{ scale: 1.04, boxShadow: '0 0 30px rgba(37,211,102,0.5)' }}
         whileTap={{ scale: 0.97 }}
@@ -284,7 +301,10 @@ function ImageCarousel({ images, color, glow }) {
 /* ── VIP SERVICES GALLERY — mobile-first ── */
 function VIPServicesGallery() {
   const [activeCategory, setActiveCategory] = useState('All')
-  const categories = ['All', 'Wellness', 'Bar & Drinks', 'Entertainment', 'VIP Lounge', 'VIP Rooms', 'Luxury Travel']
+  const { data: vipServicesData } = useAutoFetch(fetchVipServiceImages, {}, { intervalMs: 60_000 })
+  const VIP_SERVICES = (Array.isArray(vipServicesData) && vipServicesData.length > 0 ? vipServicesData : FALLBACK_VIP_SERVICES)
+    .map(v => ({ src: v.src || v.image, label: v.label, category: v.category }))
+  const categories = ['All', ...new Set(VIP_SERVICES.map(v => v.category).filter(Boolean))]
   const filtered = activeCategory === 'All' ? VIP_SERVICES : VIP_SERVICES.filter(v => v.category === activeCategory)
   const { ref: inViewRef, inView } = useInView({ threshold: 0.05, triggerOnce: true })
 
@@ -455,8 +475,65 @@ function CruiseCarousel() {
 
 
 /* ── PACKAGE CARDS SECTION — mobile-first ── */
+const FALLBACK_PACKAGES = [
+  { name: 'VIP', price: '$5,000', icon: '🃏', color: '#9E9E9E', badge: null,
+    duration: '3 Nights', flight: 'Economy', hotel: 'Standard 3★ (3N)',
+    food: 'Casino', liquor: 'Over the Gaming Table (Local)',
+    airportVIP: false, jackpotRewards: true, vipTransport: false,
+    spa: false, shoppingVoucher: false, visa: false },
+  { name: 'Classic', price: '$10,000', icon: '🎴', color: '#78909C', badge: null,
+    duration: '3 Nights', flight: 'Economy', hotel: 'Standard 4★ (3N)',
+    food: 'Casino', liquor: 'Over the Gaming Table (Local Premium)',
+    airportVIP: false, jackpotRewards: true, vipTransport: false,
+    spa: true, shoppingVoucher: false, visa: true },
+  { name: 'Premium', price: '$15,000', icon: '🎲', color: '#D4AF37', badge: 'Popular',
+    duration: '3 Nights', flight: 'Economy', hotel: 'Standard 5★ (3N)',
+    food: 'Casino', liquor: 'Over the Gaming Table (Premium)',
+    airportVIP: false, jackpotRewards: true, vipTransport: false,
+    spa: true, shoppingVoucher: false, visa: true },
+  { name: 'Prestige', price: '$20,000', icon: '🏆', color: '#F5A623', badge: null,
+    duration: '3 Nights', flight: 'Economy', hotel: 'Executive 5★ (3N)',
+    food: 'Casino', liquor: 'Over the Gaming Table (Imported Premium)',
+    airportVIP: false, jackpotRewards: true, vipTransport: false,
+    spa: true, shoppingVoucher: false, visa: true },
+  { name: 'Signature', price: '$25,000', icon: '✍️', color: '#26C6DA', badge: null,
+    duration: '3 Nights', flight: 'Economy', hotel: 'Premium 5★ (3N)',
+    food: 'Casino', liquor: 'Over the Gaming Table (Imported Premium)',
+    airportVIP: true, jackpotRewards: true, vipTransport: true,
+    spa: true, shoppingVoucher: true, visa: true },
+  { name: 'Elite', price: '$50,000', icon: '💎', color: '#B9F2FF', badge: 'Best Value',
+    duration: '3 Nights', flight: 'Business', hotel: 'Suite 5★ (3N)',
+    food: 'Casino/Hotel', liquor: 'Imported Premium',
+    airportVIP: true, jackpotRewards: true, vipTransport: true, vipTransportNote: '*',
+    spa: true, spaNote: '*', shoppingVoucher: true, shoppingNote: '*', visa: true },
+  { name: 'Royal', price: '$100,000', icon: '👑', color: '#FFD700', badge: null,
+    duration: '4 Nights', flight: 'Business', hotel: 'Executive Suite 5★ (4N)',
+    food: 'Casino/Hotel', liquor: 'Imported Premium',
+    airportVIP: true, jackpotRewards: true, vipTransport: true, vipTransportNote: '**',
+    spa: true, spaNote: '**', shoppingVoucher: true, shoppingNote: '**', visa: true },
+  { name: 'Sovereign', price: '$250,000+', icon: '⚜️', color: '#C9A84C', badge: '🤫 Invite Only',
+    duration: '7 Nights', flight: 'Business', hotel: 'Presidential Suite (7N)',
+    food: 'Casino/Hotel', liquor: 'Imported Premium',
+    airportVIP: true, jackpotRewards: true, vipTransport: true, vipTransportNote: '**',
+    spa: true, spaNote: '***', shoppingVoucher: true, shoppingNote: '***', visa: true },
+]
+
+function mapTourPackage(p) {
+  if (p.airportVIP !== undefined) return p // already fallback shape
+  return {
+    name: p.name, price: p.price, icon: p.icon, color: p.color, badge: p.badge || null,
+    duration: p.duration, flight: p.flight, hotel: p.hotel, food: p.food, liquor: p.liquor,
+    airportVIP: p.airport_vip, jackpotRewards: p.jackpot_rewards, vipTransport: p.vip_transport,
+    vipTransportNote: p.vip_transport_note, spa: p.spa, spaNote: p.spa_note,
+    shoppingVoucher: p.shopping_voucher, shoppingNote: p.shopping_note, visa: p.visa,
+  }
+}
+
 function PackagesSection() {
   const { ref: inViewRef, inView } = useInView({ threshold: 0.05, triggerOnce: true })
+  const whatsappNumber = useWhatsAppNumber()
+  const { data: packagesData } = useAutoFetch(fetchTourPackages, {}, { intervalMs: 60_000 })
+  const PACKAGES = (Array.isArray(packagesData) && packagesData.length > 0 ? packagesData : FALLBACK_PACKAGES).map(mapTourPackage)
 
   return (
     <section id="packages-all" ref={inViewRef} style={{ padding: 'clamp(48px,10vw,80px) clamp(12px,4vw,16px)', background: 'linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(20,10,0,0.5) 100%)' }}>
@@ -752,7 +829,7 @@ function PackagesSection() {
       {/* CTA */}
       <div style={{ maxWidth: 380, margin: '0 auto' }}>
   <a
-    href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Hi! I'm interested in the *Cruise Casino Package*. Please share more details.")}`}
+    href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent("Hi! I'm interested in the *Cruise Casino Package*. Please share more details.")}`}
     target="_blank"
     rel="noopener noreferrer"
     style={{ display: 'block', textDecoration: 'none' }}
@@ -818,7 +895,22 @@ export default function CountryPackages() {
   const carouselInViewRef     = useRef(false)   // tracks whether carousel is visible
   const { ref: inViewRef, inView } = useInView({ threshold: 0.1, triggerOnce: true })
 
-  const country = countries[active]
+  const { data: destinationsData } = useAutoFetch(fetchDestinations, {}, { intervalMs: 60_000 })
+  const countries = (Array.isArray(destinationsData) && destinationsData.length > 0 ? destinationsData : FALLBACK_COUNTRIES).map(d => {
+    if (d.flag !== undefined) return d // already fallback shape
+    const color = d.accent_color || '#D4AF37'
+    return {
+      flag: flagFromCountryCode(d.flag_country_code) || '🏳️',
+      name: d.name,
+      tagline: d.tagline,
+      color,
+      glow: hexToRgba(color, 0.3),
+      images: (d.images || []).map(m => ({ src: m.media, label: m.label, ...(m.media_type === 'video' ? { type: 'video' } : {}) })),
+      casinos: d.casinos_text,
+      bestFor: d.best_for,
+    }
+  })
+  const country = countries[Math.min(active, countries.length - 1)]
 
   // Scroll-mute: mute video the moment carousel leaves the viewport
   useEffect(() => {

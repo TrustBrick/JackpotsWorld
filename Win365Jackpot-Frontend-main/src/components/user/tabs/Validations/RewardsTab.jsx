@@ -147,7 +147,7 @@ export default function RewardsTab({ onToast, onRefresh }) {
         historyLoading ? <Spinner /> : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {history.length === 0 ? (
-              <div style={{ textAlign: "center", padding: 44, color: "rgba(255,255,255,0.2)", fontSize: 13 }}>No spins yet — try the Spin Wheel!</div>
+              <div style={{ textAlign: "center", padding: 44, color: "rgba(255,255,255,0.4)", fontSize: 13 }}>No spins yet — try the Spin Wheel!</div>
             ) : history.map(h => (
               <div key={h.id} style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
@@ -194,7 +194,7 @@ export default function RewardsTab({ onToast, onRefresh }) {
                   {Number(g.amount || 0) > 0 ? `$${Number(g.amount).toLocaleString("en-IN")}` : "—"}
                 </div>
                 {g.status !== "pending" ? (
-                  <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "rgba(255,255,255,0.25)", fontWeight: 600, textTransform: "capitalize" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "rgba(255,255,255,0.45)", fontWeight: 600, textTransform: "capitalize" }}>
                     <CheckCircle size={11} /> {g.status}
                   </div>
                 ) : (
@@ -203,14 +203,14 @@ export default function RewardsTab({ onToast, onRefresh }) {
                   </Btn>
                 )}
                 {g.expires_at && g.status === "pending" && (
-                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.2)", marginTop: 8, display: "flex", alignItems: "center", gap: 4 }}>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: 8, display: "flex", alignItems: "center", gap: 4 }}>
                     <Clock size={9} /> Expires {fmtD(g.expires_at)}
                   </div>
                 )}
               </motion.div>
             ))}
             {gifts.length === 0 && (
-              <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: 44, color: "rgba(255,255,255,0.2)" }}>No gifts yet</div>
+              <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: 44, color: "rgba(255,255,255,0.4)" }}>No gifts yet</div>
             )}
           </div>
         )

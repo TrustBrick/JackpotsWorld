@@ -63,7 +63,7 @@ function StatBox({ label, value, color, sub }) {
     <div style={{ padding:"11px 13px", borderRadius:10, background:`${color}07`, border:`1px solid ${color}18` }}>
       <div style={{ fontSize:9, color:C.muted, textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:4 }}>{label}</div>
       <div style={{ fontSize:16, fontWeight:900, color, fontFamily:"monospace" }}>{value}</div>
-      {sub && <div style={{ fontSize:9, color:C.dim, marginTop:3 }}>{sub}</div>}
+      {sub && <div style={{ fontSize:9, color:C.muted, marginTop:3 }}>{sub}</div>}
     </div>
   );
 }
@@ -79,7 +79,7 @@ function RefTable() {
         <thead>
           <tr style={{ background:C.hoverBg }}>
             {["Level","Min RP","Rolling %","RP Rate","Level-Up RP"].map(h => (
-              <th key={h} style={{ padding:"8px 12px", textAlign:"left", fontSize:9, color:C.muted, fontWeight:700, textTransform:"uppercase", borderBottom:`1px solid ${C.border}` }}>{h}</th>
+              <th key={h} style={{ padding:"8px 12px", textAlign:"left", fontSize:9, color:C.sub, fontWeight:800, textTransform:"uppercase", borderBottom:`1px solid ${C.border}`, textShadow:"0 0 8px rgba(212,175,55,0.25)" }}>{h}</th>
             ))}
           </tr>
         </thead>
@@ -169,7 +169,7 @@ export default function RollingPoints({ userInfo, accounts, submitting, setSubmi
     if (!rSlipNumber.trim()) return onToast("Enter slip number", false);
     if (rSlipError)          return onToast(rSlipError, false);
     if (!rBettingDate)       return onToast("Select betting date", false);
-    if (rBettingDate !== TODAY) return onToast("Only today's date is allowed for betting entries", false);
+    if (rBettingDate > TODAY) return onToast("Future dates are not allowed for betting entries", false);
     if (betAmt <= 0)         return onToast("Enter total bet amount", false);
     if (rpAdded <= 0)        return onToast("Rolling points must be > 0", false);
 
@@ -199,7 +199,7 @@ export default function RollingPoints({ userInfo, accounts, submitting, setSubmi
   };
 
   const isValid = !hasNoCasinoAccounts && !!country && !!rCasino &&
-    rSlipNumber.trim() && !rSlipError && rBettingDate === TODAY && betAmt > 0 && rpAdded > 0 && !submitting;
+    rSlipNumber.trim() && !rSlipError && !!rBettingDate && rBettingDate <= TODAY && betAmt > 0 && rpAdded > 0 && !submitting;
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
@@ -285,23 +285,22 @@ export default function RollingPoints({ userInfo, accounts, submitting, setSubmi
             )}
           </div>
 
-          {/* Betting Date — only today's date is allowed (no past, no future) */}
+          {/* Betting Date — any past date up to today is allowed, no future dates */}
           <div>
             <label style={lbl(C)}><Calendar size={9} style={{ display:"inline", marginRight:3 }}/>Betting Date *</label>
             <input
               value={rBettingDate}
               onChange={e => setRBettingDate(e.target.value)}
               type="date"
-              min={TODAY}
               max={TODAY}
               style={{
-                ...inp(rBettingDate && rBettingDate !== TODAY ? "#f87171" : "#60a5fa", rBettingDate && rBettingDate !== TODAY, C),
+                ...inp(rBettingDate && rBettingDate > TODAY ? "#f87171" : "#60a5fa", rBettingDate && rBettingDate > TODAY, C),
                 colorScheme: theme === "dark" ? "dark" : "light",
               }}
             />
-            {rBettingDate && rBettingDate !== TODAY && (
+            {rBettingDate && rBettingDate > TODAY && (
               <div style={{ fontSize:10, color:"#f87171", marginTop:4, fontWeight:600 }}>
-                Only today's date is allowed for betting entries
+                Future dates are not allowed for betting entries
               </div>
             )}
           </div>
@@ -310,8 +309,8 @@ export default function RollingPoints({ userInfo, accounts, submitting, setSubmi
           <div>
             <label style={lbl(C)}>Country *</label>
             <select value={country} onChange={e => { setCountry(e.target.value); setRCasino(""); }} style={sel("#60a5fa", C)}>
-              <option value="">— Country —</option>
-              {Object.keys(playerCasinos).map(c => <option key={c} value={c}>{c}</option>)}
+              <option value="" style={{ background: C.panelBg, color: C.text }}>— Country —</option>
+              {Object.keys(playerCasinos).map(c => <option key={c} value={c} style={{ background: C.panelBg, color: C.text }}>{c}</option>)}
             </select>
           </div>
         </div>
@@ -328,8 +327,8 @@ export default function RollingPoints({ userInfo, accounts, submitting, setSubmi
           <div style={{ marginBottom:12 }}>
             <label style={lbl(C)}>Casino Name *</label>
             <select value={rCasino} onChange={e => setRCasino(e.target.value)} style={sel("#60a5fa", C)}>
-              <option value="">— Select casino —</option>
-              {casinosForCountry.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+              <option value="" style={{ background: C.panelBg, color: C.text }}>— Select casino —</option>
+              {casinosForCountry.map(c => <option key={c.name} value={c.name} style={{ background: C.panelBg, color: C.text }}>{c.name}</option>)}
             </select>
           </div>
         )}

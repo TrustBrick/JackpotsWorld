@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { C } from "../../constants";
 import { authFetch, API } from "../../helpers";
+import { getToken } from "../../../../services/authStorage";
 import { Card, Btn, VIPBadge } from "../../components/SharedUI";
 
 /* ─── tiny shared primitives ───────────────────────────────────────────── */
@@ -164,7 +165,7 @@ export default function ProfileTab({ profile, onToast, onRefresh }) {
     setUploading(true);
     const fd    = new FormData();
     fd.append("avatar", file);
-    const token = localStorage.getItem("access");
+    const token = getToken("access");
     try {
       const r = await fetch(`${API}/api/user/avatar/`, {
         method: "PATCH",

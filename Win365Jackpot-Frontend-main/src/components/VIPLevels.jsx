@@ -1,8 +1,14 @@
 import React, { useState, useRef } from 'react'
 import { motion, AnimatePresence, useInView } from 'framer-motion'
 import { Shield } from 'lucide-react'
+import { useAutoFetch } from '../hooks/useAutoFetch'
+import { fetchVipTiers } from '../services/landingService'
 
-const TIERS = [
+// Fixed color palette cycled to color the "all benefits" comparison column —
+// a display derivation, not distinct admin-editable content.
+const BENEFIT_PALETTE = ['#D4AF37', '#34D399', '#60A5FA', '#A78BFA', '#F472B6', '#FB923C', '#22D3EE']
+
+const FALLBACK_TIERS = [
   {
     id: 'bronze',
     label: 'Bronze',
@@ -101,27 +107,25 @@ const TIERS = [
   },
 ]
 
-const BENEFIT_COLORS = {
-  'Level Up Bonus':       '#D4AF37',
-  'Weekly Bonus':         '#34D399',
-  'Monthly Bonus':        '#60A5FA',
-  'Extras':               '#A78BFA',
-  'VIP Host Luxury Gifts': '#F472B6',
-}
-
-const ALL_BENEFITS = [
-  'Level Up Bonus',
-  'Weekly Bonus',
-  'Monthly Bonus',
-  'Extras',
-  'VIP Host Luxury Gifts',
-]
-
 export default function VIPLevels() {
-  const [active, setActive] = useState('bronze')
+  const [active, setActive] = useState(null)
   const ref = useRef(null)
   const inView = useInView(ref, { once: true, margin: '-60px' })
-  const activeTier = TIERS.find(t => t.id === active)
+
+  const { data: tiersData } = useAutoFetch(fetchVipTiers, {}, { intervalMs: 60_000 })
+  const TIERS = (Array.isArray(tiersData) && tiersData.length > 0 ? tiersData : FALLBACK_TIERS).map(t => ({
+    id: t.id,
+    label: t.label,
+    accentColor: t.accentColor || t.accent_color,
+    accentBg: t.accentBg || t.accent_bg,
+    benefits: (t.benefits || []).map(b => ({ name: b.name, desc: b.desc || b.description })),
+  }))
+
+  const ALL_BENEFITS = [...new Set(TIERS.flatMap(t => t.benefits.map(b => b.name)))]
+  const BENEFIT_COLORS = Object.fromEntries(ALL_BENEFITS.map((name, i) => [name, BENEFIT_PALETTE[i % BENEFIT_PALETTE.length]]))
+
+  const activeId = active ?? TIERS[0]?.id
+  const activeTier = TIERS.find(t => t.id === activeId) || TIERS[0]
   const activeBenefitNames = activeTier.benefits.map(b => b.name)
 
   const row1 = TIERS.slice(0, 4)
@@ -187,7 +191,7 @@ export default function VIPLevels() {
           style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 8 }}
         >
           {row1.map(tier => (
-            <TierButton key={tier.id} tier={tier} isActive={active === tier.id} onClick={() => setActive(tier.id)}/>
+            <TierButton key={tier.id} tier={tier} isActive={activeId === tier.id} onClick={() => setActive(tier.id)}/>
           ))}
         </motion.div>
 
@@ -199,7 +203,7 @@ export default function VIPLevels() {
           style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 32 }}
         >
           {row2.map(tier => (
-            <TierButton key={tier.id} tier={tier} isActive={active === tier.id} onClick={() => setActive(tier.id)}/>
+            <TierButton key={tier.id} tier={tier} isActive={activeId === tier.id} onClick={() => setActive(tier.id)}/>
           ))}
         </motion.div>
 

@@ -199,10 +199,10 @@ export default function TravelTab({ profile }) {
       ) : filtered.length === 0 ? (
         <Card style={{ textAlign: "center", padding: 56 }}>
           <Plane size={40} style={{ color: "rgba(255,255,255,0.08)", margin: "0 auto 12px", display: "block" }} />
-          <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 13 }}>
+          <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 13 }}>
             {casino !== "all" ? t("travel.noVisitsForCasino", { casino }) : t("travel.noVisitsYet")}
           </div>
-          <div style={{ color: "rgba(255,255,255,0.15)", fontSize: 11, marginTop: 6 }}>
+          <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, marginTop: 6 }}>
             {t("travel.visitsWillAppear")}
           </div>
         </Card>
@@ -259,7 +259,7 @@ export default function TravelTab({ profile }) {
                             : fmtD(tv.created_at)}
                         </div>
                         {tv.slip_number && (
-                          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.2)", marginTop: 2, display: "flex", alignItems: "center", gap: 3, justifyContent: "flex-end" }}>
+                          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: 2, display: "flex", alignItems: "center", gap: 3, justifyContent: "flex-end" }}>
                             <Hash size={9} /> {tv.slip_number}
                           </div>
                         )}

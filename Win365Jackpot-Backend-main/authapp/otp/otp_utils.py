@@ -6,10 +6,35 @@ OTP generation and delivery helpers.
 
 import random
 import logging
+import smtplib
 from django.core.mail import send_mail
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
+
+
+def _log_send_failure(email: str, exc: Exception) -> None:
+    """Log OTP email failures with enough detail to actually diagnose them,
+    without ever including the OTP itself. SMTPAuthenticationError specifically
+    means the SMTP provider rejected EMAIL_HOST_USER/EMAIL_HOST_PASSWORD —
+    for Gmail this almost always means EMAIL_HOST_PASSWORD isn't a valid
+    16-character App Password (regular account passwords are always rejected),
+    or 2-Step Verification isn't enabled on that Google Account."""
+    if isinstance(exc, smtplib.SMTPAuthenticationError):
+        logger.error(
+            "OTP email to %s failed: SMTP authentication rejected by %s:%s "
+            "for user %s — generate a fresh Gmail App Password at "
+            "https://myaccount.google.com/apppasswords (requires 2-Step "
+            "Verification) and update EMAIL_HOST_PASSWORD. Raw error: %s",
+            email, settings.EMAIL_HOST, settings.EMAIL_PORT, settings.EMAIL_HOST_USER, exc,
+        )
+    elif isinstance(exc, (smtplib.SMTPException, OSError)):
+        logger.error(
+            "OTP email to %s failed: could not reach/complete handshake with %s:%s — %s",
+            email, settings.EMAIL_HOST, settings.EMAIL_PORT, exc,
+        )
+    else:
+        logger.error("OTP email to %s failed: %s", email, exc)
 
 
 def generate_otp() -> str:
@@ -34,7 +59,7 @@ def send_otp_email(email: str, otp: str) -> None:
         send_mail(subject, message, from_email, [email], fail_silently=False)
         logger.info(f"✅ OTP email sent to {email}")
     except Exception as exc:
-        logger.error(f"❌ OTP email failed for {email}: {exc}")
+        _log_send_failure(email, exc)
         raise
 
 
@@ -98,7 +123,7 @@ def send_otp_email_html(email: str, otp: str) -> None:
             fail_silently=False,
         )
     except Exception as exc:
-        logger.error(f"HTML OTP email failed for {email}: {exc}")
+        _log_send_failure(email, exc)
         raise
 
 

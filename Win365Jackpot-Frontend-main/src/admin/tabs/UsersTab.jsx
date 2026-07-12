@@ -65,7 +65,7 @@ function buildS(C) {
   return {
     th: {
       padding: "10px 14px", textAlign: "left", fontSize: 10,
-      color: C.muted, fontWeight: 700,
+      color: C.sub, fontWeight: 800, textShadow: "0 0 8px rgba(212,175,55,0.25)",
       textTransform: "uppercase", letterSpacing: "0.08em", whiteSpace: "nowrap",
     },
     td: { padding: "12px 14px" },
@@ -172,6 +172,7 @@ export default function UsersTab({ onToast }) {
   const [total,        setTotal]        = useState(0);
   const [page,         setPage]         = useState(1);
   const [q,            setQ]            = useState("");
+  const [role,         setRole]         = useState("all"); // all | player | affiliate
   const [loading,      setLoading]      = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [detailLoad,   setDetailLoad]   = useState(false);
@@ -185,6 +186,7 @@ export default function UsersTab({ onToast }) {
     try {
       const p = new URLSearchParams({ page: pg, page_size: PER_PAGE });
       if (q) p.set("q", q);
+      if (role !== "all") p.set("role", role);
       const r = await adminFetch(`${API}/api/admin-panel/users/?${p}`);
       const j = await r.json();
       const raw = j.results || [];
@@ -224,7 +226,7 @@ export default function UsersTab({ onToast }) {
       onToast("Failed to load users", false);
     }
     setLoading(false);
-  }, [q, onToast]);
+  }, [q, role, onToast]);
 
   useEffect(() => { loadUsers(page); }, [page, loadUsers]);
 
@@ -232,6 +234,11 @@ export default function UsersTab({ onToast }) {
     if (page === 1) loadUsers(1);
     else setPage(1);
   }, [page, loadUsers]);
+
+  const handleRoleChange = useCallback((next) => {
+    setRole(next);
+    setPage(1); // loadUsers' identity also changes with `role`, so the [page, loadUsers] effect always refires
+  }, []);
 
   /* ── Open detail panel ── */
   const openDetail = async (u) => {
@@ -308,6 +315,27 @@ export default function UsersTab({ onToast }) {
           </button>
         </div>
 
+        <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+          {[
+            { key: "all",       label: "All" },
+            { key: "player",    label: "Players" },
+            { key: "affiliate", label: "Affiliates" },
+          ].map(r => (
+            <button
+              key={r.key}
+              onClick={() => handleRoleChange(r.key)}
+              style={{
+                padding: "6px 14px", borderRadius: 20, border: `1px solid ${role === r.key ? "#D4AF37" : C.border}`,
+                background: role === r.key ? "rgba(212,175,55,0.15)" : "transparent",
+                color: role === r.key ? "#D4AF37" : C.muted,
+                fontWeight: role === r.key ? 700 : 500, fontSize: 12, cursor: "pointer",
+              }}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+
         <Card style={{ padding: 0, overflow: "hidden" }}>
           <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
@@ -322,12 +350,15 @@ export default function UsersTab({ onToast }) {
               {loading ? (
                 <tr><td colSpan={8} style={{ padding: 40, textAlign: "center" }}><Spinner /></td></tr>
               ) : users.length === 0 ? (
-                <tr><td colSpan={8} style={{ padding: 40, textAlign: "center", color: C.dim, fontSize: 12 }}>No users found</td></tr>
+                <tr><td colSpan={8} style={{ padding: 40, textAlign: "center", color: C.muted, fontSize: 12 }}>No users found</td></tr>
               ) : users.map(u => (
                 <tr key={u.id} style={{ borderBottom: `1px solid ${C.border}`, background: selectedUser?.profile?.id === u.id ? "rgba(212,175,55,0.04)" : "transparent" }}>
                   <td style={S.td}><UidBadge uid={u.user_uid} /></td>
                   <td style={S.td}>
-                    <div style={{ fontWeight: 600, color: C.text }}>{u.name || "—"}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <div style={{ fontWeight: 600, color: C.text }}>{u.name || "—"}</div>
+                      {u.is_affiliate && <AffiliateBadge />}
+                    </div>
                     <div style={{ fontSize: 11, color: C.muted }}>{u.email}</div>
                   </td>
                   <td style={S.td}><LevelBadge level={u._level} /></td>
@@ -340,7 +371,7 @@ export default function UsersTab({ onToast }) {
                         <div style={{ fontSize: 10, color: C.muted }}>{u.last_login_country_name || "—"}</div>
                       </>
                     ) : (
-                      <div style={{ fontSize: 11, color: C.dim }}>Unknown</div>
+                      <div style={{ fontSize: 11, color: C.muted }}>Unknown</div>
                     )}
                   </td>
 
@@ -351,7 +382,7 @@ export default function UsersTab({ onToast }) {
                     ) : (
                       <>
                         <div style={{ fontFamily: "monospace", color: "#34D399", fontWeight: 700 }}>{fmt(u._availableCash)}</div>
-                        <div style={{ fontSize: 10, color: C.dim }}>Can deposit/payout</div>
+                        <div style={{ fontSize: 10, color: C.muted }}>Can deposit/payout</div>
                       </>
                     )}
                   </td>
@@ -363,7 +394,7 @@ export default function UsersTab({ onToast }) {
                     ) : (
                       <>
                         <div style={{ fontFamily: "monospace", color: "#60A5FA", fontWeight: 700 }}>{fmt(u._totalMainBalance)}</div>
-                        <div style={{ fontSize: 10, color: C.dim }}>Incl. all casinos</div>
+                        <div style={{ fontSize: 10, color: C.muted }}>Incl. all casinos</div>
                       </>
                     )}
                   </td>
@@ -494,6 +525,7 @@ function UserDetailPanel({ data, onClose, onToast }) {
           <UidBadge uid={u?.user_uid} />
           <LevelBadge level={curLvl} />
           <StatusBadge kycStatus={u?.kyc_status} isActive={u?.is_active} />
+          {u?.is_affiliate && <AffiliateBadge />}
         </div>
         {u?.is_active === false && (
           <div style={{ marginTop: 10, padding: "6px 10px", borderRadius: 6, background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.3)", fontSize: 11, color: "#F87171", display: "flex", alignItems: "center", gap: 6 }}>
@@ -539,7 +571,7 @@ function UserDetailPanel({ data, onClose, onToast }) {
                     {m.icon} {m.label}
                   </div>
                   {w.account_number && (
-                    <div style={{ fontSize: 9, color: C.dim, fontFamily: "monospace", marginBottom: 4 }}>{w.account_number}</div>
+                    <div style={{ fontSize: 9, color: C.muted, fontFamily: "monospace", marginBottom: 4 }}>{w.account_number}</div>
                   )}
                   <div style={{ fontSize: 15, fontWeight: 900, color: m.color, fontFamily: "monospace" }}>
                     {isRP ? `${fmtN(w.balance)} RP` : fmt(w.balance)}
@@ -548,7 +580,7 @@ function UserDetailPanel({ data, onClose, onToast }) {
               );
             })}
             {(!mainWallets || mainWallets.length === 0) && (
-              <div style={{ gridColumn: "1/-1", fontSize: 11, color: C.dim, textAlign: "center", padding: 10 }}>No wallet data</div>
+              <div style={{ gridColumn: "1/-1", fontSize: 11, color: C.muted, textAlign: "center", padding: 10 }}>No wallet data</div>
             )}
           </div>
         )}
@@ -584,7 +616,7 @@ function UserDetailPanel({ data, onClose, onToast }) {
               })}
             </div>
           ) : (
-            <div style={{ fontSize: 11, color: C.dim, textAlign: "center", padding: "8px 0", marginBottom: 10 }}>Select a casino above</div>
+            <div style={{ fontSize: 11, color: C.muted, textAlign: "center", padding: "8px 0", marginBottom: 10 }}>Select a casino above</div>
           )}
           <div style={{ padding: "8px 10px", borderRadius: 6, background: C.hoverBg, border: `1px solid ${C.border}` }}>
             <div style={{ fontSize: 9, color: C.muted, textTransform: "uppercase", marginBottom: 6, letterSpacing: "0.08em" }}>Cash balance per casino</div>
@@ -627,7 +659,7 @@ function UserDetailPanel({ data, onClose, onToast }) {
             ))}
           </div>
         ) : txState.results.length === 0 ? (
-          <div style={{ padding: 16, textAlign: "center", fontSize: 11, color: C.dim }}>No transactions found</div>
+          <div style={{ padding: 16, textAlign: "center", fontSize: 11, color: C.muted }}>No transactions found</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column" }}>
             {txState.results.map(tx => {
@@ -706,7 +738,7 @@ function UserDetailPanel({ data, onClose, onToast }) {
             {[0,1].map(i => <div key={i} style={{ borderRadius: 8, background: C.hoverBg, border: `1px solid ${C.border}`, padding: 12 }}><Shimmer width={100} /><div style={{ marginTop: 8 }}><Shimmer width={200} /></div></div>)}
           </div>
         ) : travelState.results.length === 0 ? (
-          <div style={{ padding: 16, textAlign: "center", fontSize: 11, color: C.dim }}>No casino visits recorded</div>
+          <div style={{ padding: 16, textAlign: "center", fontSize: 11, color: C.muted }}>No casino visits recorded</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {travelState.results.map(t => {
@@ -731,7 +763,7 @@ function UserDetailPanel({ data, onClose, onToast }) {
                             ? new Date(t.betting_date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
                             : (t.created_at ? fmtDT(t.created_at) : "—")}
                         </div>
-                        {t.slip_number && <div style={{ fontSize: 9, color: C.dim, marginTop: 2, fontFamily: "monospace" }}>#{t.slip_number}</div>}
+                        {t.slip_number && <div style={{ fontSize: 9, color: C.muted, marginTop: 2, fontFamily: "monospace" }}>#{t.slip_number}</div>}
                       </div>
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 6 }}>
@@ -768,7 +800,7 @@ function UserDetailPanel({ data, onClose, onToast }) {
           <div style={{ width: `${progressPct}%`, height: "100%", background: lvlColor, boxShadow: `0 0 10px ${lvlColor}50`, transition: "width 0.5s ease" }} />
         </div>
         {nextPts && (
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: C.dim, marginTop: 5 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: C.muted, marginTop: 5 }}>
             <span>{LEVEL_NAMES[curLvl]}</span>
             <span>Next: {nextPts.toLocaleString()} pts → {LEVEL_NAMES[curLvl + 1] || `Level ${curLvl + 1}`}</span>
           </div>
@@ -782,7 +814,7 @@ function UserDetailPanel({ data, onClose, onToast }) {
         <DetailRow icon={<Users size={10} />}      label="Referred Count"    value={u?.referral_count ?? "0"} />
         <DetailRow icon={<DollarSign size={10} />} label="Referral Earnings" value={fmt(u?.referral_earnings || 0)} mono />
         <div style={{ marginTop: 10 }}>
-          <div style={{ fontSize: 10, color: C.dim, textTransform: "uppercase", marginBottom: 6 }}>Referred By</div>
+          <div style={{ fontSize: 10, color: C.muted, textTransform: "uppercase", marginBottom: 6 }}>Referred By</div>
           {u?.referred_by_uid ? (
             <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: 6, background: "rgba(212,175,55,0.06)", border: "1px solid rgba(212,175,55,0.18)" }}>
               <User size={11} color="#D4AF37" />
@@ -790,12 +822,12 @@ function UserDetailPanel({ data, onClose, onToast }) {
               {u.referred_by_name && <span style={{ fontSize: 10, color: C.muted }}>· {u.referred_by_name}</span>}
             </div>
           ) : (
-            <div style={{ fontSize: 11, color: C.dim }}>None</div>
+            <div style={{ fontSize: 11, color: C.muted }}>None</div>
           )}
         </div>
         {u?.referred_users?.length > 0 && (
           <div style={{ marginTop: 10 }}>
-            <div style={{ fontSize: 10, color: C.dim, textTransform: "uppercase", marginBottom: 6 }}>Referred Users ({u.referred_users.length})</div>
+            <div style={{ fontSize: 10, color: C.muted, textTransform: "uppercase", marginBottom: 6 }}>Referred Users ({u.referred_users.length})</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               {u.referred_users.map((r, i) => (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 6, background: "rgba(96,165,250,0.06)", border: "1px solid rgba(96,165,250,0.18)" }}>
@@ -848,7 +880,7 @@ function BalanceCard({ label, sub, value, color, bg, border }) {
   return (
     <div style={{ padding: "14px 16px", borderRadius: 10, background: bg, border: `1px solid ${border}` }}>
       <div style={{ fontSize: 9, color, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 9, color: C.dim, marginBottom: 6 }}>{sub}</div>
+      <div style={{ fontSize: 9, color: C.muted, marginBottom: 6 }}>{sub}</div>
       <div style={{ fontSize: 22, fontWeight: 900, fontFamily: "monospace", color }}>{value}</div>
     </div>
   );
@@ -884,6 +916,14 @@ function LevelBadge({ level }) {
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 9px", borderRadius: 20, background: `${color}15`, border: `1px solid ${color}30`, fontSize: 10, fontWeight: 800, color }}>
       <Star size={10} fill={color} /> {name}
+    </span>
+  );
+}
+
+function AffiliateBadge() {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 9px", borderRadius: 20, background: "rgba(167,139,250,0.15)", border: "1px solid rgba(167,139,250,0.3)", fontSize: 10, fontWeight: 700, color: "#A78BFA" }}>
+      <Users size={10} /> Affiliate
     </span>
   );
 }

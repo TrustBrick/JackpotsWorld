@@ -21,6 +21,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from authapp.models import User, AdminProfile, ActivityLog
+from authapp.models.affiliate_models import AffiliateProfile
 from authapp.serializers import RegisterSerializer, LoginSerializer, UserProfileSerializer
 from authapp.throttles import (
     LoginRateThrottle, AdminLoginRateThrottle, RegisterRateThrottle, CheckUserRateThrottle,
@@ -195,6 +196,15 @@ class LoginView(APIView):
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.validated_data["user"]
+
+            # Affiliates authenticate exclusively through AffiliateLoginView —
+            # never mix Player and Affiliate sessions/dashboards.
+            if AffiliateProfile.objects.filter(user=user).exists():
+                return Response(
+                    {"error": "This account is registered as an Affiliate. Please sign in via the Affiliate Login page.", "is_affiliate": True},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
             if email:
                 reset_attempts(email)
             ip   = get_client_ip(request)

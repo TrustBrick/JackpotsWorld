@@ -1,3 +1,5 @@
+import { getToken, setToken, clearSession } from "../services/authStorage"
+
 export const API = import.meta.env.VITE_API_URL || ""
 
 const buildHeaders = (token, opts) => {
@@ -13,11 +15,11 @@ const buildHeaders = (token, opts) => {
 // and the admin session ("admin_token"/"admin_user") — the affiliate role is
 // a genuinely separate login, not an upgrade of the user dashboard.
 export const affiliateFetch = async (url, opts = {}) => {
-  const token = localStorage.getItem("affiliate_token")
+  const token = getToken("affiliate_token")
   let res = await fetch(url, { ...opts, headers: buildHeaders(token, opts) })
 
   if (res.status === 401) {
-    const refresh = localStorage.getItem("affiliate_refresh")
+    const refresh = getToken("affiliate_refresh")
     if (refresh) {
       const rr = await fetch(`${API}/api/auth/token/refresh/`, {
         method: "POST",
@@ -26,18 +28,15 @@ export const affiliateFetch = async (url, opts = {}) => {
       })
       if (rr.ok) {
         const d = await rr.json()
-        localStorage.setItem("affiliate_token", d.access)
+        setToken("affiliate_token", d.access)
         res = await fetch(url, { ...opts, headers: buildHeaders(d.access, opts) })
       } else {
-        localStorage.removeItem("affiliate_token")
-        localStorage.removeItem("affiliate_refresh")
-        localStorage.removeItem("affiliate_user")
+        clearSession(["affiliate_token", "affiliate_refresh", "affiliate_user"])
         window.location.href = "/affiliate-login"
         return
       }
     } else {
-      localStorage.removeItem("affiliate_token")
-      localStorage.removeItem("affiliate_user")
+      clearSession(["affiliate_token", "affiliate_user"])
       window.location.href = "/affiliate-login"
       return
     }

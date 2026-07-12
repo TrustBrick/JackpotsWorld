@@ -3,6 +3,8 @@
 // Plain fetch + retry-with-backoff, consistent with the rest of the app
 // (no axios/react-query dependency is used anywhere else in this project).
 
+import { getToken } from "./authStorage"
+
 const API_BASE = import.meta.env.VITE_API_URL || ""
 
 async function withRetry(fn, retries = 2, baseDelayMs = 400) {
@@ -55,7 +57,7 @@ export function createCache(ttlMs = 60_000) {
 }
 
 export async function apiPostAuthed(path, body) {
-  const token = localStorage.getItem("access")
+  const token = getToken("access")
   const res = await fetch(`${API_BASE}${path}`, {
     method: "POST",
     headers: {

@@ -31,6 +31,13 @@ class KYCSubmission(models.Model):
     doc_back         = models.ImageField(upload_to="kyc/docs/",    null=True, blank=True)
     selfie           = models.ImageField(upload_to="kyc/selfies/", null=True, blank=True)
 
+    ID_PROOF_CHOICES = [
+        ("address_proof", "Address Proof"),
+        ("income_proof",  "Income Proof"),
+    ]
+    id_proof_type = models.CharField(max_length=30, blank=True, choices=ID_PROOF_CHOICES)
+    id_proof_file = models.FileField(upload_to="kyc/id_proof/", null=True, blank=True)
+
     # Meta captured at submission time
     submitted_at = models.DateTimeField(auto_now_add=True)
     ip_address   = models.GenericIPAddressField(null=True, blank=True)

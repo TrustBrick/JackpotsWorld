@@ -78,7 +78,7 @@ export default function AdminWalletBanner() {
       {/* Refresh + last sync */}
       <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10 }}>
         {lastSync && (
-          <span style={{ fontSize: 10, color: C.dim }}>
+          <span style={{ fontSize: 10, color: C.muted }}>
             synced {lastSync.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
           </span>
         )}

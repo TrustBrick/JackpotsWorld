@@ -116,15 +116,15 @@ export default function BonusTab({ profile, onToast, onRefresh }) {
           <thead>
             <tr style={{ borderBottom: `1px solid ${C.border}` }}>
               {[t("bonus.txnId"), t("tables.date"), t("bonus.bonusAdded"), t("bonus.depositAmount"), t("tables.note"), t("tables.status")].map(h => (
-                <th key={h} style={{ padding: "11px 14px", textAlign: "left", fontSize: 10, color: "rgba(255,255,255,0.3)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>{h}</th>
+                <th key={h} style={{ padding: "11px 14px", textAlign: "left", fontSize: 10, color: "rgba(255,255,255,0.55)", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", textShadow: "0 0 8px rgba(212,175,55,0.25)" }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} style={{ padding: 28, textAlign: "center", color: "rgba(255,255,255,0.25)" }}>{t("common.loading")}</td></tr>
+              <tr><td colSpan={6} style={{ padding: 28, textAlign: "center", color: "rgba(255,255,255,0.45)" }}>{t("common.loading")}</td></tr>
             ) : history.length === 0 ? (
-              <tr><td colSpan={6} style={{ padding: 36, textAlign: "center", color: "rgba(255,255,255,0.2)" }}>{t("bonus.noBonusTransactionsYet")}</td></tr>
+              <tr><td colSpan={6} style={{ padding: 36, textAlign: "center", color: "rgba(255,255,255,0.4)" }}>{t("bonus.noBonusTransactionsYet")}</td></tr>
             ) : history.map(item => (
               <tr key={item.id} style={{ borderBottom: `1px solid ${C.border}` }}
                 onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.02)"}

@@ -157,15 +157,15 @@ export default function TxnsTab({ onToast }) {
           />
         </div>
         <select value={typeF} onChange={e => setTypeF(e.target.value)} style={sSelect}>
-          <option value="">All Types</option>
+          <option value="" style={{ background: C.surface, color: C.text }}>All Types</option>
           {Object.entries(TX_TYPES).map(([k, v]) => (
-            <option key={k} value={k}>{v.label} ({k})</option>
+            <option key={k} value={k} style={{ background: C.surface, color: C.text }}>{v.label} ({k})</option>
           ))}
         </select>
         <select value={walletF} onChange={e => setWalletF(e.target.value)} style={sSelect}>
-  <option value="">All Wallets</option>
+  <option value="" style={{ background: C.surface, color: C.text }}>All Wallets</option>
   {Object.entries(WALLET_CFG).map(([k, v]) => (
-    <option key={k} value={k}>{v.label}</option>
+    <option key={k} value={k} style={{ background: C.surface, color: C.text }}>{v.label}</option>
   ))}
 </select>
         <button onClick={() => load(1)} style={sRefresh}><RefreshCw size={14} /></button>
@@ -193,7 +193,7 @@ export default function TxnsTab({ onToast }) {
               <tbody>
                 {txns.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ padding: 40, textAlign: "center", color: C.dim, fontSize: 13 }}>
+                    <td colSpan={8} style={{ padding: 40, textAlign: "center", color: C.muted, fontSize: 13 }}>
                       No transactions found
                     </td>
                   </tr>
@@ -429,7 +429,7 @@ function buildStyles(C) {
     sInput:   { width: "100%", padding: "10px 14px 10px 38px", borderRadius: 10, background: C.inputBg, border: `1px solid ${C.border}`, color: C.text, fontSize: 13, outline: "none" },
     sSelect:  { padding: "9px 12px", borderRadius: 10, background: C.inputBg, border: `1px solid ${C.border}`, color: C.text, fontSize: 13, outline: "none", cursor: "pointer" },
     sRefresh: { padding: "10px", borderRadius: 10, background: "transparent", border: `1px solid ${C.border}`, color: C.muted, cursor: "pointer" },
-    thStyle:  { padding: "11px 15px", textAlign: "left", fontSize: 10, color: C.muted, fontWeight: 800, textTransform: "uppercase", whiteSpace: "nowrap" },
+    thStyle:  { padding: "11px 15px", textAlign: "left", fontSize: 10, color: C.sub, fontWeight: 800, textTransform: "uppercase", whiteSpace: "nowrap", textShadow: "0 0 8px rgba(212,175,55,0.25)" },
     tdStyle:  { padding: "13px 15px", whiteSpace: "nowrap" },
   };
 }

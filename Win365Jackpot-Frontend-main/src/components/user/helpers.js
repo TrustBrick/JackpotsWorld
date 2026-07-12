@@ -1,11 +1,13 @@
+import { getToken, setToken, clearSession } from "../../services/authStorage";
+
 const API = import.meta.env.VITE_API_URL
 // console.log("API VALUE:", API); use for dev
 export { API };
 
 // ─── Auth-aware fetch with token refresh ──────────────────────────────────────
 export const authFetch = async (url, opts = {}) => {
-  let token = localStorage.getItem("access");
-  if (!token) { window.location.href = "/"; return; }
+  let token = getToken("access");
+  if (!token) { window.location.href = "/sign-in"; return; }
 
   let res = await fetch(url, {
     ...opts,
@@ -17,7 +19,7 @@ export const authFetch = async (url, opts = {}) => {
   });
 
   if (res.status === 401) {
-    const refresh = localStorage.getItem("refresh");
+    const refresh = getToken("refresh");
     if (refresh) {
       const rr = await fetch(`${API}/api/auth/token/refresh/`, {
         method: "POST",
@@ -26,7 +28,7 @@ export const authFetch = async (url, opts = {}) => {
       });
       if (rr.ok) {
         const d = await rr.json();
-        localStorage.setItem("access", d.access);
+        setToken("access", d.access);
         res = await fetch(url, {
           ...opts,
           headers: {
@@ -36,13 +38,13 @@ export const authFetch = async (url, opts = {}) => {
           },
         });
       } else {
-        ["access", "refresh", "user"].forEach(k => localStorage.removeItem(k));
-        window.location.href = "/";
+        clearSession(["access", "refresh", "user"]);
+        window.location.href = "/sign-in";
         return;
       }
     } else {
-      localStorage.removeItem("access");
-      window.location.href = "/";
+      clearSession(["access", "refresh", "user"]);
+      window.location.href = "/sign-in";
       return;
     }
   }

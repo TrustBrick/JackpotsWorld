@@ -14,7 +14,7 @@ User model, mirroring the AdminProfile / AdminLoginView pattern.
 """
 from decimal import Decimal, InvalidOperation
 
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, Count
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
 from rest_framework import permissions, status
@@ -26,6 +26,7 @@ from authapp.models import User
 from authapp.models.affiliate_models import (
     AffiliateProfile, ReferralCommission, AffiliateClickLog, AffiliateLoginLog,
 )
+from authapp.models.gift_level_models import UserLevel
 from authapp.permissions.affiliate_permissions import IsAffiliate
 from authapp.permissions.super_admin_permissions import IsAdminOrSuperAdmin
 from authapp.utils.geolocation import resolve_geo_location
@@ -179,6 +180,16 @@ class AffiliateDashboardView(APIView):
             .order_by("-month")[:12]
         )
 
+        level_counts = (
+            UserLevel.objects.filter(user__in=referred_qs)
+            .values("level")
+            .annotate(count=Count("level"))
+            .order_by("-count")
+        )
+        distribution = {str(row["level"]): row["count"] for row in level_counts}
+        total_leveled = sum(distribution.values())
+        most_common_level = int(max(distribution, key=distribution.get)) if distribution else 1
+
         return Response({
             "affiliate_profile": AffiliateProfileSerializer(profile).data,
             "referral_code": request.user.referral_code,
@@ -198,6 +209,11 @@ class AffiliateDashboardView(APIView):
                 {"month": m["month"].strftime("%Y-%m"), "total": float(m["total"])}
                 for m in monthly
             ],
+            "player_level": {
+                "most_common_level": most_common_level,
+                "distribution": distribution,
+                "total_leveled_players": total_leveled,
+            },
         })
 
 
@@ -212,6 +228,17 @@ class AffiliateCommissionsListView(APIView):
         status_filter = request.GET.get("status", "").strip()
         user_id = request.GET.get("user_id", "").strip()
         page = max(1, int(request.GET.get("page", 1) or 1))
+
+        # Viewing a specific referred player's transaction detail (as opposed
+        # to the affiliate's own overall Commission/Withdrawal History, which
+        # is always visible) requires admin-granted permission.
+        if user_id:
+            profile = getattr(request.user, "affiliate_profile", None)
+            if not profile or not profile.can_view_player_transactions:
+                return Response(
+                    {"error": "Transaction visibility is not enabled for your account. Contact your account manager."},
+                    status=403,
+                )
 
         qs = ReferralCommission.objects.filter(affiliate=request.user).select_related("referred_user")
         if status_filter in ("pending", "paid"):
@@ -292,9 +319,16 @@ class AffiliateReferralsListView(APIView):
             else:
                 paid_map[c.referred_user_id] = paid_map.get(c.referred_user_id, Decimal("0")) + c.amount
 
+        level_map = {
+            ul.user_id: ul.level
+            for ul in UserLevel.objects.filter(user__in=page_users)
+        }
+
         results = [
             {
                 "id": u.id,
+                "user_level": level_map.get(u.id, 1),
+                "country": u.country,
                 "user_uid": u.user_uid,
                 "name": u.name,
                 "email": u.email,
@@ -325,6 +359,7 @@ class AdminGrantAffiliateView(APIView):
         user_id = request.data.get("user_id")
         commission_rate = request.data.get("commission_rate", "10.00")
         is_active = request.data.get("is_active", True)
+        can_view_txns = request.data.get("can_view_player_transactions")
 
         if not user_id:
             return Response({"error": "user_id is required"}, status=400)
@@ -344,13 +379,18 @@ class AdminGrantAffiliateView(APIView):
                 "commission_rate": commission_rate,
                 "is_active": is_active,
                 "approved_by": request.user,
+                "can_view_player_transactions": bool(can_view_txns) if can_view_txns is not None else False,
             },
         )
         if not created:
             profile.commission_rate = commission_rate
             profile.is_active = is_active
             profile.approved_by = request.user
-            profile.save(update_fields=["commission_rate", "is_active", "approved_by", "updated_at"])
+            update_fields = ["commission_rate", "is_active", "approved_by", "updated_at"]
+            if can_view_txns is not None:
+                profile.can_view_player_transactions = bool(can_view_txns)
+                update_fields.append("can_view_player_transactions")
+            profile.save(update_fields=update_fields)
 
         return Response({
             "message": f"{user.email} is now {'an active' if is_active else 'an inactive'} affiliate.",

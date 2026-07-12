@@ -1,7 +1,9 @@
-import React, { Suspense, lazy, useEffect } from 'react'
+import React, { Suspense, lazy, useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import LandingPage from './pages/LandingPage'
 import { ThemeProvider } from './context/ThemeContext'
+import { authFetch, API } from './components/user/helpers'
+import { getToken } from './services/authStorage'
 
 // ── Route-level code splitting ─────────────────────────────────────────────
 // LandingPage stays eager (first paint); everything else is only needed
@@ -44,12 +46,33 @@ function isAdminSession() {
 }
 
 function isLoggedIn() {
-  return !!localStorage.getItem('access')
+  return !!getToken('access')
 }
 
 // ── Route guards ─────────────────────────────────────────────────────────────
+// Never trusts the mere presence of a cached token — re-validates it against
+// the backend on every mount (covers page load, refresh, and browser
+// back/forward within the SPA) before rendering protected content, so a
+// stale/expired/revoked session always lands back on /sign-in instead of
+// silently granting access.
 function ProtectedRoute({ children }) {
-  if (!isLoggedIn()) return <Navigate to="/" replace />
+  const [status, setStatus] = useState(isLoggedIn() ? 'checking' : 'anon')
+
+  useEffect(() => {
+    if (status !== 'checking') return
+    let cancelled = false
+    authFetch(`${API}/api/user/profile/`).then(res => {
+      if (cancelled) return
+      // undefined means authFetch already hard-redirected (token invalid and
+      // refresh also failed) — nothing left to do here.
+      if (!res) { setStatus('redirecting'); return }
+      setStatus(res.ok ? 'valid' : 'invalid')
+    })
+    return () => { cancelled = true }
+  }, [status])
+
+  if (status === 'anon' || status === 'invalid') return <Navigate to="/sign-in" replace />
+  if (status === 'checking' || status === 'redirecting') return <RouteFallback />
   return children
 }
 

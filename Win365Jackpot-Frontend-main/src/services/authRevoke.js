@@ -5,11 +5,13 @@
 // client-side. Best-effort: if the request fails, we still proceed with
 // clearing local state — logout should never get the user stuck.
 
+import { getToken } from "./authStorage"
+
 const API_BASE = import.meta.env.VITE_API_URL || ""
 
 export async function revokeSession(accessKey, refreshKey) {
-  const access = localStorage.getItem(accessKey)
-  const refresh = localStorage.getItem(refreshKey)
+  const access = getToken(accessKey)
+  const refresh = getToken(refreshKey)
   if (!access || !refresh) return
 
   try {

@@ -83,6 +83,8 @@ def _serialize_kyc(kyc):
         "date_of_birth":   kyc.date_of_birth,
         "document_type":   kyc.document_type,
         "document_number": kyc.document_number,
+        "id_proof_type":     kyc.id_proof_type,
+        "id_proof_file_url": kyc.id_proof_file.url if kyc.id_proof_file else None,
         "submitted_at":    kyc.submitted_at,
         "reject_reason":   kyc.reject_reason,
         "status":          kyc.status,

@@ -1,7 +1,7 @@
 # authapp/urls.py
 from django.urls import path, include
 
-from authapp.url_patterns import events_urls, poker_urls, promotion_urls, location_urls, affiliate_urls, support_urls, spin_urls, chat_urls
+from authapp.url_patterns import events_urls, poker_urls, promotion_urls, location_urls, affiliate_urls, support_urls, spin_urls, chat_urls, landing_urls
 
 urlpatterns = [
     path("", include("authapp.url_patterns.auth_urls")),
@@ -19,10 +19,12 @@ urlpatterns = [
     path("", include(poker_urls.public_urlpatterns)),
     path("", include(promotion_urls.public_urlpatterns)),
     path("", include(location_urls.public_urlpatterns)),
+    path("", include(landing_urls.public_urlpatterns)),
     path("admin-panel/", include(events_urls.admin_urlpatterns)),
     path("admin-panel/", include(poker_urls.admin_urlpatterns)),
     path("admin-panel/", include(promotion_urls.admin_urlpatterns)),
     path("admin-panel/", include(location_urls.admin_urlpatterns)),
+    path("admin-panel/", include(landing_urls.admin_urlpatterns)),
 
     # ── Affiliate role (separate login + dashboard) ────────────────────────────
     path("", include(affiliate_urls.public_urlpatterns)),

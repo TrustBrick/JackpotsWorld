@@ -201,13 +201,9 @@ def credit_casino_wallet(
     except Exception as exc:
         logger.warning("notify failed credit_casino_wallet: %s", exc)
 
-    # ── Referral commission (flat % of a referred user's cash deposits) ────
-    if txn_type == "DAC":
-        try:
-            from authapp.services.affiliate_service import record_referral_commission
-            record_referral_commission(user, amount, source_ref=str(casino_txn.id))
-        except Exception as exc:
-            logger.warning("referral commission failed credit_casino_wallet: %s", exc)
+    # Referral commissions are no longer created here — they're gated on a
+    # verified Bet Slip (slip_number) at the Rolling Points Entry step
+    # instead of firing on every cash deposit. See admin_offline_deposit_views.py.
 
     return {
         "casino_balance": float(acct.balance),

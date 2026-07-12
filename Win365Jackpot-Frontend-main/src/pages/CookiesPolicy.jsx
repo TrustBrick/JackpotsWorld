@@ -161,7 +161,7 @@ export default function CookiesPolicy() {
       minHeight: '100vh',
       background: '#0A0005',
       color: 'white',
-      fontFamily: "'Space Grotesk', 'Segoe UI', sans-serif",
+      fontFamily: "'Manrope', 'Segoe UI', sans-serif",
     }}>
 
       {/* ── Top bar ── */}

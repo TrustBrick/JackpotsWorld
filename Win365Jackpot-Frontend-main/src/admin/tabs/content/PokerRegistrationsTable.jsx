@@ -85,7 +85,7 @@ export default function PokerRegistrationsTable({ onToast }) {
                 onChange={e => patch(item.id, { status: e.target.value })}
                 style={selectStyle}
               >
-                {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value} style={{ background: C.surface, color: C.text }}>{o.label}</option>)}
               </select>
             </td>
             <td style={{ padding: "11px 14px" }}>

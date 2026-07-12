@@ -6,64 +6,33 @@ import {
   PlaneTakeoff, Crown, BarChart3,
   CheckCircle, Lock, BadgeCheck, MapPin, Star,
 } from 'lucide-react'
+import { useAutoFetch } from '../hooks/useAutoFetch'
+import { fetchWhyChooseUsFeatures, fetchTrustBadges, fetchLandingSettings } from '../services/landingService'
 
-const features = [
-  {
-    Icon: ShieldCheck,
-    color: '#34d399', bg: 'rgba(52,211,153,0.08)', border: 'rgba(52,211,153,0.18)',
-    title: 'Secure & Licensed',
-    desc: 'All casino partners are fully licensed and regulated. Your safety and privacy are our top priority.',
-  },
-  {
-    Icon: Zap,
-    color: '#fbbf24', bg: 'rgba(251,191,36,0.08)', border: 'rgba(251,191,36,0.18)',
-    title: 'Instant Payments',
-    desc: 'Deposit and withdraw seamlessly across all types of currencies at casinos.',
-  },
-  {
-    Icon: Gift,
-    color: '#f472b6', bg: 'rgba(244,114,182,0.08)', border: 'rgba(244,114,182,0.18)',
-    title: 'Exclusive Bonuses',
-    desc: 'Special welcome bonuses, reload offers, and cashback deals available only on Jackpots World.',
-  },
-  {
-    Icon: Globe,
-    color: '#60a5fa', bg: 'rgba(96,165,250,0.08)', border: 'rgba(96,165,250,0.18)',
-    title: '10+ Country Access',
-    desc: 'One registration unlocks casino opportunities in Vietnam, Macau, India, Sri Lanka, Philippines and more.',
-  },
-  {
-    Icon: HeadphonesIcon,
-    color: '#a78bfa', bg: 'rgba(167,139,250,0.08)', border: 'rgba(167,139,250,0.18)',
-    title: '24/7 Live Support',
-    desc: 'Our multilingual support team is available round the clock via WhatsApp, chat, and call.',
-  },
-  {
-    Icon: PlaneTakeoff,
-    color: '#22d3ee', bg: 'rgba(34,211,238,0.08)', border: 'rgba(34,211,238,0.18)',
-    title: 'Full Trip Packages',
-    desc: 'We handle flights, hotels, transfers, and casino entry. Hassle-free from home to high-stakes table.',
-  },
-  {
-    Icon: Crown,
-    color: '#D4AF37', bg: 'rgba(212,175,55,0.08)', border: 'rgba(212,175,55,0.18)',
-    title: 'VIP Membership',
-    desc: 'Earn loyalty points on every booking. Unlock exclusive perks, private rooms, and concierge service.',
-  },
-  {
-    Icon: BarChart3,
-    color: '#fb923c', bg: 'rgba(251,146,60,0.08)', border: 'rgba(251,146,60,0.18)',
-    title: 'Win Rate Analytics',
-    desc: 'Smart tools to track your sessions, analyse performance, and optimise your gaming strategy.',
-  },
+// Maps the admin-editable `icon_name` string to its Lucide component —
+// same string-keyed lookup pattern already used by AdminPanel.jsx's ICON_MAP.
+const ICON_MAP = {
+  ShieldCheck, Zap, Gift, Globe, HeadphonesIcon,
+  PlaneTakeoff, Crown, BarChart3, CheckCircle, Lock, BadgeCheck, MapPin, Star,
+}
+
+const FALLBACK_FEATURES = [
+  { color: '#34d399', icon_name: 'ShieldCheck', title: 'Secure & Licensed', description: 'All casino partners are fully licensed and regulated. Your safety and privacy are our top priority.' },
+  { color: '#fbbf24', icon_name: 'Zap', title: 'Instant Payments', description: 'Deposit and withdraw seamlessly across all types of currencies at casinos.' },
+  { color: '#f472b6', icon_name: 'Gift', title: 'Exclusive Bonuses', description: 'Special welcome bonuses, reload offers, and cashback deals available only on Jackpots World.' },
+  { color: '#60a5fa', icon_name: 'Globe', title: '10+ Country Access', description: 'One registration unlocks casino opportunities in Vietnam, Macau, India, Sri Lanka, Philippines and more.' },
+  { color: '#a78bfa', icon_name: 'HeadphonesIcon', title: '24/7 Live Support', description: 'Our multilingual support team is available round the clock via WhatsApp, chat, and call.' },
+  { color: '#22d3ee', icon_name: 'PlaneTakeoff', title: 'Full Trip Packages', description: 'We handle flights, hotels, transfers, and casino entry. Hassle-free from home to high-stakes table.' },
+  { color: '#D4AF37', icon_name: 'Crown', title: 'VIP Membership', description: 'Earn loyalty points on every booking. Unlock exclusive perks, private rooms, and concierge service.' },
+  { color: '#fb923c', icon_name: 'BarChart3', title: 'Win Rate Analytics', description: 'Smart tools to track your sessions, analyse performance, and optimise your gaming strategy.' },
 ]
 
-const TRUST_BADGES = [
-  { Icon: CheckCircle, label: 'Licensed Partners',    color: '#34d399' },
-  { Icon: Lock,        label: 'SSL Secured',           color: '#60a5fa' },
-  { Icon: BadgeCheck,  label: 'Fair Play Certified',   color: '#a78bfa' },
-  { Icon: MapPin,      label: 'Pan-Asia Coverage',     color: '#fbbf24' },
-  { Icon: Star,        label: '5 Star Rated',          color: '#D4AF37' },
+const FALLBACK_TRUST_BADGES = [
+  { icon_name: 'CheckCircle', label: 'Licensed Partners',  color: '#34d399' },
+  { icon_name: 'Lock',        label: 'SSL Secured',         color: '#60a5fa' },
+  { icon_name: 'BadgeCheck',  label: 'Fair Play Certified', color: '#a78bfa' },
+  { icon_name: 'MapPin',      label: 'Pan-Asia Coverage',   color: '#fbbf24' },
+  { icon_name: 'Star',        label: '5 Star Rated',        color: '#D4AF37' },
 ]
 
 const FeatureCard = memo(({ Icon, color, bg, border, title, desc }) => (
@@ -130,6 +99,25 @@ const FeatureCard = memo(({ Icon, color, bg, border, title, desc }) => (
 
 export default function WhyChooseUs() {
   const { ref, inView } = useInView({ threshold: 0.08, triggerOnce: true })
+
+  const { data: featuresData } = useAutoFetch(fetchWhyChooseUsFeatures, {}, { intervalMs: 60_000 })
+  const { data: trustBadgesData } = useAutoFetch(fetchTrustBadges, {}, { intervalMs: 60_000 })
+  const { data: settings } = useAutoFetch(fetchLandingSettings, {}, { intervalMs: 60_000 })
+
+  const features = (Array.isArray(featuresData) && featuresData.length > 0 ? featuresData : FALLBACK_FEATURES).map(f => ({
+    Icon: ICON_MAP[f.icon_name] || ShieldCheck,
+    color: f.color,
+    bg: `${f.color}14`,
+    border: `${f.color}2e`,
+    title: f.title,
+    desc: f.description,
+  }))
+
+  const TRUST_BADGES = (Array.isArray(trustBadgesData) && trustBadgesData.length > 0 ? trustBadgesData : FALLBACK_TRUST_BADGES).map(b => ({
+    Icon: ICON_MAP[b.icon_name] || CheckCircle,
+    label: b.label,
+    color: b.color,
+  }))
 
   return (
     <section
@@ -213,7 +201,7 @@ export default function WhyChooseUs() {
             fontSize: 'clamp(1.2rem,5vw,1.8rem)',
             fontWeight: 900, marginBottom: 10, lineHeight: 1.2,
           }}>
-            Join 50,000+ Winning Players Across Asia
+            {settings?.trust_banner_heading || 'Join 50,000+ Winning Players Across Asia'}
           </div>
           <p className="font-body font-light" style={{
             color: 'rgba(var(--w365-text-rgb),0.45)',
@@ -222,7 +210,7 @@ export default function WhyChooseUs() {
             fontSize: 'clamp(0.82rem,3vw,0.95rem)',
             lineHeight: 1.6,
           }}>
-            From first-time casino visitors to high-rollers — Jackpots World is your trusted partner for every bet.
+            {settings?.trust_banner_subtext || 'From first-time casino visitors to high-rollers — Jackpots World is your trusted partner for every bet.'}
           </p>
 
           {/* Badges */}

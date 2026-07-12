@@ -271,11 +271,11 @@ function IconRail({ vipColor, unread, activeTab, profile, onTabChange, onHamburg
       display: "flex", alignItems: "center", justifyContent: "center",
       border: isActive ? `1px solid ${vipColor}30` : "1px solid transparent",
       background: isActive ? `${vipColor}12` : "transparent",
-      color: isActive ? vipColor : "rgba(255,255,255,0.35)",
+      color: isActive ? vipColor : "rgba(255,255,255,0.55)",
       cursor: "pointer", position: "relative", transition: "all 0.15s",
     }}
     onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "rgba(255,255,255,0.8)"; } }}
-    onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.35)"; } }}
+    onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.55)"; } }}
     >
       {tab.id === "notifications" && hasBadge ? (
         <img
@@ -408,11 +408,11 @@ function FullSidebar({ profile, vipColor, unread, activeTab, onTabChange, onLogo
       textAlign: "left", width: "100%",
       border: isActive ? `1px solid ${vipColor}28` : "1px solid transparent",
       background: isActive ? `${vipColor}10` : "transparent",
-      color: isActive ? vipColor : "rgba(255,255,255,0.4)",
+      color: isActive ? vipColor : "rgba(255,255,255,0.6)",
       cursor: "pointer", transition: "all 0.15s", position: "relative",
     }}
     onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "rgba(255,255,255,0.85)"; } }}
-    onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.4)"; } }}
+    onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.6)"; } }}
     >
       {/* ── Icon slot ── */}
       {tab.id === "notifications" && hasBadge ? (
@@ -445,7 +445,7 @@ function FullSidebar({ profile, vipColor, unread, activeTab, onTabChange, onLogo
 })}
       </nav>
 
-      {/* Chat shortcuts */}
+      {/* Chat shortcuts — disabled for now, keep markup intact to re-enable later
       <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12, marginTop: 8, display: "flex", gap: 8 }}>
         <a href="https://wa.me/" target="_blank" rel="noopener noreferrer" style={{
           flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
@@ -460,6 +460,7 @@ function FullSidebar({ profile, vipColor, unread, activeTab, onTabChange, onLogo
           color: "#0088cc", fontSize: 11, fontWeight: 700, textDecoration: "none",
         }}><Send size={12} /> {t("sidebar.telegram")}</a>
       </div>
+      */}
 
       <button onClick={onLogout} style={{
         display: "flex", alignItems: "center", gap: 8,

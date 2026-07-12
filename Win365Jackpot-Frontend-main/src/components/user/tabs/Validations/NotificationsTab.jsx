@@ -201,7 +201,7 @@ export default function NotificationsTab({ onToast, onUnreadChange }) {
   const rangeEnd    = Math.min(page * PAGE_SIZE, notifs.length);
 
   return (
-    <div style={{ maxWidth: 720, margin: "0 auto", paddingBottom: 40, fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div style={{ maxWidth: 720, margin: "0 auto", paddingBottom: 40, fontFamily: "'Manrope', sans-serif" }}>
 
       {/* ── Header ── */}
       <div style={{
@@ -269,10 +269,10 @@ export default function NotificationsTab({ onToast, onUnreadChange }) {
           background: "rgba(255,255,255,0.01)",
         }}>
           <Mail size={32} style={{ opacity: 0.1, display: "block", margin: "0 auto 12px", color: "white" }} />
-          <div style={{ fontWeight: 500, fontSize: 13, color: "rgba(255,255,255,0.3)", marginBottom: 4 }}>
+          <div style={{ fontWeight: 500, fontSize: 13, color: "rgba(255,255,255,0.5)", marginBottom: 4 }}>
             {t("notifications.noNotificationsYet")}
           </div>
-          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.15)" }}>
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>
             {t("notifications.activityWillAppearHere")}
           </div>
         </div>
@@ -368,7 +368,7 @@ export default function NotificationsTab({ onToast, onUnreadChange }) {
                         ? <MailOpen size={10} color="rgba(255,255,255,0.18)" style={{ flexShrink: 0 }} />
                         : <Mail     size={10} color={C.gold}                 style={{ flexShrink: 0 }} />
                       }
-                      <span style={{ fontSize: 11, color: "rgba(255,255,255,0.28)" }}>
+                      <span style={{ fontSize: 11, color: "rgba(255,255,255,0.48)" }}>
                         {n.is_read ? t("notifications.read") : t("notifications.unreadLabel")} · {relative}
                       </span>
                     </div>
@@ -468,7 +468,7 @@ export default function NotificationsTab({ onToast, onUnreadChange }) {
                     }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                         <CheckCircle2 size={10} color="#29b676" />
-                        <span style={{ fontSize: 11, color: "rgba(255,255,255,0.2)" }}>
+                        <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>
                           {n.is_read ? t("notifications.read") : t("notifications.opened")} · {absolute}
                         </span>
                       </div>
@@ -500,7 +500,7 @@ export default function NotificationsTab({ onToast, onUnreadChange }) {
           background: "rgba(255,255,255,0.02)",
           fontSize: 12,
         }}>
-          <span style={{ color: "rgba(255,255,255,0.3)" }}>
+          <span style={{ color: "rgba(255,255,255,0.5)" }}>
             {t("notifications.showingRange", { start: rangeStart, end: rangeEnd, total: notifs.length })}
           </span>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>

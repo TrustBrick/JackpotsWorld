@@ -160,7 +160,7 @@ function BalancesPane({ onToast }) {
       )}
 
       {!userInfo && !loading && (
-        <div style={{ textAlign: "center", padding: 56, color: C.dim }}>
+        <div style={{ textAlign: "center", padding: 56, color: C.muted }}>
           Search for a user to view their wallet accounts
         </div>
       )}
@@ -264,11 +264,11 @@ function EntryPane({ onToast, onDone }) {
           </label>
           <select value={scenario} onChange={e => setScenario(e.target.value)}
             style={{ width: "100%", padding: "11px 14px", borderRadius: 10, background: C.inputBg, border: `1px solid ${scenario ? C.gold + "50" : C.border}`, color: C.text, fontSize: 13, outline: "none" }}>
-            <option value="">— Select scenario —</option>
+            <option value="" style={{ background: C.surface, color: C.text }}>— Select scenario —</option>
             {Object.entries(SCENARIO_GROUPS).map(([wtype, pairs]) => (
               <optgroup key={wtype} label={`── ${WALLET_CFG[wtype]?.label || wtype} Wallet ──`}>
                 {pairs.map(([code, meta]) => (
-                  <option key={code} value={code}>{code} — {meta.label}</option>
+                  <option key={code} value={code} style={{ background: C.surface, color: C.text }}>{code} — {meta.label}</option>
                 ))}
               </optgroup>
             ))}
@@ -428,14 +428,14 @@ function VerifyPane({ onToast }) {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
           <thead>
             <tr style={{ borderBottom: `1px solid ${C.border}`, background: C.hoverBg }}>
-              {HEADERS.map(h => <th key={h} style={{ padding: "12px 13px", textAlign: "left", fontSize: 10, color: C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", whiteSpace: "nowrap" }}>{h}</th>)}
+              {HEADERS.map(h => <th key={h} style={{ padding: "12px 13px", textAlign: "left", fontSize: 10, color: C.sub, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", whiteSpace: "nowrap", textShadow: "0 0 8px rgba(212,175,55,0.25)" }}>{h}</th>)}
             </tr>
           </thead>
           <tbody>
             {loading
               ? <tr><td colSpan={10} style={{ padding: 40, textAlign: "center" }}><Spinner /></td></tr>
               : txns.length === 0
-                ? <tr><td colSpan={10} style={{ padding: 40, textAlign: "center", color: C.dim }}>No pending transactions</td></tr>
+                ? <tr><td colSpan={10} style={{ padding: 40, textAlign: "center", color: C.muted }}>No pending transactions</td></tr>
                 : txns.map(tx => {
                   const wCfg = WALLET_CFG[tx.wallet_type] || {};
                   const isCr = tx.direction === "credit";
@@ -560,7 +560,7 @@ function HistoryPane({ onToast }) {
         ].map((f, i) => (
           <select key={i} value={f.val} onChange={e => { f.set(e.target.value); setPage(1); }}
             style={{ padding: "9px 12px", borderRadius: 10, background: C.inputBg, border: `1px solid ${C.border}`, color: C.text, fontSize: 12 }}>
-            {f.opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            {f.opts.map(([v, l]) => <option key={v} value={v} style={{ background: C.surface, color: C.text }}>{l}</option>)}
           </select>
         ))}
         <Btn small outline onClick={() => load(1)}><RefreshCw size={12} /></Btn>
@@ -571,14 +571,14 @@ function HistoryPane({ onToast }) {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
           <thead>
             <tr style={{ borderBottom: `1px solid ${C.border}`, background: C.hoverBg }}>
-              {HEADERS.map(h => <th key={h} style={{ padding: "12px 13px", textAlign: "left", fontSize: 10, color: C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", whiteSpace: "nowrap" }}>{h}</th>)}
+              {HEADERS.map(h => <th key={h} style={{ padding: "12px 13px", textAlign: "left", fontSize: 10, color: C.sub, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", whiteSpace: "nowrap", textShadow: "0 0 8px rgba(212,175,55,0.25)" }}>{h}</th>)}
             </tr>
           </thead>
           <tbody>
             {loading
               ? <tr><td colSpan={10} style={{ padding: 40, textAlign: "center" }}><Spinner /></td></tr>
               : txns.length === 0
-                ? <tr><td colSpan={10} style={{ padding: 40, textAlign: "center", color: C.dim }}>No transactions found</td></tr>
+                ? <tr><td colSpan={10} style={{ padding: 40, textAlign: "center", color: C.muted }}>No transactions found</td></tr>
                 : txns.map(tx => {
                   const wCfg = WALLET_CFG[tx.wallet_type] || {};
                   const isCr = tx.direction === "credit";
@@ -670,14 +670,14 @@ function ValidationPane({ onToast }) {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
           <thead>
             <tr style={{ borderBottom: `1px solid ${C.border}`, background: C.hoverBg }}>
-              {HEADERS.map(h => <th key={h} style={{ padding: "12px 13px", textAlign: "left", fontSize: 10, color: C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", whiteSpace: "nowrap" }}>{h}</th>)}
+              {HEADERS.map(h => <th key={h} style={{ padding: "12px 13px", textAlign: "left", fontSize: 10, color: C.sub, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", whiteSpace: "nowrap", textShadow: "0 0 8px rgba(212,175,55,0.25)" }}>{h}</th>)}
             </tr>
           </thead>
           <tbody>
             {loading
               ? <tr><td colSpan={9} style={{ padding: 40, textAlign: "center" }}><Spinner /></td></tr>
               : vals.length === 0
-                ? <tr><td colSpan={9} style={{ padding: 40, textAlign: "center", color: C.dim }}>No validation records</td></tr>
+                ? <tr><td colSpan={9} style={{ padding: 40, textAlign: "center", color: C.muted }}>No validation records</td></tr>
                 : vals.map(v => (
                   <tr key={v.id} style={{ borderBottom: `1px solid ${C.border}` }} {...rowHover(C)}>
                     <td style={{ padding: "11px 13px" }}><UtrBadge utr={v.utr_reference} /></td>

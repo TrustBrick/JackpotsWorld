@@ -1,10 +1,12 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { motion, useInView } from 'framer-motion'
 import { Link } from 'react-scroll'
 import { ChevronRight, Gift } from 'lucide-react'
+import { useAutoFetch } from '../hooks/useAutoFetch'
+import { fetchGiftItems, fetchGiftSteps } from '../services/landingService'
 
-// ─── Gift Data ────────────────────────────────────────────────────────────────
-const gifts = [
+// ─── Gift Data (fallback, used only until the API responds) ───────────────────
+const FALLBACK_GIFTS = [
   {
     id:        'rolex',
     tier:      'LEGENDARY',
@@ -63,12 +65,23 @@ const gifts = [
   },
 ]
 
-const steps = [
-  { n:'01', icon:'🎰', label:'Play & Win',    desc:'Earn with every game — Baccarat, Slots, Roulette & more'     },
-  { n:'02', icon:'💰', label:'Go Highroller', desc:'Qualify as a Highroller and unlock the exclusive prize vault' },
-  { n:'03', icon:'🎁', label:'Redeem Gifts',  desc:'Choose your dream prize from our luxury gifts catalogue'      },
-  { n:'04', icon:'🚀', label:'We Deliver',     desc:'Verified, authenticated, delivered to your door worldwide'    },
+const FALLBACK_STEPS = [
+  { icon:'🎰', label:'Play & Win',    description:'Earn with every game — Baccarat, Slots, Roulette & more'     },
+  { icon:'💰', label:'Go Highroller', description:'Qualify as a Highroller and unlock the exclusive prize vault' },
+  { icon:'🎁', label:'Redeem Gifts',  description:'Choose your dream prize from our luxury gifts catalogue'      },
+  { icon:'🚀', label:'We Deliver',     description:'Verified, authenticated, delivered to your door worldwide'    },
 ]
+
+// ─── Mobile breakpoint (matches the convention used in Hero.jsx) ──────────────
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+  return isMobile
+}
 
 // ─── Tier Badge ───────────────────────────────────────────────────────────────
 function TierBadge({ tier, color }) {
@@ -97,8 +110,9 @@ function TierBadge({ tier, color }) {
 
 // ─── Rolex Featured Card (full width, horizontal layout) ──────────────────────
 function FeaturedCard({ gift }) {
-  const ref    = useRef(null)
-  const inView = useInView(ref, { once: true, margin: '-60px' })
+  const ref      = useRef(null)
+  const inView   = useInView(ref, { once: true, margin: '-60px' })
+  const isMobile = useIsMobile()
 
   return (
     <motion.div
@@ -135,30 +149,33 @@ function FeaturedCard({ gift }) {
         #1 PRIZE
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'stretch', minHeight: 280 }}>
+      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'stretch', minHeight: isMobile ? 'auto' : 280 }}>
         {/* Left — logo column */}
         <div style={{
-          width: 220, flexShrink: 0,
+          width: isMobile ? '100%' : 304, flexShrink: 0,
           display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center',
-          padding: '32px 24px',
-          borderRight: `1px solid ${gift.accent}20`,
+          padding: isMobile ? '28px 20px' : '32px 20px',
+          borderRight: isMobile ? 'none' : `1px solid ${gift.accent}20`,
+          borderBottom: isMobile ? `1px solid ${gift.accent}20` : 'none',
           background: `linear-gradient(180deg, ${gift.accent}08 0%, transparent 100%)`,
+          boxSizing: 'border-box',
         }}>
           <div style={{
-            width: 96, height: 96,
-            borderRadius: 20,
+            width: 248, height: 248,
+            borderRadius: 36,
             background: `linear-gradient(135deg, ${gift.accent}18, ${gift.accent}06)`,
             border: `1.5px solid ${gift.accent}35`,
+            boxShadow: `0 0 64px 10px ${gift.accent}30, 0 0 26px ${gift.accent}25`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             marginBottom: 20,
           }}>
             <img
               src={gift.logoSrc} alt={gift.logoAlt}
-              style={{ width: 56, height: 56, objectFit: 'contain' }}
+              style={{ width: 157, height: 157, objectFit: 'contain' }}
               onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'flex' }}
             />
-            <span style={{ display: 'none', color: gift.accent, fontWeight: 900, fontSize: 13, width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ display: 'none', color: gift.accent, fontWeight: 900, fontSize: 26, width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
               {gift.logoAlt.slice(0, 3).toUpperCase()}
             </span>
           </div>
@@ -170,7 +187,7 @@ function FeaturedCard({ gift }) {
         </div>
 
         {/* Right — content */}
-        <div style={{ flex: 1, padding: '32px 36px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <div style={{ flex: 1, padding: isMobile ? '24px 20px' : '32px 36px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minWidth: 0, boxSizing: 'border-box' }}>
           <div>
             <h3 style={{ fontSize: 'clamp(20px,3vw,28px)', fontWeight: 900, color: 'var(--w365-text)', margin: '0 0 4px' }}>
               {gift.name}
@@ -181,7 +198,7 @@ function FeaturedCard({ gift }) {
             <p style={{ fontSize: 13, color: 'rgba(var(--w365-text-rgb),0.5)', lineHeight: 1.7, margin: '0 0 20px', maxWidth: 560 }}>
               {gift.description}
             </p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 24px', marginBottom: 24 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '6px 24px', marginBottom: 24 }}>
               {gift.perks.map((perk, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: 'rgba(var(--w365-text-rgb),0.65)' }}>
                   <span style={{ width: 5, height: 5, borderRadius: '50%', background: gift.accent, flexShrink: 0 }} />
@@ -261,18 +278,19 @@ function GiftCard({ gift, index }) {
         background: `linear-gradient(180deg, ${gift.accent}06 0%, transparent 100%)`,
       }}>
         <div style={{
-          width: 72, height: 72, borderRadius: 16,
+          width: 140, height: 140, borderRadius: 26,
           background: `linear-gradient(135deg, ${gift.accent}15, ${gift.accent}05)`,
           border: `1.5px solid ${gift.accent}30`,
+          boxShadow: `0 0 44px 6px ${gift.accent}28, 0 0 18px ${gift.accent}20`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           marginBottom: 14,
         }}>
           <img
             src={gift.logoSrc} alt={gift.logoAlt}
-            style={{ width: 44, height: 44, objectFit: 'contain' }}
+            style={{ width: 88, height: 88, objectFit: 'contain' }}
             onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'flex' }}
           />
-          <span style={{ display: 'none', color: gift.accent, fontWeight: 900, fontSize: 12, width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ display: 'none', color: gift.accent, fontWeight: 900, fontSize: 18, width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
             {gift.logoAlt.slice(0, 3).toUpperCase()}
           </span>
         </div>
@@ -343,9 +361,20 @@ function GiftCard({ gift, index }) {
 export default function GiftsSection() {
   const headerRef    = useRef(null)
   const headerInView = useInView(headerRef, { once: true })
+  const isMobile      = useIsMobile()
 
-  const featured = gifts.find(g => g.featured)
-  const rest      = gifts.filter(g => !g.featured)
+  const { data: giftsData } = useAutoFetch(fetchGiftItems, {}, { intervalMs: 60_000 })
+  const { data: stepsData } = useAutoFetch(fetchGiftSteps, {}, { intervalMs: 60_000 })
+
+  const gifts = (Array.isArray(giftsData) && giftsData.length > 0 ? giftsData : FALLBACK_GIFTS).map(g => ({
+    id: g.id, tier: g.tier, tierColor: g.tier_color, name: g.name, subtitle: g.subtitle,
+    logoSrc: g.logo, logoAlt: g.name, value: g.value, description: g.description,
+    perks: g.perks || [], accent: g.accent_color, featured: g.featured,
+  }))
+  const steps = Array.isArray(stepsData) && stepsData.length > 0 ? stepsData : FALLBACK_STEPS
+
+  const featured = gifts.find(g => g.featured) || gifts[0]
+  const rest      = gifts.filter(g => g !== featured)
 
   return (
     <section
@@ -427,12 +456,14 @@ export default function GiftsSection() {
         </div>
 
         {/* ── Rolex Featured Card ── */}
-        <div style={{ marginBottom: 20 }}>
-          <FeaturedCard gift={featured} />
-        </div>
+        {featured && (
+          <div style={{ marginBottom: 20 }}>
+            <FeaturedCard gift={featured} />
+          </div>
+        )}
 
         {/* ── Three Cards Below ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 64 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16, marginBottom: 64 }}>
           {rest.map((gift, i) => (
             <GiftCard key={gift.id} gift={gift} index={i} />
           ))}
@@ -485,11 +516,11 @@ export default function GiftsSection() {
                   fontSize: 9, fontWeight: 900, letterSpacing: '0.1em',
                   padding: '3px 10px', borderRadius: 999,
                 }}>
-                  {step.n}
+                  {String(i + 1).padStart(2, '0')}
                 </div>
                 <div style={{ fontSize: 28, marginBottom: 12, marginTop: 4 }}>{step.icon}</div>
                 <div style={{ fontSize: 13, fontWeight: 800, color: 'rgba(var(--w365-text-rgb),0.85)', marginBottom: 6 }}>{step.label}</div>
-                <div style={{ fontSize: 11, color: 'rgba(var(--w365-text-rgb),0.4)', lineHeight: 1.6 }}>{step.desc}</div>
+                <div style={{ fontSize: 11, color: 'rgba(var(--w365-text-rgb),0.4)', lineHeight: 1.6 }}>{step.description}</div>
                 {i < steps.length - 1 && (
                   <div style={{
                     position: 'absolute', right: -8, top: '50%', transform: 'translateY(-50%)',

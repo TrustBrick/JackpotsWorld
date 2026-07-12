@@ -10,6 +10,7 @@ import Navbar from '../components/Navbar'
 import AuthModal from '../components/AuthModal'
 import { fetchPokerDetail, registerForTournament } from '../services/pokerService'
 import { getFallbackImage } from '../utils/mediaFallback'
+import { getToken } from '../services/authStorage'
 
 const STATUS_LABEL_KEYS = {
   upcoming: 'common.statusUpcoming',
@@ -43,7 +44,7 @@ export default function PokerDetails() {
   const [ticketState, setTicketState] = useState({ loading: false, message: '' })
   const [imgFailed, setImgFailed] = useState(false)
 
-  const isLoggedIn = !!localStorage.getItem('access')
+  const isLoggedIn = !!getToken('access')
 
   const load = () => {
     setLoading(true)

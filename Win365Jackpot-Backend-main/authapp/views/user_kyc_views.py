@@ -60,6 +60,8 @@ class UserKYCSubmitView(APIView):
         doc_front       = request.FILES.get("doc_front")
         doc_back        = request.FILES.get("doc_back")
         selfie          = request.FILES.get("selfie")
+        id_proof_type   = request.data.get("id_proof_type", "").strip()
+        id_proof_file   = request.FILES.get("id_proof_file")
 
         if not document_type or not document_number:
             return Response({"error": "Document type and number are required."}, status=400)
@@ -67,7 +69,7 @@ class UserKYCSubmitView(APIView):
         if not doc_front or not selfie:
             return Response({"error": "Front document image and selfie are required."}, status=400)
 
-        for f in (doc_front, doc_back, selfie):
+        for f in (doc_front, doc_back, selfie, id_proof_file):
             if f:
                 try:
                     validate_uploaded_image(f)
@@ -82,6 +84,7 @@ class UserKYCSubmitView(APIView):
             "document_type":   document_type,
             "document_number": document_number,
             "ip_address":      ip,
+            "id_proof_type":   id_proof_type,
             "user_agent":      request.META.get("HTTP_USER_AGENT", ""),
             "geo_country":     geo.get("country", ""),
             "geo_city":        geo.get("city", ""),
@@ -100,6 +103,8 @@ class UserKYCSubmitView(APIView):
             defaults["doc_back"] = doc_back
         if selfie:
             defaults["selfie"] = selfie
+        if id_proof_file:
+            defaults["id_proof_file"] = id_proof_file
 
         kyc, created = KYCSubmission.objects.update_or_create(
             user=user,
@@ -131,6 +136,8 @@ class UserKYCStatusView(APIView):
                 "doc_front_url": kyc.doc_front.url if kyc.doc_front else None,
                 "doc_back_url":  kyc.doc_back.url  if kyc.doc_back  else None,
                 "selfie_url":    kyc.selfie.url     if kyc.selfie    else None,
+                "id_proof_type":     kyc.id_proof_type,
+                "id_proof_file_url": kyc.id_proof_file.url if kyc.id_proof_file else None,
             })
         except KYCSubmission.DoesNotExist:
             return Response({

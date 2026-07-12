@@ -122,12 +122,12 @@ const injectGlobalStyles = () => {
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const T = {
-  page:   { minHeight:"100vh", background:"var(--bg)", color:"var(--text)", fontFamily:"'Space Grotesk', sans-serif", padding:"28px 32px" },
+  page:   { minHeight:"100vh", background:"var(--bg)", color:"var(--text)", fontFamily:"'Manrope', sans-serif", padding:"28px 32px" },
   card:   { background:"var(--surface)", border:"1px solid var(--border)", borderRadius:14, padding:"22px 24px" },
-  input:  { width:"100%", padding:"10px 13px", borderRadius:9, background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.1)", color:"white", fontSize:13, outline:"none", boxSizing:"border-box", fontFamily:"'Space Grotesk', sans-serif" },
-  select: { width:"100%", padding:"10px 13px", borderRadius:9, background:"rgba(10,12,20,0.9)", border:"1px solid rgba(255,255,255,0.1)", color:"white", fontSize:13, outline:"none", boxSizing:"border-box", cursor:"pointer", fontFamily:"'Space Grotesk', sans-serif" },
-  label:  { display:"block", fontSize:10, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.09em", marginBottom:6, fontFamily:"'Space Grotesk', sans-serif" },
-  mono:   { fontFamily:"'Space Grotesk', sans-serif" },
+  input:  { width:"100%", padding:"10px 13px", borderRadius:9, background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.1)", color:"white", fontSize:13, outline:"none", boxSizing:"border-box", fontFamily:"'Manrope', sans-serif" },
+  select: { width:"100%", padding:"10px 13px", borderRadius:9, background:"rgba(10,12,20,0.9)", border:"1px solid rgba(255,255,255,0.1)", color:"white", fontSize:13, outline:"none", boxSizing:"border-box", cursor:"pointer", fontFamily:"'Manrope', sans-serif" },
+  label:  { display:"block", fontSize:10, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.09em", marginBottom:6, fontFamily:"'Manrope', sans-serif" },
+  mono:   { fontFamily:"'Manrope', sans-serif" },
 };
 
 
@@ -151,7 +151,7 @@ function Card({ children, style, title, icon: Icon, accent }) {
           {Icon && <div style={{ width:28, height:28, borderRadius:7, background: accent ? `${accent}15` : "var(--surface2)", display:"flex", alignItems:"center", justifyContent:"center" }}>
             <Icon size={13} color={accent || "var(--muted)"} />
           </div>}
-          <span style={{ fontSize:12, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.09em", fontFamily:"'Space Grotesk', sans-serif" }}>{title}</span>
+          <span style={{ fontSize:12, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.09em", fontFamily:"'Manrope', sans-serif" }}>{title}</span>
         </div>
       )}
       {children}
@@ -162,7 +162,7 @@ function Card({ children, style, title, icon: Icon, accent }) {
 function Btn({ children, onClick, color="#D4AF37", variant="solid", disabled, style, size="md" }) {
   const pad = size === "sm" ? "7px 14px" : "11px 22px";
   const fs  = size === "sm" ? 12 : 13;
-  const base = { display:"flex", alignItems:"center", justifyContent:"center", gap:7, padding:pad, borderRadius:9, border:"none", fontWeight:700, fontSize:fs, cursor:disabled?"not-allowed":"pointer", fontFamily:"'Space Grotesk', sans-serif", transition:"all 0.15s", opacity: disabled ? 0.45 : 1, ...style };
+  const base = { display:"flex", alignItems:"center", justifyContent:"center", gap:7, padding:pad, borderRadius:9, border:"none", fontWeight:700, fontSize:fs, cursor:disabled?"not-allowed":"pointer", fontFamily:"'Manrope', sans-serif", transition:"all 0.15s", opacity: disabled ? 0.45 : 1, ...style };
   if (variant === "ghost") return <button onClick={!disabled ? onClick : undefined} style={{ ...base, background:"transparent", border:"1px solid var(--border2)", color:"var(--muted)" }}>{children}</button>;
   if (variant === "danger") return <button onClick={!disabled ? onClick : undefined} style={{ ...base, background:"rgba(248,113,113,0.1)", border:"1px solid rgba(248,113,113,0.3)", color:"#f87171" }}>{children}</button>;
   return <button onClick={!disabled ? onClick : undefined} style={{ ...base, background:color, color: color === "#D4AF37" || color === "#34d399" ? "#050709" : "white" }}>{children}</button>;
@@ -187,7 +187,7 @@ function WalletGrid({ balance, loading }) {
             <div style={{ width:26, height:26, borderRadius:6, background:`${w.color}20`, display:"flex", alignItems:"center", justifyContent:"center" }}>
               <w.Icon size={13} color={w.color} />
             </div>
-            <span style={{ fontSize:10, fontWeight:700, color:w.color, textTransform:"uppercase", letterSpacing:"0.1em", fontFamily:"'Space Grotesk',sans-serif" }}>{w.label}</span>
+            <span style={{ fontSize:10, fontWeight:700, color:w.color, textTransform:"uppercase", letterSpacing:"0.1em", fontFamily:"'Manrope',sans-serif" }}>{w.label}</span>
           </div>
           <div style={{ fontSize:22, fontWeight:800, ...T.mono, color:"white" }}>{fmt(balance?.[w.field] ?? 0)}</div>
           <div style={{ fontSize:10, color:"rgba(255,255,255,0.3)", marginTop:4 }}>Admin Wallet · {w.key}</div>
@@ -198,7 +198,7 @@ function WalletGrid({ balance, loading }) {
 }
 
 function SectionLabel({ children }) {
-  return <div style={{ fontSize:10, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:14, fontFamily:"'Space Grotesk',sans-serif" }}>{children}</div>;
+  return <div style={{ fontSize:10, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:14, fontFamily:"'Manrope',sans-serif" }}>{children}</div>;
 }
 
 function DataRow({ label, value, color, mono }) {
@@ -247,7 +247,7 @@ function SuperAdminLogin({ onSuccess }) {
   };
 
   return (
-    <div style={{ minHeight:"100vh", background:C.bg, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Space Grotesk',sans-serif", position:"relative", overflow:"hidden" }}>
+    <div style={{ minHeight:"100vh", background:C.bg, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Manrope',sans-serif", position:"relative", overflow:"hidden" }}>
       {/* Background grid */}
       <div style={{ position:"absolute", inset:0, backgroundImage:"linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px)", backgroundSize:"48px 48px" }} />
       <div style={{ position:"absolute", top:"20%", left:"30%", width:400, height:400, borderRadius:"50%", background:"radial-gradient(circle,rgba(212,175,55,0.07) 0%,transparent 70%)", filter:"blur(40px)" }} />
@@ -257,8 +257,8 @@ function SuperAdminLogin({ onSuccess }) {
           <div style={{ display:"inline-flex", alignItems:"center", justifyContent:"center", width:52, height:52, borderRadius:14, background:"rgba(212,175,55,0.1)", border:"1px solid rgba(212,175,55,0.3)", marginBottom:18 }}>
             <ShieldCheck size={24} color="#D4AF37" />
           </div>
-          <div style={{ fontSize:11, fontWeight:700, color:"#D4AF37", textTransform:"uppercase", letterSpacing:"0.18em", marginBottom:8, fontFamily:"'Space Grotesk',sans-serif" }}>Super Admin</div>
-          <div style={{ fontSize:28, fontWeight:900, color:C.text, fontFamily:"'Space Grotesk',sans-serif" }}>Control Panel</div>
+          <div style={{ fontSize:11, fontWeight:700, color:"#D4AF37", textTransform:"uppercase", letterSpacing:"0.18em", marginBottom:8, fontFamily:"'Manrope',sans-serif" }}>Super Admin</div>
+          <div style={{ fontSize:28, fontWeight:900, color:C.text, fontFamily:"'Manrope',sans-serif" }}>Control Panel</div>
           <div style={{ fontSize:12, color:C.muted, marginTop:8 }}>Superuser access only — all actions are logged</div>
         </div>
 
@@ -296,7 +296,7 @@ function SuperAdminLogin({ onSuccess }) {
             </Btn>
           </form>
         </div>
-        <div style={{ textAlign:"center", marginTop:16, fontSize:11, color:C.dim }}>
+        <div style={{ textAlign:"center", marginTop:16, fontSize:11, color:C.muted }}>
           Regular admins → /admin-panel
         </div>
       </div>
@@ -328,7 +328,7 @@ function DashboardTab({ toast }) {
         <div style={{ width:32, height:32, borderRadius:8, background:`${color}15`, display:"flex", alignItems:"center", justifyContent:"center" }}>
           <Icon size={15} color={color} />
         </div>
-        {sub && <span style={{ fontSize:10, color:"rgba(255,255,255,0.25)" }}>{sub}</span>}
+        {sub && <span style={{ fontSize:10, color:"rgba(255,255,255,0.45)" }}>{sub}</span>}
       </div>
       <div style={{ fontSize:24, fontWeight:800, ...T.mono, color:"white" }}>{value}</div>
       <div style={{ fontSize:11, color:"var(--muted)", marginTop:4 }}>{label}</div>
@@ -419,7 +419,7 @@ function AdminWalletTab({ toast }) {
           {/* Mode toggle */}
           <div style={{ display:"flex", gap:8, marginBottom:20, padding:4, background:"rgba(255,255,255,0.03)", borderRadius:10, border:"1px solid var(--border)" }}>
             {[{ id:"credit", label:"Credit", Icon:ArrowDownLeft, color:"#34d399" }, { id:"debit", label:"Debit", Icon:ArrowUpRight, color:"#f87171" }].map(m => (
-              <button key={m.id} onClick={() => setMode(m.id)} style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:7, padding:"9px 0", borderRadius:7, border:"none", fontWeight:700, fontSize:12, cursor:"pointer", background:mode===m.id?`${m.color}15`:"transparent", outline:mode===m.id?`1px solid ${m.color}35`:"none", color:mode===m.id?m.color:"rgba(255,255,255,0.35)", fontFamily:"'Space Grotesk',sans-serif", transition:"all 0.15s" }}>
+              <button key={m.id} onClick={() => setMode(m.id)} style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:7, padding:"9px 0", borderRadius:7, border:"none", fontWeight:700, fontSize:12, cursor:"pointer", background:mode===m.id?`${m.color}15`:"transparent", outline:mode===m.id?`1px solid ${m.color}35`:"none", color:mode===m.id?m.color:"rgba(255,255,255,0.35)", fontFamily:"'Manrope',sans-serif", transition:"all 0.15s" }}>
                 <m.Icon size={13} /> {m.label}
               </button>
             ))}
@@ -430,7 +430,7 @@ function AdminWalletTab({ toast }) {
             <label style={T.label}>Wallet Type</label>
             <div style={{ display:"flex", gap:8 }}>
               {WALLETS.map(w => (
-                <button key={w.key} onClick={() => setWalletType(w.key)} style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"9px 0", borderRadius:8, fontWeight:700, fontSize:11, cursor:"pointer", border:`1px solid ${walletType===w.key?w.color:"rgba(255,255,255,0.08)"}`, background:walletType===w.key?w.dim:"transparent", color:walletType===w.key?w.color:"rgba(255,255,255,0.35)", fontFamily:"'Space Grotesk',sans-serif", transition:"all 0.15s" }}>
+                <button key={w.key} onClick={() => setWalletType(w.key)} style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"9px 0", borderRadius:8, fontWeight:700, fontSize:11, cursor:"pointer", border:`1px solid ${walletType===w.key?w.color:"rgba(255,255,255,0.08)"}`, background:walletType===w.key?w.dim:"transparent", color:walletType===w.key?w.color:"rgba(255,255,255,0.35)", fontFamily:"'Manrope',sans-serif", transition:"all 0.15s" }}>
                   <w.Icon size={11}/> {w.label}
                 </button>
               ))}
@@ -449,9 +449,9 @@ function AdminWalletTab({ toast }) {
           <div style={{ marginBottom:14 }}>
             <label style={T.label}>Attribute to Admin</label>
             <select value={adminId} onChange={e => setAdminId(e.target.value)} style={T.select}>
-              <option value="">Select admin…</option>
+              <option value="" style={{ background: "var(--bg)", color: "white" }}>Select admin…</option>
               {admins.map(a => (
-                <option key={a.id} value={a.id}>{a.user_uid} — {a.name || a.email}</option>
+                <option key={a.id} value={a.id} style={{ background: "var(--bg)", color: "white" }}>{a.user_uid} — {a.name || a.email}</option>
               ))}
             </select>
           </div>
@@ -463,7 +463,7 @@ function AdminWalletTab({ toast }) {
               className="sa-input" style={{ ...T.input, borderColor:`${sel?.color}30`, ...T.mono, fontSize:15 }} />
             <div style={{ display:"flex", gap:6, marginTop:8, flexWrap:"wrap" }}>
               {[1000,5000,10000,25000,50000,100000].map(a => (
-                <button key={a} onClick={() => setAmount(String(a))} style={{ padding:"4px 11px", borderRadius:6, fontSize:11, fontWeight:700, cursor:"pointer", background:amount===String(a)?`${sel?.color}18`:"rgba(255,255,255,0.04)", border:`1px solid ${amount===String(a)?sel?.color+"40":"rgba(255,255,255,0.07)"}`, color:amount===String(a)?sel?.color:"rgba(255,255,255,0.35)", fontFamily:"'Space Grotesk',sans-serif", transition:"all 0.12s" }}>
+                <button key={a} onClick={() => setAmount(String(a))} style={{ padding:"4px 11px", borderRadius:6, fontSize:11, fontWeight:700, cursor:"pointer", background:amount===String(a)?`${sel?.color}18`:"rgba(255,255,255,0.04)", border:`1px solid ${amount===String(a)?sel?.color+"40":"rgba(255,255,255,0.07)"}`, color:amount===String(a)?sel?.color:"rgba(255,255,255,0.35)", fontFamily:"'Manrope',sans-serif", transition:"all 0.12s" }}>
                   ${a >= 1000 ? (a/1000)+"k" : a}
                 </button>
               ))}
@@ -553,7 +553,7 @@ function TransferTab({ toast }) {
       <div style={{ padding:"16px 20px", borderRadius:12, background:"rgba(212,175,55,0.06)", border:"1px solid rgba(212,175,55,0.2)", display:"flex", gap:32, flexWrap:"wrap", alignItems:"center" }}>
         <div style={{ display:"flex", alignItems:"center", gap:8 }}>
           <Star size={13} color="#D4AF37" />
-          <span style={{ fontSize:11, fontWeight:700, color:"#D4AF37", textTransform:"uppercase", letterSpacing:"0.08em", fontFamily:"'Space Grotesk',sans-serif" }}>Admin Wallet</span>
+          <span style={{ fontSize:11, fontWeight:700, color:"#D4AF37", textTransform:"uppercase", letterSpacing:"0.08em", fontFamily:"'Manrope',sans-serif" }}>Admin Wallet</span>
         </div>
         {WALLETS.map(w => (
           <div key={w.key} style={{ display:"flex", alignItems:"center", gap:10 }}>
@@ -625,7 +625,7 @@ function TransferTab({ toast }) {
             <label style={T.label}>Wallet</label>
             <div style={{ display:"flex", gap:8 }}>
               {WALLETS.map(w => (
-                <button key={w.key} onClick={() => setWalletType(w.key)} style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:5, padding:"8px 0", borderRadius:8, fontWeight:700, fontSize:11, cursor:"pointer", border:`1px solid ${walletType===w.key?w.color:"rgba(255,255,255,0.08)"}`, background:walletType===w.key?w.dim:"transparent", color:walletType===w.key?w.color:"rgba(255,255,255,0.35)", fontFamily:"'Space Grotesk',sans-serif", transition:"all 0.12s" }}>
+                <button key={w.key} onClick={() => setWalletType(w.key)} style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:5, padding:"8px 0", borderRadius:8, fontWeight:700, fontSize:11, cursor:"pointer", border:`1px solid ${walletType===w.key?w.color:"rgba(255,255,255,0.08)"}`, background:walletType===w.key?w.dim:"transparent", color:walletType===w.key?w.color:"rgba(255,255,255,0.35)", fontFamily:"'Manrope',sans-serif", transition:"all 0.12s" }}>
                   <w.Icon size={11}/> {w.label}
                 </button>
               ))}
@@ -636,7 +636,7 @@ function TransferTab({ toast }) {
           <div style={{ marginBottom:14 }}>
             <label style={T.label}>Transaction Type</label>
             <select value={txnType} onChange={e => setTxnType(e.target.value)} style={T.select}>
-              {(TXN_BY_WALLET[walletType] || []).map(t => <option key={t} value={t}>{t} — {TXN_LABELS[t]}</option>)}
+              {(TXN_BY_WALLET[walletType] || []).map(t => <option key={t} value={t} style={{ background: "var(--bg)", color: "white" }}>{t} — {TXN_LABELS[t]}</option>)}
             </select>
           </div>
 
@@ -747,7 +747,7 @@ function AdminsTab({ toast }) {
       {/* ── Header row ── */}
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
         <div>
-          <div style={{ fontSize:16, fontWeight:800, fontFamily:"'Space Grotesk',sans-serif" }}>Admin Accounts</div>
+          <div style={{ fontSize:16, fontWeight:800, fontFamily:"'Manrope',sans-serif" }}>Admin Accounts</div>
           <div style={{ fontSize:11, color:"var(--muted)", marginTop:2 }}>
             {admins.length} admin{admins.length !== 1 ? "s" : ""} total
           </div>
@@ -811,7 +811,7 @@ function AdminsTab({ toast }) {
             <thead>
               <tr style={{ background:"rgba(255,255,255,0.02)", borderBottom:"1px solid var(--border)" }}>
                 {["UID","Name","Email","Status","Joined","Last Login",""].map(h => (
-                  <th key={h} style={{ padding:"11px 16px", fontSize:9, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.09em", color:"var(--muted)", textAlign:"left", whiteSpace:"nowrap", fontFamily:"'Space Grotesk',sans-serif" }}>{h}</th>
+                  <th key={h} style={{ padding:"11px 16px", fontSize:9, fontWeight:800, textTransform:"uppercase", letterSpacing:"0.09em", color:"rgba(255,255,255,0.7)", textAlign:"left", whiteSpace:"nowrap", fontFamily:"'Manrope',sans-serif", textShadow:"0 0 8px rgba(212,175,55,0.25)" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -897,19 +897,19 @@ function HistoryTab({ toast }) {
       {/* Filters */}
       <div style={{ display:"flex", gap:10, flexWrap:"wrap", alignItems:"center" }}>
         <select value={txnTypeF} onChange={e => setTxnTypeF(e.target.value)} style={{ ...T.select, width:"auto", minWidth:170 }}>
-          <option value="">All Types</option>
-          <option value="SA_CREDIT">SA Credit</option>
-          <option value="SA_DEBIT">SA Debit</option>
-          <option value="ADM_TRANSFER">Transfer → User</option>
+          <option value="" style={{ background: "var(--bg)", color: "white" }}>All Types</option>
+          <option value="SA_CREDIT" style={{ background: "var(--bg)", color: "white" }}>SA Credit</option>
+          <option value="SA_DEBIT" style={{ background: "var(--bg)", color: "white" }}>SA Debit</option>
+          <option value="ADM_TRANSFER" style={{ background: "var(--bg)", color: "white" }}>Transfer → User</option>
         </select>
         <select value={walletF} onChange={e => setWalletF(e.target.value)} style={{ ...T.select, width:"auto", minWidth:140 }}>
-          <option value="">All Wallets</option>
-          {WALLETS.map(w => <option key={w.key} value={w.key}>{w.label}</option>)}
+          <option value="" style={{ background: "var(--bg)", color: "white" }}>All Wallets</option>
+          {WALLETS.map(w => <option key={w.key} value={w.key} style={{ background: "var(--bg)", color: "white" }}>{w.label}</option>)}
         </select>
         <select value={userTypeF} onChange={e => setUserTypeF(e.target.value)} style={{ ...T.select, width:"auto", minWidth:140 }}>
-          <option value="">All User Types</option>
-          <option value="admin">Admin</option>
-          <option value="user">User</option>
+          <option value="" style={{ background: "var(--bg)", color: "white" }}>All User Types</option>
+          <option value="admin" style={{ background: "var(--bg)", color: "white" }}>Admin</option>
+          <option value="user" style={{ background: "var(--bg)", color: "white" }}>User</option>
         </select>
         <Btn variant="ghost" onClick={() => load(1)} size="sm"><RefreshCw size={12} /> Refresh</Btn>
         <span style={{ marginLeft:"auto", fontSize:12, color:"var(--muted)" }}>{total} records</span>
@@ -921,7 +921,7 @@ function HistoryTab({ toast }) {
             <thead>
               <tr style={{ background:"rgba(255,255,255,0.02)", borderBottom:"1px solid var(--border)" }}>
                 {["Reference","Type","User Type","Wallet","Amount","Before → After","Target User","Performed By","Date"].map(h => (
-                  <th key={h} style={{ padding:"11px 14px", fontSize:9, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.09em", color:"var(--muted)", textAlign:"left", whiteSpace:"nowrap", fontFamily:"'Space Grotesk',sans-serif" }}>{h}</th>
+                  <th key={h} style={{ padding:"11px 14px", fontSize:9, fontWeight:800, textTransform:"uppercase", letterSpacing:"0.09em", color:"rgba(255,255,255,0.7)", textAlign:"left", whiteSpace:"nowrap", fontFamily:"'Manrope',sans-serif", textShadow:"0 0 8px rgba(212,175,55,0.25)" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -1063,8 +1063,8 @@ function SuperAdminPanelInner() {
             <ShieldCheck size={18} color="#D4AF37" />
           </div>
           <div>
-            <div style={{ fontSize:10, fontWeight:700, color:"#D4AF37", textTransform:"uppercase", letterSpacing:"0.16em", fontFamily:"'Space Grotesk',sans-serif" }}>Super Admin</div>
-            <div style={{ fontSize:18, fontWeight:900, fontFamily:"'Space Grotesk',sans-serif", lineHeight:1.2, color:C.text }}>Control Panel</div>
+            <div style={{ fontSize:10, fontWeight:700, color:"#D4AF37", textTransform:"uppercase", letterSpacing:"0.16em", fontFamily:"'Manrope',sans-serif" }}>Super Admin</div>
+            <div style={{ fontSize:18, fontWeight:900, fontFamily:"'Manrope',sans-serif", lineHeight:1.2, color:C.text }}>Control Panel</div>
           </div>
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:12 }}>
@@ -1072,7 +1072,7 @@ function SuperAdminPanelInner() {
             <div style={{ fontSize:12, fontWeight:600, color:C.text }}>{saUser?.name || saUser?.email}</div>
             <div style={{ fontSize:10, ...T.mono, color:C.muted }}>{saUser?.user_uid}</div>
           </div>
-          <div style={{ padding:"5px 11px", borderRadius:7, background:"rgba(212,175,55,0.08)", border:"1px solid rgba(212,175,55,0.25)", fontSize:9, fontWeight:800, color:"#D4AF37", textTransform:"uppercase", letterSpacing:"0.1em", fontFamily:"'Space Grotesk',sans-serif" }}>
+          <div style={{ padding:"5px 11px", borderRadius:7, background:"rgba(212,175,55,0.08)", border:"1px solid rgba(212,175,55,0.25)", fontSize:9, fontWeight:800, color:"#D4AF37", textTransform:"uppercase", letterSpacing:"0.1em", fontFamily:"'Manrope',sans-serif" }}>
             Superuser
           </div>
           <Btn variant="danger" onClick={logout} size="sm"><LogOut size={12}/> Logout</Btn>
@@ -1085,7 +1085,7 @@ function SuperAdminPanelInner() {
           const active = tab === t.id;
           return (
             <button key={t.id} onClick={() => setTab(t.id)} className="sa-tab-btn"
-              style={{ display:"flex", alignItems:"center", gap:7, padding:"9px 18px", borderRadius:9, fontSize:12, fontWeight:active ? 700 : 500, cursor:"pointer", border:"none", background:active ? C.hoverBg : "transparent", outline:active ? `1px solid ${C.border2}` : "none", color:active ? C.text : C.muted, fontFamily:"'Space Grotesk',sans-serif", transition:"all 0.15s" }}>
+              style={{ display:"flex", alignItems:"center", gap:7, padding:"9px 18px", borderRadius:9, fontSize:12, fontWeight:active ? 700 : 500, cursor:"pointer", border:"none", background:active ? C.hoverBg : "transparent", outline:active ? `1px solid ${C.border2}` : "none", color:active ? C.text : C.muted, fontFamily:"'Manrope',sans-serif", transition:"all 0.15s" }}>
               <t.Icon size={13} color={active ? "#D4AF37" : undefined} />
               {t.label}
             </button>

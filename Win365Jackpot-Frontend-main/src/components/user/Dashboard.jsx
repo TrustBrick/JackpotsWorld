@@ -8,6 +8,7 @@ import { RefreshCw } from "lucide-react";
 import { C, VIP_COLOR, TABS } from "./constants";
 import { authFetch, API } from "./helpers";
 import { revokeSession } from "../../services/authRevoke";
+import { getToken, clearSession } from "../../services/authStorage";
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
 import { Toast, UidBadge, LoadingScreen, ErrorScreen } from "./components/SharedUI";
@@ -41,7 +42,7 @@ function BannedScreen({ message, supportEmail, onLogout }) {
       minHeight: "100vh",
       display: "flex", alignItems: "center", justifyContent: "center",
       background: "#0a0a0f", flexDirection: "column", gap: 20,
-      fontFamily: "'Space Grotesk', sans-serif",
+      fontFamily: "'Manrope', sans-serif",
     }}>
       <div style={{ position: "fixed", inset: 0, pointerEvents: "none", overflow: "hidden", zIndex: 0 }}>
         <div style={{
@@ -130,7 +131,9 @@ export default function Dashboard() {
   // ── Data fetching ─────────────────────────────────────────────────────────
   const fetchNotifCount = useCallback(async () => {
     try {
-      const res = await authFetch(`${API}/api/user/profile/`);
+      // /api/user/profile/ (ProfileView) doesn't include unread_notifications —
+      // only /api/user/dashboard/ (UserDashboardView) does.
+      const res = await authFetch(`${API}/api/user/dashboard/`);
       if (!res.ok) return;
       const d = await res.json();
       setNotifCount(d.unread_notifications || 0);
@@ -168,10 +171,10 @@ export default function Dashboard() {
 
   // ── Auth check ────────────────────────────────────────────────────────────
   useEffect(() => {
-  const token = localStorage.getItem("access");
+  const token = getToken("access");
 
   if (!token) {
-    navigate("/");
+    navigate("/sign-in", { replace: true });
   } else {
     setChecked(true);
   }
@@ -211,8 +214,8 @@ export default function Dashboard() {
 
   const logout = async () => {
   await revokeSession("access", "refresh");
-  ["access", "refresh", "user"].forEach(k => localStorage.removeItem(k));
-  navigate("/");
+  clearSession(["access", "refresh", "user"]);
+  navigate("/", { replace: true });
 };
 
   if (bannedMessage) return <BannedScreen message={bannedMessage} supportEmail={bannedSupportEmail} onLogout={logout} />;
@@ -231,7 +234,7 @@ export default function Dashboard() {
       minHeight: "100vh",
       background: C.bg,
       color: "white",
-      fontFamily: "'Space Grotesk', sans-serif",
+      fontFamily: "'Manrope', sans-serif",
       display: "flex",
     }}>
       {/* Ambient glow */}

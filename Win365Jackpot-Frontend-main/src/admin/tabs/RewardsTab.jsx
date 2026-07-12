@@ -107,8 +107,8 @@ function SpinSettingsCard({ onToast }) {
         <div>
           <label style={labelStyle}>Sound Effects</label>
           <select value={String(settings.sound_enabled)} onChange={e => setSettings(s => ({ ...s, sound_enabled: e.target.value === "true" }))} style={inputStyle}>
-            <option value="true">Enabled</option>
-            <option value="false">Disabled</option>
+            <option value="true" style={{ background: C.surface, color: C.text }}>Enabled</option>
+            <option value="false" style={{ background: C.surface, color: C.text }}>Disabled</option>
           </select>
         </div>
       </div>
