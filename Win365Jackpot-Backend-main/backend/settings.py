@@ -15,17 +15,13 @@ sys.path.insert(0, BASE_DIR)
 
 # ── Security ──────────────────────────────────────────────────────────────────
 SECRET_KEY = config('SECRET_KEY')
-DEBUG = config('DEBUG', cast=bool)
+DEBUG = config('DEBUG', default=False, cast=bool)
 
 
-ALLOWED_HOSTS = [
-    'api.win365jackpot.com',   # 🔥 ADD THIS
-    'win365jackpot.com',
-    'www.win365jackpot.com',
-    '13.233.214.143',
-    '127.0.0.1',
-    'localhost'
-]
+ALLOWED_HOSTS = config(
+    'ALLOWED_HOSTS',
+    default='jackpotsworld.vip,www.jackpotsworld.vip,127.0.0.1,localhost'
+).split(',')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -98,6 +94,7 @@ DATABASES = {
         'HOST':     config('DB_HOST'),
         'PORT':     config('DB_PORT', default='3306', cast=int),
         'OPTIONS':  { 'charset': 'utf8mb4' },
+        'CONN_MAX_AGE': config('DB_CONN_MAX_AGE', default=60, cast=int),
     }
 }
 # ── Email ─────────────────────────────────────────────────────────────────────
@@ -126,24 +123,54 @@ MEDIA_ROOT  = os.path.join(BASE_DIR, 'media')
 
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
+# Passenger imports this module once per worker process — make sure every
+# directory the app writes to exists before anything tries to use it, so a
+# fresh deploy never 500s on a missing staticfiles/media/logs folder.
+for _dir in (STATIC_ROOT, MEDIA_ROOT, os.path.join(BASE_DIR, 'logs')):
+    os.makedirs(_dir, exist_ok=True)
+
+# ── Frontend (React SPA) ──────────────────────────────────────────────────────
+# jackpotsworld.vip is served entirely by this one Django app — there's no
+# api. subdomain and no separate Apache-served document root. The built
+# React app (`npm run build` → dist/) is expected to live in a sibling
+# directory next to this project; Whitenoise serves every file found there
+# from the site root (dist/assets/x.js -> /assets/x.js, favicon.ico ->
+# /favicon.ico, etc.), and the catch-all route in backend/urls.py serves
+# dist/index.html for any client-side route Whitenoise doesn't recognize as
+# a real file (e.g. /dashboard). See DEPLOYMENT.md.
+FRONTEND_DIST_DIR = config(
+    'FRONTEND_DIST_DIR',
+    default=os.path.join(BASE_DIR, '..', 'jackpotsworld_frontend_dist')
+)
+if os.path.isdir(FRONTEND_DIST_DIR):
+    WHITENOISE_ROOT = FRONTEND_DIST_DIR
+
+# Hashed asset filenames (Vite's default) are safe to cache for a long time —
+# a new deploy ships new filenames. HTML/manifest-type files still get
+# revalidated on every request since WHITENOISE_ROOT files default to a
+# short max-age unless overridden per-file, which is fine here.
+WHITENOISE_MAX_AGE = 0 if DEBUG else 60 * 60 * 24 * 365
+
 # ── CORS ──────────────────────────────────────────────────────────────────────
-CORS_ALLOWED_ORIGINS = [
-    'https://win365jackpot.com',
-    'https://www.win365jackpot.com',
-    'https://api.win365jackpot.com',
-    'http://127.0.0.1:5173',
-    'http://localhost:5173',
-]
+# Same-origin now that the SPA and API share jackpotsworld.vip, so CORS
+# mostly matters for non-browser or future cross-origin clients. Kept
+# configurable rather than removed outright.
+CORS_ALLOWED_ORIGINS = config(
+    'CORS_ALLOWED_ORIGINS',
+    default='https://jackpotsworld.vip,https://www.jackpotsworld.vip'
+).split(',')
 
 CORS_ALLOW_CREDENTIALS = True
 
-CSRF_TRUSTED_ORIGINS = [
-    "https://win365jackpot.com",
-    "https://www.win365jackpot.com",
-    "http://13.233.214.143",
-    "http://127.0.0.1",
-    'http://localhost:5173'
-]
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default='https://jackpotsworld.vip,https://www.jackpotsworld.vip'
+).split(',')
+
+if DEBUG:
+    # Vite dev server — only ever added locally, never in production
+    CORS_ALLOWED_ORIGINS += ['http://127.0.0.1:5173', 'http://localhost:5173']
+    CSRF_TRUSTED_ORIGINS += ['http://127.0.0.1:5173', 'http://localhost:5173']
 
 # ── REST Framework ────────────────────────────────────────────────────────────
 REST_FRAMEWORK = {
@@ -194,9 +221,17 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-SECURE_SSL_REDIRECT = False
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
+# cPanel's own "Force HTTPS Redirect" toggle (Domains page) handles the
+# HTTP → HTTPS redirect at the Apache layer, so this stays off by default to
+# avoid a redirect loop if that toggle and this setting disagree. Flip
+# SECURE_SSL_REDIRECT=True via env only after confirming HTTPS works and, if
+# your host proxies through another layer, also set USE_X_FORWARDED_PROTO.
+SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=False, cast=bool)
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+
+if config('USE_X_FORWARDED_PROTO', default=False, cast=bool):
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
@@ -233,15 +268,22 @@ LOGGING = {
             "class": "logging.StreamHandler",
             "formatter": "verbose",
         },
+        "file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": os.path.join(BASE_DIR, "logs", "django.log"),
+            "maxBytes": 5 * 1024 * 1024,
+            "backupCount": 5,
+            "formatter": "verbose",
+        },
     },
     "loggers": {
         "authapp": {
-            "handlers": ["console"],
+            "handlers": ["console", "file"],
             "level": "INFO",
             "propagate": False,
         },
         "django": {
-            "handlers": ["console"],
+            "handlers": ["console", "file"],
             "level": "WARNING",
             "propagate": False,
         },
