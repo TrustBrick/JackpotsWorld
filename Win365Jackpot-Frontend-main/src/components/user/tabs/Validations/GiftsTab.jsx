@@ -42,6 +42,10 @@ const GIFT_CONFIG = {
   vip_upgrade: { Icon: RiVipCrownLine,color:"#D4AF37",bg: "rgba(212,175,55,0.08)",  border: "rgba(212,175,55,0.2)",  labelKey: "gifts.vipUpgrade",   tag: "vip" },
   tournament:  { Icon: RiTrophyLine, color: "#FB923C", bg: "rgba(251,146,60,0.08)",  border: "rgba(251,146,60,0.2)",  labelKey: "gifts.tournament",    tag: "trn" },
   welcome:     { Icon: FiStar,       color: "#34D399", bg: "rgba(52,211,153,0.08)",  border: "rgba(52,211,153,0.2)",  labelKey: "gifts.welcome",       tag: "new" },
+  merchandise: { Icon: FiPackage,    color: "#EC4899", bg: "rgba(236,72,153,0.08)",  border: "rgba(236,72,153,0.2)",  labelKey: "gifts.merchandise",   tag: "mrc" },
+  gift_voucher:{ Icon: RiTicketLine, color: "#2DD4BF", bg: "rgba(45,212,191,0.08)",  border: "rgba(45,212,191,0.2)",  labelKey: "gifts.giftVoucher",   tag: "vch" },
+  discount_voucher:{ Icon: RiTicketLine, color: "#FBBF24", bg: "rgba(251,191,36,0.08)", border: "rgba(251,191,36,0.2)", labelKey: "gifts.discountVoucher", tag: "dsc" },
+  spin_reward: { Icon: RiTrophyLine, color: "#D4AF37", bg: "rgba(212,175,55,0.08)",  border: "rgba(212,175,55,0.2)",  labelKey: "gifts.spinReward",    tag: "spn" },
 };
 
 // ─── Wallet config ────────────────────────────────────────────────────────────

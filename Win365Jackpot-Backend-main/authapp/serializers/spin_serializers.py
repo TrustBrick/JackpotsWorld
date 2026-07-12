@@ -12,16 +12,24 @@ class SpinConfigSerializer(serializers.ModelSerializer):
     is_jackpot = serializers.BooleanField(default=False, required=False)
     tournament_name = serializers.CharField(source="tournament.name", read_only=True, default=None)
     event_name = serializers.CharField(source="event.name", read_only=True, default=None)
+    resolved_image = serializers.SerializerMethodField()
 
     class Meta:
         model = SpinConfig
         fields = [
-            "id", "label", "reward_type", "value", "casino_name",
+            "id", "label", "description", "reward_type", "value", "casino_name",
             "tournament", "tournament_name", "event", "event_name",
-            "image_url", "weight", "is_jackpot", "is_active",
+            "image", "image_url", "resolved_image", "weight", "is_jackpot", "is_active",
             "created_at", "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
+
+    def get_resolved_image(self, obj):
+        """Uploaded `image` takes priority over the legacy `image_url` link."""
+        if obj.image:
+            request = self.context.get("request")
+            return request.build_absolute_uri(obj.image.url) if request else obj.image.url
+        return obj.image_url or None
 
 
 class SpinSettingsSerializer(serializers.ModelSerializer):

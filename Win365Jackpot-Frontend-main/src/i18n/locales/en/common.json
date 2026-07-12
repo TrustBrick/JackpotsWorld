@@ -288,6 +288,7 @@
     "claiming": "Claiming…",
     "manualGift": "Manual Gift", "bonusType": "Bonus", "cashback": "Cashback",
     "referralType": "Referral", "vipUpgrade": "VIP Upgrade", "tournament": "Tournament", "welcome": "Welcome",
+    "merchandise": "Merchandise", "giftVoucher": "Gift Voucher", "discountVoucher": "Discount Voucher", "spinReward": "Spin Wheel Reward",
     "cashBalance": "Cash Balance", "withdrawable": "Withdrawable",
     "nonCashLabel": "Non-Cash", "bonusCredits": "Bonus Credits",
     "otpCreditsLabel": "OTP Credits", "verification": "Verification",

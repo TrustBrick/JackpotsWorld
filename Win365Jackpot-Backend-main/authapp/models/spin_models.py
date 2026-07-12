@@ -56,8 +56,14 @@ class SpinConfig(models.Model):
     event       = models.ForeignKey(
         "authapp.CasinoEvent", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
     )
-    # Optional icon/image shown on the wheel segment and win popup.
+    # Optional icon/image shown on the wheel segment and win popup. `image`
+    # (an actual upload, served from Django media storage) takes priority
+    # over `image_url` (a plain external link) wherever both are set — see
+    # SpinConfigSerializer.get_resolved_image.
     image_url   = models.URLField(blank=True)
+    image       = models.ImageField(upload_to="spin/rewards/", null=True, blank=True)
+    # Optional longer copy shown in the win popup, below the label.
+    description = models.TextField(blank=True)
     # Relative odds among non-jackpot tiers (weighted random). Ignored for
     # jackpot tiers, which are awarded deterministically (see SpinPlayView).
     weight      = models.PositiveIntegerField(default=10)

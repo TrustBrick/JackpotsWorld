@@ -34,7 +34,9 @@ const FIELDS = [
     name: "event", label: "Casino Event (only for Event Pass)", type: "asyncSelect",
     optionsUrl: "/api/admin-panel/events/", optionLabelKey: "name", placeholder: "— No event linked —",
   },
-  { name: "image_url", label: "Reward Image URL (optional)", placeholder: "https://…" },
+  { name: "image", label: "Reward Logo (Upload)", type: "file" },
+  { name: "image_url", label: "Reward Image URL (used if no logo uploaded)", placeholder: "https://…" },
+  { name: "description", label: "Reward Description (shown in win popup)", type: "textarea" },
   { name: "weight", label: "Weight (relative odds — non-jackpot tiers only)", type: "number", default: "10" },
   {
     name: "is_jackpot", label: "Jackpot Tier?", type: "select", default: "false",

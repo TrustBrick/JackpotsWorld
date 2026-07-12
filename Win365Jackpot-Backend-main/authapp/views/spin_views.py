@@ -2,11 +2,15 @@
 authapp/views/spin_views.py
 ─────────────────────────────────────────────────────────────────────────────
 Daily Login Spin Wheel:
-  • SpinStatusView       — GET  /api/spin/status/    spins remaining this month
-  • SpinPlayView         — POST /api/spin/play/       resolve + apply one spin
-  • SpinHistoryListView  — GET  /api/spin/history/    the user's own spin log
-  • AdminSpinSettingsView — GET/PATCH /api/admin-panel/spin-settings/
-                            admin-configurable monthly cap / jackpot cadence / sound
+  • SpinStatusView          — GET  /api/spin/status/   spins remaining this month
+  • SpinWheelSegmentsView   — GET  /api/spin/wheel/     active reward tiers, for
+                               rendering the wheel's segments (display only —
+                               the actual reward is always decided server-side
+                               in SpinPlayView, never on the client)
+  • SpinPlayView            — POST /api/spin/play/      resolve + apply one spin
+  • SpinHistoryListView     — GET  /api/spin/history/   the user's own spin log
+  • AdminSpinSettingsView   — GET/PATCH /api/admin-panel/spin-settings/
+                               admin-configurable monthly cap / jackpot cadence / sound
 
 Every automated reward is applied through the SAME wallet-credit helpers
 already used by the admin offline-deposit flow — no new crediting logic, no
@@ -47,6 +51,16 @@ GIFT_TYPE_MAP = {
 
 def _month_key():
     return timezone.now().strftime("%Y-%m")
+
+
+def _resolved_image(config, request):
+    """Uploaded `image` takes priority over the legacy `image_url` link —
+    mirrors SpinConfigSerializer.get_resolved_image for the two plain
+    APIViews (SpinPlayView, SpinWheelSegmentsView) that don't run the
+    reward/segment data through that serializer."""
+    if config.image:
+        return request.build_absolute_uri(config.image.url)
+    return config.image_url or None
 
 
 def _apply_vip_upgrade(user, actor):
@@ -164,6 +178,27 @@ class SpinStatusView(APIView):
         })
 
 
+class SpinWheelSegmentsView(APIView):
+    """Active reward tiers for rendering the wheel's visual segments.
+    Deliberately omits `weight`/`value` — the client never decides or even
+    sees the real odds; SpinPlayView alone resolves the actual reward
+    server-side on every spin."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        configs = SpinConfig.objects.filter(is_active=True)
+        return Response([
+            {
+                "id": c.id,
+                "label": c.label,
+                "reward_type": c.reward_type,
+                "image": _resolved_image(c, request),
+                "is_jackpot": c.is_jackpot,
+            }
+            for c in configs
+        ])
+
+
 class SpinPlayView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -239,10 +274,12 @@ class SpinPlayView(APIView):
 
         return Response({
             "reward": {
+                "config_id": config.id,
                 "label": config.label,
+                "description": config.description,
                 "reward_type": config.reward_type,
                 "value": float(config.value),
-                "image_url": config.image_url,
+                "image_url": _resolved_image(config, request),
                 "is_jackpot": history.is_jackpot_win,
                 "needs_manual_fulfillment": needs_manual,
             },
