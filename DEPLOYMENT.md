@@ -1,27 +1,59 @@
 # Deploying to GoDaddy cPanel — jackpotsworld.vip (single domain)
 
-**One** Apache Passenger Python app owns the entire `jackpotsworld.vip` domain. Django serves the DRF API *and* the built React SPA from the same origin — there is no `api.` subdomain and no separate Apache-served frontend document root. This matters because shared GoDaddy hosting gives you no root/vhost access to hand-split routing between Apache and Passenger, so the split happens inside Django instead, using Whitenoise.
+**One** Apache Passenger Python app owns the entire `jackpotsworld.vip` domain. Django serves the DRF API *and* the built React SPA from the same origin — there is no `api.`, `admin.`, or `superadmin.` subdomain and no separate Apache-served frontend document root. This matters because shared GoDaddy hosting gives you no root/vhost access to hand-split routing between Apache and Passenger, so the split happens inside Django instead, using Whitenoise.
 
-No business logic, models, serializers, views, or UI were changed. Every change below is deployment/routing-only.
+No business logic, models, serializers, views, or UI were changed except where explicitly noted (audit-log additions, a `settings_changed` log action, and closing two failed-login logging gaps — all additive, none change what a request returns).
 
 ## How the single-domain routing works
 
 Passenger is mounted at the domain root, so **every** request for `jackpotsworld.vip` — HTML page loads, JS/CSS assets, and API calls — goes through Django:
 
-1. `WhiteNoiseMiddleware` (already first-ish in `MIDDLEWARE`) checks the request path against two sources before Django's URL resolver even runs:
+1. `WhiteNoiseMiddleware` checks the request path against two sources before Django's URL resolver even runs:
    - `STATIC_ROOT` (Django's own `/static/...` — admin CSS, DRF browsable API assets — via `collectstatic`)
    - `WHITENOISE_ROOT` = the React build's `dist/` folder, served **from the site root** (`dist/assets/index-xyz.js` → `/assets/index-xyz.js`, `dist/favicon.ico` → `/favicon.ico`, etc.)
-2. If neither matches, Django's URL resolver runs normally: `/admin/`, `/api/...`, `/admin-panel/...`, `/media/...`, `/healthz/` all resolve to their real views, exactly as before.
-3. Anything left over (an actual React Router client-side route, e.g. `/dashboard`, `/login`) falls through to a catch-all view that returns the SPA's `index.html`, letting React Router take over client-side. A bad `/api/...` URL still correctly 404s — it does **not** fall through to the SPA (see the `backend/urls.py` comment for why that needed an explicit exclusion).
+2. If neither matches, Django's URL resolver runs normally: `/admin/`, `/api/...`, `/admin-panel/...`, `/super-admin/...`, `/media/...`, `/healthz/` all resolve to their real views, exactly as before.
+3. Anything left over (an actual React Router client-side route, e.g. `/dashboard`, `/admin-panel`, `/super-admin`) falls through to a catch-all view that returns the SPA's `index.html`, letting React Router take over client-side. A bad `/api/...` URL still correctly 404s — it does **not** fall through to the SPA.
 
-The one intentional behavior change: the root `/` used to return a small JSON health-check (`{"status":"ok",...}`). It's been moved to `/healthz/` (still fully functional, just relocated) since `/` now has to serve the frontend.
+The one intentional behavior change: the root `/` used to return a small JSON health-check (`{"status":"ok",...}`). It's been moved to `/healthz/` since `/` now has to serve the frontend.
 
-## What changed in this pass (on top of the earlier deployment-readiness pass)
+## Portals & access control (Super Admin / Admin) — no subdomains needed
 
-- `backend/urls.py`: removed `path('', home)`; added `path('healthz/', healthz)`; added a Whitenoise-backed `spa_index` catch-all view, placed last, with reserved-prefix exclusions (`api/`, `admin/`, `admin-panel/`, `static/`, `media/`, `healthz/`) so broken API calls still 404 instead of returning the SPA shell.
-- `backend/settings.py`: `ALLOWED_HOSTS`/`CORS_ALLOWED_ORIGINS`/`CSRF_TRUSTED_ORIGINS` no longer include an `api.` subdomain — just `jackpotsworld.vip` and `www.jackpotsworld.vip`. Added `FRONTEND_DIST_DIR` (env-configurable, defaults to a sibling `jackpotsworld_frontend_dist/` folder) wired into `WHITENOISE_ROOT`, plus `WHITENOISE_MAX_AGE` for long-cached hashed assets.
-- `Win365Jackpot-Frontend-main/.env.production`: `VITE_API_URL` → `https://jackpotsworld.vip` (same-origin).
-- Removed `Win365Jackpot-Frontend-main/public/.htaccess` — Apache no longer serves the frontend directly, so an SPA rewrite rule at the Apache layer no longer applies (Django's catch-all view does that job now).
+The Super Admin and Admin dashboards are **not** separate deployments — they're existing React routes (`/super-admin`, `/admin-panel`) in the same SPA, backed by existing API prefixes (`/api/super-admin/...`, `/admin-panel/...`, `/api/admin-panel/...`) in the same Django app. Standing up real `admin.jackpotsworld.vip` / `superadmin.jackpotsworld.vip` subdomains was considered and deliberately not done — it would mean provisioning separate cPanel Python apps, separate SSL certs, and cross-subdomain session sharing for zero actual isolation benefit, since it's the same codebase and same database either way. Access control already happens at the only boundary that matters — the API — not at the DNS layer:
+
+- **Enforcement is `is_superuser`/`is_staff`-based, already in place, verified during this pass**: `authapp/permissions/super_admin_permissions.py`'s `IsSuperAdmin` requires `request.user.is_superuser`; `IsAdminOrSuperAdmin` requires `request.user.is_staff`. Every view in `super_admin_views.py` uses one of these. `admin_views.py` uses DRF's `IsAdminUser` (`is_staff`) plus capability add-ons (`HasFinanceAccess`, `HasVIPAccess`, etc. in `authapp/permissions/admin_role_permissions.py`) that fail closed if a staff user has no `AdminProfile` or an inactive one.
+- **Unauthorized access is already blocked**: a plain user hitting a super-admin API endpoint gets a 403 from `IsSuperAdmin`, full stop — there's no separate "portal" to breach.
+- **"Redirect unauthenticated users to the correct login page"**: this is JWT-based (`rest_framework_simplejwt`), not session/cookie auth, so there's no server-side redirect to speak of — `AdminPanel.jsx`/`SuperAdminPanel.jsx` already re-validate their token against the API on load and render their own in-place login screen if that fails. Unchanged by this pass.
+- **Sessions/cookies across domains**: not applicable — single origin, no cross-domain cookie sharing needed.
+
+If you later decide you genuinely want isolated subdomains (e.g. for a WAF rule that only applies to `/admin*` traffic), that's a bigger, separate change — flag it and we can scope it properly rather than bolt it on here.
+
+## Default Super Admin / Admin accounts
+
+`python manage.py create_default_admins` (in `authapp/management/commands/`) seeds one Super Admin (`is_staff=True, is_superuser=True`) and one Admin (`is_staff=True, is_superuser=False`) account, each with a matching `AdminProfile`. It's already wired into `scripts/deploy.sh`, right after `migrate`.
+
+- **Idempotent**: only creates an account if no `User` with that email exists yet (case-insensitive check). It never touches or resets an existing account's password, even if the env var changes later — safe to leave in `.env` and re-run on every deploy.
+- **Env-driven, nothing hardcoded**: `SUPERADMIN_EMAIL` / `SUPERADMIN_PASSWORD` / `SUPERADMIN_NAME`, `ADMIN_EMAIL` / `ADMIN_PASSWORD` / `ADMIN_NAME`. Leave an `*_EMAIL` blank to skip seeding that one entirely.
+- **Password handling**: run through Django's `AUTH_PASSWORD_VALIDATORS` (rejects short/common/all-numeric passwords with a clear `CommandError`) and stored via `User.objects.create_user()`, which calls `set_password()` — PBKDF2 hash, never plaintext. Verified during this pass: the stored value has the `pbkdf2_sha256$...` prefix.
+- **To run manually** (e.g. outside a deploy): `python manage.py create_default_admins` from inside the activated virtualenv.
+
+## Security additions this pass
+
+- **Rate limiting on login** already existed (`DEFAULT_THROTTLE_RATES` in `settings.py`: `login`/`admin-login` at 10/min, plus a 15-minute email-based lockout after repeated failures) — but it read/wrote through `LocMemCache`, which is **per-process**. Under Passenger's multiple worker processes, that meant an attacker effectively got N attempts *per worker*, not N total. Fixed by switching production `CACHES` to a MySQL-backed `DatabaseCache` table (shared across every process), gated on `DEBUG` so local dev keeps the simpler in-memory cache. Requires `python manage.py createcachetable` once — already in `scripts/deploy.sh` (idempotent — Django's own command skips a table that already exists).
+- **Audit logging gaps closed**: `LoginView` and `SuperAdminLoginView` logged successful logins but not failed attempts (`AdminLoginView` already did) — both now log `success: False` on bad credentials, matching the existing pattern. Admin-configurable settings (`BonusConfig`, `SpinConfig`, `SpinSettings`) had zero audit trail — all three now call `ActivityLog.log(action="settings_changed", ...)` on create/update/delete. New `ActivityLog.ACTION_CHOICES` entry: `settings_changed` (migration `0029`).
+- **Security headers**: added `SECURE_REFERRER_POLICY = "same-origin"` (always on) and env-gated HSTS (`SECURE_HSTS_SECONDS`/`_INCLUDE_SUBDOMAINS`/`_PRELOAD`, default off — see the env var table for when to turn it on). `SECURE_BROWSER_XSS_FILTER`, `SECURE_CONTENT_TYPE_NOSNIFF`, and `X_FRAME_OPTIONS=DENY` already existed.
+- **www → apex redirect**: new `WWWRedirectMiddleware` (`authapp/middleware/canonical_host.py`), first in `MIDDLEWARE`, 301-redirects any `www.<host>` request to the bare apex domain with the full path/query preserved. Verified with a live request in this pass.
+- **Not done this pass (flagged as future work, not silently skipped)**: 2FA for Super Admin and IP-allowlisting for the Super Admin portal — both called out as optional in the request that drove this change. They're real new features (TOTP enrollment/verification UI and flow, or IP-allowlist middleware + admin UI to manage the list), not deployment config, and deserve their own scoped pass rather than being bolted on here.
+
+## Database — MySQL, production-ready
+
+**MySQL is the only database this project ever talks to — there is no SQLite anywhere, in dev or prod.** `backend/settings.py` has exactly one `DATABASES` entry (`django.db.backends.mysql`) and no fallback branch. Every read/write goes through the Django ORM (`authapp/models/*.py`).
+
+- **Credentials**: 100% environment-variable driven via `python-decouple` (`DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`) — nothing hardcoded in `settings.py`.
+- **Password hashing**: the custom `User` model extends Django's `AbstractBaseUser` and only ever writes passwords through `set_password()` (PBKDF2) — confirmed at every call site, including the new `create_default_admins` command.
+- **Driver**: `PyMySQL` (pure Python), shimmed as `MySQLdb` in `backend/__init__.py`, instead of `mysqlclient` — shared hosting won't give you a C compiler or MySQL dev headers.
+- **Connection reuse**: `CONN_MAX_AGE` (default 60s, via `DB_CONN_MAX_AGE`) + `CONN_HEALTH_CHECKS = True`.
+- **Indexes & constraints**: extensive throughout the model layer (`WalletAccount` unique-together on `(user, wallet_type)`, `WalletTransaction.transaction_reference` unique+indexed, composite indexes on `User`, `Notification`, etc.).
+- **Migrations**: all 29 migrations are consistent with the current models and were verified applied end-to-end against a real local MySQL instance.
 
 ---
 
@@ -30,12 +62,18 @@ The one intentional behavior change: the root `/` used to return a small JSON he
 ```
 jackpotsworld_api/                  ← cPanel "Application Root" for the (only) Python app
 ├── authapp/
+│   ├── management/commands/
+│   │   └── create_default_admins.py   ← NEW — seeds Super Admin/Admin from env vars
+│   └── middleware/
+│       └── canonical_host.py          ← NEW — www -> apex redirect
 ├── backend/
 │   ├── __init__.py                 (PyMySQL shim)
-│   ├── settings.py                 (updated — FRONTEND_DIST_DIR / WHITENOISE_ROOT)
+│   ├── settings.py                 (updated — FRONTEND_DIST_DIR / WHITENOISE_ROOT / DB / cache / security headers)
 │   ├── urls.py                     (updated — SPA catch-all + /healthz/)
 │   ├── wsgi.py
 │   └── asgi.py
+├── scripts/
+│   └── deploy.sh                   ← run this on every deploy (pip install, migrate, cache table, seed admins, collectstatic, restart)
 ├── media/                          (auto-created; uploads live here)
 ├── staticfiles/                    (auto-created; Django admin's own static, via collectstatic)
 ├── logs/                           (auto-created; django.log)
@@ -68,12 +106,14 @@ Mounting at the bare domain (no URI suffix) tells Apache to hand this domain's e
 
 ## 3. cPanel → MySQL Database Wizard
 
-GoDaddy prefixes everything with your cPanel username — actual names will look like `youruser_jackpotdb`.
+GoDaddy prefixes everything with your cPanel username — actual names will look like `youruser_jackpotdb`. This is the **only** database the app will ever use (no SQLite, in dev or prod).
 
 1. **MySQL Database Wizard** → Create Database → e.g. `jackpotdb`
 2. Create Database User → e.g. `jackpotuser` + a strong generated password
 3. Add User to Database → grant **ALL PRIVILEGES**
 4. `DB_HOST` stays `localhost`, `DB_PORT` stays `3306`
+
+That's it — the app creates its own tables via Django migrations (step 7), you don't need to run any SQL by hand.
 
 ## 4. Environment variables (`.env` on the server, inside `jackpotsworld_api/`)
 
@@ -85,11 +125,17 @@ DEBUG=False
 ALLOWED_HOSTS=jackpotsworld.vip,www.jackpotsworld.vip
 CORS_ALLOWED_ORIGINS=https://jackpotsworld.vip,https://www.jackpotsworld.vip
 CSRF_TRUSTED_ORIGINS=https://jackpotsworld.vip,https://www.jackpotsworld.vip
-SECURE_SSL_REDIRECT=False        # flip to True after HTTPS is verified working (step 8)
+SECURE_SSL_REDIRECT=False        # flip to True after HTTPS is verified working (step 10)
 USE_X_FORWARDED_PROTO=False
+
+# HSTS — leave at 0 until HTTPS is verified working, then e.g. 31536000 (1 year)
+SECURE_HSTS_SECONDS=0
+SECURE_HSTS_INCLUDE_SUBDOMAINS=False
+SECURE_HSTS_PRELOAD=False
 
 FRONTEND_DIST_DIR=/home/<cpaneluser>/jackpotsworld_frontend_dist
 
+# MySQL — from the cPanel MySQL Database Wizard (step 3). No SQLite fallback exists.
 DB_NAME=youruser_jackpotdb
 DB_USER=youruser_jackpotuser
 DB_PASSWORD=<the password you set in step 3>
@@ -104,6 +150,15 @@ EMAIL_USE_SSL=False
 EMAIL_HOST_USER=<sender gmail address>
 EMAIL_HOST_PASSWORD=<16-char Gmail App Password>
 DEFAULT_FROM_EMAIL=<sender gmail address>
+
+# Default Super Admin / Admin accounts — see "Default Super Admin / Admin
+# accounts" above. Leave an *_EMAIL blank to skip seeding that one.
+SUPERADMIN_EMAIL=<superadmin@jackpotsworld.vip, or leave blank>
+SUPERADMIN_PASSWORD=<a strong password>
+SUPERADMIN_NAME=Super Admin
+ADMIN_EMAIL=<admin@jackpotsworld.vip, or leave blank>
+ADMIN_PASSWORD=<a strong password>
+ADMIN_NAME=Admin
 
 TURNSTILE_SECRET_KEY=<your real key>
 ```
@@ -135,20 +190,16 @@ Go to **Setup Python App** → your app → copy the "Enter to the virtual envir
 ```bash
 source /home/<cpaneluser>/virtualenv/jackpotsworld_api/3.11/bin/activate
 cd /home/<cpaneluser>/jackpotsworld_api
-pip install --upgrade pip
-pip install -r requirements.txt
 ```
 
-## 7. Initialize the backend
-
-Still inside the activated virtualenv:
+## 7. Initialize the backend — first deploy and every deploy after
 
 ```bash
-nano .env                              # paste in step 4's values, save (Ctrl+O, Ctrl+X)
-python manage.py migrate
-python manage.py collectstatic --noinput
-python manage.py createsuperuser       # optional, for /admin/ access
+nano .env                              # first deploy only — paste in step 4's values, save (Ctrl+O, Ctrl+X)
+bash scripts/deploy.sh                 # pip install, migrate, cache table, seed default admins, collectstatic, restart Passenger
 ```
+
+`scripts/deploy.sh` is what makes this "automatic": one command, safe to re-run on every deploy — `migrate` only applies what's new, `createcachetable`/`create_default_admins` are both idempotent, `collectstatic --noinput` overwrites in place, and it ends by touching `tmp/restart.txt` so Passenger reloads the app (step 9).
 
 ## 8. Build and deploy the frontend
 
@@ -169,31 +220,47 @@ Every time you rebuild the frontend, re-upload here and restart Passenger (step 
 Any time you change backend code, `.env`, run migrations, or redeploy the frontend build:
 
 - cPanel → **Setup Python App** → your app → click **Restart**, **or**
-- `mkdir -p tmp && touch tmp/restart.txt` from inside `jackpotsworld_api/`
+- `mkdir -p tmp && touch tmp/restart.txt` from inside `jackpotsworld_api/` (this is what `scripts/deploy.sh` already does for you)
 
 ## 10. SSL / HTTPS
 
-Only one certificate to manage now (no `api.` subdomain):
+Only one certificate to manage (no `api.`/`admin.`/`superadmin.` subdomains):
 
 1. cPanel → **SSL/TLS Status** → run **AutoSSL** for `jackpotsworld.vip` and `www.jackpotsworld.vip` (usually automatic already).
 2. cPanel → **Domains** → enable **Force HTTPS Redirect**.
-3. Once confirmed working, optionally set `SECURE_SSL_REDIRECT=True` in `.env` and restart (step 9) for defense-in-depth at the Django layer too.
+3. Once confirmed working, optionally set `SECURE_SSL_REDIRECT=True` in `.env` for defense-in-depth at the Django layer too, and later `SECURE_HSTS_SECONDS=31536000` once you're confident. Restart (step 9) after each change.
 
 ---
 
 ## Final checklist
 
-- [ ] DNS: `jackpotsworld.vip` A record + `www` resolve to the GoDaddy server (no `api` subdomain needed anymore — remove it from DNS if it existed from an earlier attempt)
+**Core routing & SSL**
+- [ ] DNS: `jackpotsworld.vip` A record + `www` resolve to the GoDaddy server (no `api`/`admin`/`superadmin` subdomains needed)
 - [ ] SSL valid (padlock, no warnings) on `jackpotsworld.vip` and `www.jackpotsworld.vip`
 - [ ] Force HTTPS redirect enabled
+- [ ] `https://www.jackpotsworld.vip/anything` 301-redirects to `https://jackpotsworld.vip/anything` (validates `WWWRedirectMiddleware`)
 - [ ] `https://jackpotsworld.vip` loads the React app
 - [ ] Refreshing on a deep client route (e.g. `/dashboard`) does **not** 404 (validates the Django SPA catch-all)
 - [ ] `https://jackpotsworld.vip/healthz/` returns `{"status": "ok", ...}`
-- [ ] `https://jackpotsworld.vip/admin/` loads the Django admin login with styled CSS (validates `collectstatic` + Whitenoise)
 - [ ] A deliberately-bad API URL, e.g. `https://jackpotsworld.vip/api/does-not-exist/`, returns a real 404 — **not** the SPA's HTML with a 200
-- [ ] Register/login flow works end-to-end from the live frontend against the live API (same-origin now, JWT issued/stored/used)
+
+**Database**
+- [ ] `python manage.py showmigrations authapp` on the server shows every migration as `[X]` applied (all 29)
 - [ ] A file upload (e.g. KYC/avatar) saves and is reachable at `https://jackpotsworld.vip/media/...`
-- [ ] A hashed JS asset (view page source → `/assets/index-*.js`) loads with a 200 and long `Cache-Control`
 - [ ] `jackpotsworld_api/logs/django.log` has no unexpected errors after a smoke test
+
+**Admin accounts & RBAC**
+- [ ] `python manage.py create_default_admins` output on first deploy shows `Created superadmin account: ...` and `Created admin account: ...`; running it again shows `already exists ... leaving it untouched`
+- [ ] Log in at `/super-admin` with the seeded Super Admin credentials — full access
+- [ ] Log in at `/admin-panel` with the seeded Admin credentials — limited access (no super-admin-only actions)
+- [ ] The Admin account, when tested against a super-admin-only API endpoint directly (e.g. via curl with its token), gets a 403
+- [ ] `https://jackpotsworld.vip/admin/` (Django admin, not the React admin panel) loads the login page with styled CSS (validates `collectstatic` + Whitenoise)
+
+**Security**
+- [ ] A deliberately wrong password at `/api/login/`, `/api/admin-panel/login/`... shows up in `ActivityLog` with `success: False`
+- [ ] 11 failed logins for the same email within a few minutes returns 429 "Too many failed attempts" (validates the lockout, and that it's enforced globally now via the DB cache table, not per-worker)
+- [ ] Changing a Bonus/Spin setting in the admin panel creates a new `ActivityLog` row with `action="settings_changed"`
+- [ ] Response headers on any page include `Referrer-Policy: same-origin`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`
 - [ ] Hitting a bad `/api/...` or `/admin/...` URL shows a plain Django 404, not a Python traceback (confirms `DEBUG=False`)
 - [ ] Gmail App Password and DB password are freshly generated, not the ones from the dev `.env`
+- [ ] `SUPERADMIN_PASSWORD`/`ADMIN_PASSWORD` are strong, unique, and not reused from anywhere else

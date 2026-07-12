@@ -301,16 +301,51 @@ class SpinHistoryListView(generics.ListAPIView):
 # Admin — SpinConfig CRUD + SpinSettings (used by the "Rewards & Spin" admin tab)
 # ─────────────────────────────────────────────────────────────────────────────
 
+def _get_client_ip(request):
+    x = request.META.get("HTTP_X_FORWARDED_FOR")
+    return x.split(",")[0].strip() if x else request.META.get("REMOTE_ADDR")
+
+
 class AdminSpinConfigListCreateView(generics.ListCreateAPIView):
     queryset = SpinConfig.objects.all()
     serializer_class = SpinConfigSerializer
     permission_classes = [IsAdminOrSuperAdmin]
+
+    def perform_create(self, serializer):
+        obj = serializer.save()
+        ActivityLog.log(
+            action="settings_changed",
+            actor=self.request.user,
+            description=f"Created spin reward tier: {obj.label}",
+            ip_address=_get_client_ip(self.request),
+            meta={"spin_config_id": obj.id},
+        )
 
 
 class AdminSpinConfigDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = SpinConfig.objects.all()
     serializer_class = SpinConfigSerializer
     permission_classes = [IsAdminOrSuperAdmin]
+
+    def perform_update(self, serializer):
+        obj = serializer.save()
+        ActivityLog.log(
+            action="settings_changed",
+            actor=self.request.user,
+            description=f"Updated spin reward tier: {obj.label}",
+            ip_address=_get_client_ip(self.request),
+            meta={"spin_config_id": obj.id},
+        )
+
+    def perform_destroy(self, instance):
+        ActivityLog.log(
+            action="settings_changed",
+            actor=self.request.user,
+            description=f"Deleted spin reward tier: {instance.label}",
+            ip_address=_get_client_ip(self.request),
+            meta={"spin_config_id": instance.id},
+        )
+        instance.delete()
 
 
 class AdminSpinSettingsView(APIView):
@@ -324,4 +359,11 @@ class AdminSpinSettingsView(APIView):
         serializer = SpinSettingsSerializer(obj, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        ActivityLog.log(
+            action="settings_changed",
+            actor=request.user,
+            description="Updated Daily Spin settings",
+            ip_address=_get_client_ip(request),
+            meta={"fields": list(request.data.keys())},
+        )
         return Response(serializer.data)

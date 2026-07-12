@@ -454,5 +454,15 @@ class AdminBonusConfigView(APIView):
                     "updated_by": request.user,
                 },
             )
+            ActivityLog.log(
+                action="settings_changed",
+                actor=request.user,
+                description=(
+                    f"{'Created' if created else 'Updated'} BonusConfig "
+                    f"VIP {obj.vip_level} / {obj.bonus_type} = ${obj.amount}"
+                ),
+                ip_address=get_client_ip(request),
+                meta={"vip_level": obj.vip_level, "bonus_type": obj.bonus_type, "amount": str(obj.amount)},
+            )
             return Response(BonusConfigSerializer(obj).data)
         return Response(serializer.errors, status=400)

@@ -37,6 +37,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'authapp.middleware.canonical_host.WWWRedirectMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
@@ -85,6 +86,9 @@ CORS_ALLOW_METHODS = [
 ]
 
 # ── Database ──────────────────────────────────────────────────────────────────
+# MySQL only — no SQLite fallback, in dev or prod. All reads/writes go
+# through the Django ORM (see authapp/models/*); credentials always come
+# from environment variables, never hardcoded here.
 DATABASES = {
     'default': {
         'ENGINE':   'django.db.backends.mysql',
@@ -94,7 +98,17 @@ DATABASES = {
         'HOST':     config('DB_HOST'),
         'PORT':     config('DB_PORT', default='3306', cast=int),
         'OPTIONS':  { 'charset': 'utf8mb4' },
+        # Django has no built-in connection pool (that's a separate layer
+        # like ProxySQL, not available on shared GoDaddy hosting) — this is
+        # its standard substitute: each Passenger worker process keeps its
+        # DB connection open and reuses it across requests for up to
+        # DB_CONN_MAX_AGE seconds instead of reconnecting every request.
         'CONN_MAX_AGE': config('DB_CONN_MAX_AGE', default=60, cast=int),
+        # Pings a reused connection before handing it to a request and
+        # transparently reconnects if MySQL (or a shared-host idle timeout)
+        # already dropped it — without this, a stale reused connection
+        # surfaces as a random request failure instead of just reconnecting.
+        'CONN_HEALTH_CHECKS': True,
     }
 }
 # ── Email ─────────────────────────────────────────────────────────────────────
@@ -201,11 +215,27 @@ SIMPLE_JWT = {
 }
 
 # ── Cache ─────────────────────────────────────────────────────────────────────
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+# Login rate-limiting (DEFAULT_THROTTLE_RATES below) and the email
+# lockout/failed-attempt tracking (authapp/otp/otp_utils.py) both read and
+# write through this cache. LocMemCache is per-process — under Passenger's
+# multiple worker processes each worker tracks its own attempt count, so an
+# attacker effectively gets N attempts *per worker*, not N total. A
+# DB-backed cache table is shared across every process (and we already have
+# MySQL), so production uses that instead. Run `python manage.py
+# createcachetable` once first — already wired into scripts/deploy.sh.
+if DEBUG:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        }
     }
-}
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+            "LOCATION": "django_cache",
+        }
+    }
 
 # ── Misc ──────────────────────────────────────────────────────────────────────
 LANGUAGE_CODE    = 'en-us'
@@ -235,8 +265,18 @@ if config('USE_X_FORWARDED_PROTO', default=False, cast=bool):
 
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "same-origin"
 
 X_FRAME_OPTIONS = "DENY"
+
+# HSTS tells browsers to only ever hit this domain over HTTPS, even if a
+# user types http:// or follows an old http:// link — but it's a promise
+# with real teeth (browsers cache it, and long durations are hard to walk
+# back), so it stays off until SECURE_SSL_REDIRECT is confirmed working in
+# production. Enable via env once HTTPS is verified (see DEPLOYMENT.md).
+SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default=0, cast=int)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = config('SECURE_HSTS_INCLUDE_SUBDOMAINS', default=False, cast=bool)
+SECURE_HSTS_PRELOAD = config('SECURE_HSTS_PRELOAD', default=False, cast=bool)
 
 TURNSTILE_SECRET_KEY = config("TURNSTILE_SECRET_KEY", default="")
 

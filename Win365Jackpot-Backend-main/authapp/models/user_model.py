@@ -269,6 +269,7 @@ class ActivityLog(models.Model):
         ("kyc_rejected", "KYC Rejected"),
         ("notification_sent", "Notification Sent"),
         ("staff_created", "Staff Created"),
+        ("settings_changed", "Settings Changed"),
         ("other", "Other"),
     ]
 

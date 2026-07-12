@@ -187,6 +187,7 @@ class LoginView(APIView):
         #     return Response({"error": "Verification failed. Please try again."}, status=400)
 
         email = request.data.get("email", "").strip().lower()
+        ip    = get_client_ip(request)
         if email and is_locked_out(email):
             return Response(
                 {"error": "Too many failed attempts. Please try again in 15 minutes."},
@@ -207,7 +208,6 @@ class LoginView(APIView):
 
             if email:
                 reset_attempts(email)
-            ip   = get_client_ip(request)
 
             user.last_login_ip = ip
             user.last_login    = timezone.now()
@@ -229,6 +229,13 @@ class LoginView(APIView):
             return Response({"user": profile, "tokens": tokens})
         if email:
             record_failed_attempt(email)
+        ActivityLog.log(
+            action="login",
+            description=f"Failed login attempt: {email}",
+            ip_address=ip,
+            user_agent=get_ua(request),
+            meta={"email": email, "success": False},
+        )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -303,6 +310,12 @@ class SuperAdminLoginView(APIView):
 
         if not user or not user.check_password(password):
             record_failed_attempt(email)
+            ActivityLog.log(
+                action="admin_login",
+                description=f"Failed super admin login attempt: {email}",
+                ip_address=ip,
+                meta={"email": email, "success": False, "role": "superadmin"},
+            )
             return Response({"error": "Invalid credentials"}, status=400)
 
         reset_attempts(email)
