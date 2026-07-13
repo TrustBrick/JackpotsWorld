@@ -1,0 +1,25 @@
+---
+# cPanel Git Version Control deployment tasks.
+# Triggered from cPanel: Git Version Control > Manage Repository >
+# Pull or Deploy tab > "Deploy HEAD Commit" (after "Update from Remote").
+#
+# Runs with no interactive Terminal required — cPanel executes this task
+# list itself, separately from the (disabled) Terminal app. Each line runs
+# in the same shell session in order, so DEPLOYPATH/the venv activation
+# carry over between lines.
+#
+# Copies only the backend subfolder (Win365Jackpot-Backend-main/) from the
+# git checkout into the live Passenger app root. `cp -R` never deletes
+# files that aren't in the source, and media/, logs/, staticfiles/, .env
+# are all gitignored (never present in the checkout), so this can't
+# clobber live user uploads, logs, or server-side config.
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/t71kc87gszc6/jackpotsworld_api/
+    - /bin/cp -R Win365Jackpot-Backend-main/. $DEPLOYPATH
+    - . /home/t71kc87gszc6/virtualenv/jackpotsworld_api/3.11/bin/activate && cd $DEPLOYPATH && pip install -r requirements.txt
+    - . /home/t71kc87gszc6/virtualenv/jackpotsworld_api/3.11/bin/activate && cd $DEPLOYPATH && python manage.py migrate --noinput
+    - . /home/t71kc87gszc6/virtualenv/jackpotsworld_api/3.11/bin/activate && cd $DEPLOYPATH && python manage.py createcachetable
+    - . /home/t71kc87gszc6/virtualenv/jackpotsworld_api/3.11/bin/activate && cd $DEPLOYPATH && python manage.py create_default_admins
+    - . /home/t71kc87gszc6/virtualenv/jackpotsworld_api/3.11/bin/activate && cd $DEPLOYPATH && python manage.py collectstatic --noinput
+    - mkdir -p $DEPLOYPATH/tmp && touch $DEPLOYPATH/tmp/restart.txt
