@@ -2,9 +2,9 @@ import os
 
 from django.contrib import admin
 from django.urls import path, include, re_path
-from django.conf.urls.static import static
 from django.conf import settings
 from django.http import JsonResponse, FileResponse, Http404
+from django.views.static import serve as serve_static
 from authapp.url_patterns.gift_level_urls import admin_urlpatterns, user_urlpatterns
 
 
@@ -54,7 +54,21 @@ urlpatterns = [
     # User gift/level APIs
     path('api/', include((user_urlpatterns, 'user_gifts'))),
 
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) + [
+] + [
+    # Serves user-uploaded media (avatars, KYC docs, promo/event images, ...)
+    # from MEDIA_ROOT. Django's django.conf.urls.static.static() helper only
+    # registers this route when settings.DEBUG is True — in production
+    # (DEBUG=False, as it should be) it silently returns an empty pattern
+    # list, so every /media/... request 404s. There's no separate Nginx/
+    # Apache vhost or CDN serving this app (Whitenoise only covers
+    # STATIC_ROOT and the frontend dist/, see settings.py), so this route
+    # must be registered unconditionally, not gated on DEBUG.
+    re_path(
+        r'^%s(?P<path>.*)$' % settings.MEDIA_URL.lstrip('/'),
+        serve_static,
+        {'document_root': settings.MEDIA_ROOT},
+    ),
+] + [
     # React SPA catch-all — must stay last. The negative lookahead is
     # required, not cosmetic: when a path under a reserved prefix doesn't
     # match anything inside that include()'s urlconf (e.g. a typo'd or

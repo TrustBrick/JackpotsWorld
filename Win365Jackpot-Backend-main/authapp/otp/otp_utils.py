@@ -57,7 +57,7 @@ def send_otp_email(email: str, otp: str) -> None:
     from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@win365.com")
     try:
         send_mail(subject, message, from_email, [email], fail_silently=False)
-        logger.info(f"✅ OTP email sent to {email}")
+        logger.info(f"OTP email sent to {email}")
     except Exception as exc:
         _log_send_failure(email, exc)
         raise

@@ -55,8 +55,9 @@ def _latest_ban_log(user):
     )
 
 
-def _serialize_kyc(kyc):
+def _serialize_kyc(kyc, request=None):
     u = kyc.user
+    abs_url = request.build_absolute_uri if request else (lambda u: u)
     is_banned = not u.is_active
     ban_log = _latest_ban_log(u) if is_banned else None
     return {
@@ -84,7 +85,7 @@ def _serialize_kyc(kyc):
         "document_type":   kyc.document_type,
         "document_number": kyc.document_number,
         "id_proof_type":     kyc.id_proof_type,
-        "id_proof_file_url": kyc.id_proof_file.url if kyc.id_proof_file else None,
+        "id_proof_file_url": abs_url(kyc.id_proof_file.url) if kyc.id_proof_file else None,
         "submitted_at":    kyc.submitted_at,
         "reject_reason":   kyc.reject_reason,
         "status":          kyc.status,

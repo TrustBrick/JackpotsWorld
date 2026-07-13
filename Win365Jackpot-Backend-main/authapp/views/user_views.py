@@ -111,9 +111,9 @@ class ProfileView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
  
-        serializer = UserProfileSerializer(user)
+        serializer = UserProfileSerializer(user, context={"request": request})
         return Response(serializer.data)
- 
+
     def patch(self, request):
         serializer = UpdateProfileSerializer(
             request.user, data=request.data, partial=True
@@ -128,7 +128,7 @@ class ProfileView(APIView):
                 ip_address=request.META.get("REMOTE_ADDR"),
                 user_agent=request.META.get("HTTP_USER_AGENT", ""),
             )
-            return Response(UserProfileSerializer(request.user).data)
+            return Response(UserProfileSerializer(request.user, context={"request": request}).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
  
 
@@ -170,7 +170,7 @@ class AvatarUpdateView(APIView):
             target_user=user,
             ip_address=request.META.get("REMOTE_ADDR"),
         )
-        return Response(UserProfileSerializer(user).data)
+        return Response(UserProfileSerializer(user, context={"request": request}).data)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

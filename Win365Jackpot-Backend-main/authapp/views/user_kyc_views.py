@@ -133,11 +133,11 @@ class UserKYCStatusView(APIView):
                 "reject_reason": kyc.reject_reason,
                 "submitted_at":  kyc.submitted_at,
                 "reviewed_at":   kyc.reviewed_at,
-                "doc_front_url": kyc.doc_front.url if kyc.doc_front else None,
-                "doc_back_url":  kyc.doc_back.url  if kyc.doc_back  else None,
-                "selfie_url":    kyc.selfie.url     if kyc.selfie    else None,
+                "doc_front_url": request.build_absolute_uri(kyc.doc_front.url) if kyc.doc_front else None,
+                "doc_back_url":  request.build_absolute_uri(kyc.doc_back.url)  if kyc.doc_back  else None,
+                "selfie_url":    request.build_absolute_uri(kyc.selfie.url)     if kyc.selfie    else None,
                 "id_proof_type":     kyc.id_proof_type,
-                "id_proof_file_url": kyc.id_proof_file.url if kyc.id_proof_file else None,
+                "id_proof_file_url": request.build_absolute_uri(kyc.id_proof_file.url) if kyc.id_proof_file else None,
             })
         except KYCSubmission.DoesNotExist:
             return Response({
