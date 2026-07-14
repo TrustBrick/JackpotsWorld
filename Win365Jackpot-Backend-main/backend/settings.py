@@ -90,14 +90,23 @@ CORS_ALLOW_METHODS = [
 # through the Django ORM (see authapp/models/*); credentials always come
 # from environment variables, never hardcoded here.
 #
-# DB_SSL_CA (optional) — absolute path to a CA bundle, e.g. AWS RDS's
+# DB_SSL_CA (optional) — path to a CA bundle, e.g. AWS RDS's
 # certs/global-bundle.pem (bundled in this repo). Only set this in
 # production .env when connecting to RDS; leave it unset for local/GoDaddy
 # MySQL, which don't require or offer a matching CA chain — PyMySQL only
 # enables TLS at all if ssl_ca is actually provided.
+#
+# A relative value is resolved against BASE_DIR rather than the process's
+# current working directory — on Elastic Beanstalk that cwd differs between
+# the .ebextensions container_commands step (a staging directory) and the
+# actual Gunicorn worker (not guaranteed to be /var/app/current either), so
+# anchoring to BASE_DIR (derived from this file's own location) is the only
+# path that's correct in every context.
 _DB_OPTIONS = {'charset': 'utf8mb4'}
 _db_ssl_ca = config('DB_SSL_CA', default='')
 if _db_ssl_ca:
+    if not os.path.isabs(_db_ssl_ca):
+        _db_ssl_ca = os.path.join(BASE_DIR, _db_ssl_ca)
     _DB_OPTIONS['ssl_ca'] = _db_ssl_ca
 
 DATABASES = {
