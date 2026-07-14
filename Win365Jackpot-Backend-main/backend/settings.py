@@ -314,6 +314,28 @@ EVENT_RSS_FEEDS = [u.strip() for u in config("EVENT_RSS_FEEDS", default="").spli
 # "lastResort" stderr handler — unformatted and easy to miss. This gives the
 # `authapp` logger tree a proper leveled, timestamped console handler so SMTP
 # and other backend failures are actually visible in the server logs.
+#
+# The "file" handler is best-effort: on Elastic Beanstalk, .ebextensions
+# container_commands (which run os.makedirs below, via a privileged deploy
+# user) can create logs/ just fine, but the actual Gunicorn worker at
+# runtime runs as a less-privileged user that isn't guaranteed write access
+# to that same directory — crashing every worker on boot with a
+# PermissionError if we unconditionally wire up a file handler. CloudWatch
+# already captures anything written to stdout/stderr on that platform, so
+# probe for real write access first and silently fall back to console-only
+# logging if it's not there, rather than let a logging handler take the
+# whole app down.
+_LOGS_DIR = os.path.join(BASE_DIR, "logs")
+_django_log_path = os.path.join(_LOGS_DIR, "django.log")
+try:
+    with open(_django_log_path, "a"):
+        pass
+    _file_logging_available = True
+except OSError:
+    _file_logging_available = False
+
+_log_handlers = ["console", "file"] if _file_logging_available else ["console"]
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -328,22 +350,24 @@ LOGGING = {
             "class": "logging.StreamHandler",
             "formatter": "verbose",
         },
-        "file": {
-            "class": "logging.handlers.RotatingFileHandler",
-            "filename": os.path.join(BASE_DIR, "logs", "django.log"),
-            "maxBytes": 5 * 1024 * 1024,
-            "backupCount": 5,
-            "formatter": "verbose",
-        },
+        **({
+            "file": {
+                "class": "logging.handlers.RotatingFileHandler",
+                "filename": _django_log_path,
+                "maxBytes": 5 * 1024 * 1024,
+                "backupCount": 5,
+                "formatter": "verbose",
+            },
+        } if _file_logging_available else {}),
     },
     "loggers": {
         "authapp": {
-            "handlers": ["console", "file"],
+            "handlers": _log_handlers,
             "level": "INFO",
             "propagate": False,
         },
         "django": {
-            "handlers": ["console", "file"],
+            "handlers": _log_handlers,
             "level": "WARNING",
             "propagate": False,
         },
