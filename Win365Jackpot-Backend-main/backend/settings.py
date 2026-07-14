@@ -89,6 +89,17 @@ CORS_ALLOW_METHODS = [
 # MySQL only — no SQLite fallback, in dev or prod. All reads/writes go
 # through the Django ORM (see authapp/models/*); credentials always come
 # from environment variables, never hardcoded here.
+#
+# DB_SSL_CA (optional) — absolute path to a CA bundle, e.g. AWS RDS's
+# certs/global-bundle.pem (bundled in this repo). Only set this in
+# production .env when connecting to RDS; leave it unset for local/GoDaddy
+# MySQL, which don't require or offer a matching CA chain — PyMySQL only
+# enables TLS at all if ssl_ca is actually provided.
+_DB_OPTIONS = {'charset': 'utf8mb4'}
+_db_ssl_ca = config('DB_SSL_CA', default='')
+if _db_ssl_ca:
+    _DB_OPTIONS['ssl_ca'] = _db_ssl_ca
+
 DATABASES = {
     'default': {
         'ENGINE':   'django.db.backends.mysql',
@@ -97,7 +108,7 @@ DATABASES = {
         'PASSWORD': config('DB_PASSWORD'),
         'HOST':     config('DB_HOST'),
         'PORT':     config('DB_PORT', default='3306', cast=int),
-        'OPTIONS':  { 'charset': 'utf8mb4' },
+        'OPTIONS':  _DB_OPTIONS,
         # Django has no built-in connection pool (that's a separate layer
         # like ProxySQL, not available on shared GoDaddy hosting) — this is
         # its standard substitute: each Passenger worker process keeps its
