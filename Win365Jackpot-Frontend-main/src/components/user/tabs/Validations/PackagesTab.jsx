@@ -64,8 +64,9 @@ function mapTourPackage(p) {
   const fb = FALLBACK_PACKAGE_BY_NAME.get(p.name);
   const icon = (p.icon && !p.icon.includes("?")) ? p.icon : fb?.icon;
   const hotel = (p.hotel && !p.hotel.includes("?")) ? p.hotel : (fb?.hotel || p.hotel);
+  const badge = (p.badge && p.badge.includes("?")) ? (fb?.badge || null) : (p.badge || null);
   return {
-    name: p.name, price: p.price, icon, color: p.color, badge: p.badge || null,
+    name: p.name, price: p.price, icon, color: p.color, badge,
     duration: p.duration, flight: p.flight, hotel, food: p.food, liquor: p.liquor,
     airportVIP: p.airport_vip, jackpotRewards: p.jackpot_rewards, vipTransport: p.vip_transport,
     spa: p.spa, shoppingVoucher: p.shopping_voucher, visa: p.visa,
