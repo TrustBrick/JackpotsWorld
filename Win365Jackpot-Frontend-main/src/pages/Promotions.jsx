@@ -6,6 +6,7 @@ import { AlertTriangle, RefreshCw, Sparkles } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 import Navbar from '../components/Navbar'
 import PageHeader from '../components/shared/PageHeader'
+import PageScrollButtons from '../components/PageScrollButtons'
 import PromotionCard from '../components/promotions/PromotionCard'
 import { fetchPromotions } from '../services/promotionService'
 import { useAutoFetch } from '../hooks/useAutoFetch'
@@ -30,6 +31,7 @@ export default function Promotions() {
     <div key={theme} className="min-h-screen" style={{ background: 'var(--w365-bg)' }}>
       <Navbar />
 
+      <main>
       <PageHeader
         eyebrow={t('promotions.eyebrow')}
         title={t('promotions.title')}
@@ -80,6 +82,9 @@ export default function Promotions() {
           </div>
         )}
       </section>
+      </main>
+
+      <PageScrollButtons />
     </div>
   )
 }

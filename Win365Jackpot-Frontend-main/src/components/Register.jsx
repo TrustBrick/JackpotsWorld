@@ -22,6 +22,7 @@ import {
 import { useAutoFetch } from "../hooks/useAutoFetch";
 import { fetchLocations } from "../services/locationService";
 import { fetchTourPackages } from "../services/landingService";
+import Logo from "./shared/Logo";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -627,10 +628,7 @@ export default function Register() {
     <div>
       <div style={{ fontSize: 22, fontWeight: 900, color: "#fff",
         lineHeight: 1.1 }}>
-        <div className="flex flex-col leading-none">
-    <span className="font-bold text-xl md:text-2xl gold-text font-black tracking-wider">Jackpots</span>
-    <span className="font-body text-xs tracking-[0.4em] text-gold/70 uppercase">World</span>
-  </div>
+        <Logo size="md" />
       </div>
       <div style={{ fontSize: 11, color: C.muted, letterSpacing: "0.06em", marginTop: 2 }}>
         VIP Access

@@ -103,6 +103,9 @@ const FALLBACK_COUNTRIES = [
     bestFor: 'Baccarat, Roulette, Sports Betting',
   },
 ]
+const FALLBACK_COUNTRY_IMAGE_SRC_BY_LABEL = new Map(
+  FALLBACK_COUNTRIES.map(c => [c.name, new Map(c.images.map(img => [img.label, img.src]))])
+)
 
 const FALLBACK_VIP_SERVICES = [
   { src: '/images/vip/massage-1.jpg',   label: 'Classic Massage',     category: 'Wellness' },
@@ -119,6 +122,7 @@ const FALLBACK_VIP_SERVICES = [
   { src: '/images/vip/luxury-cruise.jpg', label: 'Luxury Cruises',     category: 'Luxury Travel' },
   { src: '/images/vip/private-boat.jpg', label: 'Private Boats',     category: 'Luxury Travel' },
 ]
+const FALLBACK_VIP_SERVICE_SRC_BY_LABEL = new Map(FALLBACK_VIP_SERVICES.map(v => [v.label, v.src]))
 
 const INCLUSIONS = [
   { icon: <Plane      size={15} color="#D4AF37" />, label: 'Free Flights'   },
@@ -303,7 +307,10 @@ function VIPServicesGallery() {
   const [activeCategory, setActiveCategory] = useState('All')
   const { data: vipServicesData } = useAutoFetch(fetchVipServiceImages, {}, { intervalMs: 60_000 })
   const VIP_SERVICES = (Array.isArray(vipServicesData) && vipServicesData.length > 0 ? vipServicesData : FALLBACK_VIP_SERVICES)
-    .map(v => ({ src: v.src || v.image, label: v.label, category: v.category }))
+    // Admin-managed entries don't have an uploaded image until someone sets
+    // one via the VIP Service Images admin tab — fall back to the matching
+    // bundled asset per-item instead of rendering a broken <img src>.
+    .map(v => ({ src: v.src || v.image || FALLBACK_VIP_SERVICE_SRC_BY_LABEL.get(v.label), label: v.label, category: v.category }))
   const categories = ['All', ...new Set(VIP_SERVICES.map(v => v.category).filter(Boolean))]
   const filtered = activeCategory === 'All' ? VIP_SERVICES : VIP_SERVICES.filter(v => v.category === activeCategory)
   const { ref: inViewRef, inView } = useInView({ threshold: 0.05, triggerOnce: true })
@@ -905,7 +912,14 @@ export default function CountryPackages() {
       tagline: d.tagline,
       color,
       glow: hexToRgba(color, 0.3),
-      images: (d.images || []).map(m => ({ src: m.media, label: m.label, ...(m.media_type === 'video' ? { type: 'video' } : {}) })),
+      // Admin-managed destination media doesn't have an uploaded file until
+      // someone sets one via the admin panel — fall back to the matching
+      // bundled asset per-item instead of rendering a broken <img>/<video> src.
+      images: (d.images || []).map(m => ({
+        src: m.media || FALLBACK_COUNTRY_IMAGE_SRC_BY_LABEL.get(d.name)?.get(m.label),
+        label: m.label,
+        ...(m.media_type === 'video' ? { type: 'video' } : {}),
+      })),
       casinos: d.casinos_text,
       bestFor: d.best_for,
     }

@@ -5,6 +5,7 @@ import { CalendarX2, ChevronLeft, ChevronRight, AlertTriangle, RefreshCw } from 
 import { useTheme } from '../context/ThemeContext'
 import Navbar from '../components/Navbar'
 import PageHeader from '../components/shared/PageHeader'
+import PageScrollButtons from '../components/PageScrollButtons'
 import EventCard from '../components/events/EventCard'
 import { fetchEvents } from '../services/eventService'
 import { useAutoFetch } from '../hooks/useAutoFetch'
@@ -31,6 +32,7 @@ export default function Events() {
     <div key={theme} className="min-h-screen bg-surface" style={{ background: 'var(--w365-bg)' }}>
       <Navbar />
 
+      <main>
       <PageHeader
         eyebrow={t('events.eyebrow')}
         title={t('events.title')}
@@ -97,6 +99,9 @@ export default function Events() {
           </>
         )}
       </section>
+      </main>
+
+      <PageScrollButtons />
     </div>
   )
 }

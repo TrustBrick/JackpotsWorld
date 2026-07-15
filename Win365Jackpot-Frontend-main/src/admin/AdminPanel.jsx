@@ -33,6 +33,7 @@ import { C, ADMIN_TABS } from "./constants";
 import AdminWalletBanner from "./AdminWalletBanner";
 import { AdminThemeProvider, useAdminTheme } from "./context/AdminThemeContext";
 import AdminThemeToggle from "./components/AdminThemeToggle";
+import Logo from "../components/shared/Logo";
 
 
 const ICON_MAP = {
@@ -246,10 +247,7 @@ function AdminPanelInner() {
       src='/images/jackpotsworld_watermark.png'
       className="w-10 h-10 object-contain"
     />
-    <div className="flex flex-col leading-none">
-      <span className="font-bold text-xl md:text-2xl gold-text font-black tracking-wider">Jackpots</span>
-      <span className="font-body text-xs tracking-[0.4em] text-gold/70 uppercase">World</span>
-    </div>
+    <Logo size="md" />
             <div style={{ fontSize: 10, color: C.muted, letterSpacing: "0.3em", textTransform: "uppercase" }}>Admin Panel</div>
           </div>
           <AdminThemeToggle size={28} />

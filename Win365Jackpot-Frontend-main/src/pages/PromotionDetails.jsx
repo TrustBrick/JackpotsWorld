@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Gift as GiftIcon, CheckCircle2, CalendarClock, AlertTriangle, RefreshCw, ImageOff, X, ScrollText } from 'lucide-react'
 import Navbar from '../components/Navbar'
+import PageScrollButtons from '../components/PageScrollButtons'
 import { fetchPromotionDetail } from '../services/promotionService'
 import { flagFromCountryCode } from '../utils/countryFlags'
 
@@ -26,6 +27,7 @@ export default function PromotionDetails() {
     <div className="min-h-screen" style={{ background: 'var(--w365-bg)' }}>
       <Navbar />
 
+      <main>
       <section className="max-w-3xl mx-auto px-4 pt-28 pb-24">
         <button
           onClick={() => navigate('/promotions')}
@@ -158,6 +160,9 @@ export default function PromotionDetails() {
           </motion.div>
         )}
       </section>
+      </main>
+
+      <PageScrollButtons />
 
       {/* Gallery lightbox */}
       <AnimatePresence>

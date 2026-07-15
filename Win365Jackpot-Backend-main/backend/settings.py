@@ -23,6 +23,35 @@ ALLOWED_HOSTS = config(
     default='jackpotsworld.vip,www.jackpotsworld.vip,127.0.0.1,localhost'
 ).split(',')
 
+# The ALB's health check hits this instance directly using its private IP as
+# the Host header (not the public domain), which ALLOWED_HOSTS would
+# otherwise reject with DisallowedHost — causing the target to be marked
+# unhealthy no matter what health check path is configured. Fetch this
+# instance's own private IP via the EC2 metadata service (IMDSv2) and allow
+# it. Silently no-ops outside EC2 (e.g. local dev), since 169.254.169.254 is
+# unreachable there.
+def _ec2_private_ip():
+    import urllib.request
+    try:
+        token_req = urllib.request.Request(
+            'http://169.254.169.254/latest/api/token',
+            method='PUT',
+            headers={'X-aws-ec2-metadata-token-ttl-seconds': '21600'},
+        )
+        token = urllib.request.urlopen(token_req, timeout=1).read().decode()
+        ip_req = urllib.request.Request(
+            'http://169.254.169.254/latest/meta-data/local-ipv4',
+            headers={'X-aws-ec2-metadata-token': token},
+        )
+        return urllib.request.urlopen(ip_req, timeout=1).read().decode()
+    except Exception:
+        return None
+
+
+_private_ip = _ec2_private_ip()
+if _private_ip:
+    ALLOWED_HOSTS.append(_private_ip)
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -176,6 +205,8 @@ FRONTEND_DIST_DIR = config(
     'FRONTEND_DIST_DIR',
     default=os.path.join(BASE_DIR, '..', 'jackpotsworld_frontend_dist')
 )
+if not os.path.isabs(FRONTEND_DIST_DIR):
+    FRONTEND_DIST_DIR = os.path.join(BASE_DIR, FRONTEND_DIST_DIR)
 if os.path.isdir(FRONTEND_DIST_DIR):
     WHITENOISE_ROOT = FRONTEND_DIST_DIR
 

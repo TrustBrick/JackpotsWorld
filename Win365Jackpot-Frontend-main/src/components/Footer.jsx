@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link as ScrollLink } from 'react-scroll'
 import { Link as RouterLink } from 'react-router-dom'
+import Logo from './shared/Logo'
 
 const PRIMARY_DESTINATIONS = ['Vietnam', 'Macau', 'India (Goa)', 'Sri Lanka', 'Philippines']
 const EXTRA_DESTINATIONS   = ['Las Vegas', 'Malaysia', 'Singapore', 'Armenia', 'Georgia']
@@ -41,10 +42,9 @@ export default function Footer() {
     src='/images/jackpotsworld_watermark.png'
     className="w-10 h-10 object-contain"
   />
-    <span className="font-bold text-xl md:text-2xl gold-text font-black tracking-wider">Jackpots</span>
-    <span className="font-body text-xs tracking-[0.4em] text-gold/70 uppercase">World</span>
+    <Logo size="md" />
   </div>
-             
+
             </div>
             <p style={{ fontSize: 13, color: 'var(--w365-text-muted)', lineHeight: 1.7, marginBottom: 12 }}>
               Asia's premier casino promotion platform. Connecting players to world-class gaming experiences across the globe.

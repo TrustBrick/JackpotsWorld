@@ -1,0 +1,1 @@
+const e=[{tier:"Starter",referrals:"1 – 10 active players",rate:"15% revenue share"},{tier:"Growth",referrals:"11 – 50 active players",rate:"20% revenue share"},{tier:"Elite",referrals:"51 – 150 active players",rate:"25% revenue share"},{tier:"Legacy",referrals:"150+ active players",rate:"30% revenue share"}];export{e as c};

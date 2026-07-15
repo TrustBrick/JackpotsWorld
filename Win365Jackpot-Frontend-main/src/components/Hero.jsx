@@ -512,24 +512,23 @@ useEffect(() => {
         /> */}
       </div>
 
-      {/* Casino Girl — Mobile */}
+      {/* Mobile hero accent — premium gold-glow gradient (replaces the model
+          image on narrow viewports only; desktop is untouched above) */}
       <div
         className="md:hidden"
         style={{
-          position:'absolute', right:0, bottom:0,
+          position:'absolute', right:0, bottom:0, left:0,
           height:'min(76vw, 360px)',
           zIndex:2, opacity:0.62,
           pointerEvents:'none', userSelect:'none',
-          WebkitMaskImage:'linear-gradient(to top, transparent 0%, black 20%), linear-gradient(to left, black 55%, transparent 100%)',
-          maskImage:'linear-gradient(to top, transparent 0%, black 20%), linear-gradient(to left, black 55%, transparent 100%)',
-          WebkitMaskComposite:'destination-in', maskComposite:'intersect',
+          WebkitMaskImage:'linear-gradient(to top, transparent 0%, black 20%)',
+          maskImage:'linear-gradient(to top, transparent 0%, black 20%)',
         }}
       >
-        <img
-          src="/images/casino-girl.png" alt=""
-          style={{ height:'100%', width:'auto', objectFit:'contain', objectPosition:'bottom right' }}
-          onError={e => { e.currentTarget.style.display='none' }}
-        />
+        <div style={{
+          width:'100%', height:'100%',
+          background:'radial-gradient(ellipse at 75% 100%, rgba(212,175,55,0.4) 0%, rgba(46,0,36,0.3) 45%, transparent 75%)',
+        }} />
       </div>
 
       {/* Winner feeds */}
@@ -565,7 +564,8 @@ useEffect(() => {
           <span style={{ width:7, height:7, borderRadius:'50%', background:'#4ade80', flexShrink:0, animation:'pulse-dot 2s infinite', display:'inline-block' }} />
           {(settings?.hero_badge_text || "Asia's #1 Offline Casinos VIP's Platform")
             .toUpperCase()
-            .replace(/'S\b/g, "'s")}
+            .replace(/CASINO'S\b/, 'CASINOS')
+            .replace(/\bASIA'S\b/, "ASIA's")}
         </motion.div>
 
         {/* H1 */}

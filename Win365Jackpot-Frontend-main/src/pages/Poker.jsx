@@ -5,6 +5,7 @@ import { LogIn, UserPlus, AlertTriangle, RefreshCw, Spade } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 import Navbar from '../components/Navbar'
 import PageHeader from '../components/shared/PageHeader'
+import PageScrollButtons from '../components/PageScrollButtons'
 import PokerCard from '../components/poker/PokerCard'
 import AuthModal from '../components/AuthModal'
 import { fetchPokerTournaments } from '../services/pokerService'
@@ -40,6 +41,7 @@ export default function Poker() {
         onAuthSuccess={() => setAuthOpen(false)}
       />
 
+      <main>
       <PageHeader
         eyebrow={t('poker.eyebrow')}
         title={t('poker.title')}
@@ -92,6 +94,9 @@ export default function Poker() {
           </div>
         )}
       </section>
+      </main>
+
+      <PageScrollButtons />
     </div>
   )
 }

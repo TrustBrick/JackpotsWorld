@@ -10,6 +10,7 @@ import {
 import { C, VIP_COLOR, TABS } from "../constants";
 import { fmtN } from "../helpers";
 import { VIPBadge } from "./SharedUI";
+import Logo from "../../shared/Logo";
 
 
 // ── Exported constants — Dashboard reads these to set its own marginLeft ──────
@@ -331,10 +332,7 @@ function FullSidebar({ profile, vipColor, unread, activeTab, onTabChange, onLogo
     src='/images/jackpotsworld_watermark.png'
     className="w-10 h-10 object-contain"
   />
-  <div className="flex flex-col leading-none">
-    <span className="font-bold text-xl md:text-2xl gold-text font-black tracking-wider">Jackpots</span>
-    <span className="font-body text-xs tracking-[0.4em] text-gold/70 uppercase">World</span>
-  </div>
+  <Logo size="md" />
         </div>
         {showClose && (
           <button onClick={onClose} style={{

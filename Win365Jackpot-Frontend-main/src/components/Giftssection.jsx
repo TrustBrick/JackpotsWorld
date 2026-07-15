@@ -6,6 +6,8 @@ import { useAutoFetch } from '../hooks/useAutoFetch'
 import { fetchGiftItems, fetchGiftSteps } from '../services/landingService'
 
 // ─── Gift Data (fallback, used only until the API responds) ───────────────────
+// Also doubles as the logo source for admin-managed gift entries that don't
+// have an uploaded logo yet (see FALLBACK_GIFT_LOGO_BY_NAME below).
 const FALLBACK_GIFTS = [
   {
     id:        'rolex',
@@ -64,6 +66,7 @@ const FALLBACK_GIFTS = [
     featured:  false,
   },
 ]
+const FALLBACK_GIFT_LOGO_BY_NAME = new Map(FALLBACK_GIFTS.map(g => [g.name, g.logoSrc]))
 
 const FALLBACK_STEPS = [
   { icon:'🎰', label:'Play & Win',    description:'Earn with every game — Baccarat, Slots, Roulette & more'     },
@@ -368,7 +371,10 @@ export default function GiftsSection() {
 
   const gifts = (Array.isArray(giftsData) && giftsData.length > 0 ? giftsData : FALLBACK_GIFTS).map(g => ({
     id: g.id, tier: g.tier, tierColor: g.tier_color, name: g.name, subtitle: g.subtitle,
-    logoSrc: g.logo, logoAlt: g.name, value: g.value, description: g.description,
+    // Admin-managed entries don't have an uploaded logo until someone sets
+    // one via the admin panel — fall back to the matching bundled logo
+    // per-item instead of rendering a broken <img src>.
+    logoSrc: g.logoSrc || g.logo || FALLBACK_GIFT_LOGO_BY_NAME.get(g.name), logoAlt: g.name, value: g.value, description: g.description,
     perks: g.perks || [], accent: g.accent_color, featured: g.featured,
   }))
   const steps = Array.isArray(stepsData) && stepsData.length > 0 ? stepsData : FALLBACK_STEPS

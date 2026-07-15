@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import AuthModal from '../components/AuthModal'
+import PageScrollButtons from '../components/PageScrollButtons'
 import { fetchPokerDetail, registerForTournament } from '../services/pokerService'
 import { getFallbackImage } from '../utils/mediaFallback'
 import { getToken } from '../services/authStorage'
@@ -67,6 +68,7 @@ export default function PokerDetails() {
       <Navbar />
       <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} defaultTab="login" onAuthSuccess={() => setAuthOpen(false)} />
 
+      <main>
       <section className="max-w-3xl mx-auto px-4 pt-28 pb-24">
         <button
           onClick={() => navigate('/poker')}
@@ -158,6 +160,9 @@ export default function PokerDetails() {
           </motion.div>
         )}
       </section>
+      </main>
+
+      <PageScrollButtons />
     </div>
   )
 }
