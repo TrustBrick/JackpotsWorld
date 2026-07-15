@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Heart, MapPin, Globe, X } from "lucide-react";
+import { Heart, MapPin, Globe, X, Star } from "lucide-react";
 import { C } from "../../constants";
 import { authFetch, API } from "../../helpers";
 import { Card, Spinner } from "../../components/SharedUI";
@@ -66,7 +66,14 @@ export default function FavouritesTab({ onToast }) {
                 </div>
               </div>
               {c.rating && (
-                <div style={{ fontSize: 11, color: C.gold }}>{"★".repeat(Math.floor(c.rating))} {c.rating}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: C.gold }}>
+                  <span style={{ display: "flex", gap: 1 }}>
+                    {Array.from({ length: Math.floor(c.rating) }).map((_, i) => (
+                      <Star key={i} size={11} fill={C.gold} color={C.gold} />
+                    ))}
+                  </span>
+                  {c.rating}
+                </div>
               )}
             </Card>
           ))}

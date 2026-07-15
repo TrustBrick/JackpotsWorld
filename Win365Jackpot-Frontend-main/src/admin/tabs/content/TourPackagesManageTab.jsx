@@ -9,7 +9,7 @@ const FIELDS = [
   { name: "badge", label: "Badge (optional)", placeholder: "Popular" },
   { name: "duration", label: "Duration", placeholder: "3 Nights" },
   { name: "flight", label: "Flight", placeholder: "Economy" },
-  { name: "hotel", label: "Hotel", placeholder: "Standard 5★ (3N)" },
+  { name: "hotel", label: "Hotel", placeholder: "Standard 5-Star (3N)" },
   { name: "food", label: "Food", placeholder: "Casino" },
   { name: "liquor", label: "Liquor", placeholder: "Over the Gaming Table (Premium)", wide: true },
   { name: "airport_vip", label: "Airport VIP Service", type: "boolean" },

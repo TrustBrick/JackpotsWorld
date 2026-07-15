@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
+import { Star } from 'lucide-react'
 import { useAutoFetch } from '../hooks/useAutoFetch'
 import { fetchTestimonials } from '../services/landingService'
 import { flagFromCountryCode } from '../utils/countryFlags'
@@ -292,7 +293,9 @@ export default function Testimonials() {
 
             <div className="flex justify-center gap-1 mb-4">
               {[...Array(t.rating)].map((_,i) => (
-                <motion.span key={i} initial={{ scale:0 }} animate={{ scale:1 }} transition={{ delay:i*0.1 }} className="text-gold text-xl">★</motion.span>
+                <motion.span key={i} initial={{ scale:0 }} animate={{ scale:1 }} transition={{ delay:i*0.1 }} className="text-gold" style={{ display:'flex' }}>
+                  <Star size={20} fill="currentColor" color="currentColor" />
+                </motion.span>
               ))}
             </div>
 

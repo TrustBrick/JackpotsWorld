@@ -126,7 +126,7 @@ const FALLBACK_VIP_SERVICE_SRC_BY_LABEL = new Map(FALLBACK_VIP_SERVICES.map(v =>
 
 const INCLUSIONS = [
   { icon: <Plane      size={15} color="#D4AF37" />, label: 'Free Flights'   },
-  { icon: <Hotel      size={15} color="#D4AF37" />, label: '5★ Hotels'      },
+  { icon: <Hotel      size={15} color="#D4AF37" />, label: '5-Star Hotels'  },
   { icon: <Coins      size={15} color="#D4AF37" />, label: 'Casino Credits' },
   { icon: <Car        size={15} color="#D4AF37" />, label: 'Transfers'      },
   { icon: <UtensilsCrossed size={15} color="#D4AF37" />, label: 'All Meals' },
@@ -483,42 +483,42 @@ function CruiseCarousel() {
 
 /* ── PACKAGE CARDS SECTION — mobile-first ── */
 const FALLBACK_PACKAGES = [
-  { name: 'VIP', price: '$5,000', icon: '🃏', color: '#9E9E9E', badge: null,
-    duration: '3 Nights', flight: 'Economy', hotel: 'Standard 3★ (3N)',
+  { name: 'VIP', price: '$5,000', icon: <Layers size={26} color="#9E9E9E" />, color: '#9E9E9E', badge: null,
+    duration: '3 Nights', flight: 'Economy', hotel: 'Standard 3-Star (3N)',
     food: 'Casino', liquor: 'Over the Gaming Table (Local)',
     airportVIP: false, jackpotRewards: true, vipTransport: false,
     spa: false, shoppingVoucher: false, visa: false },
-  { name: 'Classic', price: '$10,000', icon: '🎴', color: '#78909C', badge: null,
-    duration: '3 Nights', flight: 'Economy', hotel: 'Standard 4★ (3N)',
+  { name: 'Classic', price: '$10,000', icon: <Ticket size={26} color="#78909C" />, color: '#78909C', badge: null,
+    duration: '3 Nights', flight: 'Economy', hotel: 'Standard 4-Star (3N)',
     food: 'Casino', liquor: 'Over the Gaming Table (Local Premium)',
     airportVIP: false, jackpotRewards: true, vipTransport: false,
     spa: true, shoppingVoucher: false, visa: true },
-  { name: 'Premium', price: '$15,000', icon: '🎲', color: '#D4AF37', badge: 'Popular',
-    duration: '3 Nights', flight: 'Economy', hotel: 'Standard 5★ (3N)',
+  { name: 'Premium', price: '$15,000', icon: <Dices size={26} color="#D4AF37" />, color: '#D4AF37', badge: 'Popular',
+    duration: '3 Nights', flight: 'Economy', hotel: 'Standard 5-Star (3N)',
     food: 'Casino', liquor: 'Over the Gaming Table (Premium)',
     airportVIP: false, jackpotRewards: true, vipTransport: false,
     spa: true, shoppingVoucher: false, visa: true },
-  { name: 'Prestige', price: '$20,000', icon: '🏆', color: '#F5A623', badge: null,
-    duration: '3 Nights', flight: 'Economy', hotel: 'Executive 5★ (3N)',
+  { name: 'Prestige', price: '$20,000', icon: <Trophy size={26} color="#F5A623" />, color: '#F5A623', badge: null,
+    duration: '3 Nights', flight: 'Economy', hotel: 'Executive 5-Star (3N)',
     food: 'Casino', liquor: 'Over the Gaming Table (Imported Premium)',
     airportVIP: false, jackpotRewards: true, vipTransport: false,
     spa: true, shoppingVoucher: false, visa: true },
-  { name: 'Signature', price: '$25,000', icon: '✍️', color: '#26C6DA', badge: null,
-    duration: '3 Nights', flight: 'Economy', hotel: 'Premium 5★ (3N)',
+  { name: 'Signature', price: '$25,000', icon: <PenLine size={26} color="#26C6DA" />, color: '#26C6DA', badge: null,
+    duration: '3 Nights', flight: 'Economy', hotel: 'Premium 5-Star (3N)',
     food: 'Casino', liquor: 'Over the Gaming Table (Imported Premium)',
     airportVIP: true, jackpotRewards: true, vipTransport: true,
     spa: true, shoppingVoucher: true, visa: true },
-  { name: 'Elite', price: '$50,000', icon: '💎', color: '#B9F2FF', badge: 'Best Value',
-    duration: '3 Nights', flight: 'Business', hotel: 'Suite 5★ (3N)',
+  { name: 'Elite', price: '$50,000', icon: <Gem size={26} color="#B9F2FF" />, color: '#B9F2FF', badge: 'Best Value',
+    duration: '3 Nights', flight: 'Business', hotel: 'Suite 5-Star (3N)',
     food: 'Casino/Hotel', liquor: 'Imported Premium',
     airportVIP: true, jackpotRewards: true, vipTransport: true, vipTransportNote: '*',
     spa: true, spaNote: '*', shoppingVoucher: true, shoppingNote: '*', visa: true },
-  { name: 'Royal', price: '$100,000', icon: '👑', color: '#FFD700', badge: null,
-    duration: '4 Nights', flight: 'Business', hotel: 'Executive Suite 5★ (4N)',
+  { name: 'Royal', price: '$100,000', icon: <Crown size={26} color="#FFD700" />, color: '#FFD700', badge: null,
+    duration: '4 Nights', flight: 'Business', hotel: 'Executive Suite 5-Star (4N)',
     food: 'Casino/Hotel', liquor: 'Imported Premium',
     airportVIP: true, jackpotRewards: true, vipTransport: true, vipTransportNote: '**',
     spa: true, spaNote: '**', shoppingVoucher: true, shoppingNote: '**', visa: true },
-  { name: 'Sovereign', price: '$250,000+', icon: '⚜️', color: '#C9A84C', badge: '🤫 Invite Only',
+  { name: 'Sovereign', price: '$250,000+', icon: <ShieldCheck size={26} color="#C9A84C" />, color: '#C9A84C', badge: 'Invite Only',
     duration: '7 Nights', flight: 'Business', hotel: 'Presidential Suite (7N)',
     food: 'Casino/Hotel', liquor: 'Imported Premium',
     airportVIP: true, jackpotRewards: true, vipTransport: true, vipTransportNote: '**',
@@ -554,7 +554,7 @@ function PackagesSection() {
             TOUR PACKAGES
           </h2>
           <p className="font-body font-light" style={{ color: 'rgba(var(--w365-text-rgb),0.5)', maxWidth: 520, margin: '0 auto', fontSize: 'clamp(0.82rem,3.2vw,1rem)', lineHeight: 1.6 }}>
-            Every package includes <strong style={{ color: 'rgba(212,175,55,0.9)' }}>Free Flights · 5★ Hotel · All Meals · Free Drinks · VIP Casino Access</strong>.
+            Every package includes <strong style={{ color: 'rgba(212,175,55,0.9)' }}>Free Flights · 5-Star Hotel · All Meals · Free Drinks · VIP Casino Access</strong>.
             Available for all 5 destinations.
           </p>
         </motion.div>

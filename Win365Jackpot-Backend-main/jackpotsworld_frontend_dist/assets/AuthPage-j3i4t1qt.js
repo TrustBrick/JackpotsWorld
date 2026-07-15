@@ -1,1 +1,0 @@
-import{$ as r,r as u,j as e,ac as n,af as c}from"./index-DkrYWiuE.js";function d({tab:t}){const s=r(),a=u.useRef(!1);return e.jsxs("div",{className:"min-h-screen",style:{background:"var(--w365-bg)"},children:[e.jsx(n,{}),e.jsx(c,{isOpen:!0,onClose:()=>{a.current||s("/")},defaultTab:t,onAuthSuccess:()=>{a.current=!0,s("/dashboard")}})]})}export{d as default};
