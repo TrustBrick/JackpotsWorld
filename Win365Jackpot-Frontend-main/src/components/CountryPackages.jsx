@@ -524,12 +524,21 @@ const FALLBACK_PACKAGES = [
     airportVIP: true, jackpotRewards: true, vipTransport: true, vipTransportNote: '**',
     spa: true, spaNote: '***', shoppingVoucher: true, shoppingNote: '***', visa: true },
 ]
+const FALLBACK_PACKAGE_BY_NAME = new Map(FALLBACK_PACKAGES.map(p => [p.name, p]))
 
+// Some admin-entered emoji/star characters were mojibake'd into literal "?"
+// bytes by a legacy latin1 database column (pre-dating this migration) —
+// treat an icon/hotel value containing "?" as corrupted and fall back to
+// the known-correct bundled icon / hotel text for that package name,
+// instead of rendering the "?" straight through.
 function mapTourPackage(p) {
   if (p.airportVIP !== undefined) return p // already fallback shape
+  const fb = FALLBACK_PACKAGE_BY_NAME.get(p.name)
+  const icon = (p.icon && !p.icon.includes('?')) ? p.icon : fb?.icon
+  const hotel = (p.hotel && !p.hotel.includes('?')) ? p.hotel : (fb?.hotel || p.hotel)
   return {
-    name: p.name, price: p.price, icon: p.icon, color: p.color, badge: p.badge || null,
-    duration: p.duration, flight: p.flight, hotel: p.hotel, food: p.food, liquor: p.liquor,
+    name: p.name, price: p.price, icon, color: p.color, badge: p.badge || null,
+    duration: p.duration, flight: p.flight, hotel, food: p.food, liquor: p.liquor,
     airportVIP: p.airport_vip, jackpotRewards: p.jackpot_rewards, vipTransport: p.vip_transport,
     vipTransportNote: p.vip_transport_note, spa: p.spa, spaNote: p.spa_note,
     shoppingVoucher: p.shopping_voucher, shoppingNote: p.shopping_note, visa: p.visa,

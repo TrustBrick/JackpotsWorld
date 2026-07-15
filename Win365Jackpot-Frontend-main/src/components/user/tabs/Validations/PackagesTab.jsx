@@ -53,12 +53,20 @@ const FALLBACK_PACKAGES = [
 ];
 
 const DEFAULT_WHATSAPP_NUMBER = "917795281999";
+const FALLBACK_PACKAGE_BY_NAME = new Map(FALLBACK_PACKAGES.map(p => [p.name, p]));
 
+// See CountryPackages.jsx's mapTourPackage — a legacy latin1 DB column
+// mojibake'd some admin-entered emoji/star characters into literal "?"
+// bytes. Fall back to the known-correct bundled icon/hotel text by name
+// whenever the API value looks corrupted, instead of rendering the "?".
 function mapTourPackage(p) {
   if (p.airportVIP !== undefined) return p; // already fallback shape
+  const fb = FALLBACK_PACKAGE_BY_NAME.get(p.name);
+  const icon = (p.icon && !p.icon.includes("?")) ? p.icon : fb?.icon;
+  const hotel = (p.hotel && !p.hotel.includes("?")) ? p.hotel : (fb?.hotel || p.hotel);
   return {
-    name: p.name, price: p.price, icon: p.icon, color: p.color, badge: p.badge || null,
-    duration: p.duration, flight: p.flight, hotel: p.hotel, food: p.food, liquor: p.liquor,
+    name: p.name, price: p.price, icon, color: p.color, badge: p.badge || null,
+    duration: p.duration, flight: p.flight, hotel, food: p.food, liquor: p.liquor,
     airportVIP: p.airport_vip, jackpotRewards: p.jackpot_rewards, vipTransport: p.vip_transport,
     spa: p.spa, shoppingVoucher: p.shopping_voucher, visa: p.visa,
   };
