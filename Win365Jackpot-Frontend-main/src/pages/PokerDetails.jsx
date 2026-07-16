@@ -10,7 +10,7 @@ import Navbar from '../components/Navbar'
 import AuthModal from '../components/AuthModal'
 import PageScrollButtons from '../components/PageScrollButtons'
 import { fetchPokerDetail, registerForTournament } from '../services/pokerService'
-import { getFallbackImage } from '../utils/mediaFallback'
+import { getFallbackImage, fixMojibakeCurrency } from '../utils/mediaFallback'
 import { getToken } from '../services/authStorage'
 
 const STATUS_LABEL_KEYS = {
@@ -112,7 +112,7 @@ export default function PokerDetails() {
             </div>
 
             <div className="p-6 md:p-8">
-              <h1 className="font-black text-2xl md:text-3xl text-white/90 mb-4">{tournament.name}</h1>
+              <h1 className="font-black text-2xl md:text-3xl text-white/90 mb-4">{fixMojibakeCurrency(tournament.name)}</h1>
 
               {(tournament.casino_name || tournament.location) && (
                 <p className="text-white/55 text-sm font-body flex items-center gap-2 mb-4">
@@ -129,7 +129,7 @@ export default function PokerDetails() {
               </div>
 
               {tournament.description && (
-                <p className="text-white/55 text-sm font-body leading-relaxed mb-6">{tournament.description}</p>
+                <p className="text-white/55 text-sm font-body leading-relaxed mb-6">{fixMojibakeCurrency(tournament.description)}</p>
               )}
 
               {!isLoggedIn ? (

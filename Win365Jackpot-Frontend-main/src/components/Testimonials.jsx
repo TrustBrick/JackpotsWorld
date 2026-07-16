@@ -5,6 +5,7 @@ import { Star } from 'lucide-react'
 import { useAutoFetch } from '../hooks/useAutoFetch'
 import { fetchTestimonials } from '../services/landingService'
 import { flagFromCountryCode } from '../utils/countryFlags'
+import { fixMojibakeCurrency } from '../utils/mediaFallback'
 
 // ─── Testimonial data (main cards, fallback used only until the API responds) ─
 const FALLBACK_TESTIMONIALS = [
@@ -234,7 +235,7 @@ export default function Testimonials() {
   const { data: testimonialsData } = useAutoFetch(fetchTestimonials, {}, { intervalMs: 60_000 })
   const testimonials = (Array.isArray(testimonialsData) && testimonialsData.length > 0 ? testimonialsData : FALLBACK_TESTIMONIALS).map(t => ({
     name: t.name, city: t.city, flag: flagFromCountryCode(t.country_code) || t.flag,
-    rating: t.rating, won: t.won || t.amount_won, dest: t.dest || t.destination,
+    rating: t.rating, won: fixMojibakeCurrency(t.won || t.amount_won), dest: t.dest || t.destination,
     color: t.color || t.accent_color, avatar: t.avatar, seed: t.seed, text: t.text,
   }))
 

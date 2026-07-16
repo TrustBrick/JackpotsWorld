@@ -710,7 +710,7 @@ useEffect(() => {
                 boxShadow:'0 0 28px rgba(212,175,55,0.4)',
                 touchAction:'manipulation',
               }}
-            >{settings?.hero_cta_primary_label || '🎰 Register — FREE'}</motion.button>
+            >{(settings?.hero_cta_primary_label && !settings.hero_cta_primary_label.includes('?')) ? settings.hero_cta_primary_label : '🎰 Register — FREE'}</motion.button>
           </Link>
           <Link to="packages-all" smooth duration={600} offset={-80}>
             <motion.button
@@ -726,7 +726,7 @@ useEffect(() => {
                 letterSpacing:'0.13em', textTransform:'uppercase',
                 cursor:'pointer', touchAction:'manipulation',
               }}
-            >{settings?.hero_cta_secondary_label || 'Packages ✨'}</motion.button>
+            >{(settings?.hero_cta_secondary_label && !settings.hero_cta_secondary_label.includes('?')) ? settings.hero_cta_secondary_label : 'Packages ✨'}</motion.button>
           </Link>
         </motion.div>
 

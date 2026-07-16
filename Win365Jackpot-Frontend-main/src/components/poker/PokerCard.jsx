@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { Building2, CalendarDays, Clock, MapPin, Coins, Trophy, ArrowRight, ImageOff } from 'lucide-react'
-import { getFallbackImage } from '../../utils/mediaFallback'
+import { getFallbackImage, fixMojibakeCurrency } from '../../utils/mediaFallback'
 
 function formatDate(iso) {
   if (!iso) return ''
@@ -72,7 +72,7 @@ function PokerCard({ tournament }) {
       </div>
 
       <div className="flex flex-col flex-1 p-5 gap-3">
-        <h3 className="font-black text-lg text-[rgba(var(--w365-text-rgb),0.90)] leading-snug">{tournament.name}</h3>
+        <h3 className="font-black text-lg text-[rgba(var(--w365-text-rgb),0.90)] leading-snug">{fixMojibakeCurrency(tournament.name)}</h3>
 
         {(tournament.casino_name || tournament.location) && (
           <p className="text-[rgba(var(--w365-text-rgb),0.55)] text-xs font-body flex items-center gap-1.5">

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { CalendarClock, Gift, CheckCircle2, ArrowRight, Info, ImageOff } from 'lucide-react'
 import { flagFromCountryCode } from '../../utils/countryFlags'
+import { getCasinoFallbackImage } from '../../utils/mediaFallback'
 
 /**
  * PromotionCard — presentational only. Consumes the PromotionSerializer
@@ -12,7 +13,10 @@ import { flagFromCountryCode } from '../../utils/countryFlags'
 function PromotionCard({ promotion, onClaim, onViewDetails }) {
   const { t } = useTranslation()
   const [imgFailed, setImgFailed] = useState(false)
-  const imgSrc = promotion.image
+  // No banner image uploaded for this promotion yet — show the real casino
+  // property photo we already have (from the destinations gallery) instead
+  // of a blank placeholder, when we recognize the casino name.
+  const imgSrc = promotion.image || getCasinoFallbackImage(promotion.casino_name, promotion.country)
 
   return (
     <motion.div

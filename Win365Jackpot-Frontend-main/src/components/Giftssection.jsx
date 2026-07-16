@@ -74,6 +74,7 @@ const FALLBACK_STEPS = [
   { icon:'🎁', label:'Redeem Gifts',  description:'Choose your dream prize from our luxury gifts catalogue'      },
   { icon:'🚀', label:'We Deliver',     description:'Verified, authenticated, delivered to your door worldwide'    },
 ]
+const FALLBACK_STEP_ICON_BY_LABEL = new Map(FALLBACK_STEPS.map(s => [s.label, s.icon]))
 
 // ─── Mobile breakpoint (matches the convention used in Hero.jsx) ──────────────
 function useIsMobile() {
@@ -377,7 +378,10 @@ export default function GiftsSection() {
     logoSrc: g.logoSrc || g.logo || FALLBACK_GIFT_LOGO_BY_NAME.get(g.name), logoAlt: g.name, value: g.value, description: g.description,
     perks: g.perks || [], accent: g.accent_color, featured: g.featured,
   }))
-  const steps = Array.isArray(stepsData) && stepsData.length > 0 ? stepsData : FALLBACK_STEPS
+  const steps = (Array.isArray(stepsData) && stepsData.length > 0 ? stepsData : FALLBACK_STEPS)
+    // A legacy latin1 DB column mojibake'd these step icons into a literal
+    // "?" — fall back to the known-correct bundled icon by label instead.
+    .map(s => ({ ...s, icon: (s.icon && !s.icon.includes('?')) ? s.icon : (FALLBACK_STEP_ICON_BY_LABEL.get(s.label) || s.icon) }))
 
   const featured = gifts.find(g => g.featured) || gifts[0]
   const rest      = gifts.filter(g => g !== featured)
