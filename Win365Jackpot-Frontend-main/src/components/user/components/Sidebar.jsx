@@ -61,8 +61,6 @@ function useNotifPulse() {
   }, []);
 }
 
-const ANIMATED_BELL_URL = "https://cdn-icons-gif.flaticon.com/15578679/15578679.gif";
-
 // Maps each TABS entry's stable `id` (constants.js) to its i18next key —
 // translating the *lookup key*, not TABS itself, keeps constants.js a plain
 // data file with no i18n dependency of its own. Exported so Dashboard.jsx's
@@ -279,11 +277,7 @@ function IconRail({ vipColor, unread, activeTab, profile, onTabChange, onHamburg
     onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.55)"; } }}
     >
       {tab.id === "notifications" && hasBadge ? (
-        <img
-          src={ANIMATED_BELL_URL}
-          alt="notifications"
-          style={{ width: 18, height: 18, objectFit: "contain" }}
-        />
+        <Bell size={15} style={{ animation: "bell-shake 2s ease-in-out infinite" }} />
       ) : (
         Icon && <Icon size={15} />
       )}
@@ -414,11 +408,7 @@ function FullSidebar({ profile, vipColor, unread, activeTab, onTabChange, onLogo
     >
       {/* ── Icon slot ── */}
       {tab.id === "notifications" && hasBadge ? (
-        <img
-          src={ANIMATED_BELL_URL}
-          alt="notifications"
-          style={{ width: 16, height: 16, objectFit: "contain", flexShrink: 0 }}
-        />
+        <Bell size={13} style={{ animation: "bell-shake 2s ease-in-out infinite", flexShrink: 0 }} />
       ) : (
         Icon && <Icon size={13} />
       )}
