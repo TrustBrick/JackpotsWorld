@@ -101,16 +101,25 @@ export default function SupportTab({ onToast }) {
     localStorage.setItem(CHAT_LANG_STORAGE_KEY, code);
   };
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
     try {
       const r = await authFetch(`${API}/api/support/tickets/`);
       if (r?.ok) setTickets((await r.json()).results || []);
     } catch {}
-    setLoading(false);
+    if (!silent) setLoading(false);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  // Auto-refresh so a new admin reply shows up without the customer having
+  // to reload the page. Silent (no spinner) and paused while the tab isn't
+  // visible, so it doesn't flicker the list or poll a backgrounded tab.
+  useEffect(() => {
+    load();
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") load({ silent: true });
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [load]);
 
   const submitTicket = async (e) => {
     e.preventDefault();

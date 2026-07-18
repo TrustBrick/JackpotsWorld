@@ -15,6 +15,18 @@ LANGUAGE_NAMES = {
     "fil": "Filipino",
 }
 
+# Display-only, native-script names for the UI's language pickers. Kept
+# separate from LANGUAGE_NAMES, which also feeds the OpenAI translation
+# prompt ("Translate into {name}") — an English language name is the more
+# reliable instruction there, so that dict stays English-only.
+LANGUAGE_NATIVE_NAMES = {
+    "en": "English", "hi": "हिन्दी", "te": "తెలుగు", "ta": "தமிழ்",
+    "kn": "ಕನ್ನಡ", "ml": "മലയാളം", "mr": "मराठी", "bn": "বাংলা",
+    "gu": "ગુજરાતી", "pa": "ਪੰਜਾਬੀ", "si": "සිංහල", "vi": "Tiếng Việt",
+    "zh-CN": "中文", "zh-TW": "中文", "ms": "Bahasa Melayu", "th": "ไทย",
+    "fil": "Filipino",
+}
+
 
 class TranslationProvider:
     def translate(self, text, source_lang, target_lang):

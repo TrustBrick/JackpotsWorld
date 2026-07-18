@@ -27,7 +27,7 @@ from authapp.serializers.support_serializers import (
 )
 # MULTILINGUAL-CHAT: new imports
 from authapp.models.support_settings_models import SupportSettings
-from authapp.services.translation_service import TranslationService, LANGUAGE_NAMES
+from authapp.services.translation_service import TranslationService, LANGUAGE_NATIVE_NAMES
 from authapp.services.language_detector import detect_preferred_language, normalize_language_code
 
 
@@ -93,6 +93,7 @@ class AdminSupportTicketUpdateView(generics.UpdateAPIView):
     queryset = SupportTicket.objects.all()
     serializer_class = AdminSupportTicketSerializer
     permission_classes = [IsAdminOrSuperAdmin]
+    http_method_names = ["patch"]
 
     def perform_update(self, serializer):
         # MULTILINGUAL-CHAT: when off, identical to the original save().
@@ -124,7 +125,7 @@ class SupportConfigView(APIView):
             "fallback_language": s.fallback_language,
             "auto_detect_enabled": s.auto_detect_enabled,
             "supported_languages": [
-                {"code": code, "name": name} for code, name in LANGUAGE_NAMES.items()
+                {"code": code, "name": name} for code, name in LANGUAGE_NATIVE_NAMES.items()
             ],
         })
 
@@ -142,4 +143,3 @@ class SupportSettingsView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
-    http_method_names = ["patch"]

@@ -8,14 +8,14 @@ import { useAdminTheme } from "../../context/AdminThemeContext";
 const ENDPOINT = "/api/admin-panel/support-settings/";
 
 const LANGUAGE_OPTIONS = [
-  { value: "en", label: "English" }, { value: "hi", label: "Hindi" },
-  { value: "te", label: "Telugu" }, { value: "ta", label: "Tamil" },
-  { value: "kn", label: "Kannada" }, { value: "ml", label: "Malayalam" },
-  { value: "mr", label: "Marathi" }, { value: "bn", label: "Bengali" },
-  { value: "gu", label: "Gujarati" }, { value: "pa", label: "Punjabi" },
-  { value: "si", label: "Sinhala" }, { value: "vi", label: "Vietnamese" },
-  { value: "zh-CN", label: "Chinese" }, { value: "ms", label: "Malay" },
-  { value: "th", label: "Thai" }, { value: "fil", label: "Filipino" },
+  { value: "en", label: "English" }, { value: "hi", label: "हिन्दी" },
+  { value: "te", label: "తెలుగు" }, { value: "ta", label: "தமிழ்" },
+  { value: "kn", label: "ಕನ್ನಡ" }, { value: "ml", label: "മലയാളം" },
+  { value: "mr", label: "मराठी" }, { value: "bn", label: "বাংলা" },
+  { value: "gu", label: "ગુજરાતી" }, { value: "pa", label: "ਪੰਜਾਬੀ" },
+  { value: "si", label: "සිංහල" }, { value: "vi", label: "Tiếng Việt" },
+  { value: "zh-CN", label: "中文" }, { value: "ms", label: "Bahasa Melayu" },
+  { value: "th", label: "ไทย" }, { value: "fil", label: "Filipino" },
 ];
 
 const PROVIDER_OPTIONS = [
