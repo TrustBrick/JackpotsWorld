@@ -138,14 +138,6 @@ export default function OverviewTab() {
           </div>
         </Card>
       )}
-
-      {stats?.affiliate_profile && (
-        <Card style={{ background: `${C.gold}06`, border: `1px solid ${C.gold}25` }}>
-          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)" }}>
-            Your commission rate: <b style={{ color: C.gold }}>{stats.affiliate_profile.commission_rate}%</b> of every referred player's cash deposit.
-          </div>
-        </Card>
-      )}
     </div>
   );
 }
