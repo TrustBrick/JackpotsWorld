@@ -22,10 +22,10 @@ export default function Logo({ size = 'md', className = '' }) {
 
   return (
     <div className={`flex flex-col leading-none ${className}`}>
-      <span className={`font-bold ${cfg.jackpots} gold-text font-black tracking-wider`}>Jackpots</span>
+      <span className={`${cfg.jackpots} gold-text font-black tracking-wider`}>Jackpots</span>
       <span
-        className={`font-body font-black uppercase inline-block ${cfg.world}`}
-        style={{ color: '#FFFFFF' }}
+        className={`font-body font-bold uppercase inline-block ${cfg.world}`}
+        style={{ color: '#FFFFFF', marginTop: '-3px' }}
       >
         World
       </span>
