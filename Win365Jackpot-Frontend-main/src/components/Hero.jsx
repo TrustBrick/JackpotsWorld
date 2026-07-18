@@ -121,13 +121,20 @@ const FloatingCard = memo(({ suit, val, pos, delay, red }) => (
 ))
 
 // ─── Floating Luxury ──────────────────────────────────────────────────────
+// Rolex kept in its own list — it renders on every breakpoint (see the two
+// render sites below), unlike the rest of luxuryItems which stay desktop
+// -only (narrow viewports have no margin room outside the centered text
+// column for these without overlapping the winner feed / hero title / CTAs).
+const rolexItems = [
+  { logo:'/images/logos/rolex.png', label:'ROLEX', pos:{right:'19%',top:'14%'}, delay:3.5, color:'#D4AF37' },
+  { logo:'/images/logos/rolex.png', label:'ROLEX', pos:{left:'1%',  top:'16%'}, delay:2.8, color:'#D4AF37' },
+]
+
 const luxuryItems = [
   { logo:'/images/logos/benz.png',  label:'BENZ',  pos:{left:'9%',  top:'36%'}, delay:0.5, color:'#C8C8C8' },
   { logo:'/images/logos/bmw.png',   label:'BMW',   pos:{right:'14%',top:'30%'}, delay:2.0, color:'#4FC3F7' },
   { logo:'/images/logos/apple.png', label:'APPLE', pos:{left:'11%', top:'62%'}, delay:1.2, color:'#E8E8E8' },
-  { logo:'/images/logos/rolex.png', label:'ROLEX', pos:{right:'19%',top:'14%'}, delay:3.5, color:'#D4AF37' },
   { Icon: Gem,                       label:'VIP',   pos:{right:'3%', top:'60%'}, delay:4.2, color:'#B47FFF' },
-  { logo:'/images/logos/rolex.png', label:'ROLEX', pos:{left:'1%',  top:'16%'}, delay:2.8, color:'#D4AF37' },
 ]
 
 const FloatingLuxury = memo(({ Icon, logo, label, pos, delay, color }) => {
@@ -469,6 +476,17 @@ useEffect(() => {
       {/* Floating luxury — desktop only, same reasoning as above */}
       <div className="hidden md:contents">
         {luxuryItems.map((item, i) => <FloatingLuxury key={i} {...item} />)}
+      </div>
+
+      {/* Rolex, right badge — shown on every breakpoint, including mobile;
+          its position sits clear of the mobile winner feed / hero pill. */}
+      <FloatingLuxury key="rolex-0" {...rolexItems[0]} />
+
+      {/* Rolex, left badge — desktop only: at mobile widths this position
+          overlaps WinnerFeedMobile's ticker (top:58, left:8, up to 180px
+          wide), so it stays grouped with the other desktop-only items. */}
+      <div className="hidden md:contents">
+        <FloatingLuxury key="rolex-1" {...rolexItems[1]} />
       </div>
 
       {/* Dice desktop */}
