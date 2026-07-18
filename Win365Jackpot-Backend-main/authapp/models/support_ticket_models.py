@@ -20,6 +20,16 @@ class SupportTicket(models.Model):
     created_at  = models.DateTimeField(auto_now_add=True)
     updated_at  = models.DateTimeField(auto_now=True)
 
+    # MULTILINGUAL-CHAT: added fields, all nullable/defaulted — existing rows
+    # and the existing create/update API contract are unaffected. `message`
+    # and `admin_reply` above remain the source of truth (original customer
+    # text, and the agent's always-English reply); these only add the
+    # translated counterparts alongside them, never overwriting either.
+    preferred_language     = models.CharField(max_length=8, default="en")
+    message_translated     = models.TextField(null=True, blank=True)
+    admin_reply_translated = models.TextField(null=True, blank=True)
+    translated_at          = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         ordering = ["-created_at"]
         indexes = [models.Index(fields=["user", "status"])]

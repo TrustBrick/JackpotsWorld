@@ -331,6 +331,19 @@ SECURE_HSTS_PRELOAD = config('SECURE_HSTS_PRELOAD', default=False, cast=bool)
 
 TURNSTILE_SECRET_KEY = config("TURNSTILE_SECRET_KEY", default="")
 
+# MULTILINGUAL-CHAT: local-preview feature flag — hard master switch. False
+# (the default, and production's implicit value since the var is unset there)
+# means every code path this feature touches behaves exactly as before it
+# existed. Day-to-day on/off once this is True is controlled separately via
+# the SupportSettings admin toggle (authapp/models/support_settings_models.py).
+ENABLE_MULTILINGUAL_CHAT = config("ENABLE_MULTILINGUAL_CHAT", default=False, cast=bool)
+
+# MULTILINGUAL-CHAT: only read when SupportSettings.translation_provider is
+# switched to "openai" in Admin → Support Settings. Empty/unset by default —
+# add OPENAI_API_KEY=... to your local .env only (never .env.production/AWS).
+OPENAI_API_KEY = config("OPENAI_API_KEY", default="")
+OPENAI_TRANSLATE_MODEL = config("OPENAI_TRANSLATE_MODEL", default="gpt-4o-mini")
+
 # ── Events / Poker content sync ──────────────────────────────────────────────
 # Best-effort RSS aggregator (authapp/services/event_sync_service.py,
 # authapp/services/poker_sync_service.py). Comma-separated feed URLs; empty by

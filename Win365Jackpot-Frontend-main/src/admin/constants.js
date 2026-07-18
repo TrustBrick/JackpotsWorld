@@ -71,6 +71,9 @@ export const ADMIN_TABS = [
   { id:"locations",     label:"Manage Locations",  icon:"MapPin" },
   { id:"landing",       label:"Landing Page",      icon:"LayoutTemplate" },
   { id:"affiliates",    label:"Affiliates",        icon:"Handshake" },
+  // MULTILINGUAL-CHAT: 2 new tabs (local preview feature)
+  { id:"support-tickets",  label:"Support Tickets",     icon:"LifeBuoy"   },
+  { id:"support-settings", label:"Support Settings",    icon:"Languages"  },
   { id:"logs",          label:"Activity Logs",    icon:"Activity"   },
   // { id:"staff",         label:"Staff",            icon:"UserCog"    },
 ];

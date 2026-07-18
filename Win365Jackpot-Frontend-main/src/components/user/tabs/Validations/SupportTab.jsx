@@ -7,6 +7,15 @@ import {
 import { C } from "../../constants";
 import { authFetch, API, fmtDT } from "../../helpers";
 import { Spinner } from "../../components/SharedUI";
+// MULTILINGUAL-CHAT: new imports — local preview feature, all no-ops while disabled
+import SupportLanguageSelector from "../../../support/SupportLanguageSelector";
+import { fetchSupportConfig } from "../../../../services/translationService";
+import TicketMessage from "../../../support/TicketMessage";
+
+// MULTILINGUAL-CHAT: chat language is stored separately from the site's
+// i18n language (User.preferred_language / Sidebar's selector) so picking a
+// language here never switches the rest of the dashboard's UI text.
+const CHAT_LANG_STORAGE_KEY = "support_chat_language";
 
 function SectionHeader({ color, children }) {
   return (
@@ -71,6 +80,26 @@ export default function SupportTab({ onToast }) {
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // MULTILINGUAL-CHAT: off by default until the config fetch confirms
+  // otherwise — everything below this stays inert (no selector, no
+  // translated-reply rendering) when the feature flag is off.
+  const [multilingualEnabled, setMultilingualEnabled] = useState(false);
+  const [supportedLanguages, setSupportedLanguages] = useState([]);
+  const [chatLanguage, setChatLanguage] = useState(
+    () => localStorage.getItem(CHAT_LANG_STORAGE_KEY) || "en"
+  );
+
+  useEffect(() => {
+    fetchSupportConfig().then(cfg => {
+      setMultilingualEnabled(!!cfg.enabled);
+      setSupportedLanguages(cfg.supported_languages || []);
+    });
+  }, []);
+
+  const changeChatLanguage = (code) => {
+    setChatLanguage(code);
+    localStorage.setItem(CHAT_LANG_STORAGE_KEY, code);
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -90,7 +119,9 @@ export default function SupportTab({ onToast }) {
     try {
       const r = await authFetch(`${API}/api/support/tickets/`, {
         method: "POST",
-        body: JSON.stringify({ subject, message }),
+        body: JSON.stringify(
+          multilingualEnabled ? { subject, message, preferred_language: chatLanguage } : { subject, message }
+        ),
       });
       if (r?.ok) {
         onToast?.(t("support.ticketSubmitted"), true);
@@ -152,7 +183,23 @@ export default function SupportTab({ onToast }) {
 
       {/* Raise a ticket */}
       <div>
-        <SectionHeader color={C.green}>{t("support.raiseATicket")}</SectionHeader>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 12 }}>
+          <SectionHeader color={C.green}>{t("support.raiseATicket")}</SectionHeader>
+          {/* MULTILINGUAL-CHAT: chat-only language selector — only rendered
+              when the feature flag is on. This never touches i18next, so it
+              only affects how this ticket is translated, not the rest of
+              the dashboard's UI language. */}
+          {multilingualEnabled && (
+            <div style={{ width: 180 }}>
+              <SupportLanguageSelector
+                C={C}
+                value={chatLanguage}
+                options={supportedLanguages}
+                onChange={changeChatLanguage}
+              />
+            </div>
+          )}
+        </div>
         <Card>
           <form onSubmit={submitTicket} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <input
@@ -187,18 +234,33 @@ export default function SupportTab({ onToast }) {
         {loading ? <Spinner /> : tickets.length > 0 && (
           <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
             {tickets.map(tk => (
-              <Card key={tk.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
-                <div>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, color: "white" }}>{tk.subject}</div>
-                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>{fmtDT(tk.created_at)}</div>
+              <Card key={tk.id}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+                  <div>
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: "white" }}>{tk.subject}</div>
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>{fmtDT(tk.created_at)}</div>
+                  </div>
+                  <span style={{
+                    fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 20, flexShrink: 0,
+                    background: tk.status === "resolved" || tk.status === "closed" ? `${C.green}18` : `${C.orange}18`,
+                    color: tk.status === "resolved" || tk.status === "closed" ? C.green : C.orange,
+                  }}>
+                    {tk.status.replace("_", " ")}
+                  </span>
                 </div>
-                <span style={{
-                  fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 20, flexShrink: 0,
-                  background: tk.status === "resolved" || tk.status === "closed" ? `${C.green}18` : `${C.orange}18`,
-                  color: tk.status === "resolved" || tk.status === "closed" ? C.green : C.orange,
-                }}>
-                  {tk.status.replace("_", " ")}
-                </span>
+                {/* MULTILINGUAL-CHAT: reply shown in the customer's language,
+                    English kept visible as a small secondary line. Nothing
+                    renders here at all while the feature flag is off. */}
+                {multilingualEnabled && tk.admin_reply && (
+                  <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.border}` }}>
+                    <TicketMessage
+                      C={C}
+                      primaryText={tk.admin_reply_translated || tk.admin_reply}
+                      secondaryLabel="English"
+                      secondaryText={tk.admin_reply_translated ? tk.admin_reply : null}
+                    />
+                  </div>
+                )}
               </Card>
             ))}
           </div>
