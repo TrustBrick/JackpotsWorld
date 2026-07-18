@@ -125,9 +125,14 @@ const FloatingCard = memo(({ suit, val, pos, delay, red }) => (
 // render sites below), unlike the rest of luxuryItems which stay desktop
 // -only (narrow viewports have no margin room outside the centered text
 // column for these without overlapping the winner feed / hero title / CTAs).
+//
+// Cache-busted with ?v=2 — this file is served with a 1-year Cache-Control
+// (see public/images/logos/), so updating the image bytes at the same URL
+// doesn't reach browsers that already cached the old one. Bump the version
+// again any time this specific asset's content changes.
 const rolexItems = [
-  { logo:'/images/logos/rolex.png', label:'ROLEX', pos:{right:'19%',top:'14%'}, delay:3.5, color:'#D4AF37' },
-  { logo:'/images/logos/rolex.png', label:'ROLEX', pos:{left:'1%',  top:'16%'}, delay:2.8, color:'#D4AF37' },
+  { logo:'/images/logos/rolex.png?v=2', label:'ROLEX', pos:{right:'19%',top:'14%'}, delay:3.5, color:'#D4AF37' },
+  { logo:'/images/logos/rolex.png?v=2', label:'ROLEX', pos:{left:'1%',  top:'16%'}, delay:2.8, color:'#D4AF37' },
 ]
 
 const luxuryItems = [

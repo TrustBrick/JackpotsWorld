@@ -8,6 +8,11 @@ import { fetchGiftItems, fetchGiftSteps } from '../services/landingService'
 // ─── Gift Data (fallback, used only until the API responds) ───────────────────
 // Also doubles as the logo source for admin-managed gift entries that don't
 // have an uploaded logo yet (see FALLBACK_GIFT_LOGO_BY_NAME below).
+//
+// Cache-busted with ?v=2 — this file is served with a 1-year Cache-Control
+// (see public/images/logos/), so updating the image bytes at the same URL
+// doesn't reach browsers that already cached the old one. Bump the version
+// again any time this specific asset's content changes.
 const FALLBACK_GIFTS = [
   {
     id:        'rolex',
@@ -15,7 +20,7 @@ const FALLBACK_GIFTS = [
     tierColor: '#D4AF37',
     name:      'Rolex Submariner',
     subtitle:  'Swiss Precision · Timeless Prestige',
-    logoSrc:   '/images/logos/rolex.png',
+    logoSrc:   '/images/logos/rolex.png?v=2',
     logoAlt:   'Rolex',
     value:     '$15K+',
     description: 'The icon of icons. A genuine Rolex Submariner — waterproof to 300m, Oystersteel bracelet, Cerachrom bezel. Worn by champions.',
