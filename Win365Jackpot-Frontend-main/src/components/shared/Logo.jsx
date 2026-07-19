@@ -9,11 +9,11 @@ import React from 'react'
 const SIZE_CONFIG = {
   sm: {
     jackpots: 'text-lg md:text-2xl',
-    world: 'text-base md:text-xl',
+    world: 'text-sm md:text-lg',
   },
   md: {
     jackpots: 'text-xl md:text-2xl',
-    world: 'text-lg md:text-xl',
+    world: 'text-base md:text-lg',
   },
 }
 
@@ -22,10 +22,10 @@ export default function Logo({ size = 'md', className = '' }) {
 
   return (
     <div className={`flex flex-col leading-none ${className}`}>
-      <span className={`${cfg.jackpots} gold-text font-black tracking-wider`}>Jackpots</span>
+      <span className={`leading-[1.15] ${cfg.jackpots} gold-text font-black tracking-wider`}>Jackpots</span>
       <span
-        className={`font-body font-bold uppercase inline-block ${cfg.world}`}
-        style={{ color: '#FFFFFF', marginTop: '-3px' }}
+        className={`leading-[1.15] font-body font-bold uppercase inline-block ${cfg.world}`}
+        style={{ color: '#FFFFFF' }}
       >
         World
       </span>
