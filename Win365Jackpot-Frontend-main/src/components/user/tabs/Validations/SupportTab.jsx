@@ -46,7 +46,7 @@ const CHANNELS = [
   { labelKey: "sidebar.whatsapp", Icon: MessageCircle, color: "#25d366", statusKey: "support.comingSoon" },
   { labelKey: "sidebar.telegram", Icon: Send, color: "#0088cc", statusKey: "support.comingSoon" },
   { labelKey: "support.liveChat", Icon: LifeBuoy, color: C.blue, statusKey: "support.chatNow", onClick: () => window.dispatchEvent(new CustomEvent("open-chat")) },
-  { labelKey: "support.emailSupport", Icon: Mail, color: C.gold, status: "support@jackpotsworld.casino" },
+  { labelKey: "support.emailSupport", Icon: Mail, color: C.gold, status: "support@jackpotsworld.vip" },
 ];
 
 const FAQ = [

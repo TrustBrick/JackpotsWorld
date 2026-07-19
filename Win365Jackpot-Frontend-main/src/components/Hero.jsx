@@ -709,7 +709,7 @@ useEffect(() => {
             marginBottom:'clamp(20px,4vw,32px)',
           }}
         >
-          {settings?.hero_tagline || 'www.jackpotsworld.casino'}
+          {settings?.hero_tagline || 'www.jackpotsworld.vip'}
         </motion.p>
 
         {/* CTAs */}

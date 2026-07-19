@@ -82,7 +82,7 @@ KNOWLEDGE_BASE = [
     {
         "topic": "contact_support",
         "keywords": ["support", "help", "contact", "human", "agent", "representative"],
-        "answer": "You can reach our support team via WhatsApp or Telegram (buttons in the bottom corner), by raising a ticket from the Live Support tab in your Dashboard, or by emailing support@jackpotsworld.casino.",
+        "answer": "You can reach our support team via WhatsApp or Telegram (buttons in the bottom corner), by raising a ticket from the Live Support tab in your Dashboard, or by emailing support@jackpotsworld.vip.",
     },
     {
         "topic": "faq",

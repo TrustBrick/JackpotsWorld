@@ -52,8 +52,8 @@ export default function Footer() {
             <p style={{ fontSize: 13, color: 'var(--w365-text-muted)', lineHeight: 1.7, marginBottom: 12 }}>
               Asia's premier Offline casinos promotion platform. Connecting players to world-class gaming experiences across the globe.
             </p>
-            <div style={{ fontSize: 11, color: 'rgba(212,175,55,0.4)', marginBottom: 16 }}>www.jackpotsworld.casino</div>
-            <div style={{ fontSize: 11, color: 'rgba(212,175,55,0.4)', marginBottom: 16 }}>support@jackpotsworld.casino</div>
+            <div style={{ fontSize: 11, color: 'rgba(212,175,55,0.4)', marginBottom: 16 }}>www.jackpotsworld.vip</div>
+            <div style={{ fontSize: 11, color: 'rgba(212,175,55,0.4)', marginBottom: 16 }}>support@jackpotsworld.vip</div>
 
             {/* Social icons */}
             {SHOW_SOCIAL_LINKS && (
@@ -240,7 +240,7 @@ export default function Footer() {
           justifyContent: 'space-between', alignItems: 'center',
           gap: 12, fontSize: 12, color: 'var(--w365-text-muted)',
         }}>
-          <span>© 2026 jackpotsworld.casino — All Rights Reserved</span>
+          <span>© 2026 jackpotsworld.vip — All Rights Reserved</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span>🇻🇳 🇲🇴 🇮🇳 🇱🇰 🇵🇭 🇺🇸 🇲🇾 🇸🇬 🇦🇲 🇬🇪</span>
             <span style={{ display: 'none' }}>— Asia's Premier Casino Platform</span>
