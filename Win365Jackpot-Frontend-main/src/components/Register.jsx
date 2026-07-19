@@ -649,10 +649,6 @@ export default function Register() {
       Exclusive VIP Registration
     </span>
   </div>
-
-  <div style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.6, position: "relative" }}>
-    Registred Successfully
-  </div>
 </div>
 
           {/* ── Body ── */}
