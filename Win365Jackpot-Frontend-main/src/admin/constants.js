@@ -71,6 +71,10 @@ export const ADMIN_TABS = [
   { id:"locations",     label:"Manage Locations",  icon:"MapPin" },
   { id:"landing",       label:"Landing Page",      icon:"LayoutTemplate" },
   { id:"affiliates",    label:"Affiliates",        icon:"Handshake" },
+  // AFFILIATE-WITHDRAWALS: new tab (local preview feature) — safe to remove
+  // this line along with AffiliateWithdrawalsTab.jsx and its case in
+  // AdminPanel.jsx to remove the feature.
+  { id:"affiliate-withdrawals", label:"Affiliate Withdrawals", icon:"Wallet" },
   // MULTILINGUAL-CHAT: 2 new tabs (local preview feature)
   { id:"support-tickets",  label:"Support Tickets",     icon:"LifeBuoy"   },
   { id:"support-settings", label:"Support Settings",    icon:"Languages"  },

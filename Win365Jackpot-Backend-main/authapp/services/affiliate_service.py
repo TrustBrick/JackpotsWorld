@@ -5,9 +5,12 @@ Called from casino_wallet_service.credit_casino_wallet() whenever a user
 completes a real cash deposit (txn_type="DAC"). Non-fatal — any error here
 must never block the deposit itself, so callers wrap this in a try/except.
 """
+import logging
 from decimal import Decimal
 
 from authapp.models.affiliate_models import AffiliateProfile, ReferralCommission
+
+logger = logging.getLogger(__name__)
 
 
 def record_referral_commission(referred_user, deposit_amount, source_ref=""):
@@ -45,5 +48,19 @@ def record_referral_commission(referred_user, deposit_amount, source_ref=""):
 
     referrer.referral_earnings += commission_amount
     referrer.save(update_fields=["referral_earnings"])
+
+    # AFFILIATE-WITHDRAWALS: also credit the withdrawable wallet balance.
+    # Kept behind its own try/except (same non-fatal contract as the rest
+    # of this function relative to the deposit it's called from) so a
+    # problem in the new wallet module can never break commission
+    # recording itself — safe to delete this block to remove the feature.
+    try:
+        from authapp.services.affiliate_wallet_service import credit_wallet_from_commission
+        credit_wallet_from_commission(
+            referrer, commission_amount,
+            note=f"Commission from referred user #{referred_user.id} (ref {source_ref})".strip(),
+        )
+    except Exception:
+        logger.exception("Failed to credit affiliate wallet for commission id=%s", commission.id)
 
     return commission

@@ -272,6 +272,15 @@ class ActivityLog(models.Model):
         ("settings_changed", "Settings Changed"),
         ("two_factor_enabled", "Two-Factor Enabled"),
         ("two_factor_disabled", "Two-Factor Disabled"),
+        # AFFILIATE-WITHDRAWALS: new choices — safe to remove along with the
+        # rest of the feature; CharField(choices=...) is metadata-only, so
+        # removing them later needs no data migration.
+        ("affiliate_withdrawal_requested", "Affiliate Withdrawal Requested"),
+        ("affiliate_withdrawal_cancelled", "Affiliate Withdrawal Cancelled"),
+        ("affiliate_withdrawal_processing", "Affiliate Withdrawal Moved To Processing"),
+        ("affiliate_withdrawal_approved", "Affiliate Withdrawal Approved"),
+        ("affiliate_withdrawal_rejected", "Affiliate Withdrawal Rejected"),
+        ("affiliate_withdrawal_paid", "Affiliate Withdrawal Paid"),
         ("other", "Other"),
     ]
 

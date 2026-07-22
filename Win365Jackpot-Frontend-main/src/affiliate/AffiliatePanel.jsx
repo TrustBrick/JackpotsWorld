@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Key, Eye, EyeOff, AlertCircle, RefreshCw,
-  LayoutGrid, Megaphone, Percent, Users, HelpCircle, Activity, Bell, User, ShieldCheck,
+  LayoutGrid, Megaphone, Percent, Users, HelpCircle, Activity, Bell, User, ShieldCheck, Wallet as WalletIcon,
 } from "lucide-react";
 import { API, affiliateFetch } from "./helpers";
 import { revokeSession } from "../services/authRevoke";
@@ -12,6 +12,7 @@ import AffiliateSidebar, { SIDEBAR_WIDTH, useBreakpoint } from "./AffiliateSideb
 import OverviewTab from "./tabs/OverviewTab";
 import CampaignsTab from "./tabs/CampaignsTab";
 import CommissionTab from "./tabs/CommissionTab";
+import WalletTab from "./tabs/WalletTab";
 import ReferredUsersTab from "./tabs/ReferredUsersTab";
 import ActivityTab from "./tabs/ActivityTab";
 import NotificationsTab from "./tabs/NotificationsTab";
@@ -137,6 +138,7 @@ const TABS = [
   { id: "overview", label: "Overview", icon: LayoutGrid, Component: OverviewTab },
   { id: "campaigns", label: "Campaigns", icon: Megaphone, Component: CampaignsTab },
   { id: "commission", label: "Commission", icon: Percent, Component: CommissionTab },
+  { id: "wallet", label: "Wallet", icon: WalletIcon, Component: WalletTab },
   { id: "referred", label: "Referred Players", icon: Users, Component: ReferredUsersTab },
   { id: "activity", label: "Activity", icon: Activity, Component: ActivityTab },
   { id: "notifications", label: "Notifications", icon: Bell, Component: NotificationsTab },

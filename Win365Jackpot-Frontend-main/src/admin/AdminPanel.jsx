@@ -25,6 +25,7 @@ import PromotionsManageTab  from "./tabs/content/PromotionsManageTab";
 import LocationsManageTab   from "./tabs/content/LocationsManageTab";
 import LandingManageTab     from "./tabs/content/LandingManageTab";
 import AffiliatesTab        from "./tabs/AffiliatesTab";
+import AffiliateWithdrawalsTab from "./tabs/AffiliateWithdrawalsTab"; // AFFILIATE-WITHDRAWALS
 import SupportTicketsTab    from "./tabs/SupportTicketsTab";           // MULTILINGUAL-CHAT
 import SupportSettingsTab   from "./tabs/content/SupportSettingsTab";  // MULTILINGUAL-CHAT
 
@@ -225,6 +226,7 @@ function AdminPanelInner() {
       case "locations": return <LocationsManageTab   {...props} />;
       case "landing":   return <LandingManageTab     {...props} />;
       case "affiliates":return <AffiliatesTab        {...props} />;
+      case "affiliate-withdrawals": return <AffiliateWithdrawalsTab {...props} />; // AFFILIATE-WITHDRAWALS
       // MULTILINGUAL-CHAT: 2 new cases
       case "support-tickets":  return <SupportTicketsTab  {...props} />;
       case "support-settings": return <SupportSettingsTab {...props} />;
