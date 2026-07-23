@@ -7,6 +7,7 @@ import {
   Loader2, CheckCircle2, AlertCircle, ArrowRight, ChevronDown, ShieldCheck, RotateCcw,
 } from 'lucide-react'
 import { setSession } from '../services/authStorage'
+import Turnstile from './Turnstile'
 
 const API = import.meta.env.VITE_API_URL
 
@@ -548,6 +549,8 @@ function SignInPanel({ onSuccess, onClose, onForgotPassword }) {
   const [error,    setError]    = useState('')
   const [isAffiliateAcct, setIsAffiliateAcct] = useState(false)
   const [emailErr, setEmailErr] = useState('')
+  const [cfToken,  setCfToken]  = useState('')
+  const turnstileRef = useRef(null)
 
   const onEmailBlur = () => {
     if (!email) return
@@ -559,11 +562,12 @@ function SignInPanel({ onSuccess, onClose, onForgotPassword }) {
     const { ok: eok, error: eErr } = validateEmail(email)
     if (!eok) { setEmailErr(eErr); return }
     if (!pw)  { setError('Password is required'); return }
+    if (!cfToken) { setError('Please complete the verification checkbox'); return }
     setError(''); setIsAffiliateAcct(false); setLoading(true)
     try {
       const json = await apiFetch('/api/auth/login/', {
         method: 'POST',
-        body: JSON.stringify({ email, password: pw }),
+        body: JSON.stringify({ email, password: pw, cf_turnstile_response: cfToken }),
       })
       setSession(
         { access: 'access', refresh: 'refresh', user: 'user' },
@@ -573,6 +577,10 @@ function SignInPanel({ onSuccess, onClose, onForgotPassword }) {
       navigate('/dashboard')
       onClose?.()
     } catch (err) {
+      // Turnstile tokens are single-use — reset the widget so the user can
+      // re-verify before retrying, whatever the failure reason was.
+      turnstileRef.current?.reset()
+      setCfToken('')
       if (err instanceof ApiError && err.data?.is_affiliate) {
         setIsAffiliateAcct(true)
         setError(err.message)
@@ -608,6 +616,14 @@ function SignInPanel({ onSuccess, onClose, onForgotPassword }) {
           style={{ width: 15, height: 15, accentColor: C.gold, cursor: 'pointer' }} />
         <span style={{ fontSize: 12.5, color: C.muted }}>Remember me</span>
       </label>
+      <div style={W}>
+        <Turnstile
+          ref={turnstileRef}
+          onVerify={token => { setCfToken(token); setError('') }}
+          onExpire={() => setCfToken('')}
+          onError={() => setCfToken('')}
+        />
+      </div>
       {isAffiliateAcct ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '10px 13px', background: C.redBg, border: `1.5px solid ${C.redBorder}`, borderRadius: 8, marginBottom: 14, fontSize: 12.5, color: C.red, lineHeight: 1.5 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
@@ -621,7 +637,7 @@ function SignInPanel({ onSuccess, onClose, onForgotPassword }) {
       ) : (
         <ErrBox msg={error} />
       )}
-      <GoldBtn onClick={handle} loading={loading} disabled={!email || !pw}>Sign in</GoldBtn>
+      <GoldBtn onClick={handle} loading={loading} disabled={!email || !pw || !cfToken}>Sign in</GoldBtn>
       <div style={{ textAlign: 'center', marginTop: 12 }}>
         <button type="button" onClick={() => onForgotPassword?.()}
           style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11.5, color: C.muted, padding: 0, fontFamily: 'inherit' }}>
@@ -811,6 +827,9 @@ function RegisterPanel({ onRegistered }) {
   const [countriesErr, setCountriesErr] = useState(false)
   const [country,      setCountry]      = useState(DEFAULT_COUNTRY)
 
+  const [cfToken, setCfToken] = useState('')
+  const turnstileRef = useRef(null)
+
   const [step, setStep] = useState('form') // 'form' | 'otp'
 
   useEffect(() => {
@@ -909,7 +928,7 @@ function RegisterPanel({ onRegistered }) {
   const canSubmit =
     name.trim() && emailValid && emailDup !== true && !ckEmail &&
     (phone === '' || (phoneComplete && phoneDup !== true && !ckPhone)) &&
-    pwOk && pwMatch
+    pwOk && pwMatch && !!cfToken
 
   const handle = async () => {
     if (!name.trim())                         { setError('Full name is required'); return }
@@ -920,16 +939,21 @@ function RegisterPanel({ onRegistered }) {
     if (phoneComplete && phoneDup)            { setError('Mobile number already registered'); return }
     if (!pwOk)                                { setError('Password does not meet requirements'); return }
     if (!pwMatch)                             { setError('Passwords do not match'); return }
+    if (!cfToken)                             { setError('Please complete the verification checkbox'); return }
     setError(''); setLoading(true)
     try {
       // Send OTP to email for registration verification
       await apiFetch('/api/auth/send-otp/', {
         method: 'POST',
-        body: JSON.stringify({ email, mode: 'register' }),
+        body: JSON.stringify({ email, mode: 'register', cf_turnstile_response: cfToken }),
       })
       // Advance to OTP step
       setStep('otp')
     } catch (err) {
+      // Turnstile tokens are single-use — reset the widget so the user can
+      // re-verify before retrying, whatever the failure reason was.
+      turnstileRef.current?.reset()
+      setCfToken('')
       setError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.')
     } finally {
       setLoading(false)
@@ -1017,6 +1041,15 @@ function RegisterPanel({ onRegistered }) {
           ? <Hint color={C.red} icon={AlertCircle}>{fieldErrors.confirm_password[0]}</Hint>
           : pwMiss ? <Hint color={C.red} icon={AlertCircle}>Passwords do not match</Hint>
           : pwMatch ? <Hint color={C.green} icon={CheckCircle2}>Passwords match</Hint> : null}
+      </div>
+
+      <div style={W}>
+        <Turnstile
+          ref={turnstileRef}
+          onVerify={token => { setCfToken(token); setError('') }}
+          onExpire={() => setCfToken('')}
+          onError={() => setCfToken('')}
+        />
       </div>
 
       <ErrBox msg={error} />

@@ -20,6 +20,8 @@ from authapp.models import User, OTPRecord, ActivityLog
 from authapp.serializers import UserProfileSerializer
 from authapp.serializers.user_serializers import validate_strong_password, clean_full_phone
 from authapp.throttles import OTPSendRateThrottle, OTPVerifyRateThrottle
+from authapp.utils.turnstile import verify_turnstile
+from authapp.views.auth_views import get_client_ip
 from .otp_utils import generate_otp, send_otp_email
 
 logger = logging.getLogger(__name__)
@@ -47,6 +49,14 @@ class SendOTPView(APIView):
 
         if not email or "@" not in email:
             return Response({"error": "Valid email is required"}, status=400)
+
+        # Cloudflare Turnstile verification — this is the signup form's
+        # submit action, so bot-check it here rather than at verify-otp
+        # (login-mode OTP requests are left untouched, protected upstream).
+        if mode == "register":
+            cf_token = request.data.get("cf_turnstile_response")
+            if not verify_turnstile(cf_token, get_client_ip(request)):
+                return Response({"error": "Human verification failed. Please try again."}, status=400)
 
         if mode == "login":
             if not User.objects.filter(email=email).exists():
