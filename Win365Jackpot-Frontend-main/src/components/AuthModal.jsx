@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { setSession } from '../services/authStorage'
 import Turnstile from './Turnstile'
+import Logo from './shared/Logo'
 
 const API = import.meta.env.VITE_API_URL
 
@@ -1118,9 +1119,7 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'login', onAut
             <div style={{ position: 'absolute', top: -50, left: '50%', transform: 'translateX(-50%)', width: 200, height: 100, borderRadius: '50%', background: 'rgba(212,175,55,0.08)', filter: 'blur(36px)', pointerEvents: 'none' }} />
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
               <div>
-                <div style={{ fontSize: 21, fontWeight: 900, letterSpacing: 3, color: '#fff', fontFamily: 'Manrope, sans-serif', lineHeight: 1 }}>
-                  <span style={{ color: C.gold }}>JACKPOTS</span>WORLD
-                </div>
+                <Logo size="sm" />
                 <div style={{ fontSize: 10.5, color: C.muted, letterSpacing: '0.15em', textTransform: 'uppercase', marginTop: 6 }}>
                   {success ? '✦ Registration complete'
                     : tab === 'login' ? '✦ Sign in to your account'

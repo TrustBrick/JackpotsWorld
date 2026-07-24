@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
+import { Star } from 'lucide-react'
 import { useAutoFetch } from '../hooks/useAutoFetch'
 import { fetchTestimonials } from '../services/landingService'
 import { flagFromCountryCode } from '../utils/countryFlags'
+import { fixMojibakeCurrency } from '../utils/mediaFallback'
 
 // ─── Testimonial data (main cards, fallback used only until the API responds) ─
 const FALLBACK_TESTIMONIALS = [
@@ -233,7 +235,7 @@ export default function Testimonials() {
   const { data: testimonialsData } = useAutoFetch(fetchTestimonials, {}, { intervalMs: 60_000 })
   const testimonials = (Array.isArray(testimonialsData) && testimonialsData.length > 0 ? testimonialsData : FALLBACK_TESTIMONIALS).map(t => ({
     name: t.name, city: t.city, flag: flagFromCountryCode(t.country_code) || t.flag,
-    rating: t.rating, won: t.won || t.amount_won, dest: t.dest || t.destination,
+    rating: t.rating, won: fixMojibakeCurrency(t.won || t.amount_won), dest: t.dest || t.destination,
     color: t.color || t.accent_color, avatar: t.avatar, seed: t.seed, text: t.text,
   }))
 
@@ -292,7 +294,9 @@ export default function Testimonials() {
 
             <div className="flex justify-center gap-1 mb-4">
               {[...Array(t.rating)].map((_,i) => (
-                <motion.span key={i} initial={{ scale:0 }} animate={{ scale:1 }} transition={{ delay:i*0.1 }} className="text-gold text-xl">★</motion.span>
+                <motion.span key={i} initial={{ scale:0 }} animate={{ scale:1 }} transition={{ delay:i*0.1 }} className="text-gold" style={{ display:'flex' }}>
+                  <Star size={20} fill="currentColor" color="currentColor" />
+                </motion.span>
               ))}
             </div>
 

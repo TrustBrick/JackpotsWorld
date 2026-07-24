@@ -29,6 +29,7 @@ from .wallet_models import (
 
 from .casino_wallet_models import CasinoWalletAccount, CasinoWalletTransaction
 from .spin_models import SpinConfig, SpinSettings, SpinGlobalCounter, SpinHistory
+from .two_factor_models import TwoFactorAuth, TwoFactorBackupCode
 
 __all__ = [
     # User models
@@ -56,4 +57,6 @@ __all__ = [
     "SpinSettings",
     "SpinGlobalCounter",
     "SpinHistory",
+    "TwoFactorAuth",
+    "TwoFactorBackupCode",
 ]

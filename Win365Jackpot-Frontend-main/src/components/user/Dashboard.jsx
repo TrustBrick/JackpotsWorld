@@ -32,6 +32,7 @@ import SupportTab        from "./tabs/Validations/SupportTab";
 import ResponsibleGamblingTab from "./tabs/Validations/ResponsibleGamblingTab";
 import SpinWheelModal     from "./SpinWheelModal";
 import ChatBot            from "../ChatBot";
+import PageScrollButtons  from "../PageScrollButtons";
 
 // ═════════════════════════════════════════════════════════════════════════════
 // BannedScreen
@@ -353,6 +354,8 @@ export default function Dashboard() {
 
       {/* AI Live Chat — opened via the Live Support tab's "Live Chat" card */}
       <ChatBot />
+
+      <PageScrollButtons />
     </div>
   );
 }

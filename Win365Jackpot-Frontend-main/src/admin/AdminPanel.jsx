@@ -5,6 +5,7 @@ import {
   BarChart3, Users, Wallet, Building2, Crown, Gift,
   Bell, FileText, Shield, Activity, UserCog, LogOut, Key,
   Eye, EyeOff, AlertCircle, CalendarDays, Spade, Handshake, MapPin, LayoutTemplate,
+  LifeBuoy, Languages, // MULTILINGUAL-CHAT
 } from "lucide-react";
 
 import OverviewTab       from "./tabs/OverviewTab";
@@ -24,6 +25,8 @@ import PromotionsManageTab  from "./tabs/content/PromotionsManageTab";
 import LocationsManageTab   from "./tabs/content/LocationsManageTab";
 import LandingManageTab     from "./tabs/content/LandingManageTab";
 import AffiliatesTab        from "./tabs/AffiliatesTab";
+import SupportTicketsTab    from "./tabs/SupportTicketsTab";           // MULTILINGUAL-CHAT
+import SupportSettingsTab   from "./tabs/content/SupportSettingsTab";  // MULTILINGUAL-CHAT
 
 import { Card, Toast } from "./components/SharedUI";
 import { API, adminFetch } from "./helpers";
@@ -33,11 +36,13 @@ import { C, ADMIN_TABS } from "./constants";
 import AdminWalletBanner from "./AdminWalletBanner";
 import { AdminThemeProvider, useAdminTheme } from "./context/AdminThemeContext";
 import AdminThemeToggle from "./components/AdminThemeToggle";
+import Logo from "../components/shared/Logo";
 
 
 const ICON_MAP = {
   BarChart3, Users, Wallet, Building2, Crown, Gift,
   Bell, FileText, Shield, Activity, UserCog, CalendarDays, Spade, Handshake, MapPin, LayoutTemplate,
+  LifeBuoy, Languages, // MULTILINGUAL-CHAT
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -220,6 +225,9 @@ function AdminPanelInner() {
       case "locations": return <LocationsManageTab   {...props} />;
       case "landing":   return <LandingManageTab     {...props} />;
       case "affiliates":return <AffiliatesTab        {...props} />;
+      // MULTILINGUAL-CHAT: 2 new cases
+      case "support-tickets":  return <SupportTicketsTab  {...props} />;
+      case "support-settings": return <SupportSettingsTab {...props} />;
       case "logs":      return <LogsTab           {...props} />;
       case "staff":     return <StaffTab          {...props} />;
       default:          return <OverviewTab       {...props} />;
@@ -246,10 +254,7 @@ function AdminPanelInner() {
       src='/images/jackpotsworld_watermark.png'
       className="w-10 h-10 object-contain"
     />
-    <div className="flex flex-col leading-none">
-      <span className="font-bold text-xl md:text-2xl gold-text font-black tracking-wider">Jackpots</span>
-      <span className="font-body text-xs tracking-[0.4em] text-gold/70 uppercase">World</span>
-    </div>
+    <Logo size="md" />
             <div style={{ fontSize: 10, color: C.muted, letterSpacing: "0.3em", textTransform: "uppercase" }}>Admin Panel</div>
           </div>
           <AdminThemeToggle size={28} />

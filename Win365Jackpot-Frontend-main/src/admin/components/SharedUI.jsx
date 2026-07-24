@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { motion } from "framer-motion";
-import { CheckCircle, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { CheckCircle, AlertCircle, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
 import { VIP_COLOR } from "../constants";
 import { fmtN } from "../helpers";
 import { useAdminTheme } from "../context/AdminThemeContext";
@@ -51,16 +51,81 @@ export function Input({ label, value, onChange, type = "text", placeholder = "",
 }
 
 // ─── Select ───────────────────────────────────────────────────────────────────
+// Custom-rendered (not a native <select>) — native <option> popups largely
+// ignore their own background/color styling and fall back to the browser's
+// OS-native popup, which stays white regardless of theme. Rendering the list
+// ourselves guarantees it always matches the app's palette.
+function SelectOption({ label, active, onClick, C }) {
+  const [hover, setHover] = React.useState(false);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        width: "100%", textAlign: "left", padding: "9px 10px", borderRadius: 7, fontSize: 13,
+        cursor: "pointer", border: "none", background: active ? `${C.gold}18` : hover ? C.hoverBg : "transparent",
+        color: active ? C.gold : C.text,
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
 export function Select({ label, value, onChange, options, placeholder = "Select…" }) {
   const { C } = useAdminTheme();
+  const [open, setOpen] = React.useState(false);
+  const ref = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const onDocClick = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const onKey = e => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const current = options.find(o => o.value === value);
+
   return (
-    <div style={{ marginBottom: 12 }}>
+    <div ref={ref} style={{ marginBottom: 12, position: "relative" }}>
       {label && <label style={{ display: "block", fontSize: 11, color: C.muted, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>{label}</label>}
-      <select value={value} onChange={e => onChange(e.target.value)}
-        style={{ width: "100%", padding: "11px 14px", borderRadius: 10, background: C.inputBg, border: `1px solid ${C.border}`, color: C.text, fontSize: 14, outline: "none", boxSizing: "border-box" }}>
-        {placeholder && <option value="" style={{ background: C.surface, color: C.text }}>{placeholder}</option>}
-        {options.map(o => <option key={o.value} value={o.value} style={{ background: C.surface, color: C.text }}>{o.label}</option>)}
-      </select>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: "100%", padding: "11px 14px", borderRadius: 10, background: C.inputBg,
+          border: `1px solid ${open ? `${C.gold}60` : C.border}`, color: current ? C.text : C.muted,
+          fontSize: 14, outline: "none", boxSizing: "border-box", cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+        }}
+      >
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{current ? current.label : placeholder}</span>
+        <ChevronDown size={14} style={{ flexShrink: 0, color: C.muted, transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />
+      </button>
+      {open && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 50,
+          // panelBg (not surface) — surface is a ~3% translucent tint meant to
+          // sit on the page backdrop; a floating popup needs an opaque
+          // background or it bleeds into whatever's underneath it.
+          background: C.panelBg, border: `1px solid ${C.border}`, borderRadius: 10,
+          boxShadow: "0 12px 32px rgba(0,0,0,0.45)", maxHeight: 260, overflowY: "auto", padding: 4,
+        }}>
+          {placeholder && (
+            <SelectOption C={C} label={placeholder} active={!value} onClick={() => { onChange(""); setOpen(false); }} />
+          )}
+          {options.map(o => (
+            <SelectOption key={o.value} C={C} label={o.label} active={o.value === value} onClick={() => { onChange(o.value); setOpen(false); }} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

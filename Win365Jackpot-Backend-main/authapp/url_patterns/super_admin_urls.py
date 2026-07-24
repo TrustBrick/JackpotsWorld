@@ -12,6 +12,13 @@ from authapp.views.super_admin_views import (
     SuperAdminDeleteAdminView,
     SuperAdminReactivateAdminView,
 )
+from authapp.views.two_factor_views import (
+    TwoFactorStatusView,
+    TwoFactorSetupView,
+    TwoFactorConfirmView,
+    TwoFactorDisableView,
+    TwoFactorRegenerateBackupCodesView,
+)
 
 urlpatterns = [
     # ── Wallet ────────────────────────────────────────────────
@@ -29,4 +36,11 @@ urlpatterns = [
     path("admins/create/",                   SuperAdminCreateAdminView.as_view()),
     path("admins/<int:pk>/",                 SuperAdminDeleteAdminView.as_view()),
     path("admins/<int:pk>/reactivate/",      SuperAdminReactivateAdminView.as_view()),
+
+    # ── Two-Factor Authentication ─────────────────────────────
+    path("2fa/status/",                      TwoFactorStatusView.as_view()),
+    path("2fa/setup/",                       TwoFactorSetupView.as_view()),
+    path("2fa/confirm/",                     TwoFactorConfirmView.as_view()),
+    path("2fa/disable/",                     TwoFactorDisableView.as_view()),
+    path("2fa/regenerate-backup-codes/",     TwoFactorRegenerateBackupCodesView.as_view()),
 ]

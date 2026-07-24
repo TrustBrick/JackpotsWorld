@@ -10,6 +10,7 @@ import {
 import { C, VIP_COLOR, TABS } from "../constants";
 import { fmtN } from "../helpers";
 import { VIPBadge } from "./SharedUI";
+import Logo from "../../shared/Logo";
 
 
 // ── Exported constants — Dashboard reads these to set its own marginLeft ──────
@@ -59,8 +60,6 @@ function useNotifPulse() {
     return () => document.head.removeChild(s);
   }, []);
 }
-
-const ANIMATED_BELL_URL = "https://cdn-icons-gif.flaticon.com/15578679/15578679.gif";
 
 // Maps each TABS entry's stable `id` (constants.js) to its i18next key —
 // translating the *lookup key*, not TABS itself, keeps constants.js a plain
@@ -278,11 +277,7 @@ function IconRail({ vipColor, unread, activeTab, profile, onTabChange, onHamburg
     onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.55)"; } }}
     >
       {tab.id === "notifications" && hasBadge ? (
-        <img
-          src={ANIMATED_BELL_URL}
-          alt="notifications"
-          style={{ width: 18, height: 18, objectFit: "contain" }}
-        />
+        <Bell size={15} style={{ animation: "bell-shake 2s ease-in-out infinite" }} />
       ) : (
         Icon && <Icon size={15} />
       )}
@@ -331,10 +326,7 @@ function FullSidebar({ profile, vipColor, unread, activeTab, onTabChange, onLogo
     src='/images/jackpotsworld_watermark.png'
     className="w-10 h-10 object-contain"
   />
-  <div className="flex flex-col leading-none">
-    <span className="font-bold text-xl md:text-2xl gold-text font-black tracking-wider">Jackpots</span>
-    <span className="font-body text-xs tracking-[0.4em] text-gold/70 uppercase">World</span>
-  </div>
+  <Logo size="md" />
         </div>
         {showClose && (
           <button onClick={onClose} style={{
@@ -416,11 +408,7 @@ function FullSidebar({ profile, vipColor, unread, activeTab, onTabChange, onLogo
     >
       {/* ── Icon slot ── */}
       {tab.id === "notifications" && hasBadge ? (
-        <img
-          src={ANIMATED_BELL_URL}
-          alt="notifications"
-          style={{ width: 16, height: 16, objectFit: "contain", flexShrink: 0 }}
-        />
+        <Bell size={13} style={{ animation: "bell-shake 2s ease-in-out infinite", flexShrink: 0 }} />
       ) : (
         Icon && <Icon size={13} />
       )}

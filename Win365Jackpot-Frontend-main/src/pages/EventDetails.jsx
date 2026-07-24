@@ -8,8 +8,9 @@ import {
 } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import AuthModal from '../components/AuthModal'
+import PageScrollButtons from '../components/PageScrollButtons'
 import { fetchEventDetail, requestEventTicket } from '../services/eventService'
-import { getFallbackImage } from '../utils/mediaFallback'
+import { getFallbackImage, fixMojibakeCurrency } from '../utils/mediaFallback'
 import { getToken } from '../services/authStorage'
 
 function formatDate(iso) {
@@ -61,6 +62,7 @@ export default function EventDetails() {
       <Navbar />
       <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} defaultTab="login" onAuthSuccess={() => setAuthOpen(false)} />
 
+      <main>
       <section className="max-w-3xl mx-auto px-4 pt-28 pb-24">
         <button
           onClick={() => navigate('/events')}
@@ -104,7 +106,7 @@ export default function EventDetails() {
             </div>
 
             <div className="p-6 md:p-8">
-              <h1 className="font-black text-2xl md:text-3xl text-white/90 mb-4">{event.name}</h1>
+              <h1 className="font-black text-2xl md:text-3xl text-white/90 mb-4">{fixMojibakeCurrency(event.name)}</h1>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm font-body text-white/60 mb-6">
                 <div className="flex items-center gap-2"><MapPin size={15} className="text-gold shrink-0" /> {event.city ? `${event.city}, ` : ''}{event.country}</div>
@@ -114,7 +116,7 @@ export default function EventDetails() {
               </div>
 
               {event.description && (
-                <p className="text-white/55 text-sm font-body leading-relaxed mb-6">{event.description}</p>
+                <p className="text-white/55 text-sm font-body leading-relaxed mb-6">{fixMojibakeCurrency(event.description)}</p>
               )}
               {event.ticket_note && (
                 <p className="text-gold/70 text-xs font-body mb-6">{event.ticket_note}</p>
@@ -148,6 +150,9 @@ export default function EventDetails() {
           </motion.div>
         )}
       </section>
+      </main>
+
+      <PageScrollButtons />
     </div>
   )
 }

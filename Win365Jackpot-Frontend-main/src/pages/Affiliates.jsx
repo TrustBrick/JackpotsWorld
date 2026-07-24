@@ -8,6 +8,7 @@ import {
 import { useTheme } from '../context/ThemeContext'
 import Navbar from '../components/Navbar'
 import PageHeader from '../components/shared/PageHeader'
+import PageScrollButtons from '../components/PageScrollButtons'
 import { commissionTiers } from '../affiliate/commissionTiers'
 
 // ── Static content ───────────────────────────────────────────────────────────
@@ -92,6 +93,7 @@ export default function Affiliates() {
     <div key={theme} className="min-h-screen" style={{ background: 'var(--w365-bg)' }}>
       <Navbar />
 
+      <main>
       <PageHeader
         eyebrow="Partner With Us"
         title="Jackpots World Affiliates"
@@ -236,6 +238,9 @@ export default function Affiliates() {
           </motion.button>
         </div>
       </section>
+      </main>
+
+      <PageScrollButtons />
     </div>
   )
 }

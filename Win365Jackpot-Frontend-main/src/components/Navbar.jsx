@@ -7,6 +7,7 @@ import {
   ChevronDown, User, Crown, Wallet,
 } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import Logo from './shared/Logo'
 import AuthModal from './AuthModal'
 import ChatBot from './ChatBot'
 import { getToken, getUser, clearSession } from '../services/authStorage'
@@ -317,7 +318,7 @@ export default function Navbar() {
         transition={{ duration: 0.7, ease: 'easeOut' }}
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
           scrolled
-            ? 'backdrop-blur-md border-b border-gold/20 py-2'
+            ? 'backdrop-blur-md py-2'
             : 'bg-transparent py-3'
         }`}
         style={scrolled ? { background: 'rgba(var(--w365-bg-rgb),0.95)' } : undefined}
@@ -331,10 +332,7 @@ export default function Navbar() {
       src='/images/jackpotsworld_watermark.png'
       className="w-7 h-7 object-contain"
     />
-    <div className="flex flex-col leading-none">
-      <span className="font-bold text-lg md:text-2xl gold-text font-black tracking-wider">Jackpots</span>
-      <span className="font-body text-xs md:text-xs tracking-[0.4em] uppercase" style={{ color: 'var(--w365-text)' }}>World</span>
-    </div>
+    <Logo size="sm" />
   </Link>
 ) : (
   <span onClick={() => navigate('/')} className="cursor-pointer flex items-center gap-2">
@@ -342,10 +340,7 @@ export default function Navbar() {
       src='/images/jackpotsworld_watermark.png'
       className="w-7 h-7 object-contain"
     />
-    <div className="flex flex-col leading-none">
-      <span className="font-bold text-lg md:text-2xl gold-text font-black tracking-wider">Jackpots</span>
-      <span className="font-body text-xs md:text-xs tracking-[0.4em] uppercase" style={{ color: 'var(--w365-text)' }}>World</span>
-    </div>
+    <Logo size="sm" />
   </span>
 )}
 

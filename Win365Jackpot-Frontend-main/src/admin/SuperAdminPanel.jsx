@@ -220,6 +220,25 @@ function SuperAdminLogin({ onSuccess }) {
   const [error,   setError]   = useState("");
   const [loading, setLoading] = useState(false);
 
+  // "credentials" -> "2fa" once the password check succeeds and the
+  // account has 2FA enabled. pendingToken never touches localStorage —
+  // it's a short-lived (5 min), single-purpose token good for nothing but
+  // finishing this one login attempt.
+  const [stage,        setStage]        = useState("credentials");
+  const [pendingToken, setPendingToken] = useState("");
+  const [code,         setCode]         = useState("");
+
+  const finishLogin = (json) => {
+    if (!json.user?.is_superuser) {
+      setError("Access denied. Super Admin only.");
+      return;
+    }
+    localStorage.setItem(TOKEN_KEY,   json.tokens?.access  || json.access  || "");
+    localStorage.setItem(REFRESH_KEY, json.tokens?.refresh || json.refresh || "");
+    localStorage.setItem(USER_KEY,    JSON.stringify(json.user));
+    onSuccess(json.user);
+  };
+
   const login = async (e) => {
     e?.preventDefault();
     setError("");
@@ -227,23 +246,43 @@ function SuperAdminLogin({ onSuccess }) {
     setLoading(true);
     try {
       const res = await fetch(`${BASE}/api/auth/super-admin-login/`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ email, password: pw }),
-});
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password: pw }),
+      });
       const json = await res.json();
       if (!res.ok) { setError(json.error || json.detail || "Invalid credentials."); setLoading(false); return; }
-      if (!json.user?.is_superuser) {
-  setError("Access denied. Super Admin only.");
-  setLoading(false);
-  return;
-}
-      localStorage.setItem(TOKEN_KEY,   json.tokens?.access  || json.access  || "");
-      localStorage.setItem(REFRESH_KEY, json.tokens?.refresh || json.refresh || "");
-      localStorage.setItem(USER_KEY,    JSON.stringify(json.user));
-      onSuccess(json.user);
+      if (json.requires_2fa) {
+        setPendingToken(json.pending_token);
+        setStage("2fa");
+        setLoading(false);
+        return;
+      }
+      finishLogin(json);
     } catch { setError("Network error. Check your connection."); }
     setLoading(false);
+  };
+
+  const verify2fa = async (e) => {
+    e?.preventDefault();
+    setError("");
+    if (!code.trim()) { setError("Enter your authenticator or backup code."); return; }
+    setLoading(true);
+    try {
+      const res = await fetch(`${BASE}/api/auth/super-admin-verify-2fa/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pending_token: pendingToken, code: code.trim() }),
+      });
+      const json = await res.json();
+      if (!res.ok) { setError(json.error || "Invalid code."); setLoading(false); return; }
+      finishLogin(json);
+    } catch { setError("Network error. Check your connection."); }
+    setLoading(false);
+  };
+
+  const backToCredentials = () => {
+    setStage("credentials"); setCode(""); setPendingToken(""); setError("");
   };
 
   return (
@@ -259,42 +298,74 @@ function SuperAdminLogin({ onSuccess }) {
           </div>
           <div style={{ fontSize:11, fontWeight:700, color:"#D4AF37", textTransform:"uppercase", letterSpacing:"0.18em", marginBottom:8, fontFamily:"'Manrope',sans-serif" }}>Super Admin</div>
           <div style={{ fontSize:28, fontWeight:900, color:C.text, fontFamily:"'Manrope',sans-serif" }}>Control Panel</div>
-          <div style={{ fontSize:12, color:C.muted, marginTop:8 }}>Superuser access only — all actions are logged</div>
+          <div style={{ fontSize:12, color:C.muted, marginTop:8 }}>
+            {stage === "2fa" ? "Two-factor verification" : "Superuser access only — all actions are logged"}
+          </div>
         </div>
 
         <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:16, padding:"30px 28px", backdropFilter:"blur(10px)" }}>
-          <form onSubmit={login}>
-            <div style={{ marginBottom:16 }}>
-              <label style={{ ...T.label, color:C.muted }}>Email Address</label>
-              <div style={{ position:"relative" }}>
-                <Mail size={13} style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", color:C.muted }} />
-                <input type="email" value={email} autoFocus onChange={e => setEmail(e.target.value)}
-                  placeholder="superadmin@domain.com"
-                  className="sa-input" style={{ ...T.input, paddingLeft:36, background:C.inputBg, border:`1px solid ${C.border}`, color:C.text }} />
+          {stage === "credentials" ? (
+            <form onSubmit={login}>
+              <div style={{ marginBottom:16 }}>
+                <label style={{ ...T.label, color:C.muted }}>Email Address</label>
+                <div style={{ position:"relative" }}>
+                  <Mail size={13} style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", color:C.muted }} />
+                  <input type="email" value={email} autoFocus onChange={e => setEmail(e.target.value)}
+                    placeholder="superadmin@domain.com"
+                    className="sa-input" style={{ ...T.input, paddingLeft:36, background:C.inputBg, border:`1px solid ${C.border}`, color:C.text }} />
+                </div>
               </div>
-            </div>
-            <div style={{ marginBottom:22 }}>
-              <label style={{ ...T.label, color:C.muted }}>Password</label>
-              <div style={{ position:"relative" }}>
-                <Lock size={13} style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", color:C.muted }} />
-                <input type={showPw ? "text" : "password"} value={pw} onChange={e => setPw(e.target.value)}
-                  placeholder="••••••••••••"
-                  className="sa-input" style={{ ...T.input, paddingLeft:36, paddingRight:40, background:C.inputBg, border:`1px solid ${C.border}`, color:C.text }} />
-                <button type="button" onClick={() => setShowPw(v => !v)}
-                  style={{ position:"absolute", right:12, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", color:C.muted, display:"flex", alignItems:"center" }}>
-                  {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
-                </button>
+              <div style={{ marginBottom:22 }}>
+                <label style={{ ...T.label, color:C.muted }}>Password</label>
+                <div style={{ position:"relative" }}>
+                  <Lock size={13} style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", color:C.muted }} />
+                  <input type={showPw ? "text" : "password"} value={pw} onChange={e => setPw(e.target.value)}
+                    placeholder="••••••••••••"
+                    className="sa-input" style={{ ...T.input, paddingLeft:36, paddingRight:40, background:C.inputBg, border:`1px solid ${C.border}`, color:C.text }} />
+                  <button type="button" onClick={() => setShowPw(v => !v)}
+                    style={{ position:"absolute", right:12, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", color:C.muted, display:"flex", alignItems:"center" }}>
+                    {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
               </div>
-            </div>
-            {error && (
-              <div style={{ marginBottom:18, padding:"11px 14px", borderRadius:9, background:"rgba(248,113,113,0.08)", border:"1px solid rgba(248,113,113,0.25)", color:"#f87171", fontSize:12, display:"flex", gap:8, alignItems:"center" }}>
-                <AlertCircle size={13} /> {error}
+              {error && (
+                <div style={{ marginBottom:18, padding:"11px 14px", borderRadius:9, background:"rgba(248,113,113,0.08)", border:"1px solid rgba(248,113,113,0.25)", color:"#f87171", fontSize:12, display:"flex", gap:8, alignItems:"center" }}>
+                  <AlertCircle size={13} /> {error}
+                </div>
+              )}
+              <Btn type="submit" onClick={login} disabled={loading || !email || !pw} style={{ width:"100%" }}>
+                {loading ? <><Spinner /> Authenticating…</> : <><ShieldCheck size={14} /> Sign In as Super Admin</>}
+              </Btn>
+            </form>
+          ) : (
+            <form onSubmit={verify2fa}>
+              <div style={{ marginBottom:22 }}>
+                <label style={{ ...T.label, color:C.muted }}>Authenticator Code</label>
+                <div style={{ position:"relative" }}>
+                  <Lock size={13} style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", color:C.muted }} />
+                  <input type="text" inputMode="numeric" value={code} autoFocus
+                    onChange={e => setCode(e.target.value)}
+                    placeholder="6-digit code, or a backup code"
+                    className="sa-input" style={{ ...T.input, paddingLeft:36, background:C.inputBg, border:`1px solid ${C.border}`, color:C.text }} />
+                </div>
+                <div style={{ fontSize:11, color:C.muted, marginTop:8 }}>
+                  Enter the code from your authenticator app, or one of your saved backup codes.
+                </div>
               </div>
-            )}
-            <Btn type="submit" onClick={login} disabled={loading || !email || !pw} style={{ width:"100%" }}>
-              {loading ? <><Spinner /> Authenticating…</> : <><ShieldCheck size={14} /> Sign In as Super Admin</>}
-            </Btn>
-          </form>
+              {error && (
+                <div style={{ marginBottom:18, padding:"11px 14px", borderRadius:9, background:"rgba(248,113,113,0.08)", border:"1px solid rgba(248,113,113,0.25)", color:"#f87171", fontSize:12, display:"flex", gap:8, alignItems:"center" }}>
+                  <AlertCircle size={13} /> {error}
+                </div>
+              )}
+              <Btn type="submit" onClick={verify2fa} disabled={loading || !code.trim()} style={{ width:"100%" }}>
+                {loading ? <><Spinner /> Verifying…</> : <><ShieldCheck size={14} /> Verify</>}
+              </Btn>
+              <button type="button" onClick={backToCredentials}
+                style={{ width:"100%", marginTop:14, background:"none", border:"none", cursor:"pointer", color:C.muted, fontSize:12, fontFamily:"'Manrope',sans-serif" }}>
+                ← Back to login
+              </button>
+            </form>
+          )}
         </div>
         <div style={{ textAlign:"center", marginTop:16, fontSize:11, color:C.muted }}>
           Regular admins → /admin-panel
@@ -987,6 +1058,212 @@ function HistoryTab({ toast }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// TAB: Security (2FA)
+// ═══════════════════════════════════════════════════════════════════════════
+function SecurityTab({ toast }) {
+  const [status,  setStatus]  = useState(null);
+  const [loading, setLoading] = useState(true);
+  // idle | setup | confirm | backup-codes | reauth-disable | reauth-regen
+  const [view, setView] = useState("idle");
+
+  const [setupData,    setSetupData]    = useState(null); // {secret, qr_code}
+  const [confirmCode,  setConfirmCode]  = useState("");
+  const [backupCodes,  setBackupCodes]  = useState([]);
+  const [ackSaved,     setAckSaved]     = useState(false);
+  const [reauthPw,     setReauthPw]     = useState("");
+  const [reauthCode,   setReauthCode]   = useState("");
+  const [busy,         setBusy]         = useState(false);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    saFetch("/api/super-admin/2fa/status/")
+      .then(r => r?.json())
+      .then(j => j && setStatus(j))
+      .finally(() => setLoading(false));
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const resetFlow = () => {
+    setView("idle"); setSetupData(null); setConfirmCode("");
+    setBackupCodes([]); setAckSaved(false); setReauthPw(""); setReauthCode("");
+  };
+
+  const startSetup = async () => {
+    setBusy(true);
+    const r = await saFetch("/api/super-admin/2fa/setup/", { method: "POST" });
+    const j = await r?.json();
+    setBusy(false);
+    if (!r?.ok) return toast(j?.error || "Failed to start setup", false);
+    setSetupData(j);
+    setView("confirm");
+  };
+
+  const confirmSetup = async () => {
+    if (!confirmCode.trim()) return toast("Enter the code from your authenticator app", false);
+    setBusy(true);
+    const r = await saFetch("/api/super-admin/2fa/confirm/", {
+      method: "POST", body: JSON.stringify({ code: confirmCode.trim() }),
+    });
+    const j = await r?.json();
+    setBusy(false);
+    if (!r?.ok) return toast(j?.error || "Invalid code", false);
+    setBackupCodes(j.backup_codes || []);
+    setView("backup-codes");
+    toast("Two-factor authentication enabled", true);
+  };
+
+  const submitReauth = async (action) => {
+    if (!reauthPw || !reauthCode.trim()) return toast("Password and code are required", false);
+    setBusy(true);
+    const url = action === "disable"
+      ? "/api/super-admin/2fa/disable/"
+      : "/api/super-admin/2fa/regenerate-backup-codes/";
+    const r = await saFetch(url, {
+      method: "POST", body: JSON.stringify({ password: reauthPw, code: reauthCode.trim() }),
+    });
+    const j = await r?.json();
+    setBusy(false);
+    if (!r?.ok) return toast(j?.error || "Failed", false);
+    if (action === "disable") {
+      toast("Two-factor authentication disabled", true);
+      resetFlow(); load();
+    } else {
+      setBackupCodes(j.backup_codes || []);
+      setView("backup-codes");
+      toast("Backup codes regenerated — old codes no longer work", true);
+    }
+  };
+
+  const finishBackupCodes = () => { resetFlow(); load(); };
+
+  const copyBackupCodes = () => {
+    navigator.clipboard?.writeText(backupCodes.join("\n"))
+      .then(() => toast("Backup codes copied", true))
+      .catch(() => {});
+  };
+
+  if (loading) return <div style={{ padding:40, textAlign:"center" }}><Spinner /></div>;
+
+  return (
+    <div className="sa-animate" style={{ display:"flex", flexDirection:"column", gap:20, maxWidth:560 }}>
+      <div>
+        <div style={{ fontSize:16, fontWeight:800, fontFamily:"'Manrope',sans-serif" }}>Two-Factor Authentication</div>
+        <div style={{ fontSize:11, color:"var(--muted)", marginTop:2 }}>
+          Adds a second step to Super Admin login using an authenticator app (Google Authenticator, Authy, 1Password, etc.)
+        </div>
+      </div>
+
+      {view === "idle" && (
+        <Card title={status?.is_enabled ? "Enabled" : "Disabled"} icon={ShieldCheck} accent={status?.is_enabled ? "#34d399" : "#f87171"}>
+          {status?.is_enabled ? (
+            <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+              <DataRow label="Status" value="Enabled" color="#34d399" />
+              <DataRow label="Confirmed" value={status.confirmed_at ? new Date(status.confirmed_at).toLocaleString() : "—"} />
+              <DataRow label="Backup codes remaining" value={status.backup_codes_remaining} />
+              <div style={{ display:"flex", gap:8, marginTop:8 }}>
+                <Btn variant="ghost" size="sm" onClick={() => setView("reauth-regen")}>
+                  <RefreshCw size={12} /> Regenerate Backup Codes
+                </Btn>
+                <Btn variant="danger" size="sm" onClick={() => setView("reauth-disable")}>
+                  <X size={12} /> Disable 2FA
+                </Btn>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+              <div style={{ fontSize:12, color:"var(--muted)" }}>
+                2FA is not enabled on this account. We strongly recommend turning it on for Super Admin access.
+              </div>
+              <Btn onClick={startSetup} disabled={busy} style={{ width:"fit-content" }}>
+                {busy ? <><Spinner /> Starting…</> : <><ShieldCheck size={14} /> Enable 2FA</>}
+              </Btn>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {view === "confirm" && setupData && (
+        <Card title="Scan & Confirm" icon={ShieldCheck} accent="#D4AF37">
+          <div style={{ display:"flex", flexDirection:"column", gap:16, alignItems:"center", textAlign:"center" }}>
+            <div style={{ fontSize:12, color:"var(--muted)" }}>
+              Scan this QR code with your authenticator app, then enter the 6-digit code it shows.
+            </div>
+            <img src={setupData.qr_code} alt="2FA QR code" style={{ width:180, height:180, borderRadius:10, background:"#fff", padding:8 }} />
+            <div style={{ fontSize:11, color:"var(--muted)" }}>
+              Can't scan? Enter this key manually: <span style={{ ...T.mono, color:"var(--text)" }}>{setupData.secret}</span>
+            </div>
+            <div style={{ width:"100%", maxWidth:220 }}>
+              <input value={confirmCode} autoFocus onChange={e => setConfirmCode(e.target.value)}
+                placeholder="6-digit code" inputMode="numeric"
+                className="sa-input" style={{ ...T.input, textAlign:"center" }} />
+            </div>
+            <div style={{ display:"flex", gap:8 }}>
+              <Btn variant="ghost" size="sm" onClick={resetFlow}>Cancel</Btn>
+              <Btn size="sm" onClick={confirmSetup} disabled={busy || !confirmCode.trim()}>
+                {busy ? <><Spinner /> Verifying…</> : "Confirm"}
+              </Btn>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {(view === "reauth-disable" || view === "reauth-regen") && (
+        <Card
+          title={view === "reauth-disable" ? "Confirm Disable" : "Confirm Regenerate"}
+          icon={Lock} accent="#f87171"
+        >
+          <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+            <div style={{ fontSize:12, color:"var(--muted)" }}>
+              Re-enter your password and a current 2FA code to continue.
+            </div>
+            <div>
+              <label style={T.label}>Password</label>
+              <input type="password" value={reauthPw} onChange={e => setReauthPw(e.target.value)}
+                className="sa-input" style={T.input} />
+            </div>
+            <div>
+              <label style={T.label}>Authenticator Code</label>
+              <input value={reauthCode} onChange={e => setReauthCode(e.target.value)}
+                placeholder="6-digit code, or a backup code"
+                className="sa-input" style={T.input} />
+            </div>
+            <div style={{ display:"flex", gap:8 }}>
+              <Btn variant="ghost" size="sm" onClick={resetFlow}>Cancel</Btn>
+              <Btn variant="danger" size="sm" onClick={() => submitReauth(view === "reauth-disable" ? "disable" : "regen")} disabled={busy}>
+                {busy ? <><Spinner /> Working…</> : "Confirm"}
+              </Btn>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {view === "backup-codes" && (
+        <Card title="Save Your Backup Codes" icon={ShieldCheck} accent="#D4AF37">
+          <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+            <div style={{ fontSize:12, color:"var(--muted)" }}>
+              Each code can be used once if you lose access to your authenticator app. Save them somewhere safe — this is the only time they're shown.
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, padding:14, borderRadius:9, background:"var(--surface2)", border:"1px solid var(--border)" }}>
+              {backupCodes.map(c => (
+                <div key={c} style={{ ...T.mono, fontSize:13, textAlign:"center", color:"var(--text)" }}>{c}</div>
+              ))}
+            </div>
+            <Btn variant="ghost" size="sm" onClick={copyBackupCodes} style={{ width:"fit-content" }}>Copy Codes</Btn>
+            <label style={{ display:"flex", alignItems:"center", gap:8, fontSize:12, color:"var(--muted)", cursor:"pointer" }}>
+              <input type="checkbox" checked={ackSaved} onChange={e => setAckSaved(e.target.checked)} />
+              I've saved these codes somewhere safe
+            </label>
+            <Btn onClick={finishBackupCodes} disabled={!ackSaved} style={{ width:"fit-content" }}>
+              <CheckCircle size={14} /> Done
+            </Btn>
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // ROOT
 // ═══════════════════════════════════════════════════════════════════════════
 const TABS = [
@@ -995,6 +1272,7 @@ const TABS = [
   { id:"transfer",  label:"Transfer",        Icon:ArrowRightLeft  },
   { id:"admins",    label:"Manage Admins",   Icon:Users           },
   { id:"history",   label:"History",         Icon:History         },
+  { id:"security",  label:"Security",        Icon:Lock            },
 ];
 
 export default function SuperAdminPanel() {
@@ -1100,6 +1378,7 @@ function SuperAdminPanelInner() {
         {tab === "transfer"  && <TransferTab toast={showToast} />}
         {tab === "admins"    && <AdminsTab toast={showToast} />}
         {tab === "history"   && <HistoryTab toast={showToast} />}
+        {tab === "security"  && <SecurityTab toast={showToast} />}
       </div>
 
       {toast && <Toast msg={toast.msg} ok={toast.ok} onClose={() => setToast(null)} />}

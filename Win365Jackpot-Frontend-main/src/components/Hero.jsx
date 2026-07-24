@@ -121,13 +121,20 @@ const FloatingCard = memo(({ suit, val, pos, delay, red }) => (
 ))
 
 // ─── Floating Luxury ──────────────────────────────────────────────────────
+// Rolex kept in its own list — it renders on every breakpoint (see the two
+// render sites below), unlike the rest of luxuryItems which stay desktop
+// -only (narrow viewports have no margin room outside the centered text
+// column for these without overlapping the winner feed / hero title / CTAs).
+const rolexItems = [
+  { logo:'/images/logos/rolex.png', label:'ROLEX', pos:{right:'19%',top:'14%'}, delay:3.5, color:'#D4AF37' },
+  { logo:'/images/logos/rolex.png', label:'ROLEX', pos:{left:'1%',  top:'16%'}, delay:2.8, color:'#D4AF37' },
+]
+
 const luxuryItems = [
   { logo:'/images/logos/benz.png',  label:'BENZ',  pos:{left:'9%',  top:'36%'}, delay:0.5, color:'#C8C8C8' },
   { logo:'/images/logos/bmw.png',   label:'BMW',   pos:{right:'14%',top:'30%'}, delay:2.0, color:'#4FC3F7' },
   { logo:'/images/logos/apple.png', label:'APPLE', pos:{left:'11%', top:'62%'}, delay:1.2, color:'#E8E8E8' },
-  { logo:'/images/logos/rolex.png', label:'ROLEX', pos:{right:'19%',top:'14%'}, delay:3.5, color:'#D4AF37' },
   { Icon: Gem,                       label:'VIP',   pos:{right:'3%', top:'60%'}, delay:4.2, color:'#B47FFF' },
-  { logo:'/images/logos/rolex.png', label:'ROLEX', pos:{left:'1%',  top:'16%'}, delay:2.8, color:'#D4AF37' },
 ]
 
 const FloatingLuxury = memo(({ Icon, logo, label, pos, delay, color }) => {
@@ -471,6 +478,17 @@ useEffect(() => {
         {luxuryItems.map((item, i) => <FloatingLuxury key={i} {...item} />)}
       </div>
 
+      {/* Rolex, right badge — shown on every breakpoint, including mobile;
+          its position sits clear of the mobile winner feed / hero pill. */}
+      <FloatingLuxury key="rolex-0" {...rolexItems[0]} />
+
+      {/* Rolex, left badge — desktop only: at mobile widths this position
+          overlaps WinnerFeedMobile's ticker (top:58, left:8, up to 180px
+          wide), so it stays grouped with the other desktop-only items. */}
+      <div className="hidden md:contents">
+        <FloatingLuxury key="rolex-1" {...rolexItems[1]} />
+      </div>
+
       {/* Dice desktop */}
       {[
         { left:'3%',  top:'14%'    },
@@ -512,24 +530,23 @@ useEffect(() => {
         /> */}
       </div>
 
-      {/* Casino Girl — Mobile */}
+      {/* Mobile hero accent — premium gold-glow gradient (replaces the model
+          image on narrow viewports only; desktop is untouched above) */}
       <div
         className="md:hidden"
         style={{
-          position:'absolute', right:0, bottom:0,
+          position:'absolute', right:0, bottom:0, left:0,
           height:'min(76vw, 360px)',
           zIndex:2, opacity:0.62,
           pointerEvents:'none', userSelect:'none',
-          WebkitMaskImage:'linear-gradient(to top, transparent 0%, black 20%), linear-gradient(to left, black 55%, transparent 100%)',
-          maskImage:'linear-gradient(to top, transparent 0%, black 20%), linear-gradient(to left, black 55%, transparent 100%)',
-          WebkitMaskComposite:'destination-in', maskComposite:'intersect',
+          WebkitMaskImage:'linear-gradient(to top, transparent 0%, black 20%)',
+          maskImage:'linear-gradient(to top, transparent 0%, black 20%)',
         }}
       >
-        <img
-          src="/images/casino-girl.png" alt=""
-          style={{ height:'100%', width:'auto', objectFit:'contain', objectPosition:'bottom right' }}
-          onError={e => { e.currentTarget.style.display='none' }}
-        />
+        <div style={{
+          width:'100%', height:'100%',
+          background:'radial-gradient(ellipse at 75% 100%, rgba(212,175,55,0.4) 0%, rgba(46,0,36,0.3) 45%, transparent 75%)',
+        }} />
       </div>
 
       {/* Winner feeds */}
@@ -565,7 +582,8 @@ useEffect(() => {
           <span style={{ width:7, height:7, borderRadius:'50%', background:'#4ade80', flexShrink:0, animation:'pulse-dot 2s infinite', display:'inline-block' }} />
           {(settings?.hero_badge_text || "Asia's #1 Offline Casinos VIP's Platform")
             .toUpperCase()
-            .replace(/'S\b/g, "'s")}
+            .replace(/CASINO'S\b/, 'CASINOS')
+            .replace(/\bASIA'S\b/, "ASIA's")}
         </motion.div>
 
         {/* H1 */}
@@ -710,7 +728,7 @@ useEffect(() => {
                 boxShadow:'0 0 28px rgba(212,175,55,0.4)',
                 touchAction:'manipulation',
               }}
-            >{settings?.hero_cta_primary_label || '🎰 Register — FREE'}</motion.button>
+            >{(settings?.hero_cta_primary_label && !settings.hero_cta_primary_label.includes('?')) ? settings.hero_cta_primary_label : '🎰 Register — FREE'}</motion.button>
           </Link>
           <Link to="packages-all" smooth duration={600} offset={-80}>
             <motion.button
@@ -726,7 +744,7 @@ useEffect(() => {
                 letterSpacing:'0.13em', textTransform:'uppercase',
                 cursor:'pointer', touchAction:'manipulation',
               }}
-            >{settings?.hero_cta_secondary_label || 'Packages ✨'}</motion.button>
+            >{(settings?.hero_cta_secondary_label && !settings.hero_cta_secondary_label.includes('?')) ? settings.hero_cta_secondary_label : 'Packages ✨'}</motion.button>
           </Link>
         </motion.div>
 

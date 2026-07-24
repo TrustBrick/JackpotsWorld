@@ -1,48 +1,51 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Plane, Hotel, UtensilsCrossed, Wine, CheckCircle2, XCircle, MessageCircle } from "lucide-react";
+import {
+  Plane, Hotel, UtensilsCrossed, Wine, CheckCircle2, XCircle, MessageCircle,
+  Layers, Ticket, Dices, Trophy, PenLine, Gem, Crown, ShieldCheck,
+} from "lucide-react";
 import { C } from "../../constants";
 import { Card } from "../../components/SharedUI";
 import { useAutoFetch } from "../../../../hooks/useAutoFetch";
 import { fetchTourPackages, fetchLandingSettings } from "../../../../services/landingService";
 
 const FALLBACK_PACKAGES = [
-  { name: "VIP", price: "$5,000", icon: "🃏", color: "#9E9E9E", badge: null,
-    duration: "3 Nights", flight: "Economy", hotel: "Standard 3★ (3N)",
+  { name: "VIP", price: "$5,000", icon: <Layers size={26} color="#9E9E9E" />, color: "#9E9E9E", badge: null,
+    duration: "3 Nights", flight: "Economy", hotel: "Standard 3-Star (3N)",
     food: "Casino", liquor: "Over the Gaming Table (Local)",
     airportVIP: false, jackpotRewards: true, vipTransport: false,
     spa: false, shoppingVoucher: false, visa: false },
-  { name: "Classic", price: "$10,000", icon: "🎴", color: "#78909C", badge: null,
-    duration: "3 Nights", flight: "Economy", hotel: "Standard 4★ (3N)",
+  { name: "Classic", price: "$10,000", icon: <Ticket size={26} color="#78909C" />, color: "#78909C", badge: null,
+    duration: "3 Nights", flight: "Economy", hotel: "Standard 4-Star (3N)",
     food: "Casino", liquor: "Over the Gaming Table (Local Premium)",
     airportVIP: false, jackpotRewards: true, vipTransport: false,
     spa: true, shoppingVoucher: false, visa: true },
-  { name: "Premium", price: "$15,000", icon: "🎲", color: "#D4AF37", badge: "Popular",
-    duration: "3 Nights", flight: "Economy", hotel: "Standard 5★ (3N)",
+  { name: "Premium", price: "$15,000", icon: <Dices size={26} color="#D4AF37" />, color: "#D4AF37", badge: "Popular",
+    duration: "3 Nights", flight: "Economy", hotel: "Standard 5-Star (3N)",
     food: "Casino", liquor: "Over the Gaming Table (Premium)",
     airportVIP: false, jackpotRewards: true, vipTransport: false,
     spa: true, shoppingVoucher: false, visa: true },
-  { name: "Prestige", price: "$20,000", icon: "🏆", color: "#F5A623", badge: null,
-    duration: "3 Nights", flight: "Economy", hotel: "Executive 5★ (3N)",
+  { name: "Prestige", price: "$20,000", icon: <Trophy size={26} color="#F5A623" />, color: "#F5A623", badge: null,
+    duration: "3 Nights", flight: "Economy", hotel: "Executive 5-Star (3N)",
     food: "Casino", liquor: "Over the Gaming Table (Imported Premium)",
     airportVIP: false, jackpotRewards: true, vipTransport: false,
     spa: true, shoppingVoucher: false, visa: true },
-  { name: "Signature", price: "$25,000", icon: "✍️", color: "#26C6DA", badge: null,
-    duration: "3 Nights", flight: "Economy", hotel: "Premium 5★ (3N)",
+  { name: "Signature", price: "$25,000", icon: <PenLine size={26} color="#26C6DA" />, color: "#26C6DA", badge: null,
+    duration: "3 Nights", flight: "Economy", hotel: "Premium 5-Star (3N)",
     food: "Casino", liquor: "Over the Gaming Table (Imported Premium)",
     airportVIP: true, jackpotRewards: true, vipTransport: true,
     spa: true, shoppingVoucher: true, visa: true },
-  { name: "Elite", price: "$50,000", icon: "💎", color: "#B9F2FF", badge: "Best Value",
-    duration: "3 Nights", flight: "Business", hotel: "Suite 5★ (3N)",
+  { name: "Elite", price: "$50,000", icon: <Gem size={26} color="#B9F2FF" />, color: "#B9F2FF", badge: "Best Value",
+    duration: "3 Nights", flight: "Business", hotel: "Suite 5-Star (3N)",
     food: "Casino/Hotel", liquor: "Imported Premium",
     airportVIP: true, jackpotRewards: true, vipTransport: true, vipTransportNote: "*",
     spa: true, spaNote: "*", shoppingVoucher: true, shoppingNote: "*", visa: true },
-  { name: "Royal", price: "$100,000", icon: "👑", color: "#FFD700", badge: null,
-    duration: "4 Nights", flight: "Business", hotel: "Executive Suite 5★ (4N)",
+  { name: "Royal", price: "$100,000", icon: <Crown size={26} color="#FFD700" />, color: "#FFD700", badge: null,
+    duration: "4 Nights", flight: "Business", hotel: "Executive Suite 5-Star (4N)",
     food: "Casino/Hotel", liquor: "Imported Premium",
     airportVIP: true, jackpotRewards: true, vipTransport: true, vipTransportNote: "**",
     spa: true, spaNote: "**", shoppingVoucher: true, shoppingNote: "**", visa: true },
-  { name: "Sovereign", price: "$250,000+", icon: "⚜️", color: "#C9A84C", badge: "🤫 Invite Only",
+  { name: "Sovereign", price: "$250,000+", icon: <ShieldCheck size={26} color="#C9A84C" />, color: "#C9A84C", badge: "Invite Only",
     duration: "7 Nights", flight: "Business", hotel: "Presidential Suite (7N)",
     food: "Casino/Hotel", liquor: "Imported Premium",
     airportVIP: true, jackpotRewards: true, vipTransport: true, vipTransportNote: "**",
@@ -50,12 +53,21 @@ const FALLBACK_PACKAGES = [
 ];
 
 const DEFAULT_WHATSAPP_NUMBER = "917795281999";
+const FALLBACK_PACKAGE_BY_NAME = new Map(FALLBACK_PACKAGES.map(p => [p.name, p]));
 
+// See CountryPackages.jsx's mapTourPackage — a legacy latin1 DB column
+// mojibake'd some admin-entered emoji/star characters into literal "?"
+// bytes. Fall back to the known-correct bundled icon/hotel text by name
+// whenever the API value looks corrupted, instead of rendering the "?".
 function mapTourPackage(p) {
   if (p.airportVIP !== undefined) return p; // already fallback shape
+  const fb = FALLBACK_PACKAGE_BY_NAME.get(p.name);
+  const icon = (p.icon && !p.icon.includes("?")) ? p.icon : fb?.icon;
+  const hotel = (p.hotel && !p.hotel.includes("?")) ? p.hotel : (fb?.hotel || p.hotel);
+  const badge = (p.badge && p.badge.includes("?")) ? (fb?.badge || null) : (p.badge || null);
   return {
-    name: p.name, price: p.price, icon: p.icon, color: p.color, badge: p.badge || null,
-    duration: p.duration, flight: p.flight, hotel: p.hotel, food: p.food, liquor: p.liquor,
+    name: p.name, price: p.price, icon, color: p.color, badge,
+    duration: p.duration, flight: p.flight, hotel, food: p.food, liquor: p.liquor,
     airportVIP: p.airport_vip, jackpotRewards: p.jackpot_rewards, vipTransport: p.vip_transport,
     spa: p.spa, shoppingVoucher: p.shopping_voucher, visa: p.visa,
   };

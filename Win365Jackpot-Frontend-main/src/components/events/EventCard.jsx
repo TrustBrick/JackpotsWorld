@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   MapPin, Building2, CalendarDays, Clock, Tag, ArrowRight, ImageOff,
 } from 'lucide-react'
-import { getFallbackImage } from '../../utils/mediaFallback'
+import { getFallbackImage, fixMojibakeCurrency } from '../../utils/mediaFallback'
 
 function formatDate(iso) {
   if (!iso) return ''
@@ -99,11 +99,11 @@ function EventCard({ event }) {
 
       {/* Body */}
       <div className="p-5 flex flex-col flex-1 gap-3">
-        <h3 className="font-black text-lg text-[rgba(var(--w365-text-rgb),0.90)] leading-snug">{event.name}</h3>
+        <h3 className="font-black text-lg text-[rgba(var(--w365-text-rgb),0.90)] leading-snug">{fixMojibakeCurrency(event.name)}</h3>
 
         {event.short_description && (
           <p className="text-[rgba(var(--w365-text-rgb),0.55)] text-sm font-body leading-relaxed line-clamp-3">
-            {event.short_description}
+            {fixMojibakeCurrency(event.short_description)}
           </p>
         )}
 

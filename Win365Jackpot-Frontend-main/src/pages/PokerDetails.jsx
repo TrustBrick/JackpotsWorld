@@ -8,8 +8,9 @@ import {
 } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import AuthModal from '../components/AuthModal'
+import PageScrollButtons from '../components/PageScrollButtons'
 import { fetchPokerDetail, registerForTournament } from '../services/pokerService'
-import { getFallbackImage } from '../utils/mediaFallback'
+import { getFallbackImage, fixMojibakeCurrency } from '../utils/mediaFallback'
 import { getToken } from '../services/authStorage'
 
 const STATUS_LABEL_KEYS = {
@@ -67,6 +68,7 @@ export default function PokerDetails() {
       <Navbar />
       <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} defaultTab="login" onAuthSuccess={() => setAuthOpen(false)} />
 
+      <main>
       <section className="max-w-3xl mx-auto px-4 pt-28 pb-24">
         <button
           onClick={() => navigate('/poker')}
@@ -110,7 +112,7 @@ export default function PokerDetails() {
             </div>
 
             <div className="p-6 md:p-8">
-              <h1 className="font-black text-2xl md:text-3xl text-white/90 mb-4">{tournament.name}</h1>
+              <h1 className="font-black text-2xl md:text-3xl text-white/90 mb-4">{fixMojibakeCurrency(tournament.name)}</h1>
 
               {(tournament.casino_name || tournament.location) && (
                 <p className="text-white/55 text-sm font-body flex items-center gap-2 mb-4">
@@ -127,7 +129,7 @@ export default function PokerDetails() {
               </div>
 
               {tournament.description && (
-                <p className="text-white/55 text-sm font-body leading-relaxed mb-6">{tournament.description}</p>
+                <p className="text-white/55 text-sm font-body leading-relaxed mb-6">{fixMojibakeCurrency(tournament.description)}</p>
               )}
 
               {!isLoggedIn ? (
@@ -158,6 +160,9 @@ export default function PokerDetails() {
           </motion.div>
         )}
       </section>
+      </main>
+
+      <PageScrollButtons />
     </div>
   )
 }

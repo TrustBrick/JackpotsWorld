@@ -3,8 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Gift as GiftIcon, CheckCircle2, CalendarClock, AlertTriangle, RefreshCw, ImageOff, X, ScrollText } from 'lucide-react'
 import Navbar from '../components/Navbar'
+import PageScrollButtons from '../components/PageScrollButtons'
 import { fetchPromotionDetail } from '../services/promotionService'
 import { flagFromCountryCode } from '../utils/countryFlags'
+import { getCasinoFallbackImage } from '../utils/mediaFallback'
 
 export default function PromotionDetails() {
   const { id } = useParams()
@@ -26,6 +28,7 @@ export default function PromotionDetails() {
     <div className="min-h-screen" style={{ background: 'var(--w365-bg)' }}>
       <Navbar />
 
+      <main>
       <section className="max-w-3xl mx-auto px-4 pt-28 pb-24">
         <button
           onClick={() => navigate('/promotions')}
@@ -48,8 +51,8 @@ export default function PromotionDetails() {
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="casino-card overflow-hidden">
             {/* Large banner */}
             <div className="relative h-56 md:h-64 overflow-hidden">
-              {promo.image ? (
-                <img src={promo.image} alt={promo.title} loading="lazy" className="w-full h-full object-cover" />
+              {(promo.image || getCasinoFallbackImage(promo.casino_name, promo.country)) ? (
+                <img src={promo.image || getCasinoFallbackImage(promo.casino_name, promo.country)} alt={promo.title} loading="lazy" className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, var(--w365-card), var(--w365-bg-mid))' }}>
                   <ImageOff size={32} className="text-gold/30" />
@@ -158,6 +161,9 @@ export default function PromotionDetails() {
           </motion.div>
         )}
       </section>
+      </main>
+
+      <PageScrollButtons />
 
       {/* Gallery lightbox */}
       <AnimatePresence>

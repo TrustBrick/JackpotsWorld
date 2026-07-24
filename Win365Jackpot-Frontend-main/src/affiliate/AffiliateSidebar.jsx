@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LogOut, Menu, X, LifeBuoy } from "lucide-react";
+import Logo from "../components/shared/Logo";
 
 export const SIDEBAR_WIDTH = 228;
 
@@ -39,10 +40,7 @@ export default function AffiliateSidebar({ C, affiliateUser, activeTab, onTabCha
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20, paddingLeft: 4 }}>
         <div onClick={() => window.location.href = "/"} style={{ cursor: "pointer" }}>
           <img src="/images/jackpotsworld_watermark.png" className="w-10 h-10 object-contain" />
-          <div className="flex flex-col leading-none">
-            <span className="font-bold text-xl md:text-2xl gold-text font-black tracking-wider">Jackpots</span>
-            <span className="font-body text-xs tracking-[0.4em] text-gold/70 uppercase">World</span>
-          </div>
+          <Logo size="md" />
         </div>
         {bp !== "desktop" && (
           <button onClick={() => setDrawerOpen(false)} style={{

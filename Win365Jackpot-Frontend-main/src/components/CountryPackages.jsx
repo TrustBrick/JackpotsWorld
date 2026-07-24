@@ -103,6 +103,9 @@ const FALLBACK_COUNTRIES = [
     bestFor: 'Baccarat, Roulette, Sports Betting',
   },
 ]
+const FALLBACK_COUNTRY_IMAGE_SRC_BY_LABEL = new Map(
+  FALLBACK_COUNTRIES.map(c => [c.name, new Map(c.images.map(img => [img.label, img.src]))])
+)
 
 const FALLBACK_VIP_SERVICES = [
   { src: '/images/vip/massage-1.jpg',   label: 'Classic Massage',     category: 'Wellness' },
@@ -119,10 +122,11 @@ const FALLBACK_VIP_SERVICES = [
   { src: '/images/vip/luxury-cruise.jpg', label: 'Luxury Cruises',     category: 'Luxury Travel' },
   { src: '/images/vip/private-boat.jpg', label: 'Private Boats',     category: 'Luxury Travel' },
 ]
+const FALLBACK_VIP_SERVICE_SRC_BY_LABEL = new Map(FALLBACK_VIP_SERVICES.map(v => [v.label, v.src]))
 
 const INCLUSIONS = [
   { icon: <Plane      size={15} color="#D4AF37" />, label: 'Free Flights'   },
-  { icon: <Hotel      size={15} color="#D4AF37" />, label: '5★ Hotels'      },
+  { icon: <Hotel      size={15} color="#D4AF37" />, label: '5-Star Hotels'  },
   { icon: <Coins      size={15} color="#D4AF37" />, label: 'Casino Credits' },
   { icon: <Car        size={15} color="#D4AF37" />, label: 'Transfers'      },
   { icon: <UtensilsCrossed size={15} color="#D4AF37" />, label: 'All Meals' },
@@ -303,7 +307,10 @@ function VIPServicesGallery() {
   const [activeCategory, setActiveCategory] = useState('All')
   const { data: vipServicesData } = useAutoFetch(fetchVipServiceImages, {}, { intervalMs: 60_000 })
   const VIP_SERVICES = (Array.isArray(vipServicesData) && vipServicesData.length > 0 ? vipServicesData : FALLBACK_VIP_SERVICES)
-    .map(v => ({ src: v.src || v.image, label: v.label, category: v.category }))
+    // Admin-managed entries don't have an uploaded image until someone sets
+    // one via the VIP Service Images admin tab — fall back to the matching
+    // bundled asset per-item instead of rendering a broken <img src>.
+    .map(v => ({ src: v.src || v.image || FALLBACK_VIP_SERVICE_SRC_BY_LABEL.get(v.label), label: v.label, category: v.category }))
   const categories = ['All', ...new Set(VIP_SERVICES.map(v => v.category).filter(Boolean))]
   const filtered = activeCategory === 'All' ? VIP_SERVICES : VIP_SERVICES.filter(v => v.category === activeCategory)
   const { ref: inViewRef, inView } = useInView({ threshold: 0.05, triggerOnce: true })
@@ -476,53 +483,63 @@ function CruiseCarousel() {
 
 /* ── PACKAGE CARDS SECTION — mobile-first ── */
 const FALLBACK_PACKAGES = [
-  { name: 'VIP', price: '$5,000', icon: '🃏', color: '#9E9E9E', badge: null,
-    duration: '3 Nights', flight: 'Economy', hotel: 'Standard 3★ (3N)',
+  { name: 'VIP', price: '$5,000', icon: <Layers size={26} color="#9E9E9E" />, color: '#9E9E9E', badge: null,
+    duration: '3 Nights', flight: 'Economy', hotel: 'Standard 3-Star (3N)',
     food: 'Casino', liquor: 'Over the Gaming Table (Local)',
     airportVIP: false, jackpotRewards: true, vipTransport: false,
     spa: false, shoppingVoucher: false, visa: false },
-  { name: 'Classic', price: '$10,000', icon: '🎴', color: '#78909C', badge: null,
-    duration: '3 Nights', flight: 'Economy', hotel: 'Standard 4★ (3N)',
+  { name: 'Classic', price: '$10,000', icon: <Ticket size={26} color="#78909C" />, color: '#78909C', badge: null,
+    duration: '3 Nights', flight: 'Economy', hotel: 'Standard 4-Star (3N)',
     food: 'Casino', liquor: 'Over the Gaming Table (Local Premium)',
     airportVIP: false, jackpotRewards: true, vipTransport: false,
     spa: true, shoppingVoucher: false, visa: true },
-  { name: 'Premium', price: '$15,000', icon: '🎲', color: '#D4AF37', badge: 'Popular',
-    duration: '3 Nights', flight: 'Economy', hotel: 'Standard 5★ (3N)',
+  { name: 'Premium', price: '$15,000', icon: <Dices size={26} color="#D4AF37" />, color: '#D4AF37', badge: 'Popular',
+    duration: '3 Nights', flight: 'Economy', hotel: 'Standard 5-Star (3N)',
     food: 'Casino', liquor: 'Over the Gaming Table (Premium)',
     airportVIP: false, jackpotRewards: true, vipTransport: false,
     spa: true, shoppingVoucher: false, visa: true },
-  { name: 'Prestige', price: '$20,000', icon: '🏆', color: '#F5A623', badge: null,
-    duration: '3 Nights', flight: 'Economy', hotel: 'Executive 5★ (3N)',
+  { name: 'Prestige', price: '$20,000', icon: <Trophy size={26} color="#F5A623" />, color: '#F5A623', badge: null,
+    duration: '3 Nights', flight: 'Economy', hotel: 'Executive 5-Star (3N)',
     food: 'Casino', liquor: 'Over the Gaming Table (Imported Premium)',
     airportVIP: false, jackpotRewards: true, vipTransport: false,
     spa: true, shoppingVoucher: false, visa: true },
-  { name: 'Signature', price: '$25,000', icon: '✍️', color: '#26C6DA', badge: null,
-    duration: '3 Nights', flight: 'Economy', hotel: 'Premium 5★ (3N)',
+  { name: 'Signature', price: '$25,000', icon: <PenLine size={26} color="#26C6DA" />, color: '#26C6DA', badge: null,
+    duration: '3 Nights', flight: 'Economy', hotel: 'Premium 5-Star (3N)',
     food: 'Casino', liquor: 'Over the Gaming Table (Imported Premium)',
     airportVIP: true, jackpotRewards: true, vipTransport: true,
     spa: true, shoppingVoucher: true, visa: true },
-  { name: 'Elite', price: '$50,000', icon: '💎', color: '#B9F2FF', badge: 'Best Value',
-    duration: '3 Nights', flight: 'Business', hotel: 'Suite 5★ (3N)',
+  { name: 'Elite', price: '$50,000', icon: <Gem size={26} color="#B9F2FF" />, color: '#B9F2FF', badge: 'Best Value',
+    duration: '3 Nights', flight: 'Business', hotel: 'Suite 5-Star (3N)',
     food: 'Casino/Hotel', liquor: 'Imported Premium',
     airportVIP: true, jackpotRewards: true, vipTransport: true, vipTransportNote: '*',
     spa: true, spaNote: '*', shoppingVoucher: true, shoppingNote: '*', visa: true },
-  { name: 'Royal', price: '$100,000', icon: '👑', color: '#FFD700', badge: null,
-    duration: '4 Nights', flight: 'Business', hotel: 'Executive Suite 5★ (4N)',
+  { name: 'Royal', price: '$100,000', icon: <Crown size={26} color="#FFD700" />, color: '#FFD700', badge: null,
+    duration: '4 Nights', flight: 'Business', hotel: 'Executive Suite 5-Star (4N)',
     food: 'Casino/Hotel', liquor: 'Imported Premium',
     airportVIP: true, jackpotRewards: true, vipTransport: true, vipTransportNote: '**',
     spa: true, spaNote: '**', shoppingVoucher: true, shoppingNote: '**', visa: true },
-  { name: 'Sovereign', price: '$250,000+', icon: '⚜️', color: '#C9A84C', badge: '🤫 Invite Only',
+  { name: 'Sovereign', price: '$250,000+', icon: <ShieldCheck size={26} color="#C9A84C" />, color: '#C9A84C', badge: 'Invite Only',
     duration: '7 Nights', flight: 'Business', hotel: 'Presidential Suite (7N)',
     food: 'Casino/Hotel', liquor: 'Imported Premium',
     airportVIP: true, jackpotRewards: true, vipTransport: true, vipTransportNote: '**',
     spa: true, spaNote: '***', shoppingVoucher: true, shoppingNote: '***', visa: true },
 ]
+const FALLBACK_PACKAGE_BY_NAME = new Map(FALLBACK_PACKAGES.map(p => [p.name, p]))
 
+// Some admin-entered emoji/star characters were mojibake'd into literal "?"
+// bytes by a legacy latin1 database column (pre-dating this migration) —
+// treat an icon/hotel value containing "?" as corrupted and fall back to
+// the known-correct bundled icon / hotel text for that package name,
+// instead of rendering the "?" straight through.
 function mapTourPackage(p) {
   if (p.airportVIP !== undefined) return p // already fallback shape
+  const fb = FALLBACK_PACKAGE_BY_NAME.get(p.name)
+  const icon = (p.icon && !p.icon.includes('?')) ? p.icon : fb?.icon
+  const hotel = (p.hotel && !p.hotel.includes('?')) ? p.hotel : (fb?.hotel || p.hotel)
+  const badge = (p.badge && p.badge.includes('?')) ? (fb?.badge || null) : (p.badge || null)
   return {
-    name: p.name, price: p.price, icon: p.icon, color: p.color, badge: p.badge || null,
-    duration: p.duration, flight: p.flight, hotel: p.hotel, food: p.food, liquor: p.liquor,
+    name: p.name, price: p.price, icon, color: p.color, badge,
+    duration: p.duration, flight: p.flight, hotel, food: p.food, liquor: p.liquor,
     airportVIP: p.airport_vip, jackpotRewards: p.jackpot_rewards, vipTransport: p.vip_transport,
     vipTransportNote: p.vip_transport_note, spa: p.spa, spaNote: p.spa_note,
     shoppingVoucher: p.shopping_voucher, shoppingNote: p.shopping_note, visa: p.visa,
@@ -547,7 +564,7 @@ function PackagesSection() {
             TOUR PACKAGES
           </h2>
           <p className="font-body font-light" style={{ color: 'rgba(var(--w365-text-rgb),0.5)', maxWidth: 520, margin: '0 auto', fontSize: 'clamp(0.82rem,3.2vw,1rem)', lineHeight: 1.6 }}>
-            Every package includes <strong style={{ color: 'rgba(212,175,55,0.9)' }}>Free Flights · 5★ Hotel · All Meals · Free Drinks · VIP Casino Access</strong>.
+            Every package includes <strong style={{ color: 'rgba(212,175,55,0.9)' }}>Free Flights · 5-Star Hotel · All Meals · Free Drinks · VIP Casino Access</strong>.
             Available for all 5 destinations.
           </p>
         </motion.div>
@@ -905,7 +922,14 @@ export default function CountryPackages() {
       tagline: d.tagline,
       color,
       glow: hexToRgba(color, 0.3),
-      images: (d.images || []).map(m => ({ src: m.media, label: m.label, ...(m.media_type === 'video' ? { type: 'video' } : {}) })),
+      // Admin-managed destination media doesn't have an uploaded file until
+      // someone sets one via the admin panel — fall back to the matching
+      // bundled asset per-item instead of rendering a broken <img>/<video> src.
+      images: (d.images || []).map(m => ({
+        src: m.media || FALLBACK_COUNTRY_IMAGE_SRC_BY_LABEL.get(d.name)?.get(m.label),
+        label: m.label,
+        ...(m.media_type === 'video' ? { type: 'video' } : {}),
+      })),
       casinos: d.casinos_text,
       bestFor: d.best_for,
     }
