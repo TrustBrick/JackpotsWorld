@@ -314,6 +314,11 @@ CSRF_COOKIE_SECURE = not DEBUG
 if config('USE_X_FORWARDED_PROTO', default=False, cast=bool):
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
+# EB's load balancer terminates HTTPS and forwards plain HTTP to the app
+# instance — without this, Django thinks every request is HTTP, so
+# SESSION_COOKIE_SECURE/CSRF_COOKIE_SECURE above silently drop cookies.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "same-origin"
