@@ -29,6 +29,7 @@ from authapp.throttles import (
 )
 from authapp.utils.account_lockout import is_locked_out, record_failed_attempt, reset_attempts
 from authapp.utils.geolocation import resolve_geo_location
+from authapp.utils.turnstile import verify_turnstile
 from authapp.utils.ip_allowlist import is_superadmin_ip_allowed
 from authapp.utils.two_factor import make_2fa_pending_token, verify_2fa_pending_token, verify_totp_or_backup_code
 from authapp.data.countries import COUNTRIES
@@ -184,10 +185,12 @@ class LoginView(APIView):
     throttle_classes = [LoginRateThrottle]
 
     def post(self, request):
-        # Cloudflare Turnstile verification (enable when ready):
-        # cf_token = request.data.get("cf_turnstile_token")
-        # if not verify_turnstile(cf_token):
-        #     return Response({"error": "Verification failed. Please try again."}, status=400)
+        # Cloudflare Turnstile verification — rejects the request outright
+        # if the token is missing or Cloudflare doesn't confirm it, before
+        # any credential checking happens.
+        cf_token = request.data.get("cf_turnstile_response")
+        if not verify_turnstile(cf_token, get_client_ip(request)):
+            return Response({"error": "Human verification failed. Please try again."}, status=400)
 
         email = request.data.get("email", "").strip().lower()
         ip    = get_client_ip(request)
