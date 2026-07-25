@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import { getToken } from "../services/authStorage"
 
 const API = import.meta.env.VITE_API_URL || ""
 const INACTIVITY_MS = 3 * 60 * 1000 // 3 minutes
 const HISTORY_KEY = "chatbot_messages"
 
-const WELCOME = { role: "bot", text: "Welcome to Jackpots World! 🎰\nI'm your live assistant. Ask me about registration, wallet, deposits, withdrawals, casinos, poker, events, promotions, VIP, referrals, affiliates, or responsible gambling!" }
+const WELCOME = { role: "bot", text: "Welcome to Jackpots World Customer Support! 🎰\nI'm here to help with your account, deposits, withdrawals, KYC, gameplay and more. Ask me anything — and if I can't resolve it, I'll get our team on it." }
 
 // SVG headset icon
 function HeadsetIcon({ size = 28 }) {
@@ -131,9 +132,17 @@ export default function ChatBot() {
         .filter(m => m.text !== WELCOME.text)
         .map(m => ({ role: m.role === "user" ? "user" : "assistant", content: m.text }))
 
+      // Attach the access token when the visitor is signed in so support
+      // can look up their own wallet/transaction/KYC data — never sent for
+      // anonymous, pre-login visitors.
+      const token = getToken("access")
+
       const res = await fetch(`${API}/api/chat/message/`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ message: text, session_id: sessionIdRef.current, history }),
       })
 
@@ -203,7 +212,7 @@ export default function ChatBot() {
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", letterSpacing: "0.02em" }}>
-                  Live Assistant
+                  Customer Support
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 1 }}>
                   <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ade80", display: "inline-block" }} />
@@ -300,7 +309,7 @@ export default function ChatBot() {
               borderTop: "1px solid rgba(212,175,55,0.08)",
               flexShrink: 0,
             }}>
-              {["VIP Packages", "Casino Games", "Destinations", "Prizes"].map(chip => (
+              {["My Wallet Balance", "Withdrawal Help", "KYC Status", "Contact Support"].map(chip => (
                 <button
                   key={chip}
                   onClick={() => { setInput(chip); inputRef.current?.focus() }}

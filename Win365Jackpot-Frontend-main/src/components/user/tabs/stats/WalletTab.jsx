@@ -238,12 +238,12 @@ function WalletBalances({ accounts, levelData, loading, profile }) {
   const mainAcct = sorted.find(w => w.wallet_type === "cash");
   const mainBal  = Number(mainAcct?.balance || 0);
 
-  const totalCasinoCash = casinoData.casinos.reduce((sum, c) => {
-    const w = c.wallets?.find(w => w.wallet_type === "C" || w.label === "Cash");
-    return sum + Number(w?.balance || 0);
+  // Combined total across every wallet (Cash/Non-Cash/OTP) of every casino —
+  // independent of which casino is selected in the dropdown below.
+  const totalCasinoBalance = casinoData.casinos.reduce((sum, c) => {
+    const casinoTotal = (c.wallets || []).reduce((s, w) => s + Number(w?.balance || 0), 0);
+    return sum + casinoTotal;
   }, 0);
-
-  const totalMainBalance = mainBal + totalCasinoCash;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -297,13 +297,13 @@ function WalletBalances({ accounts, levelData, loading, profile }) {
   </div>
   <div style={{ padding:"14px 16px", borderRadius:10, background:"rgba(96,165,250,0.06)", border:"1px solid rgba(96,165,250,0.25)" }}>
     <div style={{ fontSize:10, color:"rgba(255,255,255,0.4)", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:4 }}>
-      {t("wallet.totalMainBalance")}
+      {t("wallet.totalCasinoBalance")}
     </div>
     <div style={{ fontSize:10, color:"rgba(255,255,255,0.45)", marginBottom:8 }}>
-      {t("wallet.totalMainBalanceSub")}
+      {t("wallet.totalCasinoBalanceSub")}
     </div>
     <div style={{ fontSize:26, fontWeight:900, fontFamily:"monospace", color:"#60a5fa" }}>
-      {fmt(totalMainBalance)}
+      {fmt(totalCasinoBalance)}
     </div>
   </div>
 </div>

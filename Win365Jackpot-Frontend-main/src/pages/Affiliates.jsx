@@ -9,7 +9,7 @@ import { useTheme } from '../context/ThemeContext'
 import Navbar from '../components/Navbar'
 import PageHeader from '../components/shared/PageHeader'
 import PageScrollButtons from '../components/PageScrollButtons'
-import { commissionTiers } from '../affiliate/commissionTiers'
+import AffiliateFloatingCards from '../components/AffiliateFloatingCards'
 
 // ── Static content ───────────────────────────────────────────────────────────
 // This is copy-only content for now. If you later want this editable from an
@@ -40,9 +40,10 @@ const terms = [
 
 const faqs = [
   { q: 'Is there a cost to join the affiliate program?', a: 'No — joining the Jackpots World affiliate program is completely free.' },
-  { q: 'How and when do I get paid?', a: 'Commissions are calculated monthly based on your referred players\' activity and paid out directly to your registered account.' },
+  { q: 'How and when do I get paid?', a: 'Commissions are calculated weekly and monthly based on your referred players\' activity and paid out directly to your registered account.' },
   { q: 'Can I promote more than one partner casino?', a: 'Yes — your affiliate link covers our entire network of partner casinos, events, and promotions.' },
   { q: 'Is there a limit to how much I can earn?', a: 'There is no cap on commission earnings. The more active players you refer, the higher your tier and payout.' },
+  { q: 'How do you know commission?', a: 'Connect with VIP Affiliate host.' },
 ]
 
 function FaqItem({ faq, isOpen, onToggle }) {
@@ -136,28 +137,10 @@ export default function Affiliates() {
         </div>
       </section>
 
-      {/* Commission structure */}
-      <section className="max-w-5xl mx-auto px-4 pb-20">
-        <h2 className="gold-text font-black text-2xl text-center mb-10 tracking-wide">Commission Structure</h2>
-        <div className="casino-card overflow-hidden">
-          <div className="grid grid-cols-3 px-5 py-3 text-xs uppercase tracking-widest text-gold/70 font-body font-bold" style={{ borderBottom: '1px solid rgba(212,175,55,0.15)' }}>
-            <span>Tier</span>
-            <span>Active Referrals</span>
-            <span>Commission Rate</span>
-          </div>
-          {commissionTiers.map((row, i) => (
-            <div
-              key={row.tier}
-              className="grid grid-cols-3 px-5 py-4 text-sm font-body text-white/70"
-              style={{ borderBottom: i < commissionTiers.length - 1 ? '1px solid rgba(212,175,55,0.08)' : 'none' }}
-            >
-              <span className="font-bold text-white/85">{row.tier}</span>
-              <span>{row.referrals}</span>
-              <span className="text-gold font-semibold">{row.rate}</span>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* Floating affiliate cards */}
+      <div className="pb-20">
+        <AffiliateFloatingCards />
+      </div>
 
       {/* How it works */}
       <section className="max-w-6xl mx-auto px-4 pb-20">

@@ -95,6 +95,8 @@
     "mainBalanceSub": "Available to deposit at casino or payout",
     "totalMainBalance": "Total Main Balance",
     "totalMainBalanceSub": "Main + all casino wallets combined",
+    "totalCasinoBalance": "Total Casino Balance",
+    "totalCasinoBalanceSub": "Combined balance across all casino wallets",
     "casinoWallets": "Casino Wallets",
     "accountOverview": "Account overview",
     "totalDeposited": "Total deposited",
