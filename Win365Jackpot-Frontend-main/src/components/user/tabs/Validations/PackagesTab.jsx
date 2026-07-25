@@ -52,7 +52,7 @@ const FALLBACK_PACKAGES = [
     spa: true, spaNote: "***", shoppingVoucher: true, shoppingNote: "***", visa: true },
 ];
 
-const DEFAULT_WHATSAPP_NUMBER = "917795281999";
+const DEFAULT_WHATSAPP_NUMBER = "94717808877";
 const FALLBACK_PACKAGE_BY_NAME = new Map(FALLBACK_PACKAGES.map(p => [p.name, p]));
 
 // See CountryPackages.jsx's mapTourPackage — a legacy latin1 DB column

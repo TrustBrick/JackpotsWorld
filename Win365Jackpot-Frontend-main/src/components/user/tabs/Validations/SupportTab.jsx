@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import {
   LifeBuoy, MessageCircle, Send, Mail, Phone, Clock,
-  HelpCircle, ChevronDown, PlusCircle, CheckCircle2,
+  HelpCircle, ChevronDown, PlusCircle, CheckCircle2, Paperclip, X,
 } from "lucide-react";
 import { C } from "../../constants";
 import { authFetch, API, fmtDT } from "../../helpers";
@@ -49,6 +49,18 @@ const CHANNELS = [
   { labelKey: "support.emailSupport", Icon: Mail, color: C.gold, status: "support@jackpotsworld.vip" },
 ];
 
+const TICKET_CATEGORIES = [
+  "Account Issue",
+  "Deposit Problem",
+  "Withdrawal Problem",
+  "KYC Verification",
+  "Bonus / Promotion Query",
+  "Casino Package Inquiry",
+  "Technical Issue",
+  "General Inquiry",
+  "Other",
+];
+
 const FAQ = [
   { q: "How do I withdraw my winnings?", a: "Withdraw at Casino (WAC) from your Wallet tab, then request a payout via your registered contact — our team processes it manually for now." },
   { q: "Why is my Rolling Points balance not increasing?", a: "Rolling Points are only added for casinos you've actually deposited into. Check your Travel History tab to confirm the entry was recorded." },
@@ -79,6 +91,7 @@ export default function SupportTab({ onToast }) {
   const [openFaq, setOpenFaq] = useState(null);
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
+  const [attachment, setAttachment] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   // MULTILINGUAL-CHAT: off by default until the config fetch confirms
   // otherwise — everything below this stays inert (no selector, no
@@ -126,15 +139,18 @@ export default function SupportTab({ onToast }) {
     if (!subject.trim() || !message.trim()) { onToast?.(t("support.pleaseFillBoth"), false); return; }
     setSubmitting(true);
     try {
+      const fd = new FormData();
+      fd.append("subject", subject);
+      fd.append("message", message);
+      if (multilingualEnabled) fd.append("preferred_language", chatLanguage);
+      if (attachment) fd.append("attachment", attachment);
       const r = await authFetch(`${API}/api/support/tickets/`, {
         method: "POST",
-        body: JSON.stringify(
-          multilingualEnabled ? { subject, message, preferred_language: chatLanguage } : { subject, message }
-        ),
+        body: fd,
       });
       if (r?.ok) {
         onToast?.(t("support.ticketSubmitted"), true);
-        setSubject(""); setMessage("");
+        setSubject(""); setMessage(""); setAttachment(null);
         load();
       } else {
         onToast?.(t("support.failedToSubmit"), false);
@@ -211,12 +227,16 @@ export default function SupportTab({ onToast }) {
         </div>
         <Card>
           <form onSubmit={submitTicket} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <input
+            <select
               value={subject}
               onChange={e => setSubject(e.target.value)}
-              placeholder={t("support.subject")}
-              style={{ padding: "10px 12px", borderRadius: 8, background: "rgba(255,255,255,0.05)", border: `1px solid ${C.border}`, color: "white", fontSize: 13, outline: "none" }}
-            />
+              style={{ padding: "10px 12px", borderRadius: 8, background: "rgba(255,255,255,0.05)", border: `1px solid ${C.border}`, color: subject ? "white" : "rgba(255,255,255,0.4)", fontSize: 13, outline: "none" }}
+            >
+              <option value="" style={{ background: "#111" }}>{t("support.ticket")}</option>
+              {TICKET_CATEGORIES.map(cat => (
+                <option key={cat} value={cat} style={{ background: "#111", color: "white" }}>{cat}</option>
+              ))}
+            </select>
             <textarea
               value={message}
               onChange={e => setMessage(e.target.value)}
@@ -224,18 +244,47 @@ export default function SupportTab({ onToast }) {
               rows={3}
               style={{ padding: "10px 12px", borderRadius: 8, background: "rgba(255,255,255,0.05)", border: `1px solid ${C.border}`, color: "white", fontSize: 13, outline: "none", resize: "vertical", fontFamily: "inherit" }}
             />
-            <button
-              type="submit"
-              disabled={submitting}
-              style={{
-                alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 6,
-                padding: "9px 18px", borderRadius: 9, fontSize: 12.5, fontWeight: 700,
-                background: `linear-gradient(135deg, ${C.gold}, ${C.gold}CC)`, color: "#07080F",
-                border: "none", cursor: submitting ? "not-allowed" : "pointer", opacity: submitting ? 0.6 : 1,
-              }}
-            >
-              <PlusCircle size={13} /> {submitting ? t("support.submitting") : t("support.submitTicket")}
-            </button>
+            {attachment && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 8, background: "rgba(255,255,255,0.05)", border: `1px solid ${C.border}`, fontSize: 11.5, color: "rgba(255,255,255,0.7)" }}>
+                <Paperclip size={12} style={{ color: C.gold, flexShrink: 0 }} />
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{attachment.name}</span>
+                <button
+                  type="button"
+                  onClick={() => setAttachment(null)}
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.5)", display: "flex", padding: 2 }}
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            )}
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <button
+                type="submit"
+                disabled={submitting}
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  padding: "9px 18px", borderRadius: 9, fontSize: 12.5, fontWeight: 700,
+                  background: `linear-gradient(135deg, ${C.gold}, ${C.gold}CC)`, color: "#07080F",
+                  border: "none", cursor: submitting ? "not-allowed" : "pointer", opacity: submitting ? 0.6 : 1,
+                }}
+              >
+                <PlusCircle size={13} /> {submitting ? t("support.submitting") : t("support.submitTicket")}
+              </button>
+              <label
+                style={{
+                  display: "flex", alignItems: "center", gap: 6, cursor: "pointer",
+                  padding: "9px 16px", borderRadius: 9, fontSize: 12.5, fontWeight: 700,
+                  background: "rgba(255,255,255,0.05)", border: `1px solid ${C.border}`, color: "rgba(255,255,255,0.75)",
+                }}
+              >
+                <Paperclip size={13} /> {t("support.uploadDocument")}
+                <input
+                  type="file"
+                  onChange={e => setAttachment(e.target.files?.[0] || null)}
+                  style={{ display: "none" }}
+                />
+              </label>
+            </div>
           </form>
         </Card>
 

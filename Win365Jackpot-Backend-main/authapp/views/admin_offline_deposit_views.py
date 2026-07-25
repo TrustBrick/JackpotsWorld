@@ -47,6 +47,15 @@ from authapp.services.casino_wallet_service import (
     debit_casino_wallet,
 )
 from authapp.models.super_admin_models import AdminWallet
+# WALLET-REQUESTS: _credit_main/_debit_main/_get_or_create_wallet were moved
+# verbatim into authapp/services/wallet_service.py so the new Deposit/
+# Withdrawal Request system can reuse them too — aliased back to their
+# original names here so nothing else in this file needs to change.
+from authapp.services.wallet_service import (
+    get_or_create_main_wallet as _get_or_create_wallet,
+    credit_main_wallet as _credit_main,
+    debit_main_wallet as _debit_main,
+)
 
 import logging
 logger = logging.getLogger(__name__)
@@ -109,82 +118,6 @@ def _is_admin(user) -> bool:
     """
     from authapp.permissions.admin_role_permissions import _has_capability
     return user.is_authenticated and user.is_staff and _has_capability(user, "can_manage_finance")
-
-
-def _get_or_create_wallet(user, wallet_type: str) -> WalletAccount:
-    """
-    Must be called inside a @transaction.atomic block (every caller in this
-    file is). Locks the row after get_or_create so concurrent credit/debit
-    requests against the same user's wallet serialize instead of losing an
-    update.
-    """
-    acct, _ = WalletAccount.objects.get_or_create(
-        user=user,
-        wallet_type=wallet_type,
-        defaults={
-            "wallet_account_number": generate_account_number(wallet_type),
-            "balance": Decimal("0"),
-        },
-    )
-    return WalletAccount.objects.select_for_update().get(pk=acct.pk)
-
-
-def _credit_main(user, wallet_type, amount, txn_type, note, actor) -> float:
-    """Credit user's main wallet. Returns new balance."""
-    acct   = _get_or_create_wallet(user, wallet_type)
-    amount = Decimal(str(amount))
-    before = acct.balance
-    acct.balance += amount
-    acct.last_reason = txn_type
-    acct.updated_by  = actor
-    acct.save(update_fields=["balance", "last_reason", "updated_by", "updated_at"])
-    WalletTransaction.objects.create(
-        user=user, wallet=acct, transaction_type=txn_type,
-        amount=amount, balance_before=before, balance_after=acct.balance,
-        performed_by=actor, note=note, validation_status="approved",
-    )
-    try:
-        from authapp.services.notification_service import notify_transaction
-        notify_transaction(
-            user=user, txn_type=txn_type, amount=amount,
-            wallet_type=wallet_type, balance_after=acct.balance,
-            casino_name=None, extra_note=note,
-        )
-    except Exception as e:
-        logger.warning("notify_transaction failed: %s", e)
-    return float(acct.balance)
-
-
-def _debit_main(user, wallet_type, amount, txn_type, note, actor) -> float:
-    """Debit user's main wallet. Raises ValueError if insufficient."""
-    acct   = _get_or_create_wallet(user, wallet_type)
-    amount = Decimal(str(amount))
-    if acct.balance < amount:
-        raise ValueError(
-            f"Insufficient main {wallet_type} balance "
-            f"(available: ${acct.balance:,.2f}, required: ${amount:,.2f})"
-        )
-    before = acct.balance
-    acct.balance -= amount
-    acct.last_reason = txn_type
-    acct.updated_by  = actor
-    acct.save(update_fields=["balance", "last_reason", "updated_by", "updated_at"])
-    WalletTransaction.objects.create(
-        user=user, wallet=acct, transaction_type=txn_type,
-        amount=amount, balance_before=before, balance_after=acct.balance,
-        performed_by=actor, note=note, validation_status="approved",
-    )
-    try:
-        from authapp.services.notification_service import notify_transaction
-        if txn_type != "DAC":   # 🔥 prevent duplicate for deposit
-            notify_transaction(
-                user=user, txn_type=txn_type, amount=amount,
-                wallet_type=wallet_type, balance_after=acct.balance,
-                casino_name=None, extra_note=note,
-            )
-    except Exception as e:
-        logger.warning("notify_transaction failed: %s", e)
-    return float(acct.balance)
 
 
 def _write_rp_txn(user, amount: Decimal, txn_type: str, note: str, actor) -> float:

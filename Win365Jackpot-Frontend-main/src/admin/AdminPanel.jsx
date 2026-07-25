@@ -6,6 +6,7 @@ import {
   Bell, FileText, Shield, Activity, UserCog, LogOut, Key,
   Eye, EyeOff, AlertCircle, CalendarDays, Spade, Handshake, MapPin, LayoutTemplate,
   LifeBuoy, Languages, // MULTILINGUAL-CHAT
+  ArrowDownCircle, ArrowUpCircle, Sparkles, // WALLET-REQUESTS / GIFTS-REWARDS
 } from "lucide-react";
 
 import OverviewTab       from "./tabs/OverviewTab";
@@ -26,6 +27,9 @@ import LocationsManageTab   from "./tabs/content/LocationsManageTab";
 import LandingManageTab     from "./tabs/content/LandingManageTab";
 import AffiliatesTab        from "./tabs/AffiliatesTab";
 import AffiliateWithdrawalsTab from "./tabs/AffiliateWithdrawalsTab"; // AFFILIATE-WITHDRAWALS
+import DepositRequestsTab    from "./tabs/DepositRequestsTab";     // WALLET-REQUESTS
+import WithdrawalRequestsTab from "./tabs/WithdrawalRequestsTab";  // WALLET-REQUESTS
+import GiftsRewardsTab       from "./tabs/GiftsRewardsTab";        // GIFTS-REWARDS
 import SupportTicketsTab    from "./tabs/SupportTicketsTab";           // MULTILINGUAL-CHAT
 import SupportSettingsTab   from "./tabs/content/SupportSettingsTab";  // MULTILINGUAL-CHAT
 
@@ -44,6 +48,7 @@ const ICON_MAP = {
   BarChart3, Users, Wallet, Building2, Crown, Gift,
   Bell, FileText, Shield, Activity, UserCog, CalendarDays, Spade, Handshake, MapPin, LayoutTemplate,
   LifeBuoy, Languages, // MULTILINGUAL-CHAT
+  ArrowDownCircle, ArrowUpCircle, Sparkles, // WALLET-REQUESTS / GIFTS-REWARDS
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -92,7 +97,9 @@ function AdminLoginScreen({ onSuccess }) {
       <div style={{ position: "fixed", top: 18, right: 18 }}><AdminThemeToggle /></div>
       <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} style={{ width: "100%", maxWidth: 420, padding: "0 20px" }}>
         <div style={{ textAlign: "center", marginBottom: 36 }}>
-          <div style={{ fontSize: 28, fontWeight: 900, color: C.gold, letterSpacing: 3, marginBottom: 4 }}>JACKPOTS WORLD</div>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 4 }}>
+            <Logo size="md" />
+          </div>
           <div style={{ fontSize: 11, color: C.muted, letterSpacing: "0.4em", textTransform: "uppercase" }}>Admin Panel</div>
         </div>
         <Card style={{ padding: 28, background: C.surface, border: `1px solid ${C.border}` }}>
@@ -215,8 +222,11 @@ function AdminPanelInner() {
       case "users":     return <UsersTab          {...props} />;
       case "wallet":    return <WalletTab         {...props} />;
       case "deposits":  return <OfflineDepositTab {...props} />;
+      case "deposit-requests":    return <DepositRequestsTab    {...props} />; // WALLET-REQUESTS
+      case "withdrawal-requests": return <WithdrawalRequestsTab {...props} />; // WALLET-REQUESTS
       case "vip":       return <VIPTab            {...props} />;
       case "rewards":   return <RewardsTab        {...props} />;
+      case "gifts-rewards": return <GiftsRewardsTab {...props} />; // GIFTS-REWARDS
       case "notifications": return <NotifsTab     {...props} />;
       case "transactions":  return <TxnsTab       {...props} />;
       case "kyc":       return <KycTab            {...props} />;

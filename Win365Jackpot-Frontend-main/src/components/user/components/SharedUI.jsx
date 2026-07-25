@@ -135,6 +135,11 @@ export function StatusBadge({ status }) {
     completed: { color: C.green,                    bg: `${C.green}15`,                   label: "Completed" },
     active:    { color: C.blue,                     bg: `${C.blue}15`,                    label: "Active"    },
     locked:    { color: "rgba(255,255,255,0.5)",    bg: "rgba(255,255,255,0.05)",          label: "Locked"    },
+    // WALLET-REQUESTS: additive — safe to remove along with the rest of the
+    // feature; existing statuses above are untouched.
+    processing: { color: C.blue,                    bg: `${C.blue}15`,                    label: "Processing" },
+    paid:       { color: C.green,                   bg: `${C.green}15`,                   label: "Paid"      },
+    cancelled:  { color: "rgba(255,255,255,0.45)",  bg: "rgba(255,255,255,0.06)",         label: "Cancelled" },
   }[status?.toLowerCase()] || { color: "rgba(255,255,255,0.4)", bg: "rgba(255,255,255,0.05)", label: status || "—" };
 
   return (

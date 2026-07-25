@@ -68,6 +68,18 @@ class UserGift(models.Model):
         ("gift_voucher",    "Gift Voucher"),
         ("discount_voucher","Discount Voucher"),
         ("spin_reward",     "Spin Wheel Reward"),
+        # WALLET-REQUESTS / GIFTS-REWARDS: new promotional reward types —
+        # safe to remove along with the rest of the feature; CharField
+        # choices are metadata-only, existing rows/choices are unaffected.
+        ("registration",    "Registration Reward"),
+        ("birthday",        "Birthday Gift"),
+        ("festival",        "Festival Gift"),
+        ("event",           "Event Reward"),
+        ("lucky_draw",      "Lucky Draw Reward"),
+        ("coupon",          "Coupon Reward"),
+        ("loyalty",         "Loyalty Reward"),
+        ("achievement",     "Achievement Reward"),
+        ("seasonal",        "Seasonal Reward"),
     ]
 
     user        = models.ForeignKey(

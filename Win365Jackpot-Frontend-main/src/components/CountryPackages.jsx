@@ -27,7 +27,7 @@ import { useAutoFetch } from '../hooks/useAutoFetch'
 import { fetchDestinations, fetchVipServiceImages, fetchTourPackages, fetchLandingSettings } from '../services/landingService'
 import { flagFromCountryCode } from '../utils/countryFlags'
 
-const DEFAULT_WHATSAPP_NUMBER = '917795281999'
+const DEFAULT_WHATSAPP_NUMBER = '94717808877'
 
 function useWhatsAppNumber() {
   const { data } = useAutoFetch(fetchLandingSettings, {}, { intervalMs: 60_000 })

@@ -3,11 +3,16 @@ import { useTranslation } from "react-i18next";
 import {
   DollarSign, CreditCard, Zap, TrendingUp, RefreshCw,
   ShieldCheck, TrendingDown, Users, Award,
+  Coins, Banknote, Ban,
 } from "lucide-react";
 
 import { C, WALLET_CFG } from "../../constants";
 import { authFetch, API, fmt, fmtDT } from "../../helpers";
-import { Card, Spinner, Pagination } from "../../components/SharedUI";
+import { Card, Spinner, Pagination, Btn, StatusBadge } from "../../components/SharedUI";
+// WALLET-REQUESTS: new imports — safe to remove along with the rest of the
+// feature (see the two modal files and the RequestHistory component below).
+import DepositRequestModal from "../../DepositRequestModal";
+import WithdrawalRequestModal from "../../WithdrawalRequestModal";
 
 /* ─── CONSTANTS (outside components — defined once) ─────── */
 const TX_PAGE_SIZE = 10;
@@ -101,6 +106,10 @@ export default function WalletTab({ profile, onToast }) {
   const [levelData,  setLevelData]  = useState(null);
   const [loading,    setLoading]    = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  // WALLET-REQUESTS: new state — safe to remove along with the rest of the feature.
+  const [showDepositModal, setShowDepositModal] = useState(false);
+  const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
+  const [requestsRefreshKey, setRequestsRefreshKey] = useState(0);
 
   const loadBalances = useCallback(async (silent = false) => {
     silent ? setRefreshing(true) : setLoading(true);
@@ -124,11 +133,12 @@ export default function WalletTab({ profile, onToast }) {
   const TABS = [
     { key: "balances", label: t("wallet.tabBalances") },
     { key: "history",  label: t("wallet.tabHistory") },
+    { key: "requests", label: "Requests" },
   ];
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
         <div style={{ display: "flex", gap: 4 }}>
           {TABS.map(({ key, label }) => (
             <button
@@ -165,12 +175,54 @@ export default function WalletTab({ profile, onToast }) {
         )}
       </div>
 
+      {/* WALLET-REQUESTS: two new premium buttons — visible on every sub-tab,
+          matching the existing SharedUI Btn used across the rest of the app. */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
+        <Btn onClick={() => setShowDepositModal(true)}>
+          <Coins size={20} strokeWidth={1.75} className="wallet-action-icon" style={{ flexShrink: 0 }} /> Request Deposit
+        </Btn>
+        <Btn outline color={C.blue} onClick={() => setShowWithdrawalModal(true)}>
+          <Banknote size={20} strokeWidth={1.75} className="wallet-action-icon" style={{ flexShrink: 0 }} /> Request Withdrawal
+        </Btn>
+      </div>
+
       {tab === "balances" && (
         <WalletBalances accounts={accounts} levelData={levelData} loading={loading} profile={profile} />
       )}
       {tab === "history" && <TransactionHistory onToast={onToast} />}
+      {tab === "requests" && <RequestHistory key={requestsRefreshKey} onToast={onToast} />}
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      {showDepositModal && (
+        <DepositRequestModal
+          onClose={() => setShowDepositModal(false)}
+          onSuccess={(msg) => {
+            setShowDepositModal(false);
+            onToast?.(msg, "success");
+            setRequestsRefreshKey(k => k + 1);
+            setTab("requests");
+          }}
+          onError={(msg) => onToast?.(msg, "error")}
+        />
+      )}
+      {showWithdrawalModal && (
+        <WithdrawalRequestModal
+          onClose={() => setShowWithdrawalModal(false)}
+          onSuccess={(msg) => {
+            setShowWithdrawalModal(false);
+            onToast?.(msg, "success");
+            loadBalances(true);
+            setRequestsRefreshKey(k => k + 1);
+            setTab("requests");
+          }}
+          onError={(msg) => onToast?.(msg, "error")}
+        />
+      )}
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .wallet-action-icon { transition: transform 200ms ease; transform: scale(1); }
+        button:hover .wallet-action-icon { transform: scale(1.05); }
+      `}</style>
     </div>
   );
 }
@@ -681,6 +733,151 @@ function TransactionHistory({ onToast }) {
             >{t("tables.next")}</button>
           </div>
         </div>
+      </Card>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+   WALLET-REQUESTS: Request History — Deposit + Withdrawal
+   requests merged into one list, with cancel-while-pending.
+   Safe to remove this component along with the rest of the
+   feature (and the "requests" tab entry above).
+═══════════════════════════════════════════════════════ */
+const REQUEST_STATUS_FILTERS = [
+  { value: "",           label: "All" },
+  { value: "pending",    label: "Pending" },
+  { value: "processing", label: "Processing" },
+  { value: "approved",   label: "Approved" },
+  { value: "paid",       label: "Paid" },
+  { value: "rejected",   label: "Rejected" },
+  { value: "cancelled",  label: "Cancelled" },
+];
+
+function RequestHistory({ onToast }) {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("");
+  const [cancellingId, setCancellingId] = useState(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams(filter ? { status: filter } : {});
+      const [depRes, wdlRes] = await Promise.all([
+        authFetch(`${API}/api/wallet/deposit-requests/?${params}`),
+        authFetch(`${API}/api/wallet/withdrawal-requests/?${params}`),
+      ]);
+      const deposits = depRes.ok ? (await depRes.json()).results || [] : [];
+      const withdrawals = wdlRes.ok ? (await wdlRes.json()).results || [] : [];
+      const merged = [
+        ...deposits.map(d => ({ ...d, _type: "deposit" })),
+        ...withdrawals.map(w => ({ ...w, _type: "withdrawal" })),
+      ].sort((a, b) => new Date(b.requested_at) - new Date(a.requested_at));
+      setRows(merged);
+    } catch {
+      onToast?.("Failed to load request history", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [filter, onToast]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleCancel = async (row) => {
+    setCancellingId(row.id + row._type);
+    const endpoint = row._type === "deposit"
+      ? `${API}/api/wallet/deposit-requests/${row.id}/cancel/`
+      : `${API}/api/wallet/withdrawal-requests/${row.id}/cancel/`;
+    try {
+      const res = await authFetch(endpoint, { method: "POST" });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok) {
+        onToast?.(json.message || "Request cancelled.", "success");
+        load();
+      } else {
+        onToast?.(json?.error || "Failed to cancel request.", "error");
+      }
+    } catch {
+      onToast?.("Network error. Please try again.", "error");
+    }
+    setCancellingId(null);
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        {REQUEST_STATUS_FILTERS.map(f => (
+          <button
+            key={f.value || "all"}
+            onClick={() => setFilter(f.value)}
+            style={{
+              padding: "5px 13px", borderRadius: 20, fontSize: 12, cursor: "pointer",
+              border: `1px solid ${filter === f.value ? C.gold : C.border}`,
+              background: filter === f.value ? `${C.gold}15` : "transparent",
+              color: filter === f.value ? C.gold : "rgba(255,255,255,0.4)",
+              transition: "all 0.15s",
+            }}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      <Card style={{ padding: 0, overflow: "hidden" }}>
+        {loading ? (
+          <div style={{ padding: 40, textAlign: "center" }}><Spinner /></div>
+        ) : rows.length === 0 ? (
+          <div style={{ padding: 40, textAlign: "center", color: "rgba(255,255,255,0.3)", fontSize: 13 }}>
+            No deposit or withdrawal requests yet.
+          </div>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+              <thead>
+                <tr style={{ background: "rgba(255,255,255,0.02)" }}>
+                  {["Request ID", "Type", "Amount", "Date", "Status", "Admin Notes", "Txn Reference", ""].map(h => (
+                    <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontSize: 10, color: "rgba(255,255,255,0.4)", fontWeight: 800, textTransform: "uppercase", borderBottom: `1px solid ${C.border}` }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map(row => (
+                  <tr key={row._type + row.id} style={{ borderBottom: `1px solid ${C.border}` }}>
+                    <td style={{ padding: "11px 14px", fontFamily: "monospace", fontSize: 11, color: "rgba(255,255,255,0.6)" }}>{row.request_reference}</td>
+                    <td style={{ padding: "11px 14px" }}>
+                      <span style={{
+                        fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 20,
+                        background: row._type === "deposit" ? `${C.green}15` : `${C.blue}15`,
+                        color: row._type === "deposit" ? C.green : C.blue,
+                      }}>
+                        {row._type === "deposit" ? "Deposit" : "Withdrawal"}
+                      </span>
+                    </td>
+                    <td style={{ padding: "11px 14px", fontFamily: "monospace", fontWeight: 700, color: C.gold }}>{fmt(row.amount)}</td>
+                    <td style={{ padding: "11px 14px", color: "rgba(255,255,255,0.5)", whiteSpace: "nowrap" }}>{fmtDT(row.requested_at)}</td>
+                    <td style={{ padding: "11px 14px" }}><StatusBadge status={row.status} /></td>
+                    <td style={{ padding: "11px 14px", color: "rgba(255,255,255,0.45)", fontSize: 11.5 }}>
+                      {row.status === "rejected" ? row.rejection_reason : (row.admin_notes || "—")}
+                    </td>
+                    <td style={{ padding: "11px 14px", fontFamily: "monospace", fontSize: 10.5, color: "rgba(255,255,255,0.4)" }}>{row.transaction_reference || "—"}</td>
+                    <td style={{ padding: "11px 14px" }}>
+                      {row.status === "pending" && (
+                        <button
+                          onClick={() => handleCancel(row)}
+                          disabled={cancellingId === row.id + row._type}
+                          style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 6, border: `1px solid ${C.red}40`, background: `${C.red}12`, color: C.red, fontSize: 11, fontWeight: 700, cursor: cancellingId === row.id + row._type ? "not-allowed" : "pointer" }}
+                        >
+                          <Ban size={11} /> {cancellingId === row.id + row._type ? "Cancelling…" : "Cancel"}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
     </div>
   );

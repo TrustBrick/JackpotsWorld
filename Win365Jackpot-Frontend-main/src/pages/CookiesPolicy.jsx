@@ -181,19 +181,19 @@ export default function CookiesPolicy() {
           onClick={() => navigate(-1)}
           style={{
             display: 'flex', alignItems: 'center', gap: 6,
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: 'rgba(255,255,255,0.45)', fontSize: 13,
+            background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.3)', cursor: 'pointer',
+            color: '#D4AF37', fontSize: 13, fontWeight: 700,
             padding: '6px 10px', borderRadius: 8,
-            transition: 'color 0.15s',
+            transition: 'background 0.15s, border-color 0.15s',
           }}
-          onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.8)'}
-          onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(212,175,55,0.16)'; e.currentTarget.style.borderColor = 'rgba(212,175,55,0.5)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(212,175,55,0.08)'; e.currentTarget.style.borderColor = 'rgba(212,175,55,0.3)' }}
         >
           <ArrowLeft size={15}/> Back
         </button>
         <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.1)' }}/>
         <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.05em' }}>
-          WIN365 · Cookies Policy
+          Jackpotsworld · Cookies Policy
         </span>
       </div>
 
@@ -225,19 +225,6 @@ export default function CookiesPolicy() {
           <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', lineHeight: 1.75, maxWidth: 580 }}>
             This website uses cookies to improve your experience while visiting. Where applicable, we use a cookie control system allowing you on your first visit to allow or disallow the use of cookies on your device, in compliance with legislation requirements for explicit user consent.
           </p>
-
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-            marginTop: 20, padding: '7px 14px',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 8,
-            background: 'rgba(255,255,255,0.03)',
-          }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#34D399' }}/>
-            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>
-              Last updated: April 2026
-            </span>
-          </div>
         </div>
 
         {/* ── Cookies Table ── */}
@@ -382,7 +369,7 @@ export default function CookiesPolicy() {
           <Shield size={16} style={{ color: 'rgba(212,175,55,0.5)', flexShrink: 0, marginTop: 1 }}/>
           <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.65 }}>
             For any questions about how we use cookies or to request changes to your cookie preferences, please contact us at{' '}
-            <span style={{ color: 'rgba(212,175,55,0.7)' }}>support@win365.com</span>
+            <span style={{ color: 'rgba(212,175,55,0.7)' }}>support@jackpotsworld.vip</span>
             {' '}or through the customer support chat on our website.
           </p>
         </div>

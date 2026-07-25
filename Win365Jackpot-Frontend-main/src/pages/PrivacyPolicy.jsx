@@ -6,47 +6,47 @@ const SECTIONS = [
   {
     number: '1',
     title: 'Website Use',
-    content: `In using the website, you agree to be bound by the terms of this Privacy Policy. WIN365 may review the Privacy Policy periodically and reserves the right to change the Privacy Policy at any time at its discretion by posting such changes on the website. Changes will be effective immediately when posted on the website. Your continued use of the website following posting will constitute your acceptance of those changes. This Privacy Policy will not apply to websites which are linked to the website and over which WIN365 has no control.`,
+    content: `In using the website, you agree to be bound by the terms of this Privacy Policy. Jackpotsworld may review the Privacy Policy periodically and reserves the right to change the Privacy Policy at any time at its discretion by posting such changes on the website. Changes will be effective immediately when posted on the website. Your continued use of the website following posting will constitute your acceptance of those changes. This Privacy Policy will not apply to websites which are linked to the website and over which Jackpotsworld has no control.`,
   },
   {
     number: '2',
     title: 'Personal Information',
-    content: `The kinds of personal information that WIN365 may process about you includes: Name, Email Address, Personally Submitted Preferences, Date of Birth, Country of Citizenship, Physical Address, Identification Number, Government Issued Identification, Location Data, Device Information, IP Address, data related to the use of our services and products such as deposits, withdrawals, wagers, VIP status, and Affiliate ID, as well as data related to the enforcement of our Terms of Service and Policies.\n\nWIN365 collects such information through methods including data input during account registration, communications with customers, data provided or created when you use our services, and from third-party data providers in accordance with the terms set forth in this Privacy Policy.`,
+    content: `The kinds of personal information that Jackpotsworld may process about you includes: Name, Email Address, Personally Submitted Preferences, Date of Birth, Country of Citizenship, Physical Address, Identification Number, Government Issued Identification, Location Data, Device Information, IP Address, data related to the use of our services and products such as deposits, withdrawals, wagers, VIP status, and Affiliate ID, as well as data related to the enforcement of our Terms of Service and Policies.\n\nJackpotsworld collects such information through methods including data input during account registration, communications with customers, data provided or created when you use our services, and from third-party data providers in accordance with the terms set forth in this Privacy Policy.`,
   },
   {
     number: '3',
     title: 'Data Processing Purposes',
-    content: `WIN365 will process your personal information only by lawful and fair means for the following purposes: KYC identity verification; to process your application to become a member; to provide and improve services to you; to identify and authenticate your identity for security purposes and to comply with legal obligations; to maintain your member account; to upgrade and enhance your experience within the website; to tell you about products or services that may be of interest to you; to create aggregate data about members through demographic profiling and statistical analysis; to respond to your questions, comments, or requests; to comply with contractual, legal, and statutory obligations; to establish, exercise or defend any legal claims; to enforce our Terms of Service and Policies; and to provide you with benefits related to our VIP program and other campaigns.\n\nIf you do not provide WIN365 with the personal information we request, we may be unable to process your application, provide our services or respond to your enquiry or complaint.`,
+    content: `Jackpotsworld will process your personal information only by lawful and fair means for the following purposes: KYC identity verification; to process your application to become a member; to provide and improve services to you; to identify and authenticate your identity for security purposes and to comply with legal obligations; to maintain your member account; to upgrade and enhance your experience within the website; to tell you about products or services that may be of interest to you; to create aggregate data about members through demographic profiling and statistical analysis; to respond to your questions, comments, or requests; to comply with contractual, legal, and statutory obligations; to establish, exercise or defend any legal claims; to enforce our Terms of Service and Policies; and to provide you with benefits related to our VIP program and other campaigns.\n\nIf you do not provide Jackpotsworld with the personal information we request, we may be unable to process your application, provide our services or respond to your enquiry or complaint.`,
   },
   {
     number: '4',
     title: 'Direct Marketing and Opting Out',
-    content: `From time to time we may use your personal information to inform you about our products or services or about promotional activities which WIN365 believes may be of interest or benefit to you. We may do this via email, SMS, telephone or mail. If you no longer wish to receive marketing or promotional material from WIN365 at all or in any particular form, you may contact us at any time by email at support@win365.com with your request, which we will comply with as soon as is practical.\n\nFrom time to time we may contact you in relation to the management and administration of your WIN365 account. These communications can be via any of the modes of contact recorded when registering as a member. Such communications do not affect your opt-in or opt-out status for direct marketing communications.`,
+    content: `From time to time we may use your personal information to inform you about our products or services or about promotional activities which Jackpotsworld believes may be of interest or benefit to you. We may do this via email, SMS, telephone or mail. If you no longer wish to receive marketing or promotional material from Jackpotsworld at all or in any particular form, you may contact us at any time by email at support@jackpotsworld.vip with your request, which we will comply with as soon as is practical.\n\nFrom time to time we may contact you in relation to the management and administration of your Jackpotsworld account. These communications can be via any of the modes of contact recorded when registering as a member. Such communications do not affect your opt-in or opt-out status for direct marketing communications.`,
   },
   {
     number: '5',
     title: 'Management and Sharing of Your Personal Information',
-    content: `WIN365 will take all reasonable steps to ensure that the personal information which it collects, uses or discloses is correct and is stored in a secure environment accessed only by authorised persons. We store the personal information we receive as described in this Privacy Policy for as long as you use our services or as necessary to fulfil the purpose(s) for which it was collected, provide our services, resolve disputes, establish legal defences, conduct audits, pursue legitimate business purposes, enforce our agreements, and comply with applicable laws.\n\nWIN365 may share or disclose personal information in order to provide our services, enforce our Terms of Service and policies, and protect or defend our rights and interests — including within our group, to service providers and third-party partners, for legal or regulatory reasons, or in the event of a business sale or restructuring. Whenever we share personal information, we will always do so lawfully and with due regard to your privacy.`,
+    content: `Jackpotsworld will take all reasonable steps to ensure that the personal information which it collects, uses or discloses is correct and is stored in a secure environment accessed only by authorised persons. We store the personal information we receive as described in this Privacy Policy for as long as you use our services or as necessary to fulfil the purpose(s) for which it was collected, provide our services, resolve disputes, establish legal defences, conduct audits, pursue legitimate business purposes, enforce our agreements, and comply with applicable laws.\n\nJackpotsworld may share or disclose personal information in order to provide our services, enforce our Terms of Service and policies, and protect or defend our rights and interests — including within our group, to service providers and third-party partners, for legal or regulatory reasons, or in the event of a business sale or restructuring. Whenever we share personal information, we will always do so lawfully and with due regard to your privacy.`,
   },
   {
     number: '6',
     title: 'Security of Personal Information',
-    content: `You acknowledge that no data transmission over the Internet is totally secure. Accordingly, WIN365 does not guarantee or warrant the security of any information which you transmit to it. Any information which you transmit to WIN365 is transmitted at your own risk. However, once WIN365 receives your transmission, WIN365 will take reasonable steps to protect your personal information from misuse, loss and unauthorised access, modification and disclosure — including by using password protected systems, databases, and SSL technology.\n\nWIN365's employees, agents and contractors are required to maintain the confidentiality of members' personal information and trading behaviour. We take seriously the responsibility to exclude children from access to our services. We will not accept their information for the purposes of opening an account. Remember to always log out of your account when you have completed your session on the website. You are solely responsible for maintaining the secrecy of your username, password and any account information.`,
+    content: `You acknowledge that no data transmission over the Internet is totally secure. Accordingly, Jackpotsworld does not guarantee or warrant the security of any information which you transmit to it. Any information which you transmit to Jackpotsworld is transmitted at your own risk. However, once Jackpotsworld receives your transmission, Jackpotsworld will take reasonable steps to protect your personal information from misuse, loss and unauthorised access, modification and disclosure — including by using password protected systems, databases, and SSL technology.\n\nJackpotsworld's employees, agents and contractors are required to maintain the confidentiality of members' personal information and trading behaviour. We take seriously the responsibility to exclude children from access to our services. We will not accept their information for the purposes of opening an account. Remember to always log out of your account when you have completed your session on the website. You are solely responsible for maintaining the secrecy of your username, password and any account information.`,
   },
   {
     number: '7',
     title: 'Access to Personal Information',
-    content: `You may access the personal information collected by WIN365 by following the "Settings" link on the website or by contacting us at support@win365.com. We will give you access to your personal information in the manner requested if that is possible and within a reasonable period. If we refuse your request or cannot give you access in the manner you have requested, we will do what we can to meet your requirements by other means. We may not be required to give you access to your personal information in certain circumstances, such as where it may have an unreasonable impact on another individual's privacy. If we refuse access for such reasons, we will advise you in writing of the refusal and our reasons.`,
+    content: `You may access the personal information collected by Jackpotsworld by following the "Settings" link on the website or by contacting us at support@jackpotsworld.vip. We will give you access to your personal information in the manner requested if that is possible and within a reasonable period. If we refuse your request or cannot give you access in the manner you have requested, we will do what we can to meet your requirements by other means. We may not be required to give you access to your personal information in certain circumstances, such as where it may have an unreasonable impact on another individual's privacy. If we refuse access for such reasons, we will advise you in writing of the refusal and our reasons.`,
   },
   {
     number: '8',
     title: 'Delete Personal Data',
-    content: `You can request to have your personal data deleted if WIN365 no longer has a legal reason to continue to process or store it. Please note that this right is not guaranteed — WIN365 may not be able to comply with your request if it is subject to a legal obligation to store your data. You can request the deletion of your personal data by sending an email to support@win365.com.`,
+    content: `You can request to have your personal data deleted if Jackpotsworld no longer has a legal reason to continue to process or store it. Please note that this right is not guaranteed — Jackpotsworld may not be able to comply with your request if it is subject to a legal obligation to store your data. You can request the deletion of your personal data by sending an email to support@jackpotsworld.vip.`,
   },
   {
     number: '9',
     title: 'Contact Details',
-    content: `If you have any queries, requests for access or correction, or complaints relating to the handling of your personal information, please contact us by email at support@win365.com or by the site customer support chat function.`,
+    content: `If you have any queries, requests for access or correction, or complaints relating to the handling of your personal information, please contact us by email at support@jackpotsworld.vip or by the site customer support chat function.`,
   },
   {
     number: '10',
@@ -56,7 +56,7 @@ const SECTIONS = [
   {
     number: '11',
     title: 'Legal Basis for Processing',
-    content: `For purposes of the EU General Data Protection Regulation, WIN365's processing of your personal information is supported by the following lawful bases:\n\nPerformance of a Contract: WIN365 needs to process your personal information to perform our contract with you.\n\nLegitimate Interest: WIN365 processes your personal information to further our legitimate interests but only where our interests are not overridden by your interests or fundamental rights and freedoms.\n\nConsent: In some cases, WIN365 also relies on your consent to process your personal information.\n\nCompliance with Legal Obligations: WIN365 may process your personal information to comply with our legal obligations.`,
+    content: `For purposes of the EU General Data Protection Regulation, Jackpotsworld's processing of your personal information is supported by the following lawful bases:\n\nPerformance of a Contract: Jackpotsworld needs to process your personal information to perform our contract with you.\n\nLegitimate Interest: Jackpotsworld processes your personal information to further our legitimate interests but only where our interests are not overridden by your interests or fundamental rights and freedoms.\n\nConsent: In some cases, Jackpotsworld also relies on your consent to process your personal information.\n\nCompliance with Legal Obligations: Jackpotsworld may process your personal information to comply with our legal obligations.`,
   },
   {
     number: '12',
@@ -66,7 +66,7 @@ const SECTIONS = [
   {
     number: '13',
     title: 'Updates to This Privacy Policy',
-    content: `WIN365 may review, change and update this Privacy Policy from time to time to reflect our current practices and obligations. We will publish our current Privacy Policy on our website and the changes will take effect at the time of publishing. You should review this Privacy Policy regularly and remain familiar with its terms.`,
+    content: `Jackpotsworld may review, change and update this Privacy Policy from time to time to reflect our current practices and obligations. We will publish our current Privacy Policy on our website and the changes will take effect at the time of publishing. You should review this Privacy Policy regularly and remain familiar with its terms.`,
   },
 ]
 
@@ -102,19 +102,19 @@ export default function PrivacyPolicy() {
           onClick={() => navigate(-1)}
           style={{
             display: 'flex', alignItems: 'center', gap: 6,
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: 'rgba(255,255,255,0.45)', fontSize: 13,
+            background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.3)', cursor: 'pointer',
+            color: '#D4AF37', fontSize: 13, fontWeight: 700,
             padding: '6px 10px', borderRadius: 8,
-            transition: 'color 0.15s',
+            transition: 'background 0.15s, border-color 0.15s',
           }}
-          onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.8)'}
-          onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(212,175,55,0.16)'; e.currentTarget.style.borderColor = 'rgba(212,175,55,0.5)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(212,175,55,0.08)'; e.currentTarget.style.borderColor = 'rgba(212,175,55,0.3)' }}
         >
           <ArrowLeft size={15}/> Back
         </button>
         <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.1)' }}/>
         <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.05em' }}>
-          WIN365 · Privacy Policy
+          Jackpotsworld · Privacy Policy
         </span>
       </div>
 
@@ -144,21 +144,8 @@ export default function PrivacyPolicy() {
           </h1>
 
           <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', lineHeight: 1.7, maxWidth: 560 }}>
-            This Privacy Policy sets out how WIN365 manages your personal information collected as a result of your membership and use of our platform. We are committed to ensuring your personal information is protected and used in accordance with applicable law and this policy.
+            This Privacy Policy sets out how Jackpotsworld manages your personal information collected as a result of your membership and use of our platform. We are committed to ensuring your personal information is protected and used in accordance with applicable law and this policy.
           </p>
-
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-            marginTop: 20, padding: '7px 14px',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 8,
-            background: 'rgba(255,255,255,0.03)',
-          }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#34D399' }}/>
-            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>
-              Last updated: April 2026
-            </span>
-          </div>
         </div>
 
         {/* ── Table of Contents ── */}
@@ -267,7 +254,7 @@ export default function PrivacyPolicy() {
           <div>
             <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.65 }}>
               For any questions or concerns about this Privacy Policy or how we handle your personal information, please contact us at{' '}
-              <span style={{ color: 'rgba(212,175,55,0.7)' }}>support@win365.com</span>
+              <span style={{ color: 'rgba(212,175,55,0.7)' }}>support@jackpotsworld.vip</span>
               {' '}or through the customer support chat on our website.
             </p>
           </div>

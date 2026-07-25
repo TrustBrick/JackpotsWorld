@@ -60,8 +60,17 @@ export const ADMIN_TABS = [
   { id:"users",         label:"Users",            icon:"Users"      },
   // { id:"wallet",        label:"Wallet Manager",   icon:"Wallet"     },
   { id:"deposits",      label:"Offline Transactions", icon:"Building2"  },
+  // WALLET-REQUESTS: 2 new tabs (local preview feature) — safe to remove
+  // these lines along with DepositRequestsTab.jsx / WithdrawalRequestsTab.jsx
+  // and their cases in AdminPanel.jsx to remove the feature.
+  { id:"deposit-requests",    label:"Deposit Requests",    icon:"ArrowDownCircle" },
+  { id:"withdrawal-requests", label:"Withdrawal Requests", icon:"ArrowUpCircle"   },
   // { id:"vip",           label:"VIP / XP",         icon:"Crown"      },
   { id:"rewards",       label:"Rewards & Spin",   icon:"Gift"       },
+  // GIFTS-REWARDS: new tab (local preview feature) — safe to remove this
+  // line along with GiftsRewardsTab.jsx and its case in AdminPanel.jsx to
+  // remove the feature.
+  { id:"gifts-rewards", label:"Gifts & Rewards",  icon:"Sparkles"   },
   // { id:"notifications", label:"Notifications",    icon:"Bell"       },
   { id:"transactions",  label:"Transaction History",     icon:"FileText"   },
   { id:"kyc",           label:"KYC Management",   icon:"Shield"     },

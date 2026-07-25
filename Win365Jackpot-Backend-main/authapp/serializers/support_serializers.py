@@ -21,7 +21,7 @@ class SupportTicketSerializer(serializers.ModelSerializer):
         # MULTILINGUAL-CHAT: added preferred_language (write) + admin_reply_translated
         # (read) — both no-ops while the feature flag is off (see support_views.py).
         fields = [
-            "id", "subject", "message", "status", "admin_reply", "created_at", "updated_at",
+            "id", "subject", "message", "attachment", "status", "admin_reply", "created_at", "updated_at",
             "preferred_language", "admin_reply_translated",
         ]
         read_only_fields = ["id", "status", "admin_reply", "admin_reply_translated", "created_at", "updated_at"]
@@ -36,11 +36,11 @@ class AdminSupportTicketSerializer(serializers.ModelSerializer):
         # MULTILINGUAL-CHAT: added preferred_language + message_translated (read-only,
         # this is the Back Office's "English" column) alongside the existing fields.
         fields = [
-            "id", "user_uid", "email", "subject", "message", "status", "admin_reply", "created_at", "updated_at",
+            "id", "user_uid", "email", "subject", "message", "attachment", "status", "admin_reply", "created_at", "updated_at",
             "preferred_language", "message_translated", "admin_reply_translated", "translated_at",
         ]
         read_only_fields = [
-            "id", "user_uid", "email", "subject", "message", "created_at", "updated_at",
+            "id", "user_uid", "email", "subject", "message", "attachment", "created_at", "updated_at",
             "preferred_language", "message_translated", "admin_reply_translated", "translated_at",
         ]
 

@@ -43,6 +43,16 @@ from .affiliate_wallet_models import (
     AffiliateWithdrawalSettings,
 )
 
+# WALLET-REQUESTS: new module — safe to delete this import block (and the
+# module itself) to remove the feature.
+from .wallet_request_models import (
+    WalletRequestMethodConfig,
+    DepositRequest,
+    WithdrawalRequest,
+    DepositRequestStatusHistory,
+    WithdrawalRequestStatusHistory,
+)
+
 __all__ = [
     # User models
     "User",
@@ -79,4 +89,10 @@ __all__ = [
     "AffiliateWithdrawalPaymentDetail",
     "AffiliateWithdrawalStatusHistory",
     "AffiliateWithdrawalSettings",
+    # WALLET-REQUESTS
+    "WalletRequestMethodConfig",
+    "DepositRequest",
+    "WithdrawalRequest",
+    "DepositRequestStatusHistory",
+    "WithdrawalRequestStatusHistory",
 ]

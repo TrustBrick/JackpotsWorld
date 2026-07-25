@@ -1,7 +1,7 @@
 # authapp/urls.py
 from django.urls import path, include
 
-from authapp.url_patterns import events_urls, poker_urls, promotion_urls, location_urls, affiliate_urls, affiliate_wallet_urls, support_urls, spin_urls, chat_urls, landing_urls
+from authapp.url_patterns import events_urls, poker_urls, promotion_urls, location_urls, affiliate_urls, affiliate_wallet_urls, wallet_request_urls, admin_gift_urls, support_urls, spin_urls, chat_urls, landing_urls
 
 urlpatterns = [
     path("", include("authapp.url_patterns.auth_urls")),
@@ -34,6 +34,15 @@ urlpatterns = [
     #    delete this block + affiliate_wallet_urls.py to remove the feature) ──
     path("", include(affiliate_wallet_urls.public_urlpatterns)),
     path("admin-panel/", include(affiliate_wallet_urls.admin_urlpatterns)),
+
+    # ── Main Wallet Deposit/Withdrawal Requests (WALLET-REQUESTS — safe to
+    #    delete this block + wallet_request_urls.py to remove the feature) ──
+    path("", include(wallet_request_urls.public_urlpatterns)),
+    path("admin-panel/", include(wallet_request_urls.admin_urlpatterns)),
+
+    # ── Gifts & Rewards admin management (GIFTS-REWARDS — safe to delete
+    #    this block + admin_gift_urls.py to remove the feature) ──────────────
+    path("admin-panel/", include(admin_gift_urls.admin_urlpatterns)),
 
     # ── Live Support / Responsible Gambling ─────────────────────────────────────
     path("", include(support_urls.public_urlpatterns)),

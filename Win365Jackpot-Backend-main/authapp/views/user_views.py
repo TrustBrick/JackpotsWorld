@@ -106,7 +106,7 @@ class ProfileView(APIView):
                 {
                     "banned": True,
                     "message": "Your account is on hold. Please contact support for more information.",
-                    "support_email": "support@win365.com",   # adjust to your real support email
+                    "support_email": "support@jackpotsworld.vip",
                 },
                 status=status.HTTP_403_FORBIDDEN,
             )

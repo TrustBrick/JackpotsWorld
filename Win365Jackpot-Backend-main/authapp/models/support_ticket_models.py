@@ -15,6 +15,7 @@ class SupportTicket(models.Model):
     )
     subject     = models.CharField(max_length=200)
     message     = models.TextField()
+    attachment  = models.FileField(upload_to="support/attachments/", null=True, blank=True)
     status      = models.CharField(max_length=15, choices=TICKET_STATUS_CHOICES, default="open", db_index=True)
     admin_reply = models.TextField(blank=True)
     created_at  = models.DateTimeField(auto_now_add=True)

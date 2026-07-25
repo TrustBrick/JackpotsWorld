@@ -47,14 +47,14 @@ def send_otp_email(email: str, otp: str) -> None:
     Send a plain-text OTP email.
     Configure EMAIL_* in settings.py (or use SendGrid / Mailgun).
     """
-    subject    = "Your WIN365 OTP Code"
+    subject    = "Your JackpotsWorld OTP Code"
     message    = (
-        f"Your one-time password (OTP) for WIN365 is:\n\n"
+        f"Your one-time password (OTP) for JackpotsWorld is:\n\n"
         f"  {otp}\n\n"
         f"This code expires in 10 minutes. Do not share it with anyone.\n\n"
-        f"— WIN365 Team"
+        f"— JackpotsWorld Team"
     )
-    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@win365.com")
+    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@jackpotsworld.vip")
     try:
         send_mail(subject, message, from_email, [email], fail_silently=False)
         logger.info(f"OTP email sent to {email}")
@@ -87,7 +87,7 @@ def send_otp_email_html(email: str, otp: str) -> None:
           <td style="height:3px;background:linear-gradient(90deg,transparent,#D4AF37,transparent);"></td>
         </tr>
         <tr><td style="padding:36px 36px 0;">
-          <div style="font-size:26px;font-weight:900;color:#D4AF37;letter-spacing:3px;margin-bottom:4px;">WIN365</div>
+          <div style="font-size:26px;font-weight:900;color:#D4AF37;letter-spacing:3px;margin-bottom:4px;">JACKPOTSWORLD</div>
           <div style="font-size:11px;color:rgba(212,175,55,0.45);letter-spacing:6px;text-transform:uppercase;">Jackpot</div>
         </td></tr>
         <tr><td style="padding:28px 36px 10px;">
@@ -98,7 +98,7 @@ def send_otp_email_html(email: str, otp: str) -> None:
           <div style="text-align:center;margin-bottom:24px;">{digits}</div>
           <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);
                       border-radius:10px;padding:12px 16px;font-size:12px;color:rgba(255,255,255,0.3);">
-            🔒 Never share this code. WIN365 staff will never ask for your OTP.
+            🔒 Never share this code. JackpotsWorld staff will never ask for your OTP.
           </div>
         </td></tr>
         <tr><td style="padding:20px 36px 32px;">
@@ -115,8 +115,8 @@ def send_otp_email_html(email: str, otp: str) -> None:
     from_email = settings.EMAIL_HOST_USER
     try:
         send_mail(
-            subject="Your WIN365 Verification Code",
-            message=f"Your WIN365 OTP is: {otp}\n\nExpires in 10 minutes.",
+            subject="Your JackpotsWorld Verification Code",
+            message=f"Your JackpotsWorld OTP is: {otp}\n\nExpires in 10 minutes.",
             from_email=from_email,
             recipient_list=[email],
             html_message=html_message,

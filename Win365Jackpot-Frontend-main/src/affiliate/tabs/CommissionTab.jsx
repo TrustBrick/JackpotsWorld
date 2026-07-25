@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Percent } from "lucide-react";
+import { HandCoins } from "lucide-react";
 import { API, affiliateFetch } from "../helpers";
 import { commissionTiers } from "../commissionTiers";
 
@@ -17,30 +17,13 @@ function Card({ children, style = {} }) {
 }
 
 export default function CommissionTab() {
-  const [rate, setRate] = useState(null);
-
-  const load = useCallback(async () => {
-    const res = await affiliateFetch(`${API}/api/affiliate/dashboard/`);
-    if (res?.ok) {
-      const j = await res.json();
-      setRate(j.affiliate_profile?.commission_rate);
-    }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
-
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <Card style={{ background: `${C.gold}08`, border: `1px solid ${C.gold}25` }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-          <Percent size={14} style={{ color: C.gold }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <HandCoins size={14} style={{ color: C.gold }} />
           <div style={{ fontSize: 13, fontWeight: 700, color: "white" }}>How your commission is calculated</div>
         </div>
-        <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", lineHeight: 1.6 }}>
-          You earn <b style={{ color: C.gold }}>{rate != null ? `${rate}%` : "your tier's rate"}</b> of every
-          referred player's real-money casino deposit — a flat percentage of the deposit amount, credited to your
-          account the moment your referral deposits at any partner casino.
-        </p>
       </Card>
 
       <div>
@@ -60,7 +43,7 @@ export default function CommissionTab() {
                   <tr key={row.tier} style={{ borderBottom: i < commissionTiers.length - 1 ? `1px solid ${C.border}` : "none" }}>
                     <td style={{ padding: "11px 14px", fontWeight: 700, color: "white" }}>{row.tier}</td>
                     <td style={{ padding: "11px 14px", color: "rgba(255,255,255,0.6)" }}>{row.referrals}</td>
-                    <td style={{ padding: "11px 14px", color: C.gold, fontWeight: 700 }}>{row.rate}</td>
+                    <td style={{ padding: "11px 14px", color: C.gold, fontWeight: 700 }}></td>
                   </tr>
                 ))}
               </tbody>

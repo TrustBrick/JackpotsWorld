@@ -9,10 +9,15 @@ export const authFetch = async (url, opts = {}) => {
   let token = getToken("access");
   if (!token) { window.location.href = "/sign-in"; return; }
 
+  // FormData bodies (file uploads) need the browser to set their own
+  // multipart boundary — forcing Content-Type:application/json on top of
+  // one silently breaks the upload, so this is the one case that omits it.
+  const isFormData = typeof FormData !== "undefined" && opts.body instanceof FormData;
+
   let res = await fetch(url, {
     ...opts,
     headers: {
-      "Content-Type": "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       Authorization: `Bearer ${token}`,
       ...(opts.headers || {}),
     },
@@ -32,7 +37,7 @@ export const authFetch = async (url, opts = {}) => {
         res = await fetch(url, {
           ...opts,
           headers: {
-            "Content-Type": "application/json",
+            ...(isFormData ? {} : { "Content-Type": "application/json" }),
             Authorization: `Bearer ${d.access}`,
             ...(opts.headers || {}),
           },

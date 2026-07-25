@@ -77,16 +77,16 @@ export default function ReferredUsersTab() {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
             <thead>
               <tr style={{ background: "rgba(255,255,255,0.02)" }}>
-                {["UID", "Player", "Level", "Joined", "Status", "Earned", "Transactions"].map(h => (
+                {["UID", "Player", "Country", "Level", "Joined", "Status", "Earned", "Transactions"].map(h => (
                   <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontSize: 10, color: "rgba(255,255,255,0.55)", fontWeight: 800, textTransform: "uppercase", borderBottom: `1px solid ${C.border}`, textShadow: "0 0 8px rgba(212,175,55,0.25)" }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} style={{ padding: 28, textAlign: "center", color: "rgba(255,255,255,0.4)" }}>Loading…</td></tr>
+                <tr><td colSpan={8} style={{ padding: 28, textAlign: "center", color: "rgba(255,255,255,0.4)" }}>Loading…</td></tr>
               ) : referrals.length === 0 ? (
-                <tr><td colSpan={7} style={{ padding: 28, textAlign: "center", color: "rgba(255,255,255,0.4)" }}>No referred players yet.</td></tr>
+                <tr><td colSpan={8} style={{ padding: 28, textAlign: "center", color: "rgba(255,255,255,0.4)" }}>No referred players yet.</td></tr>
               ) : referrals.map(r => (
                 <tr key={r.id} style={{ borderBottom: `1px solid ${C.border}` }}>
                   <td style={{ padding: "11px 14px", fontFamily: "monospace", fontSize: 11, color: "rgba(255,255,255,0.5)" }}>{r.user_uid}</td>
@@ -94,6 +94,7 @@ export default function ReferredUsersTab() {
                     <div style={{ fontWeight: 700, color: "white" }}>{r.name || r.email?.split("@")[0]}</div>
                     <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)" }}>{r.email}</div>
                   </td>
+                  <td style={{ padding: "11px 14px", color: "rgba(255,255,255,0.6)" }}>{r.country || "—"}</td>
                   <td style={{ padding: "11px 14px" }}>
                     <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 20, background: `${C.gold}15`, color: C.gold }}>
                       {LEVEL_NAMES[r.user_level] || `Level ${r.user_level}`}
