@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { LogOut, Menu, X, LifeBuoy } from "lucide-react";
+import { LogOut, Menu, X } from "lucide-react";
 import Logo from "../components/shared/Logo";
 
 export const SIDEBAR_WIDTH = 228;
@@ -109,26 +109,11 @@ export default function AffiliateSidebar({ C, affiliateUser, activeTab, onTabCha
         })}
       </nav>
 
-      {/* Live chat */}
-      <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12, marginTop: 8 }}>
-        <button
-          onClick={() => window.dispatchEvent(new CustomEvent("open-chat"))}
-          style={{
-            width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
-            gap: 6, padding: "8px", borderRadius: 9,
-            background: `${C.blue}12`, border: `1px solid ${C.blue}30`,
-            color: C.blue, fontSize: 11, fontWeight: 700, cursor: "pointer",
-          }}
-        >
-          <LifeBuoy size={12} /> Live Chat
-        </button>
-      </div>
-
       <button onClick={onLogout} style={{
         display: "flex", alignItems: "center", gap: 8,
         padding: "9px 10px", borderRadius: 9, fontSize: 12, fontWeight: 600,
         background: "none", border: "none", color: "rgba(248,113,113,0.6)",
-        cursor: "pointer", width: "100%", marginTop: 6,
+        cursor: "pointer", width: "100%", marginTop: 6, borderTop: `1px solid ${C.border}`, paddingTop: 16,
       }}><LogOut size={13} /> Sign Out</button>
     </aside>
   );

@@ -31,7 +31,7 @@ def _parse_rfc822_date(value):
 
 def _fetch_feed_items(url):
     try:
-        resp = requests.get(url, timeout=REQUEST_TIMEOUT, headers={"User-Agent": "Win365JackpotSync/1.0"})
+        resp = requests.get(url, timeout=REQUEST_TIMEOUT, headers={"User-Agent": "JackpotsWorldSync/1.0"})
         resp.raise_for_status()
         root = ET.fromstring(resp.content)
     except Exception as exc:  # noqa: BLE001 — any feed failure is non-fatal

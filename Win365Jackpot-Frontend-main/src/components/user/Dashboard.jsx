@@ -12,6 +12,7 @@ import { getToken, clearSession } from "../../services/authStorage";
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
 import { Toast, UidBadge, LoadingScreen, ErrorScreen } from "./components/SharedUI";
+import Logo from "../shared/Logo";
 
 // ── Sidebar — also imports the breakpoint hook + width constants ───────────────
 import Sidebar, { useBreakpoint, SIDEBAR_WIDTH, RAIL_WIDTH, TAB_I18N_KEY } from "./components/Sidebar";
@@ -28,6 +29,7 @@ import RewardsTab        from "./tabs/Validations/RewardsTab";
 import NotificationsTab  from "./tabs/Validations/NotificationsTab";
 import ReferralTab       from "./tabs/Validations/ReferralTab";
 import ProfileTab        from "./tabs/Validations/ProfileTab";
+import KycTab             from "./tabs/Validations/KycTab";
 import SupportTab        from "./tabs/Validations/SupportTab";
 import ResponsibleGamblingTab from "./tabs/Validations/ResponsibleGamblingTab";
 import SpinWheelModal     from "./SpinWheelModal";
@@ -283,15 +285,7 @@ export default function Dashboard() {
 }}>
   {/* Left — spacer on mobile (hamburger is fixed, not in flow) */}
   {bp === "mobile" ? (
-    <div style={{
-      fontSize: 18,
-      fontWeight: 900,
-      color: C.gold,
-      letterSpacing: 3,
-      textShadow: `0 0 20px ${C.gold}40`,
-    }}>
-      Jackpots World
-    </div>
+    <Logo size="sm" />
   ) : (
     <div style={{ fontSize: 18, fontWeight: 900, color: "white" }}>
       {(() => {
@@ -338,6 +332,7 @@ export default function Dashboard() {
             {tab === "notifications" && <NotificationsTab onToast={showToast} onUnreadChange={setNotifCount} />}
             {tab === "referral"      && <ReferralTab      profile={profile} />}
             {tab === "profile"       && <ProfileTab       profile={profile} onToast={showToast} onRefresh={fetchDashboard} />}
+            {tab === "kyc"                    && <KycTab                  onToast={showToast} />}
             {tab === "support"                && <SupportTab              onToast={showToast} />}
             {tab === "responsible_gambling"    && <ResponsibleGamblingTab  onToast={showToast} />}
           </motion.div>
@@ -352,8 +347,10 @@ export default function Dashboard() {
       {/* Daily Login Spin Wheel */}
       {showSpin && <SpinWheelModal onClose={() => setShowSpin(false)} />}
 
-      {/* AI Live Chat — opened via the Live Support tab's "Live Chat" card */}
-      <ChatBot />
+      {/* AI Live Chat — opened via the Live Support tab's "Live Chat" card.
+          Hidden while the Service Request tab itself is open, since that tab
+          already surfaces its own support/live-chat entry points. */}
+      {tab !== "support" && <ChatBot />}
 
       <PageScrollButtons />
     </div>

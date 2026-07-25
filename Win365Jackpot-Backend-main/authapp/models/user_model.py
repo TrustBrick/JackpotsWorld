@@ -272,6 +272,32 @@ class ActivityLog(models.Model):
         ("settings_changed", "Settings Changed"),
         ("two_factor_enabled", "Two-Factor Enabled"),
         ("two_factor_disabled", "Two-Factor Disabled"),
+        # AFFILIATE-WITHDRAWALS: new choices — safe to remove along with the
+        # rest of the feature; CharField(choices=...) is metadata-only, so
+        # removing them later needs no data migration.
+        ("affiliate_withdrawal_requested", "Affiliate Withdrawal Requested"),
+        ("affiliate_withdrawal_cancelled", "Affiliate Withdrawal Cancelled"),
+        ("affiliate_withdrawal_processing", "Affiliate Withdrawal Moved To Processing"),
+        ("affiliate_withdrawal_approved", "Affiliate Withdrawal Approved"),
+        ("affiliate_withdrawal_rejected", "Affiliate Withdrawal Rejected"),
+        ("affiliate_withdrawal_paid", "Affiliate Withdrawal Paid"),
+        # WALLET-REQUESTS: new choices — safe to remove along with the rest
+        # of the feature; CharField(choices=...) is metadata-only.
+        ("main_deposit_requested", "Deposit Request Submitted"),
+        ("main_deposit_processing", "Deposit Request Moved To Processing"),
+        ("main_deposit_approved", "Deposit Request Approved"),
+        ("main_deposit_rejected", "Deposit Request Rejected"),
+        ("main_deposit_cancelled", "Deposit Request Cancelled"),
+        ("main_withdrawal_requested", "Withdrawal Request Submitted"),
+        ("main_withdrawal_processing", "Withdrawal Request Moved To Processing"),
+        ("main_withdrawal_approved", "Withdrawal Request Approved"),
+        ("main_withdrawal_rejected", "Withdrawal Request Rejected"),
+        ("main_withdrawal_paid", "Withdrawal Request Paid"),
+        ("main_withdrawal_cancelled", "Withdrawal Request Cancelled"),
+        ("gift_admin_created", "Gift Created By Admin"),
+        ("gift_expired", "Gift Expired By Admin"),
+        ("gift_cancelled", "Gift Cancelled By Admin"),
+        ("gift_reissued", "Gift Reissued By Admin"),
         ("other", "Other"),
     ]
 

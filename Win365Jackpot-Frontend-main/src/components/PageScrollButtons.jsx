@@ -20,18 +20,18 @@ function scrollToY(y) {
   window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' })
 }
 
+const BOTTOM_THRESHOLD_PX = 4 // rounding slack for "am I at the very bottom" checks
+
 export default function PageScrollButtons() {
-  const [atTop, setAtTop] = useState(true)
+  // Down arrow for the whole page (top through the last section); only flips
+  // to up once the user has actually reached the bottom of the page.
+  const [atBottom, setAtBottom] = useState(false)
   const pressTimer = useRef(null)
   const longPressFired = useRef(false)
 
   const updateState = useCallback(() => {
-    const sections = getSections()
-    const first = sections[0]
-    const firstSectionBottom = first
-      ? first.getBoundingClientRect().bottom + window.scrollY
-      : FIRST_SECTION_FALLBACK_PX
-    setAtTop(window.scrollY < firstSectionBottom - NAVBAR_OFFSET)
+    const scrolledToBottom = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - BOTTOM_THRESHOLD_PX
+    setAtBottom(scrolledToBottom)
   }, [])
 
   useEffect(() => {
@@ -72,7 +72,7 @@ export default function PageScrollButtons() {
     longPressFired.current = false
     pressTimer.current = setTimeout(() => {
       longPressFired.current = true
-      if (atTop) scrollToBottom()
+      if (!atBottom) scrollToBottom()
       else scrollToTop()
     }, LONG_PRESS_MS)
   }
@@ -91,7 +91,7 @@ export default function PageScrollButtons() {
       longPressFired.current = false
       return
     }
-    if (atTop) scrollToNextSection()
+    if (!atBottom) scrollToNextSection()
     else scrollToPreviousSection()
   }
 
@@ -118,7 +118,7 @@ export default function PageScrollButtons() {
         onContextMenu={(e) => e.preventDefault()}
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.94 }}
-        aria-label={atTop ? 'Scroll to next section (hold to jump to bottom)' : 'Scroll to previous section (hold to jump to top)'}
+        aria-label={!atBottom ? 'Scroll to next section (hold to jump to bottom)' : 'Scroll to previous section (hold to jump to top)'}
         className="flex items-center justify-center rounded-full"
         style={{
           width: BTN, height: BTN,
@@ -137,14 +137,14 @@ export default function PageScrollButtons() {
       >
         <AnimatePresence mode="wait" initial={false}>
           <motion.span
-            key={atTop ? 'down' : 'up'}
+            key={!atBottom ? 'down' : 'up'}
             initial={{ opacity: 0, rotate: -90, scale: 0.6 }}
             animate={{ opacity: 1, rotate: 0, scale: 1 }}
             exit={{ opacity: 0, rotate: 90, scale: 0.6 }}
             transition={{ duration: 0.25 }}
             style={{ display: 'flex' }}
           >
-            {atTop ? <ChevronDown size={20} strokeWidth={2.5} /> : <ChevronUp size={20} strokeWidth={2.5} />}
+            {!atBottom ? <ChevronDown size={20} strokeWidth={2.5} /> : <ChevronUp size={20} strokeWidth={2.5} />}
           </motion.span>
         </AnimatePresence>
       </motion.button>

@@ -9,7 +9,7 @@ class LandingSettings(models.Model):
     hero_background_video   = models.FileField(upload_to="landing/", null=True, blank=True)
     hero_cta_primary_label  = models.CharField(max_length=60, default="🎰 Register — FREE")
     hero_cta_secondary_label = models.CharField(max_length=60, default="Packages ✨")
-    hero_tagline             = models.CharField(max_length=100, default="www.jackpotsworld.casino")
+    hero_tagline             = models.CharField(max_length=100, default="www.jackpotsworld.vip")
     global_reach_tagline     = models.CharField(max_length=200, default="Experience World-Class Casino Gaming Across")
     trust_banner_heading     = models.CharField(max_length=200, default="Join 50,000+ Winning Players Across Asia")
     trust_banner_subtext     = models.TextField(blank=True, default="From first-time casino visitors to high-rollers — Jackpots World is your trusted partner for every bet.")

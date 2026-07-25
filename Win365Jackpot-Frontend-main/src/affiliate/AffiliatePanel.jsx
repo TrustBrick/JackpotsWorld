@@ -3,15 +3,17 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Key, Eye, EyeOff, AlertCircle, RefreshCw,
-  LayoutGrid, Megaphone, Percent, Users, HelpCircle, Activity, Bell, User, ShieldCheck,
+  LayoutGrid, Megaphone, HandCoins, Users, HelpCircle, Activity, Bell, User, ShieldCheck, Wallet as WalletIcon,
 } from "lucide-react";
 import { API, affiliateFetch } from "./helpers";
 import { revokeSession } from "../services/authRevoke";
 import { setSession, getToken, getUser, clearSession } from "../services/authStorage";
+import Logo from "../components/shared/Logo";
 import AffiliateSidebar, { SIDEBAR_WIDTH, useBreakpoint } from "./AffiliateSidebar";
 import OverviewTab from "./tabs/OverviewTab";
 import CampaignsTab from "./tabs/CampaignsTab";
 import CommissionTab from "./tabs/CommissionTab";
+import WalletTab from "./tabs/WalletTab";
 import ReferredUsersTab from "./tabs/ReferredUsersTab";
 import ActivityTab from "./tabs/ActivityTab";
 import NotificationsTab from "./tabs/NotificationsTab";
@@ -73,7 +75,9 @@ function AffiliateLoginScreen({ onSuccess }) {
       </div>
       <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} style={{ width: "100%", maxWidth: 420, padding: "0 20px" }}>
         <div style={{ textAlign: "center", marginBottom: 36 }}>
-          <div style={{ fontSize: 28, fontWeight: 900, color: C.gold, letterSpacing: 3, marginBottom: 4 }}>JACKPOTS WORLD</div>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 4 }}>
+            <Logo size="md" />
+          </div>
           <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", letterSpacing: "0.4em", textTransform: "uppercase" }}>Affiliate Portal</div>
         </div>
         <Card style={{ padding: 28 }}>
@@ -136,7 +140,8 @@ function AffiliateLoginScreen({ onSuccess }) {
 const TABS = [
   { id: "overview", label: "Overview", icon: LayoutGrid, Component: OverviewTab },
   { id: "campaigns", label: "Campaigns", icon: Megaphone, Component: CampaignsTab },
-  { id: "commission", label: "Commission", icon: Percent, Component: CommissionTab },
+  { id: "commission", label: "Commission", icon: HandCoins, Component: CommissionTab },
+  { id: "wallet", label: "Wallet", icon: WalletIcon, Component: WalletTab },
   { id: "referred", label: "Referred Players", icon: Users, Component: ReferredUsersTab },
   { id: "activity", label: "Activity", icon: Activity, Component: ActivityTab },
   { id: "notifications", label: "Notifications", icon: Bell, Component: NotificationsTab },

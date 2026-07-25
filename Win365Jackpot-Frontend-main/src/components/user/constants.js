@@ -44,7 +44,7 @@ export const TABS = [
   { id: "overview",      label: "Overview",       icon: "BarChart3"      },
   { id: "wallet",        label: "Wallet",          icon: "Wallet"         },
   { id: "travel",        label: "Travel History",  icon: "Plane"          },
-  { id: "gifts",         label: "Gifts",           icon: "Gift"           },
+  { id: "gifts",         label: "Gifts & Rewards", icon: "Gift"           },
   { id: "packages",      label: "Packages",        icon: "Package"        },
   // { id: "favourites",    label: "Favourites",      icon: "Heart"          },
   // { id: "bonus",         label: "Bonus",           icon: "Star"           },
@@ -52,7 +52,8 @@ export const TABS = [
   { id: "notifications", label: "Notifications",   icon: "Bell"           },
   { id: "referral",      label: "Referral",        icon: "Users"          },
   { id: "profile",       label: "Profile",         icon: "User"           },
-  { id: "support",              label: "Live Support",        icon: "LifeBuoy"    },
+  { id: "kyc",           label: "KYC Verification", icon: "BadgeCheck"    },
+  { id: "support",              label: "Service Request",     icon: "LifeBuoy"    },
   { id: "responsible_gambling", label: "Responsible Gambling", icon: "ShieldCheck" },
 ];
 

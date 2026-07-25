@@ -125,9 +125,14 @@ const FloatingCard = memo(({ suit, val, pos, delay, red }) => (
 // render sites below), unlike the rest of luxuryItems which stay desktop
 // -only (narrow viewports have no margin room outside the centered text
 // column for these without overlapping the winner feed / hero title / CTAs).
+//
+// Cache-busted with ?v=2 — this file is served with a 1-year Cache-Control
+// (see public/images/logos/), so updating the image bytes at the same URL
+// doesn't reach browsers that already cached the old one. Bump the version
+// again any time this specific asset's content changes.
 const rolexItems = [
-  { logo:'/images/logos/rolex.png', label:'ROLEX', pos:{right:'19%',top:'14%'}, delay:3.5, color:'#D4AF37' },
-  { logo:'/images/logos/rolex.png', label:'ROLEX', pos:{left:'1%',  top:'16%'}, delay:2.8, color:'#D4AF37' },
+  { logo:'/images/logos/rolex.png?v=2', label:'ROLEX', pos:{right:'19%',top:'14%'}, delay:3.5, color:'#D4AF37' },
+  { logo:'/images/logos/rolex.png?v=2', label:'ROLEX', pos:{left:'1%',  top:'16%'}, delay:2.8, color:'#D4AF37' },
 ]
 
 const luxuryItems = [
@@ -206,21 +211,16 @@ function getDailyWinnings() {
 // ─── Winner Feed ──────────────────────────────────────────────────────────
 const PLACES   = ['Mumbai','Delhi','Bangalore','Hyderabad','Goa','Colombo','Manila','Hanoi','Macau']
 const GAMES    = ['Baccarat','Roulette','Blackjack','Poker','Slots','Sic Bo']
-const CURRENCIES = [
-  { min:500,   max:8000,   fmt: v=>`$${v.toLocaleString()}`  },
-  { min:5000,  max:200000, fmt: v=>`₱${v.toLocaleString()}`  },
-  { min:400,   max:6000,   fmt: v=>`€${v.toLocaleString()}`  },
-  { min:300,   max:5000,   fmt: v=>`£${v.toLocaleString()}`  },
-  { min:50000, max:1000000,fmt: v=>`¥${v.toLocaleString()}`  },
-]
+// Amount won is always USD, formatted one consistent way.
+const WIN_MIN = 500
+const WIN_MAX = 200000
 function makeWinner(id) {
-  const cur = CURRENCIES[Math.floor(Math.random() * CURRENCIES.length)]
-  const amt = Math.floor(Math.random() * (cur.max - cur.min) + cur.min)
+  const amt = Math.floor(Math.random() * (WIN_MAX - WIN_MIN) + WIN_MIN)
   return {
     id, name:randomName(),
     place:PLACES[~~(Math.random()*PLACES.length)],
     game:GAMES[~~(Math.random()*GAMES.length)],
-    amount:cur.fmt(amt),
+    amount:`$${amt.toLocaleString()}`,
   }
 }
 
@@ -704,7 +704,7 @@ useEffect(() => {
             marginBottom:'clamp(20px,4vw,32px)',
           }}
         >
-          {settings?.hero_tagline || 'www.jackpotsworld.casino'}
+          {settings?.hero_tagline || 'www.jackpotsworld.vip'}
         </motion.p>
 
         {/* CTAs */}

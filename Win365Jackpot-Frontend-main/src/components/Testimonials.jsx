@@ -8,35 +8,37 @@ import { flagFromCountryCode } from '../utils/countryFlags'
 import { fixMojibakeCurrency } from '../utils/mediaFallback'
 
 // ─── Testimonial data (main cards, fallback used only until the API responds) ─
+// Every record's name/city/flag/casino-country/winnings belongs to the same
+// player and winnings are always USD — no mixed-locale data.
 const FALLBACK_TESTIMONIALS = [
   {
     name: 'Rajesh K.', city: 'Mumbai, India',       flag: '🇮🇳', rating: 5,
-    won: '$8.5 Lakhs', dest: 'Macau',   color: '#FF6F00', seed: 'rajesh',
+    won: '$10,200', dest: 'Macau',   color: '#FF6F00', seed: 'rajesh',
     text: 'Jackpots World made my Macau trip absolutely magical! VIP treatment from airport to casino floor. Won big at the Venetian Baccarat tables. The package was worth every rupee!',
   },
   {
     name: 'Priya S.', city: 'Chennai, India',        flag: '🇮🇳', rating: 5,
-    won: '$2.2 Lakhs', dest: 'Goa',    color: '#8E24AA', seed: 'priya',
+    won: '$2,650', dest: 'Goa',    color: '#8E24AA', seed: 'priya',
     text: "First casino experience ever and it couldn't have been better. The Jackpots World team guided me through everything. Walked out with a massive win at Delta Corp roulette!",
   },
   {
-    name: 'Nguyen T.', city: 'Ho Chi Minh City',     flag: '🇻🇳', rating: 5,
+    name: 'Nguyen T.', city: 'Ho Chi Minh City, Vietnam',     flag: '🇻🇳', rating: 5,
     won: '$4,200',     dest: 'Vietnam', color: '#D32F2F', seed: 'nguyen',
     text: "The Diamond Elite package in Vietnam was extraordinary. Private butler, unlimited credits, and I hit the poker jackpot! Jackpots World is truly Asia's best.",
   },
   {
     name: 'Arjun M.', city: 'Bangalore, India',      flag: '🇮🇳', rating: 5,
-    won: '$12 Lakhs', dest: 'Philippines', color: '#00838F', seed: 'arjun',
+    won: '$14,400', dest: 'Philippines', color: '#00838F', seed: 'arjun',
     text: "Okada Manila with Jackpots World's VIP package — hands down the best experience of my life. Hit a jackpot on the Konami slots and the cashout was instant. 10/10!",
   },
   {
     name: 'Kasun P.', city: 'Colombo, Sri Lanka',    flag: '🇱🇰', rating: 5,
-    won: 'LKR 900K',  dest: 'Sri Lanka', color: '#7B1FA2', seed: 'kasun',
+    won: '$3,000',  dest: 'Sri Lanka', color: '#7B1FA2', seed: 'kasun',
     text: "Bally's Colombo via Jackpots World was unreal. Got a VIP membership, exclusive table access, and walked away with a life-changing win. The support team was exceptional.",
   },
   {
     name: 'Carlos R.', city: 'Manila, Philippines',  flag: '🇵🇭', rating: 5,
-    won: '₱185,000',  dest: 'Philippines', color: '#43A047', seed: 'carlos',
+    won: '$3,300',  dest: 'Philippines', color: '#43A047', seed: 'carlos',
     text: 'City of Dreams Manila via Jackpots World — simply the BEST! Their concierge handled everything perfectly. Won big at Blackjack 21 and the payout was smooth.',
   },
 ]
@@ -67,30 +69,37 @@ const FIRST = [
 ]
 const LAST_INIT = 'ABCDFGHJKLMNPRSTWY'.split('')
 
-// ─── Currency / win amounts per locale ───────────────────────────────────────
-const WIN_POOLS = [
-  { fmt: v => `$${v.toFixed(1)} L`,  min: 1.2, max: 18,   step: 0.1 }, // INR lakhs
-  { fmt: v => `$${v.toLocaleString()}`,       min: 800,  max: 9500, step: 100, int: true }, // USD
-  { fmt: v => `€${v.toLocaleString()}`,       min: 600,  max: 7000, step: 100, int: true }, // EUR
-  { fmt: v => `£${v.toLocaleString()}`,       min: 500,  max: 6500, step: 100, int: true }, // GBP
-  { fmt: v => `¥${v.toLocaleString()}`,       min: 80000,max:950000,step:1000, int: true }, // JPY
-  { fmt: v => `A$${v.toLocaleString()}`,      min: 900,  max: 8000, step: 100, int: true }, // AUD
-  { fmt: v => `SGD ${v.toLocaleString()}`,    min: 800,  max: 8500, step: 100, int: true }, // SGD
-  { fmt: v => `LKR ${v.toLocaleString()}`,    min:150000,max:980000,step:1000, int: true }, // LKR
-  { fmt: v => `₱${v.toLocaleString()}`,       min: 30000,max:250000,step:1000, int: true }, // PHP
-  { fmt: v => `₫${v.toLocaleString()}`,       min:2000000,max:15000000,step:100000,int:true}, // VND
-  { fmt: v => `MYR ${v.toFixed(0)}`,          min: 2000, max: 18000,step: 500, int: true }, // MYR
-  { fmt: v => `HKD ${v.toLocaleString()}`,    min: 5000, max: 60000,step: 500, int: true }, // HKD
-]
+// ─── Win amount — USD only, one consistent format ($X,XXX) ───────────────────
+function formatWon(v) {
+  return `$${Math.round(v).toLocaleString('en-US')}`
+}
+const WIN_MIN = 500
+const WIN_MAX = 28000
 
 const DESTINATIONS = ['Macau','Vietnam','Goa','Philippines','Sri Lanka','Singapore','Malaysia','Las Vegas','Georgia','Armenia']
 const GAMES        = ['Baccarat','Roulette','Blackjack','Poker','Slots','Sic Bo','Dragon Tiger','Craps']
-const CITIES = [
-  'Mumbai','Delhi','Chennai','Bangalore','Hyderabad','Kolkata',
-  'Ho Chi Minh City','Hanoi','Manila','Colombo','Macau','Singapore',
-  'Kuala Lumpur','Hong Kong','Tokyo','Dubai','London','Sydney',
+// Each entry bundles city + flag together so a card's location is always
+// internally consistent (never a mismatched flag/city pairing).
+const PLAYER_LOCATIONS = [
+  { city: 'Mumbai',           flag: '🇮🇳' },
+  { city: 'Delhi',            flag: '🇮🇳' },
+  { city: 'Chennai',          flag: '🇮🇳' },
+  { city: 'Bangalore',        flag: '🇮🇳' },
+  { city: 'Hyderabad',        flag: '🇮🇳' },
+  { city: 'Kolkata',          flag: '🇮🇳' },
+  { city: 'Ho Chi Minh City', flag: '🇻🇳' },
+  { city: 'Hanoi',            flag: '🇻🇳' },
+  { city: 'Manila',           flag: '🇵🇭' },
+  { city: 'Colombo',          flag: '🇱🇰' },
+  { city: 'Macau',            flag: '🇲🇴' },
+  { city: 'Singapore',        flag: '🇸🇬' },
+  { city: 'Kuala Lumpur',     flag: '🇲🇾' },
+  { city: 'Hong Kong',        flag: '🇭🇰' },
+  { city: 'Tokyo',            flag: '🇯🇵' },
+  { city: 'Dubai',            flag: '🇦🇪' },
+  { city: 'London',           flag: '🇬🇧' },
+  { city: 'Sydney',           flag: '🇦🇺' },
 ]
-const FLAGS = ['🇮🇳','🇻🇳','🇵🇭','🇱🇰','🇸🇬','🇲🇾','🇯🇵','🇦🇺','🇬🇧','🇺🇸','🇭🇰','🇦🇪']
 const COLORS = [
   '#FF6F00','#8E24AA','#D32F2F','#00838F','#43A047',
   '#1565C0','#E65100','#6A1B9A','#00695C','#AD1457',
@@ -116,17 +125,15 @@ function randBetween(min, max, int = false) {
 }
 
 function makeScrollCard(index) {
-  const first  = FIRST[Math.floor(Math.random() * FIRST.length)]
-  const last   = LAST_INIT[Math.floor(Math.random() * LAST_INIT.length)]
-  const pool   = WIN_POOLS[Math.floor(Math.random() * WIN_POOLS.length)]
-  const amount = pool.int
-    ? pool.fmt(randBetween(pool.min, pool.max, true))
-    : pool.fmt(randBetween(pool.min, pool.max))
+  const first    = FIRST[Math.floor(Math.random() * FIRST.length)]
+  const last     = LAST_INIT[Math.floor(Math.random() * LAST_INIT.length)]
+  const location = PLAYER_LOCATIONS[Math.floor(Math.random() * PLAYER_LOCATIONS.length)]
+  const amount   = formatWon(randBetween(WIN_MIN, WIN_MAX, true))
   return {
     id:    `${index}-${Math.random().toString(36).slice(2)}`,
     name:  `${first} ${last}.`,
-    city:  CITIES[Math.floor(Math.random() * CITIES.length)],
-    flag:  FLAGS[Math.floor(Math.random() * FLAGS.length)],
+    city:  location.city,
+    flag:  location.flag,
     dest:  DESTINATIONS[Math.floor(Math.random() * DESTINATIONS.length)],
     game:  GAMES[Math.floor(Math.random() * GAMES.length)],
     won:   amount,
@@ -233,11 +240,16 @@ export default function Testimonials() {
   const { ref, inView }           = useInView({ threshold: 0.1, triggerOnce: true })
 
   const { data: testimonialsData } = useAutoFetch(fetchTestimonials, {}, { intervalMs: 60_000 })
-  const testimonials = (Array.isArray(testimonialsData) && testimonialsData.length > 0 ? testimonialsData : FALLBACK_TESTIMONIALS).map(t => ({
+  const mapped = (Array.isArray(testimonialsData) ? testimonialsData : []).map(t => ({
     name: t.name, city: t.city, flag: flagFromCountryCode(t.country_code) || t.flag,
     rating: t.rating, won: fixMojibakeCurrency(t.won || t.amount_won), dest: t.dest || t.destination,
     color: t.color || t.accent_color, avatar: t.avatar, seed: t.seed, text: t.text,
   }))
+  // Every record must have its own name/location/winnings/casino-country
+  // together — a record missing any of these belongs to no one and is
+  // dropped rather than rendered with a gap.
+  const validated = mapped.filter(t => t.name && t.city && t.won && t.dest)
+  const testimonials = validated.length > 0 ? validated : FALLBACK_TESTIMONIALS
 
   // Split into two rows for opposite directions
   const row1 = scrollCards.slice(0,  30)

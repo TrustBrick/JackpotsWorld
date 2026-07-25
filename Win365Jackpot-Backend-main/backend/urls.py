@@ -11,7 +11,7 @@ from authapp.url_patterns.gift_level_urls import admin_urlpatterns, user_urlpatt
 def healthz(request):
     return JsonResponse({
         "status": "ok",
-        "message": "Win365Jackpot Backend Running 🚀"
+        "message": "JackpotsWorld Backend Running 🚀"
     })
 
 

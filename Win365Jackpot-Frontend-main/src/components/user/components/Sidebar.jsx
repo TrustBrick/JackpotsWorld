@@ -5,7 +5,7 @@ import {
   LogOut, MessageCircle, Send, Bell, Gift,
   BarChart3, Wallet, Plane, Heart, Star,
   Trophy, Users, User, Menu, X, ChevronRight, Package,
-  LifeBuoy, ShieldCheck, Globe,
+  LifeBuoy, ShieldCheck, Globe, BadgeCheck,
 } from "lucide-react";
 import { C, VIP_COLOR, TABS } from "../constants";
 import { fmtN } from "../helpers";
@@ -34,7 +34,7 @@ export function useBreakpoint() {
   return bp;
 }
 
-const ICON_MAP = { BarChart3, Wallet, Plane, Gift, Heart, Star, Trophy, Bell, Users, User, Package, LifeBuoy, ShieldCheck };
+const ICON_MAP = { BarChart3, Wallet, Plane, Gift, Heart, Star, Trophy, Bell, Users, User, Package, LifeBuoy, ShieldCheck, BadgeCheck };
 
 function useNotifPulse() {
   useEffect(() => {
@@ -74,6 +74,7 @@ export const TAB_I18N_KEY = {
   notifications: "sidebar.notifications",
   referral: "sidebar.referral",
   profile: "sidebar.profile",
+  kyc: "sidebar.kyc",
   support: "sidebar.liveSupport",
   responsible_gambling: "sidebar.responsibleGambling",
 };

@@ -1,5 +1,5 @@
 {
-  "name": "win365jackpot",
+  "name": "jackpotsworld",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -40,7 +40,7 @@
     "tailwindcss": "^3.4.6",
     "vite": "^5.3.4"
   },
-  "description": "<<<<<<< HEAD\r # 🎰 Win365Jackpot — Casino Website",
+  "description": "JackpotsWorld — Casino Website",
   "main": "postcss.config.js",
   "repository": {
     "type": "git",

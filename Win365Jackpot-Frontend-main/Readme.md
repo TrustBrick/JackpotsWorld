@@ -1,4 +1,4 @@
-# WIN365 Wallet System — Integration Guide
+# JackpotsWorld Wallet System — Integration Guide
 
 ## File Structure
 
