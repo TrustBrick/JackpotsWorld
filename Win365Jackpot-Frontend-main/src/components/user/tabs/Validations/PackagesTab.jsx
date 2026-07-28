@@ -75,7 +75,7 @@ function mapTourPackage(p) {
 
 function purchaseLink(pkg, whatsappNumber) {
   const msg = encodeURIComponent(
-    `Hi! I'm interested in purchasing the *${pkg.name}* Casino Tour Package (${pkg.price}). Please share more details.`
+    `Hi! I'm interested in purchasing the *${pkg.name}* Offline Casino Tour Package (${pkg.price}). Please share more details.`
   );
   return `https://wa.me/${whatsappNumber}?text=${msg}`;
 }

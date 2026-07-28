@@ -43,7 +43,7 @@ const faqs = [
   { q: 'How and when do I get paid?', a: 'Commissions are calculated weekly and monthly based on your referred players\' activity and paid out directly to your registered account.' },
   { q: 'Can I promote more than one partner casino?', a: 'Yes — your affiliate link covers our entire network of partner casinos, events, and promotions.' },
   { q: 'Is there a limit to how much I can earn?', a: 'There is no cap on commission earnings. The more active players you refer, the higher your tier and payout.' },
-  { q: 'How do you know commission?', a: 'Connect with VIP Affiliate host.' },
+  { q: 'How do I know commission?', a: 'Connect with VIP Affiliate host.' },
 ]
 
 function FaqItem({ faq, isOpen, onToggle }) {

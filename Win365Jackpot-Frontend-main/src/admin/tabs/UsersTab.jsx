@@ -140,14 +140,6 @@ async function fetchTravelHistory(userId, page = 1, perPage = 5) {
   } catch { return { results: [], count: 0 }; }
 }
 
-async function fetchUserLevel(userId) {
-  try {
-    const r = await adminFetch(`${API}/api/admin-panel/users/${userId}/level/`);
-    if (!r.ok) return null;
-    return await r.json();
-  } catch { return null; }
-}
-
 function computeBalances(mainWallets, casinoList) {
   const cashAcct = (mainWallets || []).find(
     a => a.wallet_type === "C" || a.wallet_type === "cash"
@@ -171,7 +163,8 @@ export default function UsersTab({ onToast }) {
   const [users,        setUsers]        = useState([]);
   const [total,        setTotal]        = useState(0);
   const [page,         setPage]         = useState(1);
-  const [q,            setQ]            = useState("");
+  const [q,            setQ]            = useState(""); // live input value (controlled)
+  const [queryTerm,    setQueryTerm]    = useState(""); // debounced term actually sent to the API
   const [role,         setRole]         = useState("all"); // all | player | affiliate
   const [loading,      setLoading]      = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -180,60 +173,62 @@ export default function UsersTab({ onToast }) {
   // Cache so re-opening a user is instant
   const detailCache = useRef({});
 
-  /* ── Load list ── */
+  /* ── Load list ──
+     The list endpoint now returns level + available/total balance already
+     computed server-side (bulk-queried for the whole page), so the table
+     renders complete in one round trip — no more per-row enrichment fan-out.
+     `loadUsers` depends on `queryTerm` (debounced), not the raw `q` the user
+     is still typing, so its identity — and the effect below — only changes
+     once per committed search, not once per keystroke. */
   const loadUsers = useCallback(async (pg) => {
     setLoading(true);
     try {
       const p = new URLSearchParams({ page: pg, page_size: PER_PAGE });
-      if (q) p.set("q", q);
+      if (queryTerm) p.set("q", queryTerm);
       if (role !== "all") p.set("role", role);
       const r = await adminFetch(`${API}/api/admin-panel/users/?${p}`);
       const j = await r.json();
       const raw = j.results || [];
 
-      // ✅ Render list instantly — balances show shimmer (null)
       setUsers(raw.map(u => ({
         ...u,
-        _level:            u.vip_level ?? 1,
-        _availableCash:    null,
-        _totalMainBalance: null,
+        _level:            u.level ?? u.vip_level ?? 1,
+        _availableCash:    u.available_balance ?? 0,
+        _totalMainBalance: u.total_balance ?? 0,
       })));
       setTotal(j.count || 0);
-
-      // ✅ Background enrich — 3 users at a time
-      const BATCH = 3;
-      for (let i = 0; i < raw.length; i += BATCH) {
-        const batch = raw.slice(i, i + BATCH);
-        await Promise.all(
-          batch.map(async (u) => {
-            try {
-              const [lvlJson, mainWallets, casinoList] = await Promise.all([
-                fetchUserLevel(u.id),
-                fetchMainWallets(u.id),
-                fetchCasinoWallets(u.id),
-              ]);
-              const { availableCash, totalMainBalance } = computeBalances(mainWallets, casinoList);
-              setUsers(prev => prev.map(row =>
-                row.id === u.id
-                  ? { ...row, _level: lvlJson?.level ?? u.vip_level ?? 1, _availableCash: availableCash, _totalMainBalance: totalMainBalance }
-                  : row
-              ));
-            } catch { /* leave shimmer, don't crash */ }
-          })
-        );
-      }
     } catch {
       onToast("Failed to load users", false);
     }
     setLoading(false);
-  }, [q, role, onToast]);
+  }, [queryTerm, role, onToast]);
 
   useEffect(() => { loadUsers(page); }, [page, loadUsers]);
 
   const handleSearch = useCallback(() => {
-    if (page === 1) loadUsers(1);
-    else setPage(1);
-  }, [page, loadUsers]);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    if (queryTerm === q) {
+      if (page === 1) loadUsers(1);
+      else setPage(1);
+    } else {
+      setQueryTerm(q);
+      setPage(1);
+    }
+  }, [q, queryTerm, page, loadUsers]);
+
+  // ✅ Debounced auto-search — commits `q` into `queryTerm` ~450ms after the
+  // user stops typing, so results update without a click while avoiding a
+  // request per keystroke (only the commit changes `loadUsers`'s identity).
+  const searchDebounceRef = useRef(null);
+  const handleSearchInputChange = useCallback((value) => {
+    setQ(value);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      setQueryTerm(value);
+      setPage(1);
+    }, 450);
+  }, []);
+  useEffect(() => () => { if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current); }, []);
 
   const handleRoleChange = useCallback((next) => {
     setRole(next);
@@ -301,7 +296,7 @@ export default function UsersTab({ onToast }) {
             <Search size={13} style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: C.dim }} />
             <input
               value={q}
-              onChange={e => setQ(e.target.value)}
+              onChange={e => handleSearchInputChange(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handleSearch()}
               placeholder="Search UID, Email or Name…"
               style={{ ...S.input, paddingLeft: 34 }}
@@ -375,28 +370,16 @@ export default function UsersTab({ onToast }) {
                     )}
                   </td>
 
-                  {/* ✅ Available Balance — shimmer while null */}
+                  {/* ✅ Available Balance — comes back with the list response now */}
                   <td style={S.td}>
-                    {u._availableCash === null ? (
-                      <Shimmer width={72} />
-                    ) : (
-                      <>
-                        <div style={{ fontFamily: "monospace", color: "#34D399", fontWeight: 700 }}>{fmt(u._availableCash)}</div>
-                        <div style={{ fontSize: 10, color: C.muted }}>Can deposit/payout</div>
-                      </>
-                    )}
+                    <div style={{ fontFamily: "monospace", color: "#34D399", fontWeight: 700 }}>{fmt(u._availableCash)}</div>
+                    <div style={{ fontSize: 10, color: C.muted }}>Can deposit/payout</div>
                   </td>
 
-                  {/* ✅ Total Balance — shimmer while null */}
+                  {/* ✅ Total Balance — comes back with the list response now */}
                   <td style={S.td}>
-                    {u._totalMainBalance === null ? (
-                      <Shimmer width={72} />
-                    ) : (
-                      <>
-                        <div style={{ fontFamily: "monospace", color: "#60A5FA", fontWeight: 700 }}>{fmt(u._totalMainBalance)}</div>
-                        <div style={{ fontSize: 10, color: C.muted }}>Incl. all casinos</div>
-                      </>
-                    )}
+                    <div style={{ fontFamily: "monospace", color: "#60A5FA", fontWeight: 700 }}>{fmt(u._totalMainBalance)}</div>
+                    <div style={{ fontSize: 10, color: C.muted }}>Incl. all casinos</div>
                   </td>
 
                   <td style={S.td}><StatusBadge kycStatus={u.kyc_status} isActive={u.is_active} /></td>

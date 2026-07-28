@@ -382,6 +382,10 @@ class AdminGrantAffiliateView(APIView):
                 "can_view_player_transactions": bool(can_view_txns) if can_view_txns is not None else False,
             },
         )
+        # Capture the pre-update state before mutating — approved_by only
+        # ever transitions null → set once, so "was it already approved"
+        # is a reliable one-time signal for the onboarding email below.
+        was_already_approved = (not created) and profile.is_active and profile.approved_by is not None
         if not created:
             profile.commission_rate = commission_rate
             profile.is_active = is_active
@@ -391,6 +395,14 @@ class AdminGrantAffiliateView(APIView):
                 profile.can_view_player_transactions = bool(can_view_txns)
                 update_fields.append("can_view_player_transactions")
             profile.save(update_fields=update_fields)
+
+        # Fire the "Affiliate Onboarding Completed Successfully" email exactly
+        # once — the moment this profile first becomes active+approved.
+        # Not sent for pending applications, rejections/deactivations, or
+        # any later edit (commission-rate change, etc.) once already approved.
+        if is_active and not was_already_approved:
+            from authapp.utils.email_utils import send_affiliate_approval_email
+            send_affiliate_approval_email(user)
 
         return Response({
             "message": f"{user.email} is now {'an active' if is_active else 'an inactive'} affiliate.",

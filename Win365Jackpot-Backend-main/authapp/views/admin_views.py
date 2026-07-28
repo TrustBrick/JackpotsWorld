@@ -13,8 +13,10 @@ from authapp.models import (
     User, AdminProfile, ActivityLog,
     WalletAccount, WalletTransaction,
     OTPRecord, PendingAdminCreation,
+    CasinoWalletAccount,
 )
 from authapp.models.affiliate_models import AffiliateProfile
+from authapp.models.gift_level_models import UserLevel
 from authapp.serializers import (
     UserProfileSerializer,
     AdminProfileSerializer,
@@ -226,8 +228,33 @@ class AdminUserListView(APIView):
         page = paginator.paginate_queryset(qs, request)
         serializer = UserProfileSerializer(page, many=True)
         data = serializer.data
+
+        # ✅ Perf fix: the Users table used to fan out 3 extra HTTP requests
+        # per visible row (level, main wallets, casino wallets) — ~31 requests
+        # per page load. Collapse that into 3 bulk queries scoped to just this
+        # page's ids (page_size rows, indexed on user/user_id), so the whole
+        # table — balances included — ships in one response.
+        user_ids = [u.id for u in page]
+        cash_by_user = dict(
+            WalletAccount.objects.filter(user_id__in=user_ids, wallet_type="C")
+            .values_list("user_id", "balance")
+        )
+        casino_cash_by_user = dict(
+            CasinoWalletAccount.objects.filter(user_id__in=user_ids, wallet_type="C")
+            .values("user_id").annotate(total=Sum("balance")).values_list("user_id", "total")
+        )
+        level_by_user = dict(
+            UserLevel.objects.filter(user_id__in=user_ids).values_list("user_id", "level")
+        )
+
         for row, u in zip(data, page):
             row["is_affiliate"] = u.is_affiliate
+            available_cash = float(cash_by_user.get(u.id) or 0)
+            casino_cash = float(casino_cash_by_user.get(u.id) or 0)
+            row["level"] = level_by_user.get(u.id, u.vip_level or 1)
+            row["available_balance"] = available_cash
+            row["total_balance"] = available_cash + casino_cash
+
         return paginator.get_paginated_response(data)
 
 
