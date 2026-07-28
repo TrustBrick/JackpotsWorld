@@ -1,0 +1,1 @@
+import{a5 as r,r as n,j as e,ak as u,an as c}from"./index-DmekrLGV.js";function d({tab:t}){const a=r(),s=n.useRef(!1);return e.jsxs("div",{className:"min-h-screen",style:{background:"var(--w365-bg)"},children:[e.jsx(u,{}),e.jsx(c,{isOpen:!0,onClose:()=>{s.current||a("/")},defaultTab:t,onAuthSuccess:()=>{s.current=!0,a("/dashboard")}})]})}export{d as default};
