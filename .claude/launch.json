@@ -13,6 +13,7 @@
       "runtimeExecutable": "venv\\Scripts\\python.exe",
       "runtimeArgs": ["manage.py", "runserver", "127.0.0.1:8000"],
       "port": 8000,
+      "autoPort": false,
       "cwd": "Win365Jackpot-Backend-main"
     }
   ]

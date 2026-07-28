@@ -53,6 +53,12 @@ if _private_ip:
     ALLOWED_HOSTS.append(_private_ip)
 
 INSTALLED_APPS = [
+    # LIVE-CHAT: 'daphne' must be listed before 'django.contrib.staticfiles'
+    # — Channels patches `runserver` to be ASGI-aware (serves both HTTP and
+    # WebSocket locally, no separate process needed for dev) only when
+    # daphne is registered first. Harmless to WSGI production (cPanel) since
+    # that deployment never imports/serves ASGI at all.
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -62,6 +68,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
+    'channels',
     'authapp',
 ]
 
@@ -81,6 +88,10 @@ MIDDLEWARE = [
 AUTH_USER_MODEL = 'authapp.User'
 ROOT_URLCONF    = 'backend.urls'
 WSGI_APPLICATION = 'backend.wsgi.application'
+# LIVE-CHAT: only used by the separate `daphne` process (see Procfile) that
+# serves /ws/ on AWS EB — the WSGI app above still handles every normal HTTP
+# request in production exactly as before this feature existed.
+ASGI_APPLICATION = 'backend.asgi.application'
 
 TEMPLATES = [
     {
@@ -254,6 +265,7 @@ REST_FRAMEWORK = {
         'otp-verify': '10/min',
         'register': '10/min',
         'check-user': '20/min',
+        'live-chat-send': '30/min',
     },
 }
 
@@ -285,6 +297,29 @@ else:
         "default": {
             "BACKEND": "django.core.cache.backends.db.DatabaseCache",
             "LOCATION": "django_cache",
+        }
+    }
+
+# LIVE-CHAT: channel layer for Django Channels (real-time chat push). Same
+# branching idea as CACHES above — REDIS_URL is unset by default (no Redis
+# provisioned yet), so this falls back to the in-memory layer, which is
+# perfectly fine for local dev (`manage.py runserver`) and for a single AWS
+# EB instance running one daphne process. It stops being correct the moment
+# there's more than one process/instance sharing chat traffic (each process
+# would only see its own connections) — set REDIS_URL (e.g. an ElastiCache
+# endpoint) once this scales past one instance to fix that.
+_redis_url = config('REDIS_URL', default='')
+if _redis_url:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {"hosts": [_redis_url]},
+        }
+    }
+else:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
         }
     }
 
