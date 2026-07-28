@@ -55,7 +55,7 @@ const TICKET_CATEGORIES = [
   "Withdrawal Problem",
   "KYC Verification",
   "Bonus / Promotion Query",
-  "Casino Package Inquiry",
+  "Offline Casino Package Inquiry",
   "Technical Issue",
   "General Inquiry",
   "Other",

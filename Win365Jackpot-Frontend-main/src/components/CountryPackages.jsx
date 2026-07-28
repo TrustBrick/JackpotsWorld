@@ -127,7 +127,7 @@ const FALLBACK_VIP_SERVICE_SRC_BY_LABEL = new Map(FALLBACK_VIP_SERVICES.map(v =>
 const INCLUSIONS = [
   { icon: <Plane      size={15} color="#D4AF37" />, label: 'Free Flights'   },
   { icon: <Hotel      size={15} color="#D4AF37" />, label: '5-Star Hotels'  },
-  { icon: <Coins      size={15} color="#D4AF37" />, label: 'Casino Credits' },
+  { icon: <Coins      size={15} color="#D4AF37" />, label: 'Offline Casino Credits' },
   { icon: <Car        size={15} color="#D4AF37" />, label: 'Transfers'      },
   { icon: <UtensilsCrossed size={15} color="#D4AF37" />, label: 'All Meals' },
   { icon: <Wine       size={15} color="#D4AF37" />, label: 'Free Drinks'    },
@@ -142,8 +142,8 @@ function WhatsAppBtn({ label = 'Enquire on WhatsApp', pkg = '' }) {
   const whatsappNumber = useWhatsAppNumber()
   const msg = encodeURIComponent(
     pkg
-      ? `Hi! I'm interested in the *${pkg}* Casino Tour Package. Please share more details.`
-      : `Hi! I'm interested in your Casino Tour Packages. Please share more details.`
+      ? `Hi! I'm interested in the *${pkg}* Offline Casino Tour Package. Please share more details.`
+      : `Hi! I'm interested in your Offline Casino Tour Packages. Please share more details.`
   )
   return (
     <a href={`https://wa.me/${whatsappNumber}?text=${msg}`} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textDecoration: 'none' }}>
@@ -564,7 +564,7 @@ function PackagesSection() {
             TOUR PACKAGES
           </h2>
           <p className="font-body font-light" style={{ color: 'rgba(var(--w365-text-rgb),0.5)', maxWidth: 520, margin: '0 auto', fontSize: 'clamp(0.82rem,3.2vw,1rem)', lineHeight: 1.6 }}>
-            Every package includes <strong style={{ color: 'rgba(212,175,55,0.9)' }}>Free Flights · 5-Star Hotel · All Meals · Free Drinks · VIP Casino Access</strong>.
+            Every package includes <strong style={{ color: 'rgba(212,175,55,0.9)' }}>Free Flights · 5-Star Hotel · All Meals · Free Drinks · VIP Offline Casino Access</strong>.
             Available for all 5 destinations.
           </p>
         </motion.div>
@@ -737,7 +737,7 @@ function PackagesSection() {
                 fontSize: 'clamp(1.2rem,5vw,1.7rem)', fontWeight: 900,
                 color: '#22d3ee', lineHeight: 1,
               }}>
-                Cruise Casino Package
+                Cruise Offline Casino Package
               </div>
               <div style={{
                 fontSize: 'clamp(0.65rem,2.2vw,0.75rem)',
@@ -779,7 +779,7 @@ function PackagesSection() {
           { icon: <Bed             size={18} color="#22d3ee" strokeWidth={1.5} />, label: 'Cabin',         val: 'Ocean View / Suite Cabin'   },
           { icon: <UtensilsCrossed size={18} color="#22d3ee" strokeWidth={1.5} />, label: 'Dining',        val: 'All-inclusive Fine Dining'  },
           { icon: <Wine            size={18} color="#22d3ee" strokeWidth={1.5} />, label: 'Drinks',        val: 'Unlimited Premium Bar'      },
-          { icon: <Coins           size={18} color="#22d3ee" strokeWidth={1.5} />, label: 'Casino',        val: 'Onboard Casino (24/7)'      },
+          { icon: <Coins           size={18} color="#22d3ee" strokeWidth={1.5} />, label: 'Offline Casino', val: 'Onboard Casino (24/7)'      },
           { icon: <Drama           size={18} color="#22d3ee" strokeWidth={1.5} />, label: 'Entertainment', val: 'Live Shows & Nightclub'     },
           { icon: <Sparkles        size={18} color="#22d3ee" strokeWidth={1.5} />, label: 'Spa',           val: 'Full Spa & Wellness Centre' },
           { icon: <Waves           size={18} color="#22d3ee" strokeWidth={1.5} />, label: 'Amenities',     val: 'Pool, Gym, Sun Deck'        },
@@ -823,7 +823,7 @@ function PackagesSection() {
         gap: 8, marginBottom: 28,
       }}>
         {[
-          'Casino Credits Included',
+          'Offline Casino Credits Included',
           'VIP Boarding Lounge',
           'Port Excursions',
           'Professional Dealer Tables',
@@ -846,7 +846,7 @@ function PackagesSection() {
       {/* CTA */}
       <div style={{ maxWidth: 380, margin: '0 auto' }}>
   <a
-    href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent("Hi! I'm interested in the *Cruise Casino Package*. Please share more details.")}`}
+    href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent("Hi! I'm interested in the *Cruise Offline Casino Package*. Please share more details.")}`}
     target="_blank"
     rel="noopener noreferrer"
     style={{ display: 'block', textDecoration: 'none' }}
@@ -874,7 +874,7 @@ function PackagesSection() {
     >
       <Ship size={16} color="white" />
       <MessageCircle size={16} color="white" />
-      Enquire – Cruise Casino Package
+      Enquire – Cruise Offline Casino Package
     </motion.button>
   </a>
 </div>
@@ -1062,7 +1062,7 @@ export default function CountryPackages() {
 
               {/* WhatsApp CTA */}
               <div style={{ maxWidth: 340, margin: '0 auto clamp(24px,6vw,40px)' }}>
-                <WhatsAppBtn label={`Enquire – ${country.name} Trip`} pkg={`${country.name} Casino Tour`} />
+                <WhatsAppBtn label={`Enquire – ${country.name} Trip`} pkg={`${country.name} Offline Casino Tour`} />
               </div>
 
             </motion.div>

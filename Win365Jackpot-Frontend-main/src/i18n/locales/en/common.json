@@ -298,7 +298,7 @@
     "rollingPointsLabel": "Rolling Points", "rewardPoints": "Reward Points"
   },
   "packages": {
-    "casinoTourPackages": "Casino Tour Packages",
+    "casinoTourPackages": "Offline Casino Tour Packages",
     "packagesDesc": "The same premium packages featured on our landing page — available across Vietnam, Macau, India, Sri Lanka & Philippines.",
     "perPerson": "per person",
     "allDestinations": "All Destinations",
@@ -393,7 +393,7 @@
     "failedToSubmit": "Failed to submit ticket"
   },
   "travel": {
-    "header": "Casino Travel History",
+    "header": "Offline Casino Travel History",
     "allCasinos": "All Casinos",
     "visits_one": "{{count}} visit",
     "visits_other": "{{count}} visits",
@@ -428,7 +428,7 @@
   },
   "events": {
     "eyebrow": "Jackpots World Presents",
-    "title": "Casino Events",
+    "title": "Offline Casino Events",
     "subtitle": "Exclusive tournaments, galas, and high-stakes weekends hosted by our partner casinos around the world.",
     "loadError": "Couldn't load events right now. Please try again.",
     "noEvents": "No events available right now. Check back soon.",
@@ -440,7 +440,7 @@
     "signInToGetTicketEvent": "Sign in to get your ticket for this event."
   },
   "promotions": {
-    "eyebrow": "Partner Casino Offers",
+    "eyebrow": "Partner Offline Casino Offers",
     "title": "Promotions",
     "subtitle": "Hand-picked bonuses, cashback, and perks from our partner casinos — refreshed regularly.",
     "loadError": "Couldn't load promotions right now. Please try again.",

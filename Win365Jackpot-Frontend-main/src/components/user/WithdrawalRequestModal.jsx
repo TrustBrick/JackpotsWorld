@@ -34,6 +34,14 @@ export default function WithdrawalRequestModal({ onClose, onSuccess, onError }) 
   const [available, setAvailable] = useState(null);
   const [loadingBalance, setLoadingBalance] = useState(false);
 
+  // Account-wide summary shown above the Country dropdown — Main Wallet
+  // Balance (cash account) + Total Casino Wallet Balance (sum across every
+  // wallet of every casino), fetched the same way as the Wallet tab's
+  // Balances panel so the numbers always match what the user sees there.
+  const [mainBalance, setMainBalance] = useState(0);
+  const [totalCasinoBalance, setTotalCasinoBalance] = useState(0);
+  const [loadingSummary, setLoadingSummary] = useState(true);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -52,6 +60,31 @@ export default function WithdrawalRequestModal({ onClose, onSuccess, onError }) 
         setCasinos(j.results || []);
       }
       setLoadingOptions(false);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const [walletRes, casinoRes] = await Promise.all([
+        authFetch(`${API}/api/wallet/balances/`),
+        authFetch(`${API}/api/wallet/casino-balances/`),
+      ]);
+      if (cancelled) return;
+      if (walletRes.ok) {
+        const j = await walletRes.json();
+        const cashAcct = (j.accounts || []).find(a => a.wallet_type === "cash");
+        setMainBalance(Number(cashAcct?.balance || 0));
+      }
+      if (casinoRes.ok) {
+        const j = await casinoRes.json();
+        const total = (j.casinos || []).reduce((sum, c) => (
+          sum + (c.wallets || []).reduce((s, w) => s + Number(w?.balance || 0), 0)
+        ), 0);
+        setTotalCasinoBalance(total);
+      }
+      setLoadingSummary(false);
     })();
     return () => { cancelled = true; };
   }, []);
@@ -183,6 +216,17 @@ export default function WithdrawalRequestModal({ onClose, onSuccess, onError }) 
           </>
         ) : (
           <>
+            <div style={{ display: "flex", gap: 10 }}>
+              <div style={{ flex: 1, padding: "10px 12px", borderRadius: 10, background: "rgba(255,255,255,0.03)", border: `1px solid ${C.border}` }}>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Main Wallet Balance</div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: C.green, fontFamily: "monospace" }}>{loadingSummary ? "…" : fmt(mainBalance)}</div>
+              </div>
+              <div style={{ flex: 1, padding: "10px 12px", borderRadius: 10, background: "rgba(255,255,255,0.03)", border: `1px solid ${C.border}` }}>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Total Casino Wallet Balance</div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: C.gold, fontFamily: "monospace" }}>{loadingSummary ? "…" : fmt(totalCasinoBalance)}</div>
+              </div>
+            </div>
+
             <div>
               <label style={labelStyle}>Country</label>
               <select
