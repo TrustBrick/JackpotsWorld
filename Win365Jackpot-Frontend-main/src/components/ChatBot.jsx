@@ -2,11 +2,14 @@ import React, { useState, useRef, useEffect, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { getToken } from "../services/authStorage"
 import { connectLiveChatSocket } from "../services/liveChatSocket"
+import { asMessageArray, highestRealId } from "../services/liveChatMessages"
 
 const API = import.meta.env.VITE_API_URL || ""
 const INACTIVITY_MS = 3 * 60 * 1000 // 3 minutes
 const HISTORY_KEY = "chatbot_messages"
-const LIVE_POLL_MS = 5000
+// Only a client-side default — the server sends poll_interval_ms from
+// /api/live-chat/start/ and that value wins.
+const LIVE_POLL_MS = 2000
 
 const WELCOME = { role: "bot", text: "Welcome to Jackpots World Customer Support! 🎰\nI'm here to help with your account, deposits, withdrawals, KYC, gameplay and more. Ask me anything — and if I can't resolve it, I'll get our team on it." }
 
@@ -30,6 +33,16 @@ function reconcileLiveMessage(prev, real, tempId) {
   }
   return [...prev, real]
 }
+
+// Folds a batch from a poll into the list, one at a time through the same
+// reconciler. Merging (rather than the old wholesale replace) is what keeps
+// still-pending and failed-to-send bubbles from vanishing under the poll,
+// and keeps server order authoritative for everything already saved.
+function mergeLiveMessages(prev, incoming) {
+  if (!incoming.length) return prev
+  return incoming.reduce((acc, m) => reconcileLiveMessage(acc, m), prev)
+}
+
 
 // SVG headset icon
 function HeadsetIcon({ size = 28 }) {
@@ -103,35 +116,37 @@ export default function ChatBot() {
   const [liveTicketId, setLiveTicketId] = useState(null)
   const [liveMessages, setLiveMessages] = useState([])
   const [liveConnecting, setLiveConnecting] = useState(false)
-  const [liveConnStatus, setLiveConnStatus]   = useState("closed") // connecting|open|reconnecting|failed|closed
+  const [liveConnStatus, setLiveConnStatus]   = useState("closed") // connecting|open|reconnecting|polling|closed
   const liveSocketRef  = useRef(null)
-  const livePollRef    = useRef(null)
   const liveTicketRef  = useRef(null) // mirrors liveTicketId for use inside closures/intervals
+  const liveMessagesRef = useRef([])  // mirrors liveMessages so the poll closure can read the latest id
   const openRef        = useRef(open) // mirrors `open` for the long-lived WS onEvent closure below
   useEffect(() => { openRef.current = open }, [open])
+  useEffect(() => { liveMessagesRef.current = liveMessages }, [liveMessages])
 
-  const stopLivePolling = useCallback(() => {
-    clearInterval(livePollRef.current)
-    livePollRef.current = null
+  // Incremental fetch handed to the transport. It asks only for messages
+  // newer than the newest one already held (?after_id=), so it stays cheap
+  // enough to run every couple of seconds and can't truncate history the way
+  // re-fetching page 1 of a paginated list did.
+  const pollLiveMessages = useCallback(async (ticketId, token) => {
+    const afterId = highestRealId(liveMessagesRef.current)
+    const qs = afterId ? `?after_id=${afterId}` : ""
+    const res = await fetch(`${API}/api/live-chat/${ticketId}/messages/${qs}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!res.ok) return
+    const fresh = asMessageArray(await res.json())
+    if (!fresh.length) return
+    setLiveMessages(prev => mergeLiveMessages(prev, fresh))
+    if (!openRef.current && fresh.some(m => m.sender_type === "admin")) {
+      setUnread(u => u + fresh.filter(m => m.sender_type === "admin").length)
+    }
   }, [])
-
-  const startLivePolling = useCallback((ticketId, token) => {
-    stopLivePolling()
-    livePollRef.current = setInterval(async () => {
-      try {
-        const res = await fetch(`${API}/api/live-chat/${ticketId}/messages/`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (res.ok) setLiveMessages(await res.json())
-      } catch { /* keep polling silently */ }
-    }, LIVE_POLL_MS)
-  }, [stopLivePolling])
 
   const teardownLiveConnection = useCallback(() => {
     liveSocketRef.current?.close()
     liveSocketRef.current = null
-    stopLivePolling()
-  }, [stopLivePolling])
+  }, [])
 
   useEffect(() => () => teardownLiveConnection(), [teardownLiveConnection])
 
@@ -157,21 +172,27 @@ export default function ChatBot() {
       const ticketId = data.session.id
       setLiveTicketId(ticketId)
       liveTicketRef.current = ticketId
-      setLiveMessages(data.messages || [])
+      const initial = data.messages || []
+      setLiveMessages(initial)
+      liveMessagesRef.current = initial
       setMode("live")
 
+      // Guard against a second "Talk to a Live Agent" click leaving an
+      // orphaned socket + poll loop running alongside the new one.
+      teardownLiveConnection()
       liveSocketRef.current = connectLiveChatSocket(`/ws/live-chat/${ticketId}/`, token, {
+        // The server tells us whether this deployment can push at all, so we
+        // don't sit through failing handshakes on the WSGI-only host.
+        realtime: data.realtime !== false,
+        pollIntervalMs: data.poll_interval_ms || LIVE_POLL_MS,
+        poll: () => pollLiveMessages(ticketId, token),
         onEvent: (event, payload) => {
           if (event === "new_message" && payload?.ticket_id === liveTicketRef.current) {
             setLiveMessages(prev => reconcileLiveMessage(prev, payload))
             if (!openRef.current && payload.sender_type === "admin") setUnread(u => u + 1)
           }
         },
-        onStatusChange: (status) => {
-          setLiveConnStatus(status)
-          if (status === "failed") startLivePolling(ticketId, token)
-          else stopLivePolling()
-        },
+        onStatusChange: setLiveConnStatus,
       })
     } catch {
       setMessages(prev => [...prev, { role: "bot", text: "Couldn't connect you to an agent right now. Please try again in a moment." }])
@@ -207,6 +228,9 @@ export default function ChatBot() {
       // does — reconcile rather than blindly replace-by-tempId, so we don't
       // end up with both the WS-added copy and this one.
       setLiveMessages(prev => reconcileLiveMessage(prev, saved, tempId))
+      // Sending is the moment an agent is most likely to reply, so pull
+      // once immediately instead of waiting out the poll interval.
+      liveSocketRef.current?.refresh()
     } catch {
       setLiveMessages(prev => prev.map(m => (m.id === tempId ? { ...m, status: "failed" } : m)))
     }
@@ -378,14 +402,17 @@ export default function ChatBot() {
                 <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 1 }}>
                   <span style={{
                     width: 6, height: 6, borderRadius: "50%", display: "inline-block",
+                    // "polling" is a fully working state — messages arrive
+                    // within the poll interval — so it reads as connected
+                    // rather than as an error the player needs to act on.
                     background: mode === "live"
-                      ? (liveConnStatus === "open" ? "#4ade80" : liveConnStatus === "failed" ? "#f87171" : "#facc15")
+                      ? (liveConnStatus === "open" || liveConnStatus === "polling" ? "#4ade80" : "#facc15")
                       : "#4ade80",
                   }} />
                   <span style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", letterSpacing: "0.06em" }}>
                     {mode === "live"
-                      ? (liveConnStatus === "open" ? "Connected to an agent"
-                        : liveConnStatus === "failed" ? "Reconnecting via refresh…"
+                      ? (liveConnStatus === "open" || liveConnStatus === "polling"
+                        ? "Connected to an agent"
                         : "Connecting…")
                       : "Jackpots World Support"}
                   </span>

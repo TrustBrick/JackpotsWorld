@@ -8,9 +8,13 @@
 # realtime event, and a client that missed the push can always re-fetch the
 # thread over REST.
 
+import logging
+
 from django.utils import timezone
 
 from authapp.models.support_ticket_models import SupportTicket, ChatMessage
+
+logger = logging.getLogger(__name__)
 
 LIVE_CHAT_SUBJECT = "Live Chat Session"
 ACTIVE_STATUSES = ["open", "in_progress"]
@@ -43,17 +47,24 @@ def _broadcast(group, event_type, payload):
     """Best-effort push to the channel layer. Never raises — if Channels
     isn't configured (or the layer is briefly unavailable), the message is
     still safely persisted; connected clients simply fall back to their
-    next poll instead of getting instant push."""
+    next poll instead of getting instant push.
+
+    The failure is logged rather than swallowed silently: a broadcast that
+    quietly does nothing is indistinguishable, from the outside, from the
+    exact "message only shows up after a refresh" symptom this feature is
+    meant to avoid, and that made the original bug much harder to find
+    than it needed to be."""
     try:
         from channels.layers import get_channel_layer
         from asgiref.sync import async_to_sync
 
         layer = get_channel_layer()
         if layer is None:
+            logger.warning("live-chat: no channel layer configured; skipping %s push", event_type)
             return
         async_to_sync(layer.group_send)(group, {"type": event_type, "payload": payload})
     except Exception:
-        pass
+        logger.exception("live-chat: failed to broadcast %s to %s", event_type, group)
 
 
 def post_message(ticket, sender_type, sender_user, text):

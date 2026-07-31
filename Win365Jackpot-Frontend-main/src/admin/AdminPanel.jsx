@@ -44,6 +44,7 @@ import AdminWalletBanner from "./AdminWalletBanner";
 import { AdminThemeProvider, useAdminTheme } from "./context/AdminThemeContext";
 import AdminThemeToggle from "./components/AdminThemeToggle";
 import Logo from "../components/shared/Logo";
+import BrandMark from "../components/shared/BrandMark";
 
 
 const ICON_MAP = {
@@ -285,10 +286,7 @@ function AdminPanelInner() {
         {/* Logo */}
         <div style={{ marginBottom: 22, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
           <div>
-            <img
-      src='/images/jackpotsworld_watermark.png'
-      className="w-10 h-10 object-contain"
-    />
+            <BrandMark size={40} />
     <Logo size="md" />
             <div style={{ fontSize: 10, color: C.muted, letterSpacing: "0.3em", textTransform: "uppercase" }}>Admin Panel</div>
           </div>

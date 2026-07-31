@@ -8,8 +8,14 @@ import { API, adminFetch, fmtDT } from "../helpers";
 import { Card, Btn, Spinner } from "../components/SharedUI";
 import { useAdminTheme } from "../context/AdminThemeContext";
 import { connectLiveChatSocket } from "../../services/liveChatSocket";
+import { asMessageArray, highestRealId, mergeById } from "../../services/liveChatMessages";
 
 const SOUND_PREF_KEY = "admin_live_chat_sound";
+
+// The session list is far heavier per request than a thread poll (it
+// serialises unread counts and a last-message preview for every session), so
+// it refreshes on a slower cadence than the open conversation does.
+const SESSIONS_REFRESH_EVERY_N_POLLS = 5;
 
 // Short two-tone chime via the Web Audio API — no binary asset needed.
 function playChime() {
@@ -41,9 +47,15 @@ export default function LiveSupportTab({ onToast }) {
   const [soundOn, setSoundOn] = useState(() => localStorage.getItem(SOUND_PREF_KEY) !== "off");
 
   const socketRef = useRef(null);
-  const pollRef = useRef(null);
   const selectedIdRef = useRef(null);
+  const messagesRef = useRef([]);
+  const soundOnRef = useRef(soundOn);
+  const pollTickRef = useRef(0);
   useEffect(() => { selectedIdRef.current = selectedId }, [selectedId]);
+  // Mirrored into refs because the transport's poll callback is created once
+  // and would otherwise capture the first render's values forever.
+  useEffect(() => { messagesRef.current = messages }, [messages]);
+  useEffect(() => { soundOnRef.current = soundOn }, [soundOn]);
 
   const toggleSound = () => {
     setSoundOn(prev => {
@@ -65,12 +77,60 @@ export default function LiveSupportTab({ onToast }) {
   const loadMessages = useCallback(async (ticketId) => {
     try {
       const r = await adminFetch(`${API}/api/admin-panel/live-chat/${ticketId}/messages/`);
-      const j = await r?.json();
-      setMessages(Array.isArray(j) ? j : j?.results || []);
+      const full = asMessageArray(await r?.json());
+      setMessages(full);
+      messagesRef.current = full;
       await adminFetch(`${API}/api/admin-panel/live-chat/${ticketId}/read/`, { method: "POST" });
       setSessions(prev => prev.map(s => (s.id === ticketId ? { ...s, unread_count: 0 } : s)));
     } catch { onToast?.("Failed to load messages", false); }
   }, [onToast]);
+
+  // Incremental fetch for the conversation currently on screen.
+  //
+  // This is the half that was missing: the old fallback polled only
+  // loadSessions(), which refreshes the left-hand list but never the open
+  // thread — so an agent sitting in a conversation saw the player's replies
+  // only after switching sessions or reloading the panel.
+  const pollOpenThread = useCallback(async () => {
+    const ticketId = selectedIdRef.current;
+    if (ticketId == null) return false;
+    const afterId = highestRealId(messagesRef.current);
+    const r = await adminFetch(
+      `${API}/api/admin-panel/live-chat/${ticketId}/messages/${afterId ? `?after_id=${afterId}` : ""}`
+    );
+    const fresh = asMessageArray(await r?.json());
+    if (!fresh.length) return false;
+    setMessages(prev => mergeById(prev, fresh));
+    if (fresh.some(m => m.sender_type === "user")) {
+      if (soundOnRef.current) playChime();
+      // The agent is looking at this thread, so the player's messages in it
+      // are read by definition — keep the badge from re-appearing.
+      adminFetch(`${API}/api/admin-panel/live-chat/${ticketId}/read/`, { method: "POST" }).catch(() => {});
+    }
+    return true;
+  }, []);
+
+  // AdminPanel builds `onToast` inline on every render, so loadSessions and
+  // pollLiveChat get a new identity each time. Reaching them through refs
+  // keeps the connection effect below on an empty dependency list — without
+  // this it would tear down and re-open the socket on every parent render,
+  // which is exactly the reconnect storm that would defeat the fix.
+  const loadSessionsRef = useRef(loadSessions);
+  useEffect(() => { loadSessionsRef.current = loadSessions }, [loadSessions]);
+
+  const pollLiveChat = useCallback(async () => {
+    let sawNew = false;
+    try { sawNew = await pollOpenThread(); } catch { /* next tick retries */ }
+    pollTickRef.current += 1;
+    // Refresh the inbox on its slower cadence, or straight away when the
+    // open thread just moved (its preview/ordering is now stale).
+    if (sawNew || pollTickRef.current % SESSIONS_REFRESH_EVERY_N_POLLS === 0) {
+      await loadSessionsRef.current();
+    }
+  }, [pollOpenThread]);
+
+  const pollLiveChatRef = useRef(pollLiveChat);
+  useEffect(() => { pollLiveChatRef.current = pollLiveChat }, [pollLiveChat]);
 
   useEffect(() => { loadSessions(); }, [loadSessions]);
 
@@ -79,43 +139,53 @@ export default function LiveSupportTab({ onToast }) {
   }, [selectedId, loadMessages]);
 
   // Cross-session inbox feed — keeps the list fresh and the open thread
-  // live, without needing a WS connection per session.
+  // live. The transport polls whenever the socket isn't actually delivering,
+  // so this works identically on hosts that can't serve /ws/ at all.
   useEffect(() => {
     const token = localStorage.getItem("admin_token");
     if (!token) return undefined;
 
-    const startPolling = () => {
-      clearInterval(pollRef.current);
-      pollRef.current = setInterval(loadSessions, 20000);
-    };
+    let cancelled = false;
 
-    socketRef.current = connectLiveChatSocket("/ws/live-chat/admin/inbox/", token, {
-      onEvent: (event, payload) => {
-        if (event === "chat_created") {
-          loadSessions();
-        } else if (event === "new_message") {
-          if (payload.ticket_id === selectedIdRef.current) {
-            setMessages(prev => (prev.some(m => m.id === payload.id) ? prev : [...prev, payload]));
+    // Ask the server whether real-time push is possible here before paying
+    // for handshakes that can never succeed.
+    (async () => {
+      let cfg = {};
+      try {
+        const r = await adminFetch(`${API}/api/live-chat/config/`);
+        cfg = (await r?.json()) || {};
+      } catch { /* assume no realtime; polling covers it */ }
+      if (cancelled) return;
+
+      socketRef.current = connectLiveChatSocket("/ws/live-chat/admin/inbox/", token, {
+        realtime: cfg.realtime !== false,
+        pollIntervalMs: cfg.poll_interval_ms || 2000,
+        poll: () => pollLiveChatRef.current(),
+        onEvent: (event, payload) => {
+          if (event === "chat_created") {
+            loadSessionsRef.current();
+          } else if (event === "new_message") {
+            if (payload.ticket_id === selectedIdRef.current) {
+              setMessages(prev => mergeById(prev, [payload]));
+            }
+            if (payload.sender_type === "user") {
+              if (payload.ticket_id !== selectedIdRef.current && soundOnRef.current) playChime();
+              loadSessionsRef.current();
+            }
           }
-          if (payload.sender_type === "user") {
-            if (payload.ticket_id !== selectedIdRef.current && soundOn) playChime();
-            loadSessions();
-          }
-        }
-      },
-      onStatusChange: (status) => {
-        setConnStatus(status);
-        if (status === "failed") startPolling();
-        else clearInterval(pollRef.current);
-      },
-    });
+        },
+        onStatusChange: setConnStatus,
+      });
+    })();
 
     return () => {
+      cancelled = true;
       socketRef.current?.close();
-      clearInterval(pollRef.current);
+      socketRef.current = null;
     };
+    // Mount-once: every changing value it needs is reached through a ref.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadSessions]);
+  }, []);
 
   const sendReply = async () => {
     const text = reply.trim();
@@ -132,7 +202,10 @@ export default function LiveSupportTab({ onToast }) {
         // The admin-inbox WS push for this same message can arrive before
         // this response does (it's broadcast the instant the row is
         // created) — dedupe by id instead of appending unconditionally.
-        setMessages(prev => (prev.some(m => m.id === saved.id) ? prev : [...prev, saved]));
+        setMessages(prev => mergeById(prev, [saved]));
+        // Replying is when the player is most likely to answer back — pull
+        // once now rather than waiting out the interval.
+        socketRef.current?.refresh();
       } else {
         onToast?.("Failed to send reply", false);
       }
@@ -162,10 +235,10 @@ export default function LiveSupportTab({ onToast }) {
           <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Live Support Chat</div>
           <span style={{
             fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
-            background: connStatus === "open" ? `${C.green}18` : `${C.orange}18`,
-            color: connStatus === "open" ? C.green : C.orange,
+            background: connStatus === "open" || connStatus === "polling" ? `${C.green}18` : `${C.orange}18`,
+            color: connStatus === "open" || connStatus === "polling" ? C.green : C.orange,
           }}>
-            {connStatus === "open" ? "Live" : connStatus === "failed" ? "Polling" : "Connecting…"}
+            {connStatus === "open" ? "Live" : connStatus === "polling" ? "Live (polling)" : "Connecting…"}
           </span>
         </div>
         <div style={{ display: "flex", gap: 8 }}>

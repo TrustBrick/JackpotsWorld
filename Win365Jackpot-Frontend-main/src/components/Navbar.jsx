@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import Logo from './shared/Logo'
+import BrandMark from './shared/BrandMark'
 import AuthModal from './AuthModal'
 import ChatBot from './ChatBot'
 import { getToken, getUser, clearSession } from '../services/authStorage'
@@ -328,18 +329,12 @@ export default function Navbar() {
          {/* Logo */}
 {isHome ? (
   <Link to="hero" smooth duration={500} className="cursor-pointer flex items-center gap-2">
-    <img
-      src='/images/jackpotsworld_watermark.png'
-      className="w-7 h-7 object-contain"
-    />
+    <BrandMark size={28} />
     <Logo size="sm" />
   </Link>
 ) : (
   <span onClick={() => navigate('/')} className="cursor-pointer flex items-center gap-2">
-    <img
-      src='/images/jackpotsworld_watermark.png'
-      className="w-7 h-7 object-contain"
-    />
+    <BrandMark size={28} />
     <Logo size="sm" />
   </span>
 )}

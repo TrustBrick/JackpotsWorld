@@ -1,6 +1,7 @@
 # authapp/url_patterns/live_chat_urls.py
 from django.urls import path
 from authapp.views.live_chat_views import (
+    LiveChatConfigView,
     LiveChatStartView,
     LiveChatMessageListCreateView,
     LiveChatReadView,
@@ -10,7 +11,10 @@ from authapp.views.live_chat_views import (
 )
 
 # Public (authenticated user) — mounted at api/
+# `config/` is used by the admin panel too: it only reports transport
+# capability, so it needs no admin-specific variant.
 public_urlpatterns = [
+    path("live-chat/config/", LiveChatConfigView.as_view()),
     path("live-chat/start/", LiveChatStartView.as_view()),
     path("live-chat/<int:ticket_id>/messages/", LiveChatMessageListCreateView.as_view()),
     path("live-chat/<int:ticket_id>/read/", LiveChatReadView.as_view()),

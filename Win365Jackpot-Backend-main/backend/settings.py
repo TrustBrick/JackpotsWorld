@@ -300,20 +300,42 @@ else:
         }
     }
 
-# LIVE-CHAT: channel layer for Django Channels (real-time chat push). Same
-# branching idea as CACHES above — REDIS_URL is unset by default (no Redis
-# provisioned yet), so this falls back to the in-memory layer, which is
-# perfectly fine for local dev (`manage.py runserver`) and for a single AWS
-# EB instance running one daphne process. It stops being correct the moment
-# there's more than one process/instance sharing chat traffic (each process
-# would only see its own connections) — set REDIS_URL (e.g. an ElastiCache
-# endpoint) once this scales past one instance to fix that.
+# LIVE-CHAT: channel layer for Django Channels (real-time chat push).
+#
+# IMPORTANT — InMemoryChannelLayer cannot deliver this feature's messages,
+# in *any* deployment, including a single-instance one. Chat messages are
+# persisted over REST (authapp/views/live_chat_views.py), which runs in the
+# gunicorn/Passenger **WSGI** process, while the WebSocket consumers that
+# must receive the push live in the separate **daphne** process (Procfile).
+# InMemoryChannelLayer is a plain per-process dict: a group_send() issued
+# from the WSGI worker lands in that worker's own memory, where no consumer
+# is subscribed, and is silently dropped. The recipient then sees nothing
+# until they reload and re-fetch the thread over REST — exactly the
+# "message only arrives after a refresh" bug.
+#
+# So Redis is not a scaling nicety here, it is the transport that connects
+# the two processes. Set REDIS_URL to enable real-time push.
+#
+# LIVE_CHAT_REALTIME below is the single source of truth for "can this
+# deployment actually push?", and is surfaced to the browser via
+# /api/live-chat/start/ so the client doesn't spend ~60s failing a
+# WebSocket handshake on hosts that never serve /ws/ (the cPanel/Passenger
+# deploy runs WSGI only — see .cpanel.yml/passenger_wsgi.py). Clients fall
+# back to short-interval incremental polling, which stays correct either
+# way.
 _redis_url = config('REDIS_URL', default='')
 if _redis_url:
     CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels_redis.core.RedisChannelLayer",
-            "CONFIG": {"hosts": [_redis_url]},
+            "CONFIG": {
+                "hosts": [_redis_url],
+                # Drop rather than block forever if a consumer stops
+                # reading — a wedged socket must never stall the REST
+                # request that is trying to broadcast.
+                "capacity": 500,
+                "expiry": 10,
+            },
         }
     }
 else:
@@ -322,6 +344,11 @@ else:
             "BACKEND": "channels.layers.InMemoryChannelLayer",
         }
     }
+
+# True only when cross-process push can actually work. `manage.py runserver`
+# is the one exception where InMemory is genuinely fine: Channels' runserver
+# serves HTTP and WebSocket from the same process, so the layer is shared.
+LIVE_CHAT_REALTIME = bool(_redis_url) or DEBUG
 
 # ── Misc ──────────────────────────────────────────────────────────────────────
 LANGUAGE_CODE    = 'en-us'

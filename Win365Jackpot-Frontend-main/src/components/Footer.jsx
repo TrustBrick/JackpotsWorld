@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Link as ScrollLink } from 'react-scroll'
 import { Link as RouterLink } from 'react-router-dom'
 import Logo from './shared/Logo'
+import BrandMark from './shared/BrandMark'
 
 const PRIMARY_DESTINATIONS = ['Vietnam', 'Macau', 'India (Goa)', 'Sri Lanka', 'Philippines']
 const EXTRA_DESTINATIONS   = ['Las Vegas', 'Malaysia', 'Singapore', 'Armenia', 'Georgia']
@@ -71,10 +72,7 @@ export default function Footer() {
           <div>
             <div style={{ marginBottom: 16 }}>
                <div className="flex flex-col leading-none">
-                <img
-    src='/images/jackpotsworld_watermark.png'
-    className="w-10 h-10 object-contain"
-  />
+                <BrandMark size={40} />
     <Logo size="md" />
   </div>
 

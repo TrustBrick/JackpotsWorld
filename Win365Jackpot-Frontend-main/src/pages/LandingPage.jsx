@@ -29,7 +29,15 @@ export default function LandingPage() {
           transform: 'translate(-50%, -50%)',
           width: 'clamp(320px, 55vw, 720px)',
           height: 'clamp(320px, 55vw, 720px)',
-          backgroundImage: 'url(/images/jackpotsworld_watermark.png)',
+          // Transparent-background cut of the emblem — the old
+          // jackpotsworld_watermark.png was opaque RGB, so this fixed
+          // overlay painted a dimmed black square across the page.
+          //
+          // 512px rather than the full-resolution file: this renders at most
+          // 720px wide at 6-15% opacity (--w365-watermark-opacity), where the
+          // upscale is imperceptible, and it keeps the landing page from
+          // pulling ~2.9 MB for a decorative background.
+          backgroundImage: 'url(/images/jackpotsworld-logo-512.png)',
           backgroundSize: 'contain',
           backgroundRepeat: 'no-repeat',
           backgroundPosition: 'center',

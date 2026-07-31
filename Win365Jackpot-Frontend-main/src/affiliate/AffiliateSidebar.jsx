@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LogOut, Menu, X } from "lucide-react";
 import Logo from "../components/shared/Logo";
+import BrandMark from "../components/shared/BrandMark";
 
 export const SIDEBAR_WIDTH = 228;
 
@@ -39,7 +40,7 @@ export default function AffiliateSidebar({ C, affiliateUser, activeTab, onTabCha
     }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20, paddingLeft: 4 }}>
         <div onClick={() => window.location.href = "/"} style={{ cursor: "pointer" }}>
-          <img src="/images/jackpotsworld_watermark.png" className="w-10 h-10 object-contain" />
+          <BrandMark size={40} />
           <Logo size="md" />
         </div>
         {bp !== "desktop" && (
