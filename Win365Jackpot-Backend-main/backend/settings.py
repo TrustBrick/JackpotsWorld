@@ -345,10 +345,21 @@ else:
         }
     }
 
-# True only when cross-process push can actually work. `manage.py runserver`
-# is the one exception where InMemory is genuinely fine: Channels' runserver
-# serves HTTP and WebSocket from the same process, so the layer is shared.
-LIVE_CHAT_REALTIME = bool(_redis_url) or DEBUG
+# True only when cross-process push can actually work.
+#
+# Redis makes it work on any topology. Without Redis, the sole safe case is
+# `manage.py runserver`, where Channels serves HTTP and WebSocket from one
+# process so the in-memory layer really is shared.
+#
+# This keys off the running command rather than DEBUG on purpose: DEBUG says
+# nothing about process topology. The AWS EB deploy runs gunicorn and daphne
+# as separate processes (see Procfile) whether DEBUG is on or off, so
+# treating DEBUG as "realtime works" would advertise a WebSocket that
+# connects perfectly and then silently delivers nothing — the browser would
+# stop polling in favour of it and messages would once again only show up
+# after a refresh, which is the exact failure this flag exists to prevent.
+_single_process_dev_server = 'runserver' in sys.argv
+LIVE_CHAT_REALTIME = bool(_redis_url) or _single_process_dev_server
 
 # ── Misc ──────────────────────────────────────────────────────────────────────
 LANGUAGE_CODE    = 'en-us'
