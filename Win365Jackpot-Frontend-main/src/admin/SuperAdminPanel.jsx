@@ -12,7 +12,7 @@ import {
   Eye, EyeOff, ArrowUpRight, ArrowDownLeft, Activity,
   CreditCard, User, Lock, Mail,
 } from "lucide-react";
-import { revokeSession } from "../services/authRevoke";
+import { endSession, handleUnauthorized, noteLogin } from "../services/sessionManager";
 import { AdminThemeProvider, useAdminTheme } from "./context/AdminThemeContext";
 
 // ─── API base ─────────────────────────────────────────────────────────────────
@@ -37,16 +37,18 @@ const saFetch = async (url, opts = {}) => {
       if (rr.ok) {
         const d = await rr.json();
         localStorage.setItem(TOKEN_KEY, d.access);
+        // Refresh tokens rotate server-side — persist the replacement.
+        if (d.refresh) localStorage.setItem(REFRESH_KEY, d.refresh);
         res = await fetch(`${BASE}${url}`, {
           ...opts,
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${d.access}`, ...(opts.headers || {}) },
         });
       } else {
-        [TOKEN_KEY, REFRESH_KEY, USER_KEY].forEach(k => localStorage.removeItem(k));
+        await handleUnauthorized("superadmin");
         return null;
       }
     } else {
-      localStorage.removeItem(TOKEN_KEY);
+      await handleUnauthorized("superadmin");
       return null;
     }
   }
@@ -236,6 +238,7 @@ function SuperAdminLogin({ onSuccess }) {
     localStorage.setItem(TOKEN_KEY,   json.tokens?.access  || json.access  || "");
     localStorage.setItem(REFRESH_KEY, json.tokens?.refresh || json.refresh || "");
     localStorage.setItem(USER_KEY,    JSON.stringify(json.user));
+    noteLogin();
     onSuccess(json.user);
   };
 
@@ -1320,11 +1323,8 @@ function SuperAdminPanelInner() {
   init();
 }, []);
 
-  const logout = async () => {
-    await revokeSession(TOKEN_KEY, REFRESH_KEY);
-    [TOKEN_KEY, REFRESH_KEY, USER_KEY].forEach(k => localStorage.removeItem(k));
-    setAuthed(false); setSaUser(null);
-  };
+  // Goes through the session manager so every other open tab logs out too.
+  const logout = () => endSession({ roles: ["superadmin"], reason: "manual", redirectTo: "/super-admin" });
 
   const showToast = (msg, ok = true) => setToast({ msg, ok });
 

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart3, Users, Wallet, Building2, Crown, Gift,
@@ -35,7 +34,7 @@ import SupportSettingsTab   from "./tabs/content/SupportSettingsTab";  // MULTIL
 
 import { Card, Toast } from "./components/SharedUI";
 import { API, adminFetch } from "./helpers";
-import { revokeSession } from "../services/authRevoke";
+import { endSession, noteLogin } from "../services/sessionManager";
 import { C, ADMIN_TABS } from "./constants";
 
 import AdminWalletBanner from "./AdminWalletBanner";
@@ -80,7 +79,8 @@ function AdminLoginScreen({ onSuccess }) {
         localStorage.setItem("admin_token", json.tokens?.access || json.access);
         localStorage.setItem("admin_refresh", json.tokens?.refresh || json.refresh);
         localStorage.setItem("admin_user",    JSON.stringify(json.user));
-        
+        // Start the inactivity clock fresh for the new session.
+        noteLogin();
         onSuccess();
       } else {
         setError(json.error || "Invalid admin credentials.");
@@ -166,7 +166,6 @@ export default function AdminPanel() {
 
 function AdminPanelInner() {
   const { C } = useAdminTheme();
-  const navigate  = useNavigate();
   const [authed,    setAuthed]    = useState(false);
   const [tab,       setTab]       = useState("overview");
   const [toast,     setToast]     = useState(null);
@@ -197,15 +196,11 @@ function AdminPanelInner() {
 
   const showToast = (msg, ok = true) => setToast({ msg, ok });
 
-  const logout = async () => {
-    await revokeSession("admin_token", "admin_refresh");
-    ["admin_token", "admin_refresh", "admin_user"].forEach(k => localStorage.removeItem(k));
-    setAuthed(false);
-    setAdminUser(null);
-    // Replace (not push) so the authenticated panel entry is gone from
-    // history — back button lands on the login screen, not the panel.
-    navigate("/admin-panel", { replace: true });
-  };
+  // Routed through the session manager so the refresh token is blacklisted,
+  // every cached copy of the admin session is wiped, and any other open tab
+  // logs out too. It replaces the document (not a client-side navigate) so
+  // the authenticated panel is gone from history and from memory.
+  const logout = () => endSession({ roles: ["admin"], reason: "manual", redirectTo: "/admin-panel" });
 
   if (!authed) return (
     <AdminLoginScreen onSuccess={() => {

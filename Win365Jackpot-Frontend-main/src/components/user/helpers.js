@@ -1,4 +1,5 @@
-import { getToken, setToken, clearSession } from "../../services/authStorage";
+import { getToken, setToken } from "../../services/authStorage";
+import { handleUnauthorized } from "../../services/sessionManager";
 
 const API = import.meta.env.VITE_API_URL
 // console.log("API VALUE:", API); use for dev
@@ -7,7 +8,7 @@ export { API };
 // ─── Auth-aware fetch with token refresh ──────────────────────────────────────
 export const authFetch = async (url, opts = {}) => {
   let token = getToken("access");
-  if (!token) { window.location.href = "/sign-in"; return; }
+  if (!token) { window.location.replace("/sign-in"); return; }
 
   // FormData bodies (file uploads) need the browser to set their own
   // multipart boundary — forcing Content-Type:application/json on top of
@@ -34,6 +35,10 @@ export const authFetch = async (url, opts = {}) => {
       if (rr.ok) {
         const d = await rr.json();
         setToken("access", d.access);
+        // ROTATE_REFRESH_TOKENS is on server-side: the old refresh token is
+        // blacklisted the moment it's used, so the rotated one it hands back
+        // must replace it or the *next* refresh fails and drops the session.
+        if (d.refresh) setToken("refresh", d.refresh);
         res = await fetch(url, {
           ...opts,
           headers: {
@@ -43,13 +48,13 @@ export const authFetch = async (url, opts = {}) => {
           },
         });
       } else {
-        clearSession(["access", "refresh", "user"]);
-        window.location.href = "/sign-in";
+        // Refresh rejected — session is genuinely over (expired, revoked, or
+        // idle-expired server-side). Clear everything and land on User Login.
+        await handleUnauthorized("user");
         return;
       }
     } else {
-      clearSession(["access", "refresh", "user"]);
-      window.location.href = "/sign-in";
+      await handleUnauthorized("user");
       return;
     }
   }

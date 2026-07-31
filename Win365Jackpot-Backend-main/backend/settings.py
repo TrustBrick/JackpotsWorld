@@ -240,7 +240,9 @@ if DEBUG:
 # ── REST Framework ────────────────────────────────────────────────────────────
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        # SimpleJWT's JWTAuthentication plus a "last seen" stamp — see
+        # SESSION_IDLE_TIMEOUT_MINUTES below. Auth behaviour is unchanged.
+        'authapp.authentication.SessionActivityJWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
@@ -257,9 +259,35 @@ REST_FRAMEWORK = {
     },
 }
 
+# ── Session inactivity timeout ────────────────────────────────────────────────
+# Single source of truth for how long a session survives without activity.
+# Must stay in step with IDLE_TIMEOUT_MS in the frontend's
+# src/config/session.js — the SPA logs an idle user out at the same instant
+# their access token dies, so the two should never disagree.
+#
+# It drives two independent guards:
+#   1. ACCESS_TOKEN_LIFETIME below, so an access token is worthless once the
+#      idle window has passed (expired token -> 401, standard SimpleJWT).
+#   2. authapp.utils.session_activity, which records when each user was last
+#      seen and lets /api/auth/token/refresh/ refuse to resurrect a session
+#      that has been idle longer than this. Without it, a leaked refresh
+#      token would still mint fresh access tokens for REFRESH_TOKEN_LIFETIME.
+SESSION_IDLE_TIMEOUT_MINUTES = config('SESSION_IDLE_TIMEOUT_MINUTES', default=15, cast=int)
+
+# Last-seen writes are throttled (see session_activity.THROTTLE_SECONDS), so
+# the stored timestamp lags real activity slightly. This grace period keeps
+# that lag from ever expiring a session a minute early.
+SESSION_IDLE_GRACE_SECONDS = config('SESSION_IDLE_GRACE_SECONDS', default=120, cast=int)
+
 # ── JWT ───────────────────────────────────────────────────────────────────────
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME":    timedelta(hours=24),
+    # Matches the inactivity window on purpose — a token that outlives the
+    # client-side timeout would let anyone who copied it out of localStorage
+    # keep using the session long after the user was "logged out".
+    "ACCESS_TOKEN_LIFETIME":    timedelta(minutes=SESSION_IDLE_TIMEOUT_MINUTES),
+    # The outer bound for "Remember me". An active session renews well inside
+    # it via rotation; an idle one is cut by the idle check above long before
+    # this matters.
     "REFRESH_TOKEN_LIFETIME":   timedelta(days=30),
     "ROTATE_REFRESH_TOKENS":    True,
     "BLACKLIST_AFTER_ROTATION": True,

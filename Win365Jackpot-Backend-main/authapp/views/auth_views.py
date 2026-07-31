@@ -8,6 +8,7 @@ Authentication endpoints:
   • LogoutView         — POST /api/auth/logout/
   • AdminLoginView     — POST /api/auth/admin-login/
   • CheckUserView      — POST /api/auth/check-user/
+  • SessionTokenRefreshView — POST /api/auth/token/refresh/
 """
 
 import re
@@ -19,6 +20,7 @@ from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenRefreshView
 
 from authapp.models import User, AdminProfile, ActivityLog
 from authapp.models.affiliate_models import AffiliateProfile
@@ -32,6 +34,7 @@ from authapp.utils.geolocation import resolve_geo_location
 from authapp.utils.turnstile import verify_turnstile
 from authapp.utils.ip_allowlist import is_superadmin_ip_allowed
 from authapp.utils.two_factor import make_2fa_pending_token, verify_2fa_pending_token, verify_totp_or_backup_code
+from authapp.utils import session_activity
 from authapp.data.countries import COUNTRIES
 
 def _handle_referral_on_signup(new_user, referral_code_used: str):
@@ -258,6 +261,9 @@ class LogoutView(APIView):
                 token.blacklist()
         except Exception:
             pass
+        # Drop the inactivity record so the next login starts from a clean
+        # slate rather than inheriting this session's last-seen time.
+        session_activity.clear(request.user.id)
         ActivityLog.log(
             action="logout",
             actor=request.user,
@@ -267,6 +273,54 @@ class LogoutView(APIView):
             user_agent=get_ua(request),
         )
         return Response({"message": "Logged out successfully"})
+
+
+# ─── Token Refresh (inactivity-aware) ────────────────────────────────────────
+
+class SessionTokenRefreshView(TokenRefreshView):
+    """
+    SimpleJWT's TokenRefreshView plus the server-side half of the inactivity
+    timeout.
+
+    Access tokens already expire after SESSION_IDLE_TIMEOUT_MINUTES, so this
+    endpoint is the only way a session continues past the idle window. If the
+    user has demonstrably been inactive longer than that, the refresh is
+    refused with 401 and the presented refresh token is blacklisted, so a
+    token copied out of localStorage can't quietly outlive the session it came
+    from. The SPA treats this exactly like any other 401 and sends the user to
+    the login page for whichever panel they were in.
+
+    Everything else — validation, rotation, error shapes — is unchanged.
+    """
+
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        raw = request.data.get("refresh")
+        if raw:
+            try:
+                token = RefreshToken(raw)
+                user_id = token.payload.get("user_id")
+            except Exception:
+                # Malformed/expired/blacklisted — let the parent produce the
+                # standard "token_not_valid" 401 rather than inventing one.
+                token, user_id = None, None
+
+            if user_id and session_activity.is_idle_expired(user_id):
+                try:
+                    token.blacklist()
+                except Exception:
+                    pass
+                session_activity.clear(user_id)
+                return Response(
+                    {
+                        "detail": "Session expired due to inactivity.",
+                        "code": "session_idle_timeout",
+                    },
+                    status=status.HTTP_401_UNAUTHORIZED,
+                )
+
+        return super().post(request, *args, **kwargs)
 
 
 # ─── Check User ──────────────────────────────────────────────────────────────

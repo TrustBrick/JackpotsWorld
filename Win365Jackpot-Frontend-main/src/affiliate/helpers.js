@@ -1,4 +1,5 @@
-import { getToken, setToken, clearSession } from "../services/authStorage"
+import { getToken, setToken } from "../services/authStorage"
+import { handleUnauthorized } from "../services/sessionManager"
 
 export const API = import.meta.env.VITE_API_URL || ""
 
@@ -29,15 +30,16 @@ export const affiliateFetch = async (url, opts = {}) => {
       if (rr.ok) {
         const d = await rr.json()
         setToken("affiliate_token", d.access)
+        // Rotated refresh token — storing it is what keeps the next refresh
+        // working (the previous one is blacklisted server-side on use).
+        if (d.refresh) setToken("affiliate_refresh", d.refresh)
         res = await fetch(url, { ...opts, headers: buildHeaders(d.access, opts) })
       } else {
-        clearSession(["affiliate_token", "affiliate_refresh", "affiliate_user"])
-        window.location.href = "/affiliate-login"
+        await handleUnauthorized("affiliate")
         return
       }
     } else {
-      clearSession(["affiliate_token", "affiliate_user"])
-      window.location.href = "/affiliate-login"
+      await handleUnauthorized("affiliate")
       return
     }
   }

@@ -7,8 +7,8 @@ import { RefreshCw } from "lucide-react";
 // ── Constants & Helpers ──────────────────────────────────────────────────────
 import { C, VIP_COLOR, TABS } from "./constants";
 import { authFetch, API } from "./helpers";
-import { revokeSession } from "../../services/authRevoke";
-import { getToken, clearSession } from "../../services/authStorage";
+import { endSession } from "../../services/sessionManager";
+import { getToken } from "../../services/authStorage";
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
 import { Toast, UidBadge, LoadingScreen, ErrorScreen } from "./components/SharedUI";
@@ -215,11 +215,9 @@ export default function Dashboard() {
 
   const showToast = (msg, ok = true) => setToast({ msg, ok });
 
-  const logout = async () => {
-  await revokeSession("access", "refresh");
-  clearSession(["access", "refresh", "user"]);
-  navigate("/", { replace: true });
-};
+  // Routed through the session manager so the refresh token is blacklisted,
+  // cached user data is cleared, and any other open tab signs out too.
+  const logout = () => endSession({ roles: ["user"], reason: "manual", redirectTo: "/" });
 
   if (bannedMessage) return <BannedScreen message={bannedMessage} supportEmail={bannedSupportEmail} onLogout={logout} />;
   if (loading)       return <LoadingScreen />;

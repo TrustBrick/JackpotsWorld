@@ -1,4 +1,5 @@
 import { ADMIN_API } from "./constants";
+import { handleUnauthorized } from "../services/sessionManager";
 
 export { ADMIN_API as API };
 
@@ -29,15 +30,16 @@ export const adminFetch = async (url, opts = {}) => {
       if (rr.ok) {
         const d = await rr.json();
         localStorage.setItem("admin_token", d.access);
+        // Refresh tokens rotate server-side (BLACKLIST_AFTER_ROTATION) — keep
+        // the new one or the next refresh is rejected and the admin is kicked.
+        if (d.refresh) localStorage.setItem("admin_refresh", d.refresh);
         res = await fetch(url, { ...opts, headers: buildHeaders(d.access, opts) });
       } else {
-        ["admin_token", "admin_refresh", "admin_user"].forEach(k => localStorage.removeItem(k));
-        window.location.href = "/admin-panel";
+        await handleUnauthorized("admin");
         return;
       }
     } else {
-      localStorage.removeItem("admin_token");
-      window.location.href = "/admin-panel";
+      await handleUnauthorized("admin");
       return;
     }
   }

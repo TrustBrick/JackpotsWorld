@@ -7,6 +7,7 @@ import {
   Loader2, CheckCircle2, AlertCircle, ArrowRight, ChevronDown, ShieldCheck, RotateCcw,
 } from 'lucide-react'
 import { setSession } from '../services/authStorage'
+import { noteLogin } from '../services/sessionManager'
 import Turnstile from './Turnstile'
 import Logo from './shared/Logo'
 
@@ -574,6 +575,8 @@ function SignInPanel({ onSuccess, onClose, onForgotPassword }) {
         { access: 'access', refresh: 'refresh', user: 'user' },
         json.tokens, json.user, remember,
       )
+      // Start the inactivity clock fresh for the new session.
+      noteLogin()
       onSuccess?.(json.user)
       navigate('/dashboard')
       onClose?.()

@@ -1,10 +1,10 @@
 # authapp/url_patterns/auth_urls.py
 from django.urls import path
-from rest_framework_simplejwt.views import TokenRefreshView
 from authapp.views.auth_views import (
     RegisterView, LoginView, LogoutView,
     AdminLoginView, CheckUserView,
     CountryListView,  # ← add this
+    SessionTokenRefreshView,
 )
 from authapp.otp.otp_views import (
     SendOTPView, VerifyOTPView,
@@ -21,7 +21,9 @@ urlpatterns = [
     path("auth/verify-otp/",    VerifyOTPView.as_view()),
     path("auth/forgot-password/", ForgotPasswordRequestView.as_view()),
     path("auth/reset-password/",  ResetPasswordConfirmView.as_view()),
-    path("auth/token/refresh/", TokenRefreshView.as_view()),
+    # Inactivity-aware: refuses to renew a session that has been idle past
+    # SESSION_IDLE_TIMEOUT_MINUTES (see settings.py).
+    path("auth/token/refresh/", SessionTokenRefreshView.as_view()),
     path("auth/check-user/",    CheckUserView.as_view()),
     path("auth/countries/",     CountryListView.as_view()),  # ← add this
     path("auth/admin-login/",        AdminLoginView.as_view()),

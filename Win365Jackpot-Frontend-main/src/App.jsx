@@ -4,6 +4,7 @@ import LandingPage from './pages/LandingPage'
 import { ThemeProvider } from './context/ThemeContext'
 import { authFetch, API } from './components/user/helpers'
 import { getToken } from './services/authStorage'
+import SessionTimeoutProvider from './components/SessionTimeoutProvider'
 
 // ── Route-level code splitting ─────────────────────────────────────────────
 // LandingPage stays eager (first paint); everything else is only needed
@@ -101,6 +102,9 @@ export default function App() {
   return (
     <ThemeProvider>
     <BrowserRouter>
+      {/* One global inactivity manager for every route and every panel —
+          see src/config/session.js for the timeout values. */}
+      <SessionTimeoutProvider>
       <Suspense fallback={<RouteFallback />}>
       <Routes>
         <Route path="/" element={<LandingPage />} />
@@ -132,6 +136,7 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />  {/* ← Always last */}
       </Routes>
       </Suspense>
+      </SessionTimeoutProvider>
     </BrowserRouter>
     </ThemeProvider>
   )

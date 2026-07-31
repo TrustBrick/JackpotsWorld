@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Key, Eye, EyeOff, AlertCircle, RefreshCw,
   LayoutGrid, Megaphone, HandCoins, Users, HelpCircle, Activity, Bell, User, ShieldCheck, Wallet as WalletIcon,
 } from "lucide-react";
 import { API, affiliateFetch } from "./helpers";
-import { revokeSession } from "../services/authRevoke";
+import { endSession, noteLogin } from "../services/sessionManager";
 import { setSession, getToken, getUser, clearSession } from "../services/authStorage";
 import Logo from "../components/shared/Logo";
 import AffiliateSidebar, { SIDEBAR_WIDTH, useBreakpoint } from "./AffiliateSidebar";
@@ -60,6 +59,8 @@ function AffiliateLoginScreen({ onSuccess }) {
           { access: "affiliate_token", refresh: "affiliate_refresh", user: "affiliate_user" },
           json.tokens, json.user, remember,
         );
+        // Start the inactivity clock fresh for the new session.
+        noteLogin();
         onSuccess();
       } else {
         setError(json.error || "Invalid affiliate credentials.");
@@ -242,7 +243,6 @@ function AffiliateDashboard({ affiliateUser, onLogout }) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function AffiliatePanel() {
-  const navigate = useNavigate();
   const [authed, setAuthed] = useState(false);
   const [affiliateUser, setAffiliateUser] = useState(null);
 
@@ -267,11 +267,10 @@ export default function AffiliatePanel() {
     init();
   }, []);
 
-  const logout = async () => {
-    await revokeSession("affiliate_token", "affiliate_refresh");
-    clearSession(["affiliate_token", "affiliate_refresh", "affiliate_user"]);
-    navigate("/", { replace: true });
-  };
+  // Routed through the session manager: blacklists the refresh token, wipes
+  // every cached copy of the session, and signs the affiliate out of any
+  // other tab that has the panel open.
+  const logout = () => endSession({ roles: ["affiliate"], reason: "manual", redirectTo: "/" });
 
   if (!authed) {
     return (

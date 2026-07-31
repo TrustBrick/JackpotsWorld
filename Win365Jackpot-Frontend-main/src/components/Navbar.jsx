@@ -10,7 +10,8 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import Logo from './shared/Logo'
 import AuthModal from './AuthModal'
 import ChatBot from './ChatBot'
-import { getToken, getUser, clearSession } from '../services/authStorage'
+import { getToken, getUser } from '../services/authStorage'
+import { endSession } from '../services/sessionManager'
 
 // Maps each navLinks entry's stable `label` to its i18next key.
 const NAV_I18N_KEY = {
@@ -291,7 +292,11 @@ export default function Navbar() {
 
   const handleLogout = () => {
     setUser(null)
-    clearSession(['user', 'access', 'refresh'])
+    // Session manager handles token revocation, cached-data cleanup and the
+    // cross-tab logout broadcast. Redirecting to the current public page
+    // keeps the old "stay where you are" behaviour while still dropping every
+    // bit of in-memory user state.
+    endSession({ roles: ['user'], reason: 'manual', redirectTo: window.location.pathname })
 }
 
   const handleAuthSuccess = (userData) => {
