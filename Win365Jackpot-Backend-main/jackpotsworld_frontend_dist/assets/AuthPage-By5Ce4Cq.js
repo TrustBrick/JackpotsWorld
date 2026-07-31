@@ -1,0 +1,1 @@
+import{a6 as r,r as u,j as e,am as n,ap as c}from"./index-BQwRQ8NL.js";function d({tab:t}){const a=r(),s=u.useRef(!1);return e.jsxs("div",{className:"min-h-screen",style:{background:"var(--w365-bg)"},children:[e.jsx(n,{}),e.jsx(c,{isOpen:!0,onClose:()=>{s.current||a("/")},defaultTab:t,onAuthSuccess:()=>{s.current=!0,a("/dashboard")}})]})}export{d as default};
