@@ -60,13 +60,13 @@ from authapp.serializers.wallet_request_serializers import (
 )
 from authapp.services import wallet_request_service as svc
 from authapp.services.wallet_request_service import WalletRequestError
+from authapp.utils.client_ip import get_client_ip as _resolve_client_ip
 
 PAGE_SIZE = 20
 
 
 def _client_ip(request):
-    x = request.META.get("HTTP_X_FORWARDED_FOR")
-    return x.split(",")[0].strip() if x else request.META.get("REMOTE_ADDR")
+    return _resolve_client_ip(request)
 
 
 # ─── User-facing ──────────────────────────────────────────────────────────────

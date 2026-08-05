@@ -33,6 +33,7 @@ from authapp.utils.turnstile import verify_turnstile
 from authapp.utils.ip_allowlist import is_superadmin_ip_allowed
 from authapp.utils.two_factor import make_2fa_pending_token, verify_2fa_pending_token, verify_totp_or_backup_code
 from authapp.data.countries import COUNTRIES
+from authapp.utils.client_ip import get_client_ip as _resolve_client_ip
 
 def _handle_referral_on_signup(new_user, referral_code_used: str):
     if not referral_code_used:
@@ -96,8 +97,7 @@ def get_tokens(user):
 
 
 def get_client_ip(request):
-    x = request.META.get("HTTP_X_FORWARDED_FOR")
-    return x.split(",")[0].strip() if x else request.META.get("REMOTE_ADDR")
+    return _resolve_client_ip(request)
 
 
 def get_ua(request):

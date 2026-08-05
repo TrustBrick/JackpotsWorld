@@ -26,13 +26,13 @@ from authapp.models import ActivityLog
 from authapp.models.gift_level_models import UserGift
 from authapp.permissions.admin_role_permissions import HasFinanceAccess
 from authapp.serializers.gift_level_serializers import UserGiftSerializer
+from authapp.utils.client_ip import get_client_ip as _resolve_client_ip
 
 PAGE_SIZE = 20
 
 
 def _client_ip(request):
-    x = request.META.get("HTTP_X_FORWARDED_FOR")
-    return x.split(",")[0].strip() if x else request.META.get("REMOTE_ADDR")
+    return _resolve_client_ip(request)
 
 
 class AdminGiftListSerializer(UserGiftSerializer):

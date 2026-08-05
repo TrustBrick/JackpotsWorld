@@ -20,13 +20,13 @@ from authapp.services.super_admin_service import (
     debit_admin_wallet,
     admin_transfer_to_user,
 )
+from authapp.utils.client_ip import get_client_ip as _resolve_client_ip
 
 User = get_user_model()
 
 
 def _get_ip(request):
-    x = request.META.get("HTTP_X_FORWARDED_FOR")
-    return x.split(",")[0].strip() if x else request.META.get("REMOTE_ADDR")
+    return _resolve_client_ip(request)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

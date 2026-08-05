@@ -41,6 +41,7 @@ from authapp.serializers.spin_serializers import (
 from authapp.views.admin_offline_deposit_views import _credit_main, _write_rp_txn, VIP_CONFIG, MAX_VIP
 from authapp.services.casino_wallet_service import credit_casino_wallet
 from authapp.services.notification_service import notify_generic
+from authapp.utils.client_ip import get_client_ip as _resolve_client_ip
 
 GIFT_TYPE_MAP = {
     "merch": "merchandise",
@@ -302,8 +303,7 @@ class SpinHistoryListView(generics.ListAPIView):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _get_client_ip(request):
-    x = request.META.get("HTTP_X_FORWARDED_FOR")
-    return x.split(",")[0].strip() if x else request.META.get("REMOTE_ADDR")
+    return _resolve_client_ip(request)
 
 
 class AdminSpinConfigListCreateView(generics.ListCreateAPIView):

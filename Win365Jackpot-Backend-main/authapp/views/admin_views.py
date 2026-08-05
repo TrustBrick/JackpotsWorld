@@ -26,6 +26,7 @@ from authapp.permissions.admin_role_permissions import (
     HasFinanceAccess, HasUserEditAccess, HasNotifAccess, HasVIPAccess,
 )
 from authapp.permissions.super_admin_permissions import IsSuperAdmin
+from authapp.utils.client_ip import get_client_ip as _resolve_client_ip
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -33,8 +34,7 @@ from authapp.permissions.super_admin_permissions import IsSuperAdmin
 # ─────────────────────────────────────────────────────────────────────────────
 
 def get_client_ip(request):
-    x = request.META.get("HTTP_X_FORWARDED_FOR")
-    return x.split(",")[0].strip() if x else request.META.get("REMOTE_ADDR")
+    return _resolve_client_ip(request)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

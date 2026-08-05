@@ -34,13 +34,13 @@ from authapp.serializers.affiliate_serializers import (
     AffiliateProfileSerializer, ReferredUserSerializer, ReferralCommissionSerializer,
     AffiliateClickLogSerializer, AffiliateLoginLogSerializer,
 )
+from authapp.utils.client_ip import get_client_ip as _resolve_client_ip
 
 PAGE_SIZE = 20
 
 
 def _get_client_ip(request):
-    x = request.META.get("HTTP_X_FORWARDED_FOR")
-    return x.split(",")[0].strip() if x else request.META.get("REMOTE_ADDR")
+    return _resolve_client_ip(request)
 
 
 def _get_tokens(user):
