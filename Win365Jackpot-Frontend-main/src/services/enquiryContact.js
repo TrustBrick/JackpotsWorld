@@ -19,9 +19,12 @@
 // If both fail, or either is slow, callers fall back to the default number, so
 // an enquiry button is never left without a working destination.
 
-// Digits only, in international format — that's what wa.me expects.
+// Digits only. Set on request to the bare 10-digit number, without the +91
+// country code. Note wa.me reads whatever it is given as a full international
+// number, so it will interpret the leading "95" as a country code — restore
+// the "91" prefix here if enquiry links need to reach the Indian number.
 export const SRI_LANKA_NUMBER = '94717808877'
-export const DEFAULT_NUMBER   = '919573807779'
+export const DEFAULT_NUMBER   = '9573807779'
 
 const SRI_LANKA_CODE = 'LK'
 const CACHE_KEY      = 'jw_enquiry_country'
