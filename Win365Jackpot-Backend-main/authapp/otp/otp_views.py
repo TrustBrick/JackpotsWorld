@@ -22,13 +22,13 @@ from authapp.serializers.user_serializers import validate_strong_password, clean
 from authapp.throttles import OTPSendRateThrottle, OTPVerifyRateThrottle
 from authapp.utils.turnstile import verify_turnstile
 from authapp.views.auth_views import get_client_ip
-from .otp_utils import generate_otp, send_otp_email
+from .otp_utils import generate_otp, send_otp_email_html, OTP_TTL_MINUTES
 
 logger = logging.getLogger(__name__)
 
 # Safe, generic message returned to API clients on any email delivery
 # failure — the real exception (including any SMTP provider details) is
-# logged server-side by otp_utils.send_otp_email, never sent to the client.
+# logged server-side by otp_utils.send_otp_email_html, never sent to the client.
 EMAIL_DELIVERY_ERROR = "We couldn't send the verification email right now. Please try again in a few minutes or contact support."
 
 
@@ -74,13 +74,13 @@ class SendOTPView(APIView):
             phone="",
             otp=otp,
             mode=mode,
-            expires_at=timezone.now() + timedelta(minutes=10),
+            expires_at=timezone.now() + timedelta(minutes=OTP_TTL_MINUTES),
         )
 
         try:
-            send_otp_email(email, otp)
+            send_otp_email_html(email, otp)
         except Exception:
-            # Full exception detail is already logged inside send_otp_email —
+            # Full exception detail is already logged inside send_otp_email_html —
             # don't leak SMTP provider internals to the client, and don't
             # leave a valid-but-never-delivered OTP record usable.
             record.delete()
@@ -209,13 +209,13 @@ class ForgotPasswordRequestView(APIView):
             phone="",
             otp=otp,
             mode="reset",
-            expires_at=timezone.now() + timedelta(minutes=10),
+            expires_at=timezone.now() + timedelta(minutes=OTP_TTL_MINUTES),
         )
 
         try:
-            send_otp_email(email, otp)
+            send_otp_email_html(email, otp)
         except Exception:
-            # Full exception detail is already logged inside send_otp_email.
+            # Full exception detail is already logged inside send_otp_email_html.
             # Still return the generic response — never reveal to the client
             # whether the account exists or whether delivery succeeded.
             logger.warning("Password reset email could not be delivered for %s", email)
