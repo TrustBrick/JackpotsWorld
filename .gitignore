@@ -38,6 +38,13 @@ __pycache__/
 # ── Node ─────────────────────────────────────────────────────────────────────
 node_modules/
 
+# ── Claude Code ──────────────────────────────────────────────────────────────
+# Personal, machine-local settings only. Deliberately not committed: it holds
+# the permission rule that lets `eb` run without a prompt, and auto-approving
+# production deploys is a per-person decision, not something a clone of this
+# repository should inherit. .claude/launch.json is shared and stays tracked.
+.claude/settings.local.json
+
 # ── Editors / OS ─────────────────────────────────────────────────────────────
 .vscode/
 .idea/
