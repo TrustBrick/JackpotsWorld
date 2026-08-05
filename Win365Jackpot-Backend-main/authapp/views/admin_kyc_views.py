@@ -17,6 +17,7 @@ from rest_framework.permissions import IsAuthenticated
 from authapp.models import User, ActivityLog
 from authapp.models.kyc_model import KYCSubmission
 from authapp.services.notification_service import notify_generic
+from authapp.utils.client_ip import get_client_ip as _resolve_client_ip
 
 
 def _is_admin(user):
@@ -176,7 +177,7 @@ class AdminKYCUpdateView(APIView):
                 actor=request.user,
                 target_user=user,
                 description=f"KYC approved for {user.email}",
-                ip_address=request.META.get("REMOTE_ADDR"),
+                ip_address=_resolve_client_ip(request),
             )
             notify_generic(
                 user, "KYC Approved ✅",
@@ -202,7 +203,7 @@ class AdminKYCUpdateView(APIView):
                 actor=request.user,
                 target_user=user,
                 description=f"KYC rejected for {user.email}. Reason: {reason}",
-                ip_address=request.META.get("REMOTE_ADDR"),
+                ip_address=_resolve_client_ip(request),
             )
             notify_generic(
                 user, "KYC Rejected",
@@ -226,7 +227,7 @@ class AdminKYCUpdateView(APIView):
                 target_user=user,
                 description=reason,
                 meta={"reason": reason},
-                ip_address=request.META.get("REMOTE_ADDR"),
+                ip_address=_resolve_client_ip(request),
             )
             return Response({"message": f"{user.email} has been banned"})
 
@@ -240,7 +241,7 @@ class AdminKYCUpdateView(APIView):
                 actor=request.user,
                 target_user=user,
                 description=f"User unbanned: {user.email}",
-                ip_address=request.META.get("REMOTE_ADDR"),
+                ip_address=_resolve_client_ip(request),
             )
             return Response({"message": f"{user.email} has been unbanned"})
 

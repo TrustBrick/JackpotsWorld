@@ -279,7 +279,7 @@ class ResetPasswordConfirmView(APIView):
             actor=user,
             target_user=user,
             description="Password reset via forgot-password flow",
-            ip_address=request.META.get("REMOTE_ADDR"),
+            ip_address=get_client_ip(request),
         )
 
         return Response({"message": "Password reset successfully. Please log in with your new password."})

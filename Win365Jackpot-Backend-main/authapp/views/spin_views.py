@@ -269,7 +269,7 @@ class SpinPlayView(APIView):
         ActivityLog.log(
             action="reward_claimed", actor=user, target_user=user,
             description=f"Spin Wheel: {config.label}" + (" (JACKPOT)" if history.is_jackpot_win else ""),
-            ip_address=request.META.get("REMOTE_ADDR"),
+            ip_address=_resolve_client_ip(request),
             meta={"spin_history_id": history.id, "global_counter_value": nth},
         )
 

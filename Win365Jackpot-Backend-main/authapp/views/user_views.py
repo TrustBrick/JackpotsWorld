@@ -24,6 +24,7 @@ from authapp.serializers import (
 from authapp.serializers.wallet_serializers import WalletAccountSerializer
 
 from authapp.models.notification_model import Notification
+from authapp.utils.client_ip import get_client_ip as _resolve_client_ip
 
 
 # Notification View
@@ -125,7 +126,7 @@ class ProfileView(APIView):
                 actor=request.user,
                 actor_type="user",
                 target_user=request.user,
-                ip_address=request.META.get("REMOTE_ADDR"),
+                ip_address=_resolve_client_ip(request),
                 user_agent=request.META.get("HTTP_USER_AGENT", ""),
             )
             return Response(UserProfileSerializer(request.user, context={"request": request}).data)
@@ -168,7 +169,7 @@ class AvatarUpdateView(APIView):
             actor=user,
             actor_type="user",
             target_user=user,
-            ip_address=request.META.get("REMOTE_ADDR"),
+            ip_address=_resolve_client_ip(request),
         )
         return Response(UserProfileSerializer(user, context={"request": request}).data)
 
@@ -191,7 +192,7 @@ class ChangePasswordView(APIView):
                 actor=request.user,
                 actor_type="user",
                 target_user=request.user,
-                ip_address=request.META.get("REMOTE_ADDR"),
+                ip_address=_resolve_client_ip(request),
             )
             return Response({"detail": "Password updated successfully."})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

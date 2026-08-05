@@ -58,6 +58,8 @@ from authapp.services.wallet_service import (
 )
 
 import logging
+from authapp.utils.client_ip import get_client_ip as _resolve_client_ip
+
 logger = logging.getLogger(__name__)
 User = get_user_model()
 
@@ -296,7 +298,7 @@ class AdminOfflineDepositsView(APIView):
                 ActivityLog.log(
                     action="wallet_credit", actor=actor, target_user=user,
                     description=f"DMA ${amount:,.2f} {wallet_type} — Admin wallet ▼, User main ▲",
-                    ip_address=request.META.get("REMOTE_ADDR"),
+                    ip_address=_resolve_client_ip(request),
                     amount=amount, cr_dr="CR", wallet_type=wallet_type,
                 )
                 return Response({
@@ -320,7 +322,7 @@ class AdminOfflineDepositsView(APIView):
                 ActivityLog.log(
                     action="wallet_debit", actor=actor, target_user=user,
                     description=f"WMA ${amount:,.2f} {wallet_type} — User main ▼, Admin wallet ▲",
-                    ip_address=request.META.get("REMOTE_ADDR"),
+                    ip_address=_resolve_client_ip(request),
                     amount=amount, cr_dr="DR", wallet_type=wallet_type,
                 )
                 return Response({
@@ -354,7 +356,7 @@ class AdminOfflineDepositsView(APIView):
                 ActivityLog.log(
                     action="casino_transfer", actor=actor, target_user=user,
                     description=f"DAC ${amount:,.2f} {wallet_type}: User main ▼ → {casino} casino ▲",
-                    ip_address=request.META.get("REMOTE_ADDR"),
+                    ip_address=_resolve_client_ip(request),
                     amount=amount, cr_dr="DR", wallet_type=wallet_type, casino_name=casino,
                 )
                 return Response({
@@ -396,7 +398,7 @@ class AdminOfflineDepositsView(APIView):
                     actor=actor,
                     target_user=user,
                     description=f"WIN ${amount:,.2f} → Casino {casino} (Admin Wallet deducted)",
-                    ip_address=request.META.get("REMOTE_ADDR"),
+                    ip_address=_resolve_client_ip(request),
                     amount=amount,
                     wallet_type="C",
                     cr_dr="DR",
@@ -431,7 +433,7 @@ class AdminOfflineDepositsView(APIView):
                 ActivityLog.log(
                     action="wallet_credit", actor=actor, target_user=user,
                     description=f"WAC ${amount:,.2f} {wallet_type}: {casino} casino ▼ → User main ▲",
-                    ip_address=request.META.get("REMOTE_ADDR"),
+                    ip_address=_resolve_client_ip(request),
                     amount=amount, cr_dr="CR", wallet_type=wallet_type, casino_name=casino,
                 )
                 return Response({
@@ -462,7 +464,7 @@ class AdminOfflineDepositsView(APIView):
                 ActivityLog.log(
                     action="wallet_debit", actor=actor, target_user=user,
                     description=f"LAC ${amount:,.2f} {wallet_type}: {casino} casino ▼ (loss)",
-                    ip_address=request.META.get("REMOTE_ADDR"),
+                    ip_address=_resolve_client_ip(request),
                     amount=amount, cr_dr="DR", wallet_type=wallet_type, casino_name=casino,
                 )
                 return Response({
@@ -501,7 +503,7 @@ class AdminOfflineDepositsView(APIView):
                 ActivityLog.log(
                     action="casino_transfer", actor=actor, target_user=user,
                     description=f"TAC ${amount:,.2f} {wallet_type}: {casino} → {transfer_to}",
-                    ip_address=request.META.get("REMOTE_ADDR"),
+                    ip_address=_resolve_client_ip(request),
                     amount=amount, cr_dr="DR", wallet_type=wallet_type, casino_name=casino,
                 )
                 return Response({
@@ -524,7 +526,7 @@ class AdminOfflineDepositsView(APIView):
             num_bets     = int(data.get("total_bets") or 0)
             bet_amount   = Decimal(str(data.get("total_bet_amount") or 0))
 
-            ip = request.META.get("REMOTE_ADDR")
+            ip = _resolve_client_ip(request)
 
             def _reject(message):
                 ActivityLog.log(
@@ -665,7 +667,7 @@ class AdminOfflineDepositsView(APIView):
                     f"{casino} | slip={slip_number} | ${bet_amount} bet amt | "
                     f"+{rp_added} RP → total {new_total} | VIP {old_vip_level} → {new_vip_level}"
                 ),
-                ip_address=request.META.get("REMOTE_ADDR"),
+                ip_address=_resolve_client_ip(request),
             )
 
             msg = f"+{float(rp_added):,.2f} RP added. Total: {float(new_total):,.2f}"
