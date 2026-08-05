@@ -1044,7 +1044,7 @@ CREATE TABLE `authapp_landingsettings` (
 LOCK TABLES `authapp_landingsettings` WRITE;
 /*!40000 ALTER TABLE `authapp_landingsettings` DISABLE KEYS */;
 INSERT INTO `authapp_landingsettings` VALUES
-(1,'Asia\'s #1 Offline Casino\'s VIP\'s Platform','','? Register — FREE','Packages ?','www.jackpotsworld.casino','Experience World-Class Casino Gaming Across','Join 50,000+ Winning Players Across Asia','From first-time casino visitors to high-rollers — Jackpots World is your trusted partner for every bet.','917795281999','2026-07-12 13:28:03.502141');
+(1,'Asia\'s #1 Offline Casino\'s VIP\'s Platform','','? Register — FREE','Packages ?','www.jackpotsworld.casino','Experience World-Class Casino Gaming Across','Join 50,000+ Winning Players Across Asia','From first-time casino visitors to high-rollers — Jackpots World is your trusted partner for every bet.','919573807779','2026-07-12 13:28:03.502141');
 /*!40000 ALTER TABLE `authapp_landingsettings` ENABLE KEYS */;
 UNLOCK TABLES;
 

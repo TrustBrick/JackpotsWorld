@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   User, Mail, Phone, Key, AlertCircle, CheckCircle2, ShieldCheck,
-  Loader2, RotateCcw, LogIn,
+  Loader2, RotateCcw, LogIn, Globe,
 } from 'lucide-react'
+import { detectCountryCode } from '../services/enquiryContact'
 import Navbar from '../components/Navbar'
 import PageHeader from '../components/shared/PageHeader'
 import {
@@ -175,6 +176,45 @@ function SuccessScreen({ onGoLogin }) {
   )
 }
 
+// ─── Country (location) dropdown ──────────────────────────────────────────────
+// Styled to match FocusInput so the form's existing look is untouched.
+// Deliberately separate from the phone number's country picker: an affiliate
+// can hold an Indian mobile while being based in Sri Lanka, and this field is
+// about where they actually are.
+function CountrySelect({ value, onChange, countries, hasError }) {
+  const [focus, setFocus] = useState(false)
+  const options = [...countries].sort((a, b) => a.name.localeCompare(b.name))
+
+  return (
+    <select
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      onFocus={() => setFocus(true)}
+      onBlur={() => setFocus(false)}
+      style={{
+        width: '100%', padding: '10px 13px', fontSize: 14,
+        color: value ? C.text : C.dim, background: C.bg,
+        border: `1.5px solid ${
+          hasError ? C.redBorder : value ? C.greenBorder : focus ? C.gold : C.border
+        }`,
+        borderRadius: 8, outline: 'none',
+        boxShadow: focus && !hasError ? `0 0 0 3px ${C.goldGlow}` : 'none',
+        transition: 'border 0.15s, box-shadow 0.15s',
+        boxSizing: 'border-box', fontFamily: 'inherit', cursor: 'pointer',
+      }}
+    >
+      <option value="" disabled style={{ background: C.bg, color: C.dim }}>
+        Select your country
+      </option>
+      {options.map(c => (
+        <option key={c.iso2} value={c.iso2} style={{ background: C.bg, color: C.text }}>
+          {c.flag} {c.name}
+        </option>
+      ))}
+    </select>
+  )
+}
+
 // ─── Registration form ─────────────────────────────────────────────────────────
 function RegisterForm({ onSubmitted }) {
   const [name, setName] = useState('')
@@ -187,6 +227,10 @@ function RegisterForm({ onSubmitted }) {
   const [error, setError] = useState('')
   const [countries, setCountries] = useState([])
   const [country, setCountry] = useState(DEFAULT_COUNTRY)
+  // Where the affiliate is based (ISO 3166-1 alpha-2). Starts empty so the
+  // required-field validation below is meaningful.
+  const [location, setLocation] = useState('')
+  const [locationErr, setLocationErr] = useState('')
   const [step, setStep] = useState('form') // 'form' | 'otp'
 
   useEffect(() => {
@@ -200,6 +244,15 @@ function RegisterForm({ onSubmitted }) {
         setCountries(mapped)
         const india = mapped.find(c => c.code === '+91')
         if (india) setCountry(india)
+
+        // Pre-select the visitor's detected country as a convenience. Only
+        // applied when it matches an option we actually render — otherwise the
+        // select would hold a value with nothing highlighted, and validation
+        // would pass against a country the user never saw.
+        detectCountryCode().then(code => {
+          if (!code) return
+          setLocation(prev => (prev ? prev : (mapped.some(c => c.iso2 === code) ? code : prev)))
+        })
       })
       .catch(() => {})
   }, [])
@@ -216,13 +269,14 @@ function RegisterForm({ onSubmitted }) {
   const pwMatch = confirm && pw === confirm
   const pwMiss = confirm && pw !== confirm
 
-  const canSubmit = name.trim() && emailValid && phoneComplete && pwOk && pwMatch
+  const canSubmit = name.trim() && emailValid && phoneComplete && location && pwOk && pwMatch
 
   const handle = async () => {
     if (!name.trim()) { setError('Full name is required'); return }
     const { ok: eok, error: eErr } = validateEmail(email)
     if (!eok) { setEmailErr(eErr); return }
     if (!phoneComplete) { setError(`Enter exactly ${country.digits} digits for ${country.name}`); return }
+    if (!location) { setLocationErr('Please select your country'); return }
     if (!pwOk) { setError('Password does not meet requirements'); return }
     if (!pwMatch) { setError('Passwords do not match'); return }
     setError(''); setLoading(true)
@@ -239,7 +293,9 @@ function RegisterForm({ onSubmitted }) {
   const registrationData = {
     name: name.trim(),
     phone: country.code + phone,
-    country: country.iso2 || 'IN',
+    // The explicit Country field, not the phone picker's country — this is
+    // what gets persisted to User.country by /api/auth/verify-otp/.
+    country: location,
     dial_code: country.code,
     password: pw,
   }
@@ -293,6 +349,17 @@ function RegisterForm({ onSubmitted }) {
         {phone.length > 0 && phone.length < country.digits && (
           <Hint color={C.yellow} icon={AlertCircle}>{country.digits - phone.length} more digit{country.digits - phone.length !== 1 ? 's' : ''} needed</Hint>
         )}
+      </div>
+
+      <div style={W}>
+        <Label><Globe size={10} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />Country</Label>
+        <CountrySelect
+          value={location}
+          countries={countries}
+          hasError={!!locationErr}
+          onChange={val => { setLocation(val); setLocationErr('') }}
+        />
+        {locationErr && <Hint color={C.red} icon={AlertCircle}>{locationErr}</Hint>}
       </div>
 
       <div style={W}>

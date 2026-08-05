@@ -13,7 +13,7 @@ class LandingSettings(models.Model):
     global_reach_tagline     = models.CharField(max_length=200, default="Experience World-Class Casino Gaming Across")
     trust_banner_heading     = models.CharField(max_length=200, default="Join 50,000+ Winning Players Across Asia")
     trust_banner_subtext     = models.TextField(blank=True, default="From first-time casino visitors to high-rollers — Jackpots World is your trusted partner for every bet.")
-    whatsapp_number          = models.CharField(max_length=20, default="917795281999")
+    whatsapp_number          = models.CharField(max_length=20, default="919573807779")
     updated_at                = models.DateTimeField(auto_now=True)
 
     def __str__(self):

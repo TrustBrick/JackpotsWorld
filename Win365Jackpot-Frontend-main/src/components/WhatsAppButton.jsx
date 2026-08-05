@@ -1,8 +1,10 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import useEnquiryNumber from '../hooks/useEnquiryNumber'
+import { buildWhatsAppLink } from '../services/enquiryContact'
 
-const WA_NUMBER = '+917795281999'
-const WA_MESSAGE = encodeURIComponent("Hi! I'm interested in a casino package from jackpotsworld.com 🎰 Please help me!")
+// Raw text — buildWhatsAppLink() does the URL encoding.
+const WA_MESSAGE = "Hi! I'm interested in a casino package from jackpotsworld.com 🎰 Please help me!"
 
 const TG_USERNAME = 'yourwinningdestination888'
 const TG_MESSAGE = encodeURIComponent("Hi! I'm interested in a casino package from jackpotsworld.com 🎰 Please help me!")
@@ -14,6 +16,8 @@ export default function WhatsAppButton() {
   const [hoveredWA, setHoveredWA] = useState(false)
   const [hoveredTG, setHoveredTG] = useState(false)
   const [showTooltip, setShowTooltip] = useState(true)
+  // Sri Lanka gets the local number; every other country gets the default.
+  const enquiryNumber = useEnquiryNumber()
 
   React.useEffect(() => {
     const t = setTimeout(() => setShowTooltip(false), 5000)
@@ -84,7 +88,7 @@ export default function WhatsAppButton() {
 
       {/* ── WhatsApp Button ── */}
       <motion.a
-        href={`https://wa.me/${WA_NUMBER.replace(/\D/g, '')}?text=${WA_MESSAGE}`}
+        href={buildWhatsAppLink(enquiryNumber, WA_MESSAGE)}
         target="_blank"
         rel="noopener noreferrer"
         onHoverStart={() => setHoveredWA(true)}
