@@ -4,10 +4,12 @@ authapp/otp/otp_utils.py
 OTP generation and delivery helpers.
 """
 
+import os
 import random
 import logging
 import smtplib
-from django.core.mail import send_mail
+from email.mime.image import MIMEImage
+from django.core.mail import send_mail, EmailMultiAlternatives
 from django.conf import settings
 from django.template.loader import render_to_string
 
@@ -25,6 +27,49 @@ OTP_TTL_MINUTES = 10
 # EXPIRY_MINUTES, and the context below carries the OTP under both key names
 # they use, so a revert stays a one-line edit.
 OTP_EMAIL_TEMPLATE = "emails/otp_verification_gold.html"
+
+# The brand mark is embedded in the message as an inline part rather than
+# linked to https://jackpotsworld.vip/images/..., because a linked logo is only
+# as reliable as the recipient's client is welcome at our own origin. Cloudflare
+# sits in front of jackpotsworld.vip and its bot rules answer by user agent:
+# Gmail's proxy, Apple Mail and Outlook get a 200, but Yahoo Mail's proxy and
+# any client sending an empty user agent get a 403 — and a 403 renders as the
+# alt text inside an empty ring where the logo should be. Embedding removes the
+# network from the path entirely: no fetch, no proxy, no bot rule, and it still
+# works offline and in clients with remote images switched off.
+#
+# The cost is that every OTP email carries the image. That is affordable only
+# because the PNG is the palette-optimised 32 KB cut (~44 KB base64), not the
+# 152 KB original it replaced.
+LOGO_CID = "jwlogo"
+LOGO_PATH = os.path.join(
+    settings.BASE_DIR, "jackpotsworld_frontend_dist", "images", "jackpotsworld-logo-256.png"
+)
+
+
+def _build_logo_part():
+    """Return the inline logo MIME part, or None if the file is missing.
+
+    Returning None rather than raising is deliberate: a missing asset must
+    never be the reason a verification code fails to arrive. The template
+    falls back to the https URL when LOGO_SRC is absent, so the email still
+    renders — just over the network, with the reliability caveat above.
+    """
+    try:
+        with open(LOGO_PATH, "rb") as fh:
+            part = MIMEImage(fh.read(), "png")
+    except OSError as exc:
+        logger.warning(
+            "Inline OTP logo unavailable at %s (%s) — falling back to the "
+            "linked logo, which some clients will not load.", LOGO_PATH, exc,
+        )
+        return None
+    # The angle brackets belong in the header but not in the template's
+    # src="cid:jwlogo"; mismatching the two is the usual reason an embedded
+    # image renders as a broken-image icon.
+    part.add_header("Content-ID", "<%s>" % LOGO_CID)
+    part.add_header("Content-Disposition", "inline", filename="jackpotsworld-logo.png")
+    return part
 
 
 def _log_send_failure(email: str, exc: Exception) -> None:
@@ -100,22 +145,43 @@ def send_otp_email_html(email: str, otp: str) -> None:
     # Gmail rewrites a From that isn't the authenticated account anyway.
     from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None) or settings.EMAIL_HOST_USER
     try:
+        logo_part = _build_logo_part()
         html_message = render_to_string(
             OTP_EMAIL_TEMPLATE,
             # "otp" is the key the gold template documents; "OTP_CODE" is what
             # the light template reads. Both are supplied so either renders.
             # EXPIRY_MINUTES stays OTP_TTL_MINUTES, never a literal — the
             # expiry the email quotes has to be the expiry otp_views enforces.
-            {"otp": otp, "OTP_CODE": otp, "EXPIRY_MINUTES": OTP_TTL_MINUTES},
+            # LOGO_SRC points the template's <img> at the part attached below;
+            # omitting it when the file is missing lets the template fall back
+            # to its linked-logo default.
+            {
+                "otp": otp,
+                "OTP_CODE": otp,
+                "EXPIRY_MINUTES": OTP_TTL_MINUTES,
+                **({"LOGO_SRC": "cid:%s" % LOGO_CID} if logo_part else {}),
+            },
         )
-        send_mail(
+        # Built by hand rather than with send_mail, which has no way to attach
+        # an inline part. The structure a cid: reference needs is
+        #   multipart/related
+        #     multipart/alternative -> text/plain + text/html
+        #     image/png             -> Content-ID: <jwlogo>
+        # EmailMultiAlternatives already nests the alternative part; setting
+        # mixed_subtype promotes the outer container from mixed to related,
+        # which is what tells a client the image belongs to the HTML rather
+        # than being a file the user attached.
+        message = EmailMultiAlternatives(
             subject="Your JackpotsWorld Verification Code",
-            message=text_message,
+            body=text_message,
             from_email=from_email,
-            recipient_list=[email],
-            html_message=html_message,
-            fail_silently=False,
+            to=[email],
         )
+        message.attach_alternative(html_message, "text/html")
+        if logo_part:
+            message.mixed_subtype = "related"
+            message.attach(logo_part)
+        message.send(fail_silently=False)
     except Exception as exc:
         _log_send_failure(email, exc)
         raise

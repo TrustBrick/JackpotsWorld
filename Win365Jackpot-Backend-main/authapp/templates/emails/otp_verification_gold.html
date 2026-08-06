@@ -84,18 +84,29 @@
           </tr>
 
           <!-- ══════════════════════ HEADER ══════════════════════ -->
-          <!-- Circular casino logo: the live jackpotsworld.vip brand mark, centred.
-               Absolute URL, not a data: URI or a relative path — Gmail and Outlook
-               both proxy-fetch it over the wire, and both proxies are confirmed to
-               get a 200 from the origin. Served at 256px and shown at 112px, so it
-               stays sharp on retina; width and height are declared in both the
-               attribute and the style so no client can stretch it. The PNG carries
-               a real alpha channel, so it reads as a circle even in Outlook, where
-               border-radius is dropped. The font-* declarations style the alt text
-               for the images-blocked state. -->
+          {% comment %}
+             Circular casino logo: the jackpotsworld.vip brand mark, centred.
+
+             LOGO_SRC is "cid:jwlogo" when sent through send_otp_email_html, which
+             attaches the PNG as an inline part -- the image then travels inside
+             the message and needs no network fetch. That is not a micro-
+             optimisation: Cloudflare fronts jackpotsworld.vip and its bot rules
+             answer by user agent, so a linked logo 200s for Gmail/Apple/Outlook
+             but 403s for Yahoo Mail's proxy and for any client sending an empty
+             user agent, which renders as alt text in an empty ring.
+
+             The https fallback below keeps this file previewable on its own, and
+             covers the case where the asset is missing at send time.
+
+             Shown at 112px from a 256px source, so it stays sharp on retina;
+             width and height are declared in both the attribute and the style so
+             no client can stretch it. The PNG has a real alpha channel, so it
+             reads as a circle even in Outlook, where border-radius is dropped.
+             The font-* declarations style the alt text if it still cannot load.
+          {% endcomment %}
           <tr>
             <td class="gutter" align="center" style="padding:38px 40px 0 40px;">
-              <img src="https://jackpotsworld.vip/images/jackpotsworld-logo-256.png"
+              <img src="{{ LOGO_SRC|default:'https://jackpotsworld.vip/images/jackpotsworld-logo-256.png' }}"
                    class="logo" width="112" height="112" alt="Jackpots World"
                    style="display:block; margin:0 auto; width:112px; height:112px; max-width:112px; border:0; outline:none; text-decoration:none; border-radius:50%; box-shadow:0 0 32px rgba(212,175,55,0.42); font-family:Didot,'Bodoni MT','Big Caslon','Hoefler Text',Garamond,Georgia,'Times New Roman',serif; font-size:17px; font-weight:bold; letter-spacing:2px; color:#FFD700;" />
             </td>
