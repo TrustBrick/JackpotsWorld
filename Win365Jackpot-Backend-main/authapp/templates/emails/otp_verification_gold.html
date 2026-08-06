@@ -1,0 +1,279 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="x-apple-disable-message-reformatting" />
+  <meta name="format-detection" content="telephone=no, date=no, address=no, email=no" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="supported-color-schemes" content="dark" />
+  <title>Your verification code</title>
+
+  <!--[if mso]>
+  <xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml>
+  <![endif]-->
+
+  <!-- ───────────────────────────────────────────────────────────────────────
+       TYPE SYSTEM — three stacks, all system-resident, no webfonts.
+
+       Display (headings, wordless flourishes): a Didone. Didot on macOS/iOS,
+       Bodoni MT on Windows-with-Office, then progressively softer serifs, so
+       the worst case is still Georgia rather than Times.
+
+       Digits: a DELIBERATELY NARROWER Didone stack. Georgia, Hoefler Text and
+       most Garamonds default to old-style (text) figures, where 3/4/5/7/9 drop
+       below the baseline and 0/1/2 sit at x-height — a verification code
+       rendered in them looks broken and misaligned. Every font listed here has
+       lining figures, so the six digits share one cap height and one baseline.
+       Do not add Georgia to this stack.
+
+       Body: a humanist sans for hierarchy contrast against the Didone.
+       ─────────────────────────────────────────────────────────────────────── -->
+  <!-- Every style that carries the design is inline below. This block only
+       holds what an inline attribute cannot express: the mobile media query
+       and the Outlook.com dark-mode guards. Strip it and the email still renders. -->
+  <style type="text/css">
+    :root { color-scheme: dark; supported-color-schemes: dark; }
+    body, table, td, a { -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
+    table, td { mso-table-lspace:0pt; mso-table-rspace:0pt; }
+    img { -ms-interpolation-mode:bicubic; border:0; outline:none; text-decoration:none; }
+    a { text-decoration:none; }
+
+    @media only screen and (max-width:620px) {
+      .gutter    { padding-left:20px !important; padding-right:20px !important; }
+      .logo      { width:88px !important; height:88px !important; max-width:88px !important; }
+      .headline  { font-size:22px !important; line-height:31px !important; letter-spacing:0.2px !important; }
+      .digit     { width:41px !important; font-size:32px !important; line-height:42px !important; }
+      .otp-pad   { padding-left:6px !important; padding-right:6px !important; }
+      .col       { display:block !important; width:100% !important; max-width:100% !important;
+                   border-left:0 !important; border-top:1px solid #2b2411 !important; }
+      .col-first { border-top:0 !important; }
+    }
+
+    /* Outlook.com / Windows Mail dark mode re-tints dark palettes; hold ours. */
+    [data-ogsc] .page  { background-color:#050505 !important; }
+    [data-ogsc] .card  { background-color:#0a0a0c !important; }
+    [data-ogsc] .ink   { color:#ffffff !important; }
+    [data-ogsc] .gold  { color:#FFD700 !important; }
+    [data-ogsc] .muted { color:#a9a49a !important; }
+  </style>
+</head>
+
+<body class="page" style="margin:0; padding:0; width:100% !important; background-color:#050505; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;">
+
+  <!-- Preheader: inbox preview text, hidden in the body -->
+  <div style="display:none; font-size:1px; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden; mso-hide:all;">
+    Your Jackpots World verification code is inside. It expires in {{ EXPIRY_MINUTES|default:"10" }} minutes.
+    &#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;
+  </div>
+
+  <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" bgcolor="#050505" style="background-color:#050505; background-image:linear-gradient(180deg,#0c0b08 0%,#050505 55%,#080706 100%); margin:0; padding:0;">
+    <tr>
+      <td align="center" style="padding:36px 12px;">
+
+        <!--[if mso]>
+        <table role="presentation" width="600" border="0" cellpadding="0" cellspacing="0"><tr><td>
+        <![endif]-->
+
+        <!-- ══════════════════════ CARD ══════════════════════ -->
+        <table role="presentation" class="card" width="100%" border="0" cellpadding="0" cellspacing="0" bgcolor="#0a0a0c" style="max-width:600px; width:100%; background-color:#0a0a0c; background-image:linear-gradient(180deg,#111009 0%,#0a0a0c 40%,#08080a 100%); border:1px solid #a8862f; border-radius:20px; box-shadow:0 0 44px rgba(212,175,55,0.20); overflow:hidden;">
+
+          <!-- Top gold hairline -->
+          <tr>
+            <td height="3" bgcolor="#D4AF37" style="height:3px; line-height:3px; font-size:0; background-color:#D4AF37; background-image:linear-gradient(90deg,#8a6f22 0%,#FFD700 28%,#FFF3B0 50%,#FFD700 72%,#8a6f22 100%);">&nbsp;</td>
+          </tr>
+
+          <!-- ══════════════════════ HEADER ══════════════════════ -->
+          <!-- Circular casino logo: the live jackpotsworld.vip brand mark, centred.
+               Absolute URL, not a data: URI or a relative path — Gmail and Outlook
+               both proxy-fetch it over the wire, and both proxies are confirmed to
+               get a 200 from the origin. Served at 256px and shown at 112px, so it
+               stays sharp on retina; width and height are declared in both the
+               attribute and the style so no client can stretch it. The PNG carries
+               a real alpha channel, so it reads as a circle even in Outlook, where
+               border-radius is dropped. The font-* declarations style the alt text
+               for the images-blocked state. -->
+          <tr>
+            <td class="gutter" align="center" style="padding:38px 40px 0 40px;">
+              <img src="https://jackpotsworld.vip/images/jackpotsworld-logo-256.png"
+                   class="logo" width="112" height="112" alt="Jackpots World"
+                   style="display:block; margin:0 auto; width:112px; height:112px; max-width:112px; border:0; outline:none; text-decoration:none; border-radius:50%; box-shadow:0 0 32px rgba(212,175,55,0.42); font-family:Didot,'Bodoni MT','Big Caslon','Hoefler Text',Garamond,Georgia,'Times New Roman',serif; font-size:17px; font-weight:bold; letter-spacing:2px; color:#FFD700;" />
+            </td>
+          </tr>
+
+          <!-- Curved gold divider (arc in modern clients, hairline in Outlook) -->
+          <tr>
+            <td class="gutter" align="center" style="padding:22px 40px 0 40px;">
+              <div style="width:60%; height:16px; margin:0 auto; font-size:0; line-height:0; border-top:2px solid #D4AF37; border-radius:50% 50% 0 0 / 100% 100% 0 0; box-shadow:0 8px 22px -8px rgba(212,175,55,0.70);">&nbsp;</div>
+            </td>
+          </tr>
+
+          <!-- ══════════════════════ TITLE ══════════════════════ -->
+          <tr>
+            <td class="gutter headline gold" align="center" style="padding:12px 40px 0 40px; font-family:Didot,'Bodoni MT','Big Caslon','Hoefler Text',Garamond,'Palatino Linotype','Book Antiqua',Palatino,Georgia,'Times New Roman',serif; font-size:27px; line-height:37px; font-weight:bold; letter-spacing:0.3px; color:#FFD700; text-shadow:0 2px 16px rgba(212,175,55,0.42); mso-line-height-rule:exactly;">
+              Here is your verification code:
+            </td>
+          </tr>
+          <tr>
+            <td class="gutter muted" align="center" style="padding:13px 48px 0 48px; font-family:'Gill Sans MT',Optima,Candara,'Segoe UI','Helvetica Neue',Helvetica,Arial,sans-serif; font-size:14px; line-height:22px; letter-spacing:0.2px; color:#a9a49a; mso-line-height-rule:exactly;">
+              Use the code below to verify your email address.
+            </td>
+          </tr>
+
+          <!-- ══════════════════════ OTP ══════════════════════ -->
+          {% comment %}
+             firstof, NOT "with code=otp|default:OTP_CODE". A filter argument is
+             resolved eagerly, so the |default form raises VariableDoesNotExist the
+             moment OTP_CODE is absent from the context -- including when the caller
+             passes only "otp", which is this template's documented usage.
+             firstof resolves each name with ignore_failures=True, so any subset of
+             {otp, OTP_CODE} renders, and a context with neither yields empty cells
+             rather than a 500.
+
+             Comments spanning lines must use comment/endcomment tags, never the
+             hash form. Django's lexer matches the hash form with a non-DOTALL
+             regex, so a multi-line one is not a comment at all -- its text is
+             emitted verbatim into the email and any tag inside it really runs.
+          {% endcomment %}
+          {% firstof otp OTP_CODE as code %}
+          <tr>
+            <td class="gutter" style="padding:26px 40px 0 40px;">
+              <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" bgcolor="#080806" style="background-color:#080806; background-image:linear-gradient(180deg,#14110a 0%,#070706 100%); border:1px solid #C9A233; border-radius:18px; box-shadow:0 0 34px rgba(212,175,55,0.28);">
+                <tr>
+                  <td class="otp-pad" align="center" style="padding:30px 14px;">
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center">
+                      <tr>
+                        <td class="digit" align="center" width="54" style="width:54px; padding:2px 0; font-family:Didot,'Bodoni MT','Times New Roman',Times,serif; font-size:43px; line-height:54px; font-weight:bold; letter-spacing:1px; color:#FFD700; text-shadow:0 2px 18px rgba(255,215,0,0.55); mso-line-height-rule:exactly;">{{ code|slice:":1" }}</td>
+                        <td class="digit" align="center" width="54" style="width:54px; padding:2px 0; border-left:1px solid #5a4718; font-family:Didot,'Bodoni MT','Times New Roman',Times,serif; font-size:43px; line-height:54px; font-weight:bold; letter-spacing:1px; color:#FFD700; text-shadow:0 2px 18px rgba(255,215,0,0.55); mso-line-height-rule:exactly;">{{ code|slice:"1:2" }}</td>
+                        <td class="digit" align="center" width="54" style="width:54px; padding:2px 0; border-left:1px solid #5a4718; font-family:Didot,'Bodoni MT','Times New Roman',Times,serif; font-size:43px; line-height:54px; font-weight:bold; letter-spacing:1px; color:#FFD700; text-shadow:0 2px 18px rgba(255,215,0,0.55); mso-line-height-rule:exactly;">{{ code|slice:"2:3" }}</td>
+                        <td class="digit" align="center" width="54" style="width:54px; padding:2px 0; border-left:1px solid #5a4718; font-family:Didot,'Bodoni MT','Times New Roman',Times,serif; font-size:43px; line-height:54px; font-weight:bold; letter-spacing:1px; color:#FFD700; text-shadow:0 2px 18px rgba(255,215,0,0.55); mso-line-height-rule:exactly;">{{ code|slice:"3:4" }}</td>
+                        <td class="digit" align="center" width="54" style="width:54px; padding:2px 0; border-left:1px solid #5a4718; font-family:Didot,'Bodoni MT','Times New Roman',Times,serif; font-size:43px; line-height:54px; font-weight:bold; letter-spacing:1px; color:#FFD700; text-shadow:0 2px 18px rgba(255,215,0,0.55); mso-line-height-rule:exactly;">{{ code|slice:"4:5" }}</td>
+                        <td class="digit" align="center" width="54" style="width:54px; padding:2px 0; border-left:1px solid #5a4718; font-family:Didot,'Bodoni MT','Times New Roman',Times,serif; font-size:43px; line-height:54px; font-weight:bold; letter-spacing:1px; color:#FFD700; text-shadow:0 2px 18px rgba(255,215,0,0.55); mso-line-height-rule:exactly;">{{ code|slice:"5:6" }}</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- ══════════════════════ SECURITY MESSAGE ══════════════════════ -->
+          <tr>
+            <td class="gutter" style="padding:26px 40px 0 40px;">
+              <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td width="38" valign="middle" style="width:38px;">
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="38" style="width:38px;">
+                      <tr>
+                        <td align="center" valign="middle" height="38" bgcolor="#12100a" style="width:38px; height:38px; background-color:#12100a; background-image:linear-gradient(145deg,#1d1809 0%,#0b0a07 75%); border:1px solid #D4AF37; border-radius:50%; box-shadow:0 0 14px rgba(212,175,55,0.35); font-family:'Segoe UI',Helvetica,Arial,sans-serif; font-size:16px; line-height:18px; color:#FFD700; text-align:center;">&#128274;</td>
+                      </tr>
+                    </table>
+                  </td>
+                  <td valign="middle" class="muted" style="padding-left:15px; font-family:'Gill Sans MT',Optima,Candara,'Segoe UI','Helvetica Neue',Helvetica,Arial,sans-serif; font-size:14px; line-height:21px; letter-spacing:0.2px; color:#c4beb2; mso-line-height-rule:exactly;">
+                    Please make sure you never share this code with anyone.
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Divider with glowing centre dot -->
+          <tr>
+            <td class="gutter" style="padding:22px 40px 0 40px;">
+              <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td height="1" style="height:1px; font-size:0; line-height:0; background-color:#2b2411; background-image:linear-gradient(90deg,rgba(212,175,55,0.02) 0%,#8a6f22 100%);">&nbsp;</td>
+                  <td width="26" align="center" valign="middle" style="width:26px; font-size:0; line-height:0;">
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center">
+                      <tr>
+                        <td width="9" height="9" bgcolor="#FFD700" style="width:9px; height:9px; font-size:0; line-height:0; background-color:#FFD700; border-radius:50%; box-shadow:0 0 12px 2px rgba(255,215,0,0.75);">&nbsp;</td>
+                      </tr>
+                    </table>
+                  </td>
+                  <td height="1" style="height:1px; font-size:0; line-height:0; background-color:#2b2411; background-image:linear-gradient(90deg,#8a6f22 0%,rgba(212,175,55,0.02) 100%);">&nbsp;</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- ══════════════════════ EXPIRY ══════════════════════ -->
+          <tr>
+            <td class="gutter" style="padding:22px 40px 0 40px;">
+              <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td width="38" valign="middle" style="width:38px;">
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="38" style="width:38px;">
+                      <tr>
+                        <td align="center" valign="middle" height="38" bgcolor="#12100a" style="width:38px; height:38px; background-color:#12100a; background-image:linear-gradient(145deg,#1d1809 0%,#0b0a07 75%); border:1px solid #D4AF37; border-radius:50%; box-shadow:0 0 14px rgba(212,175,55,0.35); font-family:'Segoe UI',Helvetica,Arial,sans-serif; font-size:16px; line-height:18px; color:#FFD700; text-align:center;">&#9200;</td>
+                      </tr>
+                    </table>
+                  </td>
+                  <td valign="middle" class="ink" style="padding-left:15px; font-family:'Gill Sans MT',Optima,Candara,'Segoe UI','Helvetica Neue',Helvetica,Arial,sans-serif; font-size:14px; line-height:21px; letter-spacing:0.2px; color:#ffffff; mso-line-height-rule:exactly;">
+                    <span class="gold" style="font-family:Didot,'Bodoni MT','Big Caslon',Georgia,'Times New Roman',serif; color:#FFD700; font-weight:bold; letter-spacing:0.4px;">Note:</span>
+                    {% comment %}
+                       The |default only fires when this template is rendered
+                       without a context, i.e. previews. send_otp_email_html always
+                       supplies EXPIRY_MINUTES from otp_utils.OTP_TTL_MINUTES, which
+                       is what otp_views stamps on OTPRecord.expires_at. If that
+                       constant changes, change this literal and the preheader's to
+                       match it.
+                    {% endcomment %}
+                    The code will expire in {{ EXPIRY_MINUTES|default:"10" }} minutes.
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- ══════════════════════ FOOTER BOX ══════════════════════ -->
+          <tr>
+            <td class="gutter" style="padding:30px 40px 0 40px;">
+              <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" bgcolor="#08080a" style="background-color:#08080a; background-image:linear-gradient(180deg,#100e08 0%,#070708 100%); border:1px solid #2b2411; border-radius:14px;">
+                <tr>
+                  <td class="col col-first" width="33%" align="center" valign="top" style="width:33%; padding:19px 10px;">
+                    <div style="font-family:Didot,'Bodoni MT','Big Caslon',Georgia,'Times New Roman',serif; font-size:12px; line-height:15px; font-weight:bold; letter-spacing:1.8px; text-transform:uppercase; color:#D4AF37;">Website</div>
+                    <div class="muted" style="font-family:'Gill Sans MT',Optima,Candara,'Segoe UI','Helvetica Neue',Helvetica,Arial,sans-serif; font-size:13px; line-height:19px; color:#d8d2c5; padding-top:8px;">jackpotsworld.vip</div>
+                  </td>
+                  <td class="col" width="34%" align="center" valign="top" style="width:34%; padding:19px 10px; border-left:1px solid #2b2411;">
+                    <div style="font-family:Didot,'Bodoni MT','Big Caslon',Georgia,'Times New Roman',serif; font-size:12px; line-height:15px; font-weight:bold; letter-spacing:1.8px; text-transform:uppercase; color:#D4AF37;">24/7 Support</div>
+                    <div class="muted" style="font-family:'Gill Sans MT',Optima,Candara,'Segoe UI','Helvetica Neue',Helvetica,Arial,sans-serif; font-size:13px; line-height:19px; color:#d8d2c5; padding-top:8px;">We&rsquo;re here for you</div>
+                  </td>
+                  <td class="col" width="33%" align="center" valign="top" style="width:33%; padding:19px 10px; border-left:1px solid #2b2411;">
+                    <div style="font-family:Didot,'Bodoni MT','Big Caslon',Georgia,'Times New Roman',serif; font-size:12px; line-height:15px; font-weight:bold; letter-spacing:1.8px; text-transform:uppercase; color:#D4AF37;">Secure &amp; Trusted</div>
+                    <div class="muted" style="font-family:'Gill Sans MT',Optima,Candara,'Segoe UI','Helvetica Neue',Helvetica,Arial,sans-serif; font-size:13px; line-height:19px; color:#d8d2c5; padding-top:8px;">Your security is our priority</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- ══════════════════════ BOTTOM ══════════════════════ -->
+          <tr>
+            <td class="gutter muted" align="center" style="padding:28px 40px 0 40px; font-family:'Gill Sans MT',Optima,Candara,'Segoe UI','Helvetica Neue',Helvetica,Arial,sans-serif; font-size:12px; line-height:18px; letter-spacing:0.3px; color:#8f8a80; mso-line-height-rule:exactly;">
+              &copy; 2026 Jackpotsworld.vip
+            </td>
+          </tr>
+          <tr>
+            <td class="gutter" align="center" style="padding:10px 40px 0 40px; font-family:Didot,'Bodoni MT','Big Caslon','Hoefler Text',Garamond,Georgia,'Times New Roman',serif; font-size:14px; line-height:20px; font-weight:bold; letter-spacing:4.5px; color:#D4AF37; text-shadow:0 2px 14px rgba(212,175,55,0.30); mso-line-height-rule:exactly;">
+              PLAY. WIN. REPEAT.
+            </td>
+          </tr>
+          <tr>
+            <td class="gutter" align="center" style="padding:16px 40px 34px 40px; font-family:Didot,'Bodoni MT','Big Caslon',Georgia,'Times New Roman',serif; font-size:20px; line-height:26px; mso-line-height-rule:exactly;">
+              <span style="color:#D4AF37;">&#9824;&#65038;</span>&nbsp;&nbsp;<span style="color:#E23B4E;">&#9829;&#65038;</span>&nbsp;&nbsp;<span style="color:#E23B4E;">&#9830;&#65038;</span>&nbsp;&nbsp;<span style="color:#D4AF37;">&#9827;&#65038;</span>
+            </td>
+          </tr>
+
+        </table>
+        <!-- ══════════════════════ /CARD ══════════════════════ -->
+
+        <!--[if mso]>
+        </td></tr></table>
+        <![endif]-->
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>

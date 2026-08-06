@@ -19,7 +19,12 @@ logger = logging.getLogger(__name__)
 # expiry actually enforced.
 OTP_TTL_MINUTES = 10
 
-OTP_EMAIL_TEMPLATE = "emails/otp_verification.html"
+# The black-and-gold casino template. The light-theme original it replaced is
+# still on disk at emails/otp_verification.html and still renders — point this
+# constant back at it to revert, no other change needed. Both templates read
+# EXPIRY_MINUTES, and the context below carries the OTP under both key names
+# they use, so a revert stays a one-line edit.
+OTP_EMAIL_TEMPLATE = "emails/otp_verification_gold.html"
 
 
 def _log_send_failure(email: str, exc: Exception) -> None:
@@ -74,8 +79,8 @@ def send_otp_email(email: str, otp: str) -> None:
 
 def send_otp_email_html(email: str, otp: str) -> None:
     """
-    Send the styled HTML OTP email, rendered from
-    authapp/templates/emails/otp_verification.html.
+    Send the styled HTML OTP email, rendered from the template named by
+    OTP_EMAIL_TEMPLATE under authapp/templates/.
 
     The plain-text `message` below is not decoration — it's the alternative
     part every multipart email carries, and it's what plain-text-only clients
@@ -84,10 +89,11 @@ def send_otp_email_html(email: str, otp: str) -> None:
     text_message = (
         f"Here is your verification code:\n\n"
         f"  {otp}\n\n"
-        f"Please make sure you never share this code with anyone.\n"
+        f"Use this code to verify your email address.\n"
+        f"Please make sure you never share this code with anyone.\n\n"
         f"Note: The code will expire in {OTP_TTL_MINUTES} minutes.\n\n"
-        f"If you didn't request this code, you can safely ignore this email.\n\n"
-        f"— JackpotsWorld"
+        f"Jackpots World — PLAY. WIN. REPEAT.\n"
+        f"jackpotsworld.vip"
     )
     # DEFAULT_FROM_EMAIL falls back to EMAIL_HOST_USER in settings, so this is
     # the same address as before unless it's overridden in the environment.
@@ -96,7 +102,11 @@ def send_otp_email_html(email: str, otp: str) -> None:
     try:
         html_message = render_to_string(
             OTP_EMAIL_TEMPLATE,
-            {"OTP_CODE": otp, "EXPIRY_MINUTES": OTP_TTL_MINUTES},
+            # "otp" is the key the gold template documents; "OTP_CODE" is what
+            # the light template reads. Both are supplied so either renders.
+            # EXPIRY_MINUTES stays OTP_TTL_MINUTES, never a literal — the
+            # expiry the email quotes has to be the expiry otp_views enforces.
+            {"otp": otp, "OTP_CODE": otp, "EXPIRY_MINUTES": OTP_TTL_MINUTES},
         )
         send_mail(
             subject="Your JackpotsWorld Verification Code",
