@@ -3,16 +3,79 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   User, Mail, Phone, Key, AlertCircle, CheckCircle2, ShieldCheck,
-  Loader2, RotateCcw, LogIn,
+  Loader2, RotateCcw, LogIn, Globe, ChevronDown,
 } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import PageHeader from '../components/shared/PageHeader'
+import Turnstile from '../components/Turnstile'
 import {
   C, W, Label, Hint, ErrBox, GoldBtn, FocusInput, PwInput, PhoneInput,
   DEFAULT_COUNTRY, DIGIT_MAP, apiFetch, validateEmail, ApiError,
 } from '../components/AuthModal'
 
 const API = import.meta.env.VITE_API_URL
+
+// ─── Country dropdown ───────────────────────────────────────────────────────
+// Standalone country picker (independent of the phone number's dial-code
+// selector below) — same searchable flag+name list UI as AuthModal's
+// PhoneInput country dropdown, sourced from the same /api/auth/countries/
+// list already fetched in this file.
+function CountryDropdown({ value, countries, onChange, hasError }) {
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
+  const ref = useRef(null)
+
+  const filtered = countries.filter(c => c.name.toLowerCase().includes(search.toLowerCase()))
+
+  useEffect(() => {
+    const handler = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  return (
+    <div style={{ position: 'relative' }} ref={ref}>
+      <button type="button" onClick={() => setOpen(o => !o)} style={{
+        width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '10px 13px', fontSize: 14, color: value ? C.text : C.dim, background: C.bg,
+        border: `1.5px solid ${hasError ? C.redBorder : open ? C.gold : C.border}`,
+        borderRadius: 8, cursor: 'pointer', boxSizing: 'border-box', fontFamily: 'inherit',
+        boxShadow: open ? `0 0 0 3px ${C.goldGlow}` : 'none', transition: 'border 0.15s, box-shadow 0.15s',
+      }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {value ? <><span style={{ fontSize: 16 }}>{value.flag || '🌐'}</span> {value.name}</> : 'Select your country'}
+        </span>
+        <ChevronDown size={13} color={C.dim} style={{ flexShrink: 0, transition: 'transform 0.15s', transform: open ? 'rotate(180deg)' : 'none' }} />
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.12 }}
+            style={{ position: 'absolute', top: '110%', left: 0, right: 0, zIndex: 999, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 9, overflow: 'hidden', boxShadow: '0 12px 40px rgba(0,0,0,0.6)' }}>
+            <div style={{ padding: '8px 10px', borderBottom: `1px solid ${C.border}` }}>
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search country…" autoFocus
+                style={{ width: '100%', padding: '6px 10px', fontSize: 12, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 6, color: C.text, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+              {filtered.length === 0 && <div style={{ padding: 14, fontSize: 12, color: C.muted, textAlign: 'center' }}>No countries found</div>}
+              {filtered.map((c, i) => (
+                <button key={`${c.iso2}-${i}`} type="button"
+                  onClick={() => { onChange(c); setOpen(false); setSearch('') }}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', background: value?.iso2 === c.iso2 ? C.surfaceHi : 'none', border: 'none', cursor: 'pointer', textAlign: 'left', borderBottom: `1px solid rgba(48,54,61,0.4)` }}
+                  onMouseEnter={e => e.currentTarget.style.background = C.surfaceHi}
+                  onMouseLeave={e => e.currentTarget.style.background = value?.iso2 === c.iso2 ? C.surfaceHi : 'none'}>
+                  <span style={{ fontSize: 17, flexShrink: 0 }}>{c.flag || '🌐'}</span>
+                  <span style={{ fontSize: 12, color: C.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
 
 // ─── OTP step ─────────────────────────────────────────────────────────────────
 function OTPStep({ email, registrationData, onVerified, onBack }) {
@@ -187,7 +250,11 @@ function RegisterForm({ onSubmitted }) {
   const [error, setError] = useState('')
   const [countries, setCountries] = useState([])
   const [country, setCountry] = useState(DEFAULT_COUNTRY)
+  const [selectedCountry, setSelectedCountry] = useState(null)
+  const [countryTouched, setCountryTouched] = useState(false)
   const [step, setStep] = useState('form') // 'form' | 'otp'
+  const [cfToken, setCfToken] = useState('')
+  const turnstileRef = useRef(null)
 
   useEffect(() => {
     fetch(`${API || ''}/api/auth/countries/`)
@@ -216,20 +283,29 @@ function RegisterForm({ onSubmitted }) {
   const pwMatch = confirm && pw === confirm
   const pwMiss = confirm && pw !== confirm
 
-  const canSubmit = name.trim() && emailValid && phoneComplete && pwOk && pwMatch
+  const canSubmit = name.trim() && emailValid && phoneComplete && pwOk && pwMatch && !!selectedCountry && !!cfToken
 
   const handle = async () => {
     if (!name.trim()) { setError('Full name is required'); return }
+    if (!selectedCountry) { setCountryTouched(true); setError('Please select your country'); return }
     const { ok: eok, error: eErr } = validateEmail(email)
     if (!eok) { setEmailErr(eErr); return }
     if (!phoneComplete) { setError(`Enter exactly ${country.digits} digits for ${country.name}`); return }
     if (!pwOk) { setError('Password does not meet requirements'); return }
     if (!pwMatch) { setError('Passwords do not match'); return }
+    if (!cfToken) { setError('Please complete the verification checkbox'); return }
     setError(''); setLoading(true)
     try {
-      await apiFetch('/api/auth/send-otp/', { method: 'POST', body: JSON.stringify({ email, mode: 'register' }) })
+      await apiFetch('/api/auth/send-otp/', {
+        method: 'POST',
+        body: JSON.stringify({ email, mode: 'register', cf_turnstile_response: cfToken }),
+      })
       setStep('otp')
     } catch (err) {
+      // Turnstile tokens are single-use — reset the widget so the user can
+      // re-verify before retrying, whatever the failure reason was.
+      turnstileRef.current?.reset()
+      setCfToken('')
       setError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.')
     } finally {
       setLoading(false)
@@ -239,7 +315,7 @@ function RegisterForm({ onSubmitted }) {
   const registrationData = {
     name: name.trim(),
     phone: country.code + phone,
-    country: country.iso2 || 'IN',
+    country: selectedCountry?.iso2 || 'IN',
     dial_code: country.code,
     password: pw,
   }
@@ -278,6 +354,19 @@ function RegisterForm({ onSubmitted }) {
       </div>
 
       <div style={W}>
+        <Label><Globe size={10} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />Country</Label>
+        <CountryDropdown
+          value={selectedCountry}
+          countries={countries}
+          hasError={countryTouched && !selectedCountry}
+          onChange={c => { setSelectedCountry(c); setCountryTouched(true) }}
+        />
+        {countryTouched && !selectedCountry && (
+          <Hint color={C.red} icon={AlertCircle}>Please select your country</Hint>
+        )}
+      </div>
+
+      <div style={W}>
         <Label><Mail size={10} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />Email address</Label>
         <FocusInput type="email" value={email} onChange={e => { setEmail(e.target.value.trim()); setEmailErr('') }}
           placeholder="you@gmail.com" hasError={!!emailErr} hasOk={emailValid && !emailErr}
@@ -308,6 +397,15 @@ function RegisterForm({ onSubmitted }) {
         <PwInput value={confirm} onChange={setConfirm} placeholder="Re-enter password" />
         {pwMiss ? <Hint color={C.red} icon={AlertCircle}>Passwords do not match</Hint>
           : pwMatch ? <Hint color={C.green} icon={CheckCircle2}>Passwords match</Hint> : null}
+      </div>
+
+      <div style={W}>
+        <Turnstile
+          ref={turnstileRef}
+          onVerify={token => { setCfToken(token); setError('') }}
+          onExpire={() => setCfToken('')}
+          onError={() => setCfToken('')}
+        />
       </div>
 
       <ErrBox msg={error} />
