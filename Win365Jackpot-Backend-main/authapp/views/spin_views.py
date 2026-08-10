@@ -76,8 +76,7 @@ class SpinHistoryListView(generics.ListAPIView):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _get_client_ip(request):
-    x = request.META.get("HTTP_X_FORWARDED_FOR")
-    return x.split(",")[0].strip() if x else request.META.get("REMOTE_ADDR")
+    return _resolve_client_ip(request)
 
 
 class AdminSpinConfigListCreateView(generics.ListCreateAPIView):

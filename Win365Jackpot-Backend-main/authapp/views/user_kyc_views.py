@@ -15,13 +15,11 @@ from rest_framework.permissions import IsAuthenticated
 
 from authapp.models.kyc_model import KYCSubmission
 from authapp.utils.file_validation import validate_uploaded_image
+from authapp.utils.client_ip import get_client_ip as _resolve_client_ip
 
 
 def _get_real_ip(request):
-    xff = request.META.get("HTTP_X_FORWARDED_FOR", "")
-    if xff:
-        return xff.split(",")[0].strip()
-    return request.META.get("REMOTE_ADDR", "")
+    return _resolve_client_ip(request) or ""
 
 
 def _geo_lookup(ip):

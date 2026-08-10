@@ -44,13 +44,13 @@ from authapp.serializers.affiliate_wallet_serializers import (
 )
 from authapp.services import affiliate_wallet_service as svc
 from authapp.services.affiliate_wallet_service import WithdrawalError
+from authapp.utils.client_ip import get_client_ip as _resolve_client_ip
 
 PAGE_SIZE = 20
 
 
 def _client_ip(request):
-    x = request.META.get("HTTP_X_FORWARDED_FOR")
-    return x.split(",")[0].strip() if x else request.META.get("REMOTE_ADDR")
+    return _resolve_client_ip(request)
 
 
 def _client_ua(request):

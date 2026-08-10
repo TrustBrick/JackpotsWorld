@@ -6,6 +6,7 @@ import {
   Eye, EyeOff, AlertCircle, CalendarDays, Spade, Handshake, MapPin, LayoutTemplate,
   LifeBuoy, Languages, // MULTILINGUAL-CHAT
   ArrowDownCircle, ArrowUpCircle, Sparkles, // WALLET-REQUESTS / GIFTS-REWARDS
+  MessageCircle, // LIVE-CHAT
 } from "lucide-react";
 
 import OverviewTab       from "./tabs/OverviewTab";
@@ -32,6 +33,7 @@ import WithdrawalRequestsTab from "./tabs/WithdrawalRequestsTab";  // WALLET-REQ
 import GiftsRewardsTab       from "./tabs/GiftsRewardsTab";        // GIFTS-REWARDS
 import SupportTicketsTab    from "./tabs/SupportTicketsTab";           // MULTILINGUAL-CHAT
 import SupportSettingsTab   from "./tabs/content/SupportSettingsTab";  // MULTILINGUAL-CHAT
+import LiveSupportTab       from "./tabs/LiveSupportTab";              // LIVE-CHAT
 
 import { Card, Toast } from "./components/SharedUI";
 import { API, adminFetch } from "./helpers";
@@ -42,6 +44,7 @@ import AdminWalletBanner from "./AdminWalletBanner";
 import { AdminThemeProvider, useAdminTheme } from "./context/AdminThemeContext";
 import AdminThemeToggle from "./components/AdminThemeToggle";
 import Logo from "../components/shared/Logo";
+import BrandMark from "../components/shared/BrandMark";
 
 
 const ICON_MAP = {
@@ -49,6 +52,7 @@ const ICON_MAP = {
   Bell, FileText, Shield, Activity, UserCog, CalendarDays, Spade, Handshake, MapPin, LayoutTemplate,
   LifeBuoy, Languages, // MULTILINGUAL-CHAT
   ArrowDownCircle, ArrowUpCircle, Sparkles, // WALLET-REQUESTS / GIFTS-REWARDS
+  MessageCircle, // LIVE-CHAT
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -171,6 +175,25 @@ function AdminPanelInner() {
   const [tab,       setTab]       = useState("overview");
   const [toast,     setToast]     = useState(null);
   const [adminUser, setAdminUser] = useState(null);
+  // LIVE-CHAT: sidebar unread badge — polls independently of whether the
+  // "Live Support" tab is actually open (that tab keeps its own WebSocket
+  // connection for its own live view while it's mounted).
+  const [liveSupportUnread, setLiveSupportUnread] = useState(0);
+
+  useEffect(() => {
+    if (!authed) return undefined;
+    const poll = async () => {
+      try {
+        const r = await adminFetch(`${API}/api/admin-panel/live-chat/list/`);
+        const j = await r?.json();
+        const list = Array.isArray(j) ? j : j?.results || [];
+        setLiveSupportUnread(list.reduce((sum, s) => sum + (s.unread_count || 0), 0));
+      } catch { /* keep previous count on a transient failure */ }
+    };
+    poll();
+    const interval = setInterval(poll, 20000);
+    return () => clearInterval(interval);
+  }, [authed]);
 
   useEffect(() => {
     const init = async () => {
@@ -237,6 +260,7 @@ function AdminPanelInner() {
       // MULTILINGUAL-CHAT: 2 new cases
       case "support-tickets":  return <SupportTicketsTab  {...props} />;
       case "support-settings": return <SupportSettingsTab {...props} />;
+      case "live-support":     return <LiveSupportTab     {...props} />; // LIVE-CHAT
       case "logs":      return <LogsTab           {...props} />;
       case "staff":     return <StaffTab          {...props} />;
       default:          return <OverviewTab       {...props} />;
@@ -259,10 +283,7 @@ function AdminPanelInner() {
         {/* Logo */}
         <div style={{ marginBottom: 22, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
           <div>
-            <img
-      src='/images/jackpotsworld_watermark.png'
-      className="w-10 h-10 object-contain"
-    />
+            <BrandMark size={40} />
     <Logo size="md" />
             <div style={{ fontSize: 10, color: C.muted, letterSpacing: "0.3em", textTransform: "uppercase" }}>Admin Panel</div>
           </div>
@@ -301,6 +322,11 @@ function AdminPanelInner() {
                 {t.label}
                 {t.id === "wallet" && (
                   <span style={{ marginLeft: "auto", fontSize: 9, fontWeight: 900, padding: "1px 5px", borderRadius: 20, background: C.orange, color: "white" }}>NEW</span>
+                )}
+                {t.id === "live-support" && liveSupportUnread > 0 && (
+                  <span style={{ marginLeft: "auto", fontSize: 9.5, fontWeight: 800, minWidth: 16, height: 16, borderRadius: 8, padding: "0 4px", background: "#ff3366", color: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    {liveSupportUnread}
+                  </span>
                 )}
               </button>
             );

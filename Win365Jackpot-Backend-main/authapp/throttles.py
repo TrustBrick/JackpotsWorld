@@ -48,3 +48,14 @@ class CheckUserRateThrottle(SimpleRateThrottle):
 
     def get_cache_key(self, request, view):
         return self.cache_format % {"scope": self.scope, "ident": self.get_ident(request)}
+
+
+class LiveChatSendRateThrottle(SimpleRateThrottle):
+    """Per-user (not per-IP) — this endpoint requires IsAuthenticated, so
+    keying on the account itself avoids throttling every user behind the
+    same NAT/office IP together."""
+    scope = "live-chat-send"
+
+    def get_cache_key(self, request, view):
+        ident = request.user.pk if request.user and request.user.is_authenticated else self.get_ident(request)
+        return self.cache_format % {"scope": self.scope, "ident": ident}

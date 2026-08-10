@@ -23,6 +23,7 @@ import { useAutoFetch } from "../hooks/useAutoFetch";
 import { fetchLocations } from "../services/locationService";
 import { fetchTourPackages } from "../services/landingService";
 import Logo from "./shared/Logo";
+import BrandMark from "./shared/BrandMark";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -610,19 +611,8 @@ export default function Register() {
 
   {/* ── Logo + Title in one row ── */}
   <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14, position: "relative" }}>
-    <img
-      src="/images/jackpotsworld_watermark.png"
-      alt="Jackpots World"
-      style={{
-        width: 48,
-        height: 48,
-        objectFit: "contain",
-        borderRadius: "50%",
-        border: "1px solid rgba(212,175,55,0.3)",
-        background: "rgba(0,0,0,0.4)",
-        padding: 3,
-        flexShrink: 0,
-      }}
+    <BrandMark
+      size={48}
       onError={e => { e.currentTarget.style.display = 'none' }}
     />
     <div>

@@ -1,0 +1,52 @@
+# Repository-root .gitignore.
+#
+# This file did not exist before, which is how ~3000 files of virtualenv got
+# committed: Win365Jackpot-Backend-main/ and Win365Jackpot-Frontend-main/
+# each have their own .gitignore listing venv/, but nothing covered the
+# repository root, and a .gitignore rule added *after* a path is already
+# tracked has no effect on it.
+#
+# Nothing here is a deployment input. The cPanel task list copies
+# Win365Jackpot-Backend-main/ and the Elastic Beanstalk bundle is scoped by
+# Win365Jackpot-Backend-main/.ebignore, so neither reads anything at this
+# level.
+
+# ── Virtualenvs ──────────────────────────────────────────────────────────────
+# Unanchored, so this applies at every depth. Win365Jackpot-Backend-main/venv
+# is the only working one (Python 3.12.7, and what .claude/launch.json runs);
+# it stays on disk and is simply never tracked. Each machine builds its own
+# from requirements.txt — committing one bakes in absolute interpreter paths
+# from whoever created it, which is why the two that were committed here are
+# unusable on any other account.
+venv/
+.venv/
+env/
+ENV/
+
+# ── Nested clone ─────────────────────────────────────────────────────────────
+# Anchored to the root so it can only ever match this specific directory.
+# JackpotsWorld/ is a second, stale clone of this same repository (frozen
+# 2026-07-12, 68 commits behind, zero unique commits). Ignoring it keeps it
+# out of `git status` without deleting anything.
+/JackpotsWorld/
+
+# ── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+
+# ── Node ─────────────────────────────────────────────────────────────────────
+node_modules/
+
+# ── Claude Code ──────────────────────────────────────────────────────────────
+# Personal, machine-local settings only. Deliberately not committed: it holds
+# the permission rule that lets `eb` run without a prompt, and auto-approving
+# production deploys is a per-person decision, not something a clone of this
+# repository should inherit. .claude/launch.json is shared and stays tracked.
+.claude/settings.local.json
+
+# ── Editors / OS ─────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -3,13 +3,17 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Link as ScrollLink } from 'react-scroll'
 import { Link as RouterLink } from 'react-router-dom'
 import Logo from './shared/Logo'
+import BrandMark from './shared/BrandMark'
+import useEnquiryNumber from '../hooks/useEnquiryNumber'
+import { buildWhatsAppLink } from '../services/enquiryContact'
 
 const PRIMARY_DESTINATIONS = ['Vietnam', 'Macau', 'India (Goa)', 'Sri Lanka', 'Philippines']
 const EXTRA_DESTINATIONS   = ['Las Vegas', 'Malaysia', 'Singapore', 'Armenia', 'Georgia']
 const ALL_DESTINATIONS     = [...PRIMARY_DESTINATIONS, ...EXTRA_DESTINATIONS]
 
-const WA_NUM   = '94717808877'
-const WA_MSG   = encodeURIComponent("Hi! I'd like to get in touch with Jackpots World 🎰")
+// Raw text — buildWhatsAppLink() does the URL encoding. The number itself is
+// resolved per visitor by useEnquiryNumber(), no longer hardcoded here.
+const WA_MSG   = "Hi! I'd like to get in touch with Jackpots World 🎰"
 
 const SOCIAL_LINKS = [
   {
@@ -47,6 +51,7 @@ const SHOW_SOCIAL_LINKS = true
 
 export default function Footer() {
   const [open, setOpen] = useState(false)
+  const enquiryNumber = useEnquiryNumber()
 
   return (
     <footer id="contact" style={{
@@ -71,10 +76,7 @@ export default function Footer() {
           <div>
             <div style={{ marginBottom: 16 }}>
                <div className="flex flex-col leading-none">
-                <img
-    src='/images/jackpotsworld_watermark.png'
-    className="w-10 h-10 object-contain"
-  />
+                <BrandMark size={40} />
     <Logo size="md" />
   </div>
 
@@ -193,7 +195,7 @@ export default function Footer() {
 
               <li>
                 <a
-                  href={`https://wa.me/${WA_NUM}?text=${WA_MSG}`}
+                  href={buildWhatsAppLink(enquiryNumber, WA_MSG)}
                   target="_blank" rel="noopener noreferrer"
                   style={{ fontSize: 13, color: 'var(--w365-text-muted)', textDecoration: 'none', transition: 'color 0.15s' }}
                   onMouseEnter={e => e.currentTarget.style.color = '#D4AF37'}

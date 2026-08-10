@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Link } from 'react-scroll'
 import { useTranslation } from 'react-i18next'
 import {
   Menu, X, Gift, UserPlus, LogOut,
@@ -8,10 +7,13 @@ import {
 } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import Logo from './shared/Logo'
+import BrandMark from './shared/BrandMark'
 import AuthModal from './AuthModal'
 import ChatBot from './ChatBot'
 import { getToken, getUser } from '../services/authStorage'
 import { endSession } from '../services/sessionManager'
+import { scrollToSection, scrollToSectionWhenReady } from '../utils/scroll'
+import useActiveSection from '../hooks/useActiveSection'
 
 // Maps each navLinks entry's stable `label` to its i18next key.
 const NAV_I18N_KEY = {
@@ -44,6 +46,14 @@ const navLinks = [
   { label: 'Register',     type: 'scroll',  to: 'register' },
   { label: 'Gifts',        type: 'scroll',  to: 'gifts', isGift: true },
 ]
+
+// Every section the navbar can scroll to, for the active-item scroll spy.
+// Order here doesn't matter — useActiveSection sorts by real page position.
+const SECTION_IDS = navLinks.filter(link => link.type !== 'route').map(link => link.to)
+
+// How long a click keeps its own highlight before the scroll spy takes over.
+// Slightly longer than the smooth-scroll animation so it doesn't flicker.
+const CLICK_HIGHLIGHT_MS = 900
 
 // ─── User Dropdown ────────────────────────────────────────────────────────────
 function UserDropdown({ user, onLogout, onRequireAuth }) {
@@ -164,19 +174,24 @@ function UserDropdown({ user, onLogout, onRequireAuth }) {
 }
 
 // ─── Nav label (shared between the "Gifts" pill and plain text links) ────────
-function NavLabel({ link }) {
+function NavLabel({ link, isActive = false }) {
   const { t } = useTranslation()
   const label = NAV_I18N_KEY[link.label] ? t(NAV_I18N_KEY[link.label]) : link.label
   if (link.isGift) {
     return (
       <motion.span
         whileHover={{ scale: 1.08 }}
-        className="relative inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-body text-sm font-bold tracking-widest uppercase"
+        className={`nav-gift relative inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-body text-sm font-bold tracking-widest uppercase${isActive ? ' is-active' : ''}`}
         style={{
           background: 'linear-gradient(135deg, rgba(212,175,55,0.18), rgba(212,175,55,0.06))',
-          border:     '1px solid rgba(212,175,55,0.55)',
+          // Already gold at rest, so the active state reads as a brighter
+          // rim and glow. Set inline because these properties are inline
+          // here and would otherwise win over the stylesheet.
+          border:     `1px solid rgba(212,175,55,${isActive ? 0.95 : 0.55})`,
           color:      '#D4AF37',
-          boxShadow:  '0 0 14px rgba(212,175,55,0.25)',
+          boxShadow:  isActive
+            ? '0 0 22px rgba(212,175,55,0.55)'
+            : '0 0 14px rgba(212,175,55,0.25)',
         }}
       >
         <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse shrink-0" style={{ boxShadow: '0 0 6px #D4AF37' }} />
@@ -192,23 +207,30 @@ function NavLabel({ link }) {
     )
   }
   return (
-    <span className="nav-link whitespace-nowrap text-[13px] lg:text-[14px] tracking-wide">
+    <span
+      className={`nav-link whitespace-nowrap text-[13px] lg:text-[14px] tracking-wide${
+        isActive ? ' is-active' : ''
+      }`}
+    >
       {label}
     </span>
   )
 }
 
-function NavLabelMobile({ link }) {
+function NavLabelMobile({ link, isActive = false }) {
   const { t } = useTranslation()
   const label = NAV_I18N_KEY[link.label] ? t(NAV_I18N_KEY[link.label]) : link.label
   if (link.isGift) {
     return (
       <span
-        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-body text-sm font-bold tracking-widest uppercase"
+        className={`nav-gift inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-body text-sm font-bold tracking-widest uppercase${
+          isActive ? ' is-active' : ''
+        }`}
         style={{
           background: 'linear-gradient(135deg, rgba(212,175,55,0.18), rgba(212,175,55,0.06))',
-          border:     '1px solid rgba(212,175,55,0.5)',
+          border:     `1px solid rgba(212,175,55,${isActive ? 0.95 : 0.5})`,
           color:      '#D4AF37',
+          boxShadow:  isActive ? '0 0 18px rgba(212,175,55,0.45)' : undefined,
         }}
       >
         <Gift size={13} />{label} 🎁
@@ -217,7 +239,7 @@ function NavLabelMobile({ link }) {
   }
   return (
     <span
-      className="nav-link block py-2.5 text-base border-b"
+      className={`nav-link block py-2.5 text-base border-b${isActive ? ' is-active' : ''}`}
       style={{ borderColor: 'rgba(212,175,55,0.08)' }}
     >
       {label}
@@ -237,6 +259,26 @@ export default function Navbar() {
   const navigate  = useNavigate()
   const location  = useLocation()
   const isHome    = location.pathname === '/'
+
+  // ── Active nav item ────────────────────────────────────────────────────────
+  // Two inputs decide which entry renders in gold: the scroll spy (which
+  // section is at the top of the viewport) and the item just clicked. The
+  // click wins for a moment so the highlight is immediate rather than
+  // arriving only once the smooth scroll finishes.
+  const activeSection = useActiveSection(SECTION_IDS, { enabled: isHome })
+  const [clickedLabel, setClickedLabel] = useState(null)
+
+  useEffect(() => {
+    if (!clickedLabel) return undefined
+    const timer = setTimeout(() => setClickedLabel(null), CLICK_HIGHLIGHT_MS)
+    return () => clearTimeout(timer)
+  }, [clickedLabel])
+
+  const isLinkActive = (link) => {
+    if (clickedLabel) return clickedLabel === link.label
+    if (link.type === 'route') return location.pathname.startsWith(link.path)
+    return isHome && activeSection === link.to
+  }
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50)
@@ -259,32 +301,26 @@ export default function Navbar() {
     const target = sessionStorage.getItem('jw_scroll_target')
     if (!target || !isHome) return
     sessionStorage.removeItem('jw_scroll_target')
-
-    let attempts = 0
-    const tryScroll = () => {
-      const el = document.getElementById(target) || document.getElementsByName(target)[0]
-      if (el) {
-        const y = el.getBoundingClientRect().top + window.pageYOffset - 80
-        window.scrollTo({ top: y, behavior: 'smooth' })
-      } else if (attempts < 30) {
-        attempts += 1
-        setTimeout(tryScroll, 100)
-      }
-    }
-    setTimeout(tryScroll, 60)
+    scrollToSectionWhenReady(target)
   }, [isHome])
 
+  // Every nav entry that targets a section funnels through here, on the
+  // homepage and from other routes alike, so the landing position is
+  // identical in both cases.
   const goToSection = (target) => {
     if (isHome) {
-      const el = document.getElementById(target) || document.getElementsByName(target)[0]
-      if (el) {
-        const y = el.getBoundingClientRect().top + window.pageYOffset - 80
-        window.scrollTo({ top: y, behavior: 'smooth' })
-      }
+      scrollToSection(target)
     } else {
       sessionStorage.setItem('jw_scroll_target', target)
       navigate('/')
     }
+  }
+
+  // Click handler shared by the desktop and mobile lists.
+  const handleNavClick = (link) => {
+    setClickedLabel(link.label)
+    if (link.type === 'route') navigate(link.path)
+    else goToSection(link.to)
   }
 
   const openLogin    = () => { setModalTab('login');    setModalOpen(true) }
@@ -331,45 +367,21 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
 
          {/* Logo */}
-{isHome ? (
-  <Link to="hero" smooth duration={500} className="cursor-pointer flex items-center gap-2">
-    <img
-      src='/images/jackpotsworld_watermark.png'
-      className="w-7 h-7 object-contain"
-    />
-    <Logo size="sm" />
-  </Link>
-) : (
-  <span onClick={() => navigate('/')} className="cursor-pointer flex items-center gap-2">
-    <img
-      src='/images/jackpotsworld_watermark.png'
-      className="w-7 h-7 object-contain"
-    />
-    <Logo size="sm" />
-  </span>
-)}
+<span
+  onClick={() => (isHome ? scrollToSection('hero') : navigate('/'))}
+  className="cursor-pointer flex items-center gap-2"
+>
+  <BrandMark size={28} />
+  <Logo size="sm" />
+</span>
 
           {/* Desktop nav links */}
           <ul className="hidden md:flex flex-1 justify-center items-center gap-4 mx-8">
             {navLinks.map(link => (
               <li key={link.label}>
-                {link.type === 'route' ? (
-                  <span onClick={() => navigate(link.path)} className="cursor-pointer">
-                    <NavLabel link={link} />
-                  </span>
-                ) : link.type === 'contact' ? (
-                  <span onClick={() => goToSection(link.to)} className="cursor-pointer">
-                    <NavLabel link={link} />
-                  </span>
-                ) : isHome ? (
-                  <Link to={link.to} smooth duration={600} offset={-80} className="cursor-pointer">
-                    <NavLabel link={link} />
-                  </Link>
-                ) : (
-                  <span onClick={() => goToSection(link.to)} className="cursor-pointer">
-                    <NavLabel link={link} />
-                  </span>
-                )}
+                <span onClick={() => handleNavClick(link)} className="cursor-pointer">
+                  <NavLabel link={link} isActive={isLinkActive(link)} />
+                </span>
               </li>
             ))}
           </ul>
@@ -463,39 +475,12 @@ export default function Navbar() {
               <ul className="py-5 px-6 flex flex-col gap-1">
                 {navLinks.map(link => (
                   <li key={link.label}>
-                    {link.type === 'route' ? (
-                      <span
-                        className="cursor-pointer block"
-                        onClick={() => { setMobileOpen(false); navigate(link.path) }}
-                      >
-                        <NavLabelMobile link={link} />
-                      </span>
-                    ) : link.type === 'contact' ? (
-                      <span
-                        className="cursor-pointer block"
-                        onClick={() => { setMobileOpen(false); goToSection(link.to) }}
-                      >
-                        <NavLabelMobile link={link} />
-                      </span>
-                    ) : isHome ? (
-                      <Link
-                        to={link.to}
-                        smooth
-                        duration={600}
-                        offset={-80}
-                        className="cursor-pointer block"
-                        onClick={() => setMobileOpen(false)}
-                      >
-                        <NavLabelMobile link={link} />
-                      </Link>
-                    ) : (
-                      <span
-                        className="cursor-pointer block"
-                        onClick={() => { setMobileOpen(false); goToSection(link.to) }}
-                      >
-                        <NavLabelMobile link={link} />
-                      </span>
-                    )}
+                    <span
+                      className="cursor-pointer block"
+                      onClick={() => { setMobileOpen(false); handleNavClick(link) }}
+                    >
+                      <NavLabelMobile link={link} isActive={isLinkActive(link)} />
+                    </span>
                   </li>
                 ))}
               </ul>

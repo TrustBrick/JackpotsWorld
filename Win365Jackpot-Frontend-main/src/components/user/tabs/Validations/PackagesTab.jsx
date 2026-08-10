@@ -7,7 +7,9 @@ import {
 import { C } from "../../constants";
 import { Card } from "../../components/SharedUI";
 import { useAutoFetch } from "../../../../hooks/useAutoFetch";
-import { fetchTourPackages, fetchLandingSettings } from "../../../../services/landingService";
+import { fetchTourPackages } from "../../../../services/landingService";
+import useEnquiryNumber from "../../../../hooks/useEnquiryNumber";
+import { buildWhatsAppLink } from "../../../../services/enquiryContact";
 
 const FALLBACK_PACKAGES = [
   { name: "VIP", price: "$5,000", icon: <Layers size={26} color="#9E9E9E" />, color: "#9E9E9E", badge: null,
@@ -52,7 +54,6 @@ const FALLBACK_PACKAGES = [
     spa: true, spaNote: "***", shoppingVoucher: true, shoppingNote: "***", visa: true },
 ];
 
-const DEFAULT_WHATSAPP_NUMBER = "94717808877";
 const FALLBACK_PACKAGE_BY_NAME = new Map(FALLBACK_PACKAGES.map(p => [p.name, p]));
 
 // See CountryPackages.jsx's mapTourPackage — a legacy latin1 DB column
@@ -74,18 +75,17 @@ function mapTourPackage(p) {
 }
 
 function purchaseLink(pkg, whatsappNumber) {
-  const msg = encodeURIComponent(
-    `Hi! I'm interested in purchasing the *${pkg.name}* Offline Casino Tour Package (${pkg.price}). Please share more details.`
-  );
-  return `https://wa.me/${whatsappNumber}?text=${msg}`;
+  // Raw text — buildWhatsAppLink() does the URL encoding.
+  const msg = `Hi! I'm interested in purchasing the *${pkg.name}* Offline Casino Tour Package (${pkg.price}). Please share more details.`;
+  return buildWhatsAppLink(whatsappNumber, msg);
 }
 
 export default function PackagesTab() {
   const { t } = useTranslation();
   const { data: packagesData } = useAutoFetch(fetchTourPackages, {}, { intervalMs: 60_000 });
-  const { data: settings } = useAutoFetch(fetchLandingSettings, {}, { intervalMs: 60_000 });
   const PACKAGES = (Array.isArray(packagesData) && packagesData.length > 0 ? packagesData : FALLBACK_PACKAGES).map(mapTourPackage);
-  const whatsappNumber = settings?.whatsapp_number || DEFAULT_WHATSAPP_NUMBER;
+  // Country-based: Sri Lanka gets the local number, everywhere else the default.
+  const whatsappNumber = useEnquiryNumber();
   return (
     <div>
       <div style={{ marginBottom: 18 }}>

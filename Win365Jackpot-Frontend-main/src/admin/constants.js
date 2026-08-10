@@ -91,6 +91,10 @@ export const ADMIN_TABS = [
   // MULTILINGUAL-CHAT: 2 new tabs (local preview feature)
   { id:"support-tickets",  label:"Support Tickets",     icon:"LifeBuoy"   },
   { id:"support-settings", label:"Support Settings",    icon:"Languages"  },
+  // LIVE-CHAT: real-time human-agent chat (distinct from the async ticket
+  // tabs above) — safe to remove this line + LiveSupportTab.jsx + its case
+  // in AdminPanel.jsx to remove the feature.
+  { id:"live-support",     label:"Live Support",        icon:"MessageCircle" },
   { id:"logs",          label:"Activity Logs",    icon:"Activity"   },
   // { id:"staff",         label:"Staff",            icon:"UserCog"    },
 ];

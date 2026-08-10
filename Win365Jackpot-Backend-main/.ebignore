@@ -1,0 +1,50 @@
+# Elastic Beanstalk deploy bundle — what `eb deploy` ships to
+# Jackpotsworld-env (see .elasticbeanstalk/config.yml).
+#
+# Why this file has to exist at all: with no .ebignore, the EB CLI falls
+# back to `git archive`, and this app is a *subdirectory* of its git repo.
+# That produces two problems at once — the archive is rooted at the repo
+# root, so manage.py/Procfile don't land at the top level where EB expects
+# them, and the bundle sweeps in everything else tracked in the repo,
+# including two committed virtualenvs (~460 MB) and the frontend source.
+# That tips it past EB's hard 512 MB archive limit and the deploy fails
+# outright with FileTooLargeError.
+#
+# Presence of this file switches the EB CLI to zipping *this* directory
+# instead, which fixes the layout, and the exclusions below keep the
+# bundle small.
+#
+# Every path listed here is untracked in git, so excluding it ships exactly
+# what the previous git-archive deploys shipped. In particular media/ was
+# never part of the bundle, so nothing here removes live uploads.
+
+# Local virtualenv — EB builds its own from requirements.txt.
+venv/
+
+# User uploads (663 MB) and runtime logs. Never belonged in a deploy
+# artifact; EB replaces /var/app/current wholesale on every deploy.
+media/
+logs/
+
+# Regenerated on each instance by the 04_collectstatic container_command
+# in .ebextensions/01_django.config.
+staticfiles/
+
+# Local-only settings. EB supplies configuration through environment
+# variables (`eb printenv`), and shipping local DB credentials to
+# production is exactly the kind of thing that should never be possible.
+.env
+.env.local
+
+# Local sqlite scratch DBs — production runs MySQL on RDS.
+db.sqlite3
+*.sqlite3
+
+# EB CLI's own workspace, including its cache of previous application
+# version zips (currently ~1.4 GB). The CLI excludes this itself; listed
+# for the benefit of anyone reading the bundle contents.
+.elasticbeanstalk/
+
+__pycache__/
+*.py[cod]
+.pytest_cache/

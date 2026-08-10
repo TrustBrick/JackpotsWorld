@@ -26,13 +26,13 @@ from authapp.models import ActivityLog
 from authapp.models.two_factor_models import TwoFactorAuth, TwoFactorBackupCode
 from authapp.permissions.super_admin_permissions import IsSuperAdmin
 from authapp.utils.two_factor import verify_totp_or_backup_code
+from authapp.utils.client_ip import get_client_ip as _resolve_client_ip
 
 ISSUER = "JackpotsWorld"
 
 
 def _get_client_ip(request):
-    x = request.META.get("HTTP_X_FORWARDED_FOR")
-    return x.split(",")[0].strip() if x else request.META.get("REMOTE_ADDR")
+    return _resolve_client_ip(request)
 
 
 def _qr_data_uri(otpauth_uri):

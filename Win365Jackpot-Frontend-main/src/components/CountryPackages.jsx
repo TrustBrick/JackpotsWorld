@@ -24,14 +24,17 @@ import {
 ───────────────────────────────────────────── */
 
 import { useAutoFetch } from '../hooks/useAutoFetch'
-import { fetchDestinations, fetchVipServiceImages, fetchTourPackages, fetchLandingSettings } from '../services/landingService'
+import { fetchDestinations, fetchVipServiceImages, fetchTourPackages } from '../services/landingService'
 import { flagFromCountryCode } from '../utils/countryFlags'
+import useEnquiryNumber from '../hooks/useEnquiryNumber'
+import { buildWhatsAppLink } from '../services/enquiryContact'
 
-const DEFAULT_WHATSAPP_NUMBER = '94717808877'
-
+// Enquiry routing is decided by the visitor's country (Sri Lanka vs everywhere
+// else), so this no longer reads whatsapp_number from the landing settings —
+// see services/enquiryContact.js. Kept as a named hook so the call sites below
+// stay unchanged.
 function useWhatsAppNumber() {
-  const { data } = useAutoFetch(fetchLandingSettings, {}, { intervalMs: 60_000 })
-  return data?.whatsapp_number || DEFAULT_WHATSAPP_NUMBER
+  return useEnquiryNumber()
 }
 
 function hexToRgba(hex, alpha) {
@@ -140,13 +143,12 @@ const INCLUSIONS = [
 /* ── WHATSAPP BUTTON ── */
 function WhatsAppBtn({ label = 'Enquire on WhatsApp', pkg = '' }) {
   const whatsappNumber = useWhatsAppNumber()
-  const msg = encodeURIComponent(
-    pkg
-      ? `Hi! I'm interested in the *${pkg}* Offline Casino Tour Package. Please share more details.`
-      : `Hi! I'm interested in your Offline Casino Tour Packages. Please share more details.`
-  )
+  // Raw text — buildWhatsAppLink() does the URL encoding.
+  const msg = pkg
+    ? `Hi! I'm interested in the *${pkg}* Offline Casino Tour Package. Please share more details.`
+    : `Hi! I'm interested in your Offline Casino Tour Packages. Please share more details.`
   return (
-    <a href={`https://wa.me/${whatsappNumber}?text=${msg}`} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textDecoration: 'none' }}>
+    <a href={buildWhatsAppLink(whatsappNumber, msg)} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textDecoration: 'none' }}>
       <motion.button
         whileHover={{ scale: 1.04, boxShadow: '0 0 30px rgba(37,211,102,0.5)' }}
         whileTap={{ scale: 0.97 }}
@@ -846,7 +848,7 @@ function PackagesSection() {
       {/* CTA */}
       <div style={{ maxWidth: 380, margin: '0 auto' }}>
   <a
-    href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent("Hi! I'm interested in the *Cruise Offline Casino Package*. Please share more details.")}`}
+    href={buildWhatsAppLink(whatsappNumber, "Hi! I'm interested in the *Cruise Offline Casino Package*. Please share more details.")}
     target="_blank"
     rel="noopener noreferrer"
     style={{ display: 'block', textDecoration: 'none' }}

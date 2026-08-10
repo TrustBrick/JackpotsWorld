@@ -53,6 +53,12 @@ if _private_ip:
     ALLOWED_HOSTS.append(_private_ip)
 
 INSTALLED_APPS = [
+    # LIVE-CHAT: 'daphne' must be listed before 'django.contrib.staticfiles'
+    # — Channels patches `runserver` to be ASGI-aware (serves both HTTP and
+    # WebSocket locally, no separate process needed for dev) only when
+    # daphne is registered first. Harmless to WSGI production (cPanel) since
+    # that deployment never imports/serves ASGI at all.
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -62,6 +68,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
+    'channels',
     'authapp',
 ]
 
@@ -81,6 +88,10 @@ MIDDLEWARE = [
 AUTH_USER_MODEL = 'authapp.User'
 ROOT_URLCONF    = 'backend.urls'
 WSGI_APPLICATION = 'backend.wsgi.application'
+# LIVE-CHAT: only used by the separate `daphne` process (see Procfile) that
+# serves /ws/ on AWS EB — the WSGI app above still handles every normal HTTP
+# request in production exactly as before this feature existed.
+ASGI_APPLICATION = 'backend.asgi.application'
 
 TEMPLATES = [
     {
@@ -256,6 +267,7 @@ REST_FRAMEWORK = {
         'otp-verify': '10/min',
         'register': '10/min',
         'check-user': '20/min',
+        'live-chat-send': '30/min',
     },
 }
 
@@ -315,6 +327,67 @@ else:
             "LOCATION": "django_cache",
         }
     }
+
+# LIVE-CHAT: channel layer for Django Channels (real-time chat push).
+#
+# IMPORTANT — InMemoryChannelLayer cannot deliver this feature's messages,
+# in *any* deployment, including a single-instance one. Chat messages are
+# persisted over REST (authapp/views/live_chat_views.py), which runs in the
+# gunicorn/Passenger **WSGI** process, while the WebSocket consumers that
+# must receive the push live in the separate **daphne** process (Procfile).
+# InMemoryChannelLayer is a plain per-process dict: a group_send() issued
+# from the WSGI worker lands in that worker's own memory, where no consumer
+# is subscribed, and is silently dropped. The recipient then sees nothing
+# until they reload and re-fetch the thread over REST — exactly the
+# "message only arrives after a refresh" bug.
+#
+# So Redis is not a scaling nicety here, it is the transport that connects
+# the two processes. Set REDIS_URL to enable real-time push.
+#
+# LIVE_CHAT_REALTIME below is the single source of truth for "can this
+# deployment actually push?", and is surfaced to the browser via
+# /api/live-chat/start/ so the client doesn't spend ~60s failing a
+# WebSocket handshake on hosts that never serve /ws/ (the cPanel/Passenger
+# deploy runs WSGI only — see .cpanel.yml/passenger_wsgi.py). Clients fall
+# back to short-interval incremental polling, which stays correct either
+# way.
+_redis_url = config('REDIS_URL', default='')
+if _redis_url:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [_redis_url],
+                # Drop rather than block forever if a consumer stops
+                # reading — a wedged socket must never stall the REST
+                # request that is trying to broadcast.
+                "capacity": 500,
+                "expiry": 10,
+            },
+        }
+    }
+else:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+        }
+    }
+
+# True only when cross-process push can actually work.
+#
+# Redis makes it work on any topology. Without Redis, the sole safe case is
+# `manage.py runserver`, where Channels serves HTTP and WebSocket from one
+# process so the in-memory layer really is shared.
+#
+# This keys off the running command rather than DEBUG on purpose: DEBUG says
+# nothing about process topology. The AWS EB deploy runs gunicorn and daphne
+# as separate processes (see Procfile) whether DEBUG is on or off, so
+# treating DEBUG as "realtime works" would advertise a WebSocket that
+# connects perfectly and then silently delivers nothing — the browser would
+# stop polling in favour of it and messages would once again only show up
+# after a refresh, which is the exact failure this flag exists to prevent.
+_single_process_dev_server = 'runserver' in sys.argv
+LIVE_CHAT_REALTIME = bool(_redis_url) or _single_process_dev_server
 
 # ── Misc ──────────────────────────────────────────────────────────────────────
 LANGUAGE_CODE    = 'en-us'

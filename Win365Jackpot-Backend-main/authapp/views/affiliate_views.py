@@ -53,6 +53,7 @@ from authapp.serializers.affiliate_serializers import (
     CommissionPlanSerializer, AffiliateCommissionAssignmentSerializer,
     AffiliatePlayerCommissionStatusSerializer,
 )
+from authapp.utils.client_ip import get_client_ip as _resolve_client_ip
 
 PAGE_SIZE = 20
 CAMPAIGN_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,60}$")
@@ -105,8 +106,7 @@ def _attach_campaign_stats(affiliate, campaigns):
 
 
 def _get_client_ip(request):
-    x = request.META.get("HTTP_X_FORWARDED_FOR")
-    return x.split(",")[0].strip() if x else request.META.get("REMOTE_ADDR")
+    return _resolve_client_ip(request)
 
 
 def _get_tokens(user):

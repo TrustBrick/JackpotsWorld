@@ -13,6 +13,7 @@ from authapp.serializers.register_serializers import (
     RegistrationDetailSerializer,
     RegistrationListSerializer,
 )
+from authapp.utils.client_ip import get_client_ip as _resolve_client_ip
 
 logger = logging.getLogger(__name__)
 
@@ -23,10 +24,7 @@ logger = logging.getLogger(__name__)
 
 def get_client_ip(request):
     """Extract real IP address, handling proxies and load balancers."""
-    x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
-    if x_forwarded_for:
-        return x_forwarded_for.split(",")[0].strip()
-    return request.META.get("REMOTE_ADDR", "")
+    return _resolve_client_ip(request) or ""
 
 
 def resolve_geolocation(ip: str) -> dict:

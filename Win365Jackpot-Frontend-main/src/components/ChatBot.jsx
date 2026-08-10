@@ -1,12 +1,48 @@
 import React, { useState, useRef, useEffect, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { getToken } from "../services/authStorage"
+import { connectLiveChatSocket } from "../services/liveChatSocket"
+import { asMessageArray, highestRealId } from "../services/liveChatMessages"
 
 const API = import.meta.env.VITE_API_URL || ""
 const INACTIVITY_MS = 3 * 60 * 1000 // 3 minutes
 const HISTORY_KEY = "chatbot_messages"
+// Only a client-side default — the server sends poll_interval_ms from
+// /api/live-chat/start/ and that value wins.
+const LIVE_POLL_MS = 2000
 
 const WELCOME = { role: "bot", text: "Welcome to Jackpots World Customer Support! 🎰\nI'm here to help with your account, deposits, withdrawals, KYC, gameplay and more. Ask me anything — and if I can't resolve it, I'll get our team on it." }
+
+// Merges a "real" (server-assigned-id) live-chat message into the list
+// without duplicating it. Needed because a message we just sent can reach
+// us two ways — the REST response, and the WebSocket echo of our own
+// send — and either can arrive first:
+//  - already present (by id): no-op, it was reconciled already.
+//  - our own optimistic placeholder is still there (matched by tempId, or
+//    by sender+text if tempId isn't known, e.g. from the WS side): replace it.
+//  - otherwise (a genuinely new message, e.g. the admin's reply): append.
+function reconcileLiveMessage(prev, real, tempId) {
+  if (prev.some(m => m.id === real.id)) return prev
+  const pendingIdx = tempId
+    ? prev.findIndex(m => m.id === tempId)
+    : prev.findIndex(m => typeof m.id === "string" && m.id.startsWith("pending-") && m.sender_type === real.sender_type && m.message === real.message)
+  if (pendingIdx !== -1) {
+    const next = [...prev]
+    next[pendingIdx] = real
+    return next
+  }
+  return [...prev, real]
+}
+
+// Folds a batch from a poll into the list, one at a time through the same
+// reconciler. Merging (rather than the old wholesale replace) is what keeps
+// still-pending and failed-to-send bubbles from vanishing under the poll,
+// and keeps server order authoritative for everything already saved.
+function mergeLiveMessages(prev, incoming) {
+  if (!incoming.length) return prev
+  return incoming.reduce((acc, m) => reconcileLiveMessage(acc, m), prev)
+}
+
 
 // SVG headset icon
 function HeadsetIcon({ size = 28 }) {
@@ -72,10 +108,138 @@ export default function ChatBot() {
   const inputRef                = useRef(null)
   const sessionIdRef            = useRef(typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : String(Date.now()))
 
+  // ── Live agent mode (LIVE-CHAT) ──────────────────────────────────────────
+  // Same floating widget, same chrome — only the message source/send
+  // handler change. 'bot' talks to the stateless FAQ bot above; 'live'
+  // talks to a real admin over authapp's live-chat REST + WebSocket API.
+  const [mode, setMode]                 = useState("bot") // 'bot' | 'live'
+  const [liveTicketId, setLiveTicketId] = useState(null)
+  const [liveMessages, setLiveMessages] = useState([])
+  const [liveConnecting, setLiveConnecting] = useState(false)
+  const [liveConnStatus, setLiveConnStatus]   = useState("closed") // connecting|open|reconnecting|polling|closed
+  const liveSocketRef  = useRef(null)
+  const liveTicketRef  = useRef(null) // mirrors liveTicketId for use inside closures/intervals
+  const liveMessagesRef = useRef([])  // mirrors liveMessages so the poll closure can read the latest id
+  const openRef        = useRef(open) // mirrors `open` for the long-lived WS onEvent closure below
+  useEffect(() => { openRef.current = open }, [open])
+  useEffect(() => { liveMessagesRef.current = liveMessages }, [liveMessages])
+
+  // Incremental fetch handed to the transport. It asks only for messages
+  // newer than the newest one already held (?after_id=), so it stays cheap
+  // enough to run every couple of seconds and can't truncate history the way
+  // re-fetching page 1 of a paginated list did.
+  const pollLiveMessages = useCallback(async (ticketId, token) => {
+    const afterId = highestRealId(liveMessagesRef.current)
+    const qs = afterId ? `?after_id=${afterId}` : ""
+    const res = await fetch(`${API}/api/live-chat/${ticketId}/messages/${qs}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!res.ok) return
+    const fresh = asMessageArray(await res.json())
+    if (!fresh.length) return
+    setLiveMessages(prev => mergeLiveMessages(prev, fresh))
+    if (!openRef.current && fresh.some(m => m.sender_type === "admin")) {
+      setUnread(u => u + fresh.filter(m => m.sender_type === "admin").length)
+    }
+  }, [])
+
+  const teardownLiveConnection = useCallback(() => {
+    liveSocketRef.current?.close()
+    liveSocketRef.current = null
+  }, [])
+
+  useEffect(() => () => teardownLiveConnection(), [teardownLiveConnection])
+
+  const startLiveChat = async () => {
+    const token = getToken("access")
+    if (!token) {
+      setMessages(prev => [...prev, {
+        role: "bot",
+        text: "Please sign in to your account to start a live chat with our support team.",
+        signInPrompt: true,
+      }])
+      return
+    }
+
+    setLiveConnecting(true)
+    try {
+      const res = await fetch(`${API}/api/live-chat/start/`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) throw new Error("start failed")
+      const data = await res.json()
+      const ticketId = data.session.id
+      setLiveTicketId(ticketId)
+      liveTicketRef.current = ticketId
+      const initial = data.messages || []
+      setLiveMessages(initial)
+      liveMessagesRef.current = initial
+      setMode("live")
+
+      // Guard against a second "Talk to a Live Agent" click leaving an
+      // orphaned socket + poll loop running alongside the new one.
+      teardownLiveConnection()
+      liveSocketRef.current = connectLiveChatSocket(`/ws/live-chat/${ticketId}/`, token, {
+        // The server tells us whether this deployment can push at all, so we
+        // don't sit through failing handshakes on the WSGI-only host.
+        realtime: data.realtime !== false,
+        pollIntervalMs: data.poll_interval_ms || LIVE_POLL_MS,
+        poll: () => pollLiveMessages(ticketId, token),
+        onEvent: (event, payload) => {
+          if (event === "new_message" && payload?.ticket_id === liveTicketRef.current) {
+            setLiveMessages(prev => reconcileLiveMessage(prev, payload))
+            if (!openRef.current && payload.sender_type === "admin") setUnread(u => u + 1)
+          }
+        },
+        onStatusChange: setLiveConnStatus,
+      })
+    } catch {
+      setMessages(prev => [...prev, { role: "bot", text: "Couldn't connect you to an agent right now. Please try again in a moment." }])
+    } finally {
+      setLiveConnecting(false)
+    }
+  }
+
+  const backToBot = () => {
+    teardownLiveConnection()
+    setLiveConnStatus("closed")
+    setMode("bot")
+  }
+
+  const sendLiveMessage = async (text) => {
+    const token = getToken("access")
+    if (!token || !liveTicketId) return
+    const tempId = `pending-${Date.now()}`
+    setLiveMessages(prev => [...prev, { id: tempId, sender_type: "user", message: text, status: "pending", created_at: new Date().toISOString() }])
+
+    const attempt = () => fetch(`${API}/api/live-chat/${liveTicketId}/messages/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ message: text }),
+    })
+
+    try {
+      let res = await attempt()
+      if (!res.ok && res.status !== 429) res = await attempt() // one retry on failure
+      if (!res.ok) throw new Error("send failed")
+      const saved = await res.json()
+      // The WS push for this same message can arrive before this response
+      // does — reconcile rather than blindly replace-by-tempId, so we don't
+      // end up with both the WS-added copy and this one.
+      setLiveMessages(prev => reconcileLiveMessage(prev, saved, tempId))
+      // Sending is the moment an agent is most likely to reply, so pull
+      // once immediately instead of waiting out the poll interval.
+      liveSocketRef.current?.refresh()
+    } catch {
+      setLiveMessages(prev => prev.map(m => (m.id === tempId ? { ...m, status: "failed" } : m)))
+    }
+  }
+
   // auto-scroll
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages, loading])
+  }, [messages, liveMessages, loading])
 
   // persist within the browser session (survives refresh, clears on browser close)
   useEffect(() => {
@@ -122,6 +286,11 @@ export default function ChatBot() {
     setInput("")
     resetInactivity()
 
+    if (mode === "live") {
+      sendLiveMessage(text)
+      return
+    }
+
     const userMsg = { role: "user", text }
     setMessages(prev => [...prev, userMsg])
     setLoading(true)
@@ -158,6 +327,22 @@ export default function ChatBot() {
       resetInactivity()
     }
   }
+
+  const retryLiveMessage = (msg) => {
+    setLiveMessages(prev => prev.filter(m => m.id !== msg.id))
+    sendLiveMessage(msg.message)
+  }
+
+  // Normalizes both message shapes (bot: {role,text}; live: {sender_type,message,status})
+  // into one render-friendly shape so the JSX below doesn't need two paths.
+  const displayMessages = mode === "live"
+    ? liveMessages.map(m => ({
+        role: m.sender_type === "admin" ? "bot" : "user",
+        text: m.message,
+        status: m.status,
+        id: m.id,
+      }))
+    : messages
 
   const handleKey = e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage() } }
 
@@ -212,15 +397,39 @@ export default function ChatBot() {
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", letterSpacing: "0.02em" }}>
-                  Customer Support
+                  {mode === "live" ? "Live Support Agent" : "Customer Support"}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 1 }}>
-                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ade80", display: "inline-block" }} />
+                  <span style={{
+                    width: 6, height: 6, borderRadius: "50%", display: "inline-block",
+                    // "polling" is a fully working state — messages arrive
+                    // within the poll interval — so it reads as connected
+                    // rather than as an error the player needs to act on.
+                    background: mode === "live"
+                      ? (liveConnStatus === "open" || liveConnStatus === "polling" ? "#4ade80" : "#facc15")
+                      : "#4ade80",
+                  }} />
                   <span style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", letterSpacing: "0.06em" }}>
-                    Jackpots World Support
+                    {mode === "live"
+                      ? (liveConnStatus === "open" || liveConnStatus === "polling"
+                        ? "Connected to an agent"
+                        : "Connecting…")
+                      : "Jackpots World Support"}
                   </span>
                 </div>
               </div>
+              {mode === "live" && (
+                <button
+                  onClick={backToBot}
+                  style={{
+                    background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)",
+                    borderRadius: 8, padding: "5px 9px", fontSize: 10, fontWeight: 700,
+                    cursor: "pointer", color: "rgba(255,255,255,0.65)", flexShrink: 0, marginRight: 4,
+                  }}
+                >
+                  ← FAQ bot
+                </button>
+              )}
               <button
                 onClick={() => setOpen(false)}
                 style={{
@@ -245,39 +454,66 @@ export default function ChatBot() {
               scrollbarWidth: "thin",
               scrollbarColor: "rgba(212,175,55,0.15) transparent",
             }}>
-              {messages.map((m, i) => (
-                <div key={i} style={{
+              {displayMessages.map((m, i) => (
+                <div key={m.id ?? i} style={{
                   display: "flex",
-                  justifyContent: m.role === "user" ? "flex-end" : "flex-start",
+                  flexDirection: "column",
+                  alignItems: m.role === "user" ? "flex-end" : "flex-start",
                 }}>
-                  {m.role === "bot" && (
+                  <div style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start", width: "100%" }}>
+                    {m.role === "bot" && (
+                      <div style={{
+                        width: 24, height: 24, borderRadius: "50%", flexShrink: 0,
+                        background: "linear-gradient(135deg, #D4AF37, #F5E07A)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        marginRight: 7, marginTop: 2, alignSelf: "flex-start",
+                      }}>
+                        <HeadsetIcon size={12} />
+                      </div>
+                    )}
                     <div style={{
-                      width: 24, height: 24, borderRadius: "50%", flexShrink: 0,
-                      background: "linear-gradient(135deg, #D4AF37, #F5E07A)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      marginRight: 7, marginTop: 2, alignSelf: "flex-start",
+                      padding: "9px 13px",
+                      borderRadius: m.role === "user" ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
+                      maxWidth: "76%",
+                      fontSize: 12.5,
+                      lineHeight: 1.55,
+                      whiteSpace: "pre-wrap",
+                      opacity: m.status === "pending" ? 0.6 : 1,
+                      background: m.role === "user"
+                        ? "linear-gradient(135deg, #D4AF37, #c9a227)"
+                        : "rgba(255,255,255,0.07)",
+                      border: m.status === "failed"
+                        ? "1px solid #f87171"
+                        : m.role === "user" ? "none" : "1px solid rgba(212,175,55,0.12)",
+                      color: m.role === "user" ? "#0a0005" : "rgba(255,255,255,0.85)",
+                      fontWeight: m.role === "user" ? 600 : 400,
                     }}>
-                      <HeadsetIcon size={12} />
+                      {m.text}
                     </div>
-                  )}
-                  <div style={{
-                    padding: "9px 13px",
-                    borderRadius: m.role === "user" ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
-                    maxWidth: "76%",
-                    fontSize: 12.5,
-                    lineHeight: 1.55,
-                    whiteSpace: "pre-wrap",
-                    background: m.role === "user"
-                      ? "linear-gradient(135deg, #D4AF37, #c9a227)"
-                      : "rgba(255,255,255,0.07)",
-                    border: m.role === "user"
-                      ? "none"
-                      : "1px solid rgba(212,175,55,0.12)",
-                    color: m.role === "user" ? "#0a0005" : "rgba(255,255,255,0.85)",
-                    fontWeight: m.role === "user" ? 600 : 400,
-                  }}>
-                    {m.text}
                   </div>
+                  {m.signInPrompt && (
+                    <button
+                      onClick={() => { window.location.href = "/sign-in" }}
+                      style={{
+                        marginTop: 6, marginLeft: 31, padding: "5px 12px", borderRadius: 8,
+                        background: "rgba(212,175,55,0.15)", border: "1px solid rgba(212,175,55,0.3)",
+                        color: "#D4AF37", fontSize: 11, fontWeight: 700, cursor: "pointer",
+                      }}
+                    >
+                      Sign in
+                    </button>
+                  )}
+                  {m.status === "failed" && (
+                    <button
+                      onClick={() => retryLiveMessage(m)}
+                      style={{
+                        marginTop: 4, marginRight: 2, background: "none", border: "none",
+                        color: "#f87171", fontSize: 10, fontWeight: 700, cursor: "pointer", padding: 0,
+                      }}
+                    >
+                      Failed to send — tap to retry
+                    </button>
+                  )}
                 </div>
               ))}
               {loading && (
@@ -303,26 +539,41 @@ export default function ChatBot() {
             </div>
 
             {/* Quick chips */}
-            <div style={{
-              padding: "6px 12px",
-              display: "flex", gap: 6, flexWrap: "wrap",
-              borderTop: "1px solid rgba(212,175,55,0.08)",
-              flexShrink: 0,
-            }}>
-              {["My Wallet Balance", "Withdrawal Help", "KYC Status", "Contact Support"].map(chip => (
+            {mode === "bot" && (
+              <div style={{
+                padding: "6px 12px",
+                display: "flex", gap: 6, flexWrap: "wrap",
+                borderTop: "1px solid rgba(212,175,55,0.08)",
+                flexShrink: 0,
+              }}>
+                {["My Wallet Balance", "Withdrawal Help", "KYC Status", "Contact Support"].map(chip => (
+                  <button
+                    key={chip}
+                    onClick={() => { setInput(chip); inputRef.current?.focus() }}
+                    style={{
+                      padding: "4px 10px", borderRadius: 999, fontSize: 10, fontWeight: 600,
+                      background: "rgba(212,175,55,0.08)", border: "1px solid rgba(212,175,55,0.2)",
+                      color: "rgba(212,175,55,0.8)", cursor: "pointer", letterSpacing: "0.04em",
+                    }}
+                  >
+                    {chip}
+                  </button>
+                ))}
                 <button
-                  key={chip}
-                  onClick={() => { setInput(chip); inputRef.current?.focus() }}
+                  key="live-agent"
+                  onClick={startLiveChat}
+                  disabled={liveConnecting}
                   style={{
-                    padding: "4px 10px", borderRadius: 999, fontSize: 10, fontWeight: 600,
-                    background: "rgba(212,175,55,0.08)", border: "1px solid rgba(212,175,55,0.2)",
-                    color: "rgba(212,175,55,0.8)", cursor: "pointer", letterSpacing: "0.04em",
+                    padding: "4px 10px", borderRadius: 999, fontSize: 10, fontWeight: 700,
+                    background: "rgba(96,165,250,0.12)", border: "1px solid rgba(96,165,250,0.35)",
+                    color: "#60A5FA", cursor: liveConnecting ? "default" : "pointer", letterSpacing: "0.04em",
+                    opacity: liveConnecting ? 0.6 : 1,
                   }}
                 >
-                  {chip}
+                  {liveConnecting ? "Connecting…" : "Talk to a Live Agent"}
                 </button>
-              ))}
-            </div>
+              </div>
+            )}
 
             {/* Input */}
             <div style={{
@@ -337,7 +588,7 @@ export default function ChatBot() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKey}
-                placeholder="Ask me anything..."
+                placeholder={mode === "live" ? "Message our support agent..." : "Ask me anything..."}
                 disabled={loading}
                 style={{
                   flex: 1, borderRadius: 10, border: "1px solid rgba(212,175,55,0.2)",

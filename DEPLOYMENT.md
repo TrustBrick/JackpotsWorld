@@ -260,6 +260,58 @@ Any time you change backend code, `.env`, run migrations, or redeploy the fronte
 - cPanel → **Setup Python App** → your app → click **Restart**, **or**
 - `mkdir -p tmp && touch tmp/restart.txt` from inside `jackpotsworld_api/` (this is what `scripts/deploy.sh` already does for you)
 
+## 9b. Live Support Chat — real-time delivery (optional)
+
+**The chat works on this cPanel host with no extra setup.** Passenger serves
+WSGI only and never exposes `/ws/`, so both chat clients fall back to
+incremental polling (`GET .../messages/?after_id=<n>` every ~2s). Messages are
+delivered both ways within a couple of seconds without a page refresh — that
+is the supported configuration here, and nothing below is required.
+
+Everything below is only for upgrading that couple-of-seconds latency to
+instant WebSocket push, which needs a host that can run a long-lived process
+(AWS EB, a VPS, Render, Fly, …). Shared cPanel generally cannot.
+
+**Why Redis is mandatory for push — not just a scaling concern.** Messages are
+saved by the REST view running in the **WSGI** process, while the WebSocket
+consumers live in the separate **daphne** process. `InMemoryChannelLayer` is a
+per-process dict, so a `group_send()` from the WSGI worker lands where no
+consumer is listening and is silently dropped — the recipient sees nothing
+until they reload. Redis is the transport that connects the two processes.
+`backend/settings.py` therefore only reports `LIVE_CHAT_REALTIME = True` when
+`REDIS_URL` is set (or under `DEBUG`, where `runserver` shares one process),
+and the browser reads that flag from `/api/live-chat/config/` so it doesn't
+waste time on handshakes that cannot succeed.
+
+1. Python deps are already in `requirements.txt` (`channels`, `channels_redis`,
+   `daphne`, `redis`) — installed by step 6. Nothing to add on the frontend:
+   it uses the browser's native `WebSocket`.
+
+2. Provision Redis and point the app at it in `.env`:
+
+   ```
+   REDIS_URL=redis://<host>:6379/0
+   ```
+
+3. Run the ASGI process alongside the WSGI one (already in `Procfile`):
+
+   ```
+   daphne -b 127.0.0.1 -p 8001 backend.asgi:application
+   ```
+
+4. Proxy `/ws/` to that port with upgrade headers (`Upgrade`, `Connection`,
+   `proxy_http_version 1.1`) and a read timeout well above the idle gap —
+   `.ebextensions/nginx/conf.d/elasticbeanstalk/websocket.conf` already does
+   this for the AWS EB deploy.
+
+5. Verify: `/api/live-chat/config/` should return `{"realtime": true, ...}`,
+   and the admin **Live Support** tab's badge should read **Live** rather than
+   **Live (polling)**.
+
+If any of this is missing or breaks later, the chat degrades to polling rather
+than failing — a dropped broadcast is logged as a warning from
+`authapp.services.live_chat_service`.
+
 ## 10. SSL / HTTPS
 
 Only one certificate to manage (no `api.`/`admin.`/`superadmin.` subdomains):

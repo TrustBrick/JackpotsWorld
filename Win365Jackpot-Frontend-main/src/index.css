@@ -246,6 +246,13 @@ img, video, svg, picture { max-width: 100%; height: auto; }
   color: #D4AF37;
   text-shadow: 0 0 10px rgba(212,175,55,0.5);
 }
+/* Active nav item: the section currently in view, or the one just clicked.
+   Same gold as the hover state so the navbar keeps one visual language. */
+.nav-link.is-active {
+  color: #D4AF37;
+  text-shadow: 0 0 10px rgba(212,175,55,0.5);
+  font-weight: 700;
+}
 
 /* Flag emoji sizing */
 .flag { font-size: 2rem; }

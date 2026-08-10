@@ -34,6 +34,8 @@ from authapp.serializers.gift_level_serializers import (
 from authapp.utils.account_number import generate_account_number
 
 import logging
+from authapp.utils.client_ip import get_client_ip as _resolve_client_ip
+
 logger = logging.getLogger(__name__)
 
 User = get_user_model()
@@ -130,7 +132,7 @@ class AdminAddOTPView(APIView):
             actor=request.user,
             target_user=user,
             description=f"OTP +${amount} → {user.email}",
-            ip_address=request.META.get("REMOTE_ADDR"),
+            ip_address=_resolve_client_ip(request),
         )
 
         return Response({
@@ -215,7 +217,7 @@ class AdminCreateBonusView(APIView):
                 f"Bonus #{gift.id} | ${amount:,.2f} ({d['gift_type']}) → {user.email} | "
                 f"Admin Wallet NC: ${before_balance:,.2f} → ${after_balance:,.2f}"
             ),
-            ip_address=request.META.get("REMOTE_ADDR"),
+            ip_address=_resolve_client_ip(request),
             amount=amount,
             wallet_type="NC",
             cr_dr="DR",  # deducted from admin wallet
@@ -294,7 +296,7 @@ class AdminAddPointsView(APIView):
                 f"+{d['points']} pts → {new_points} | "
                 f"Lvl {lvl_before}→{user_level.level}"
             ),
-            ip_address=request.META.get("REMOTE_ADDR"),
+            ip_address=_resolve_client_ip(request),
         )
 
         msg = f"+{d['points']} points added. Total: {new_points}, Level: {user_level.level}"
@@ -389,7 +391,7 @@ class UserClaimGiftView(APIView):
             action="reward_claimed", actor=request.user,
             target_user=request.user,
             description=f"Gift #{gift.id} | ${gift.amount} → NC wallet",
-            ip_address=request.META.get("REMOTE_ADDR"),
+            ip_address=_resolve_client_ip(request),
         )
 
         return Response({
