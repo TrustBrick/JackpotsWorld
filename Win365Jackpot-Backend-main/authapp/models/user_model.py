@@ -298,6 +298,14 @@ class ActivityLog(models.Model):
         ("gift_expired", "Gift Expired By Admin"),
         ("gift_cancelled", "Gift Cancelled By Admin"),
         ("gift_reissued", "Gift Reissued By Admin"),
+        # Signup Wheel / Bonus Wheel — new choices, metadata-only, same
+        # pattern as the AFFILIATE-WITHDRAWALS/WALLET-REQUESTS blocks above.
+        # Spin events reuse the existing "reward_claimed"; simple settings/
+        # reward-tier edits reuse "settings_changed" — these two are only
+        # for the genuinely new, higher-stakes action of creating/editing a
+        # Bonus Wheel and granting it to a target audience.
+        ("wheel_bonus_wheel_created", "Bonus Wheel Created Or Edited"),
+        ("wheel_bonus_assigned", "Bonus Wheel Assigned To Players"),
         ("other", "Other"),
     ]
 

@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Users, Wallet, TrendingUp, CheckCircle2, Copy, Check, Link2, MousePointerClick, Banknote, Star, PiggyBank, Award } from "lucide-react";
+import {
+  Users, Wallet, TrendingUp, CheckCircle2, Copy, Check, Link2, MousePointerClick,
+  Banknote, Star, PiggyBank, Award, X, Eye, MousePointer,
+} from "lucide-react";
 import { API, affiliateFetch, fmt } from "../helpers";
-
-const C = {
-  bg: "#06080E", surface: "rgba(255,255,255,0.03)", border: "rgba(255,255,255,0.07)",
-  gold: "#D4AF37", green: "#34D399", red: "#F87171", blue: "#60A5FA",
-};
+import { C, Card, Table, Tr, Td, Pagination } from "../components/SharedUI";
 
 // Kept in sync with admin/tabs/UsersTab.jsx's LEVEL_NAMES — affiliate and
 // admin panels intentionally don't share components, so this is a local copy.
@@ -15,10 +14,74 @@ const LEVEL_NAMES = [
   "Jackpot Platinum", "Jackpot Diamond", "Master",
 ];
 
-function Card({ children, style = {} }) {
+const CLICKS_PAGE_SIZE = 20;
+
+// ─── Total Clicks detail modal ─────────────────────────────────────────────
+// Who/where/when/how for every recorded referral-link visit — see
+// AffiliateClickLogListView (backend) for the underlying, now geo/device/
+// browser-enriched, AffiliateClickLog rows.
+function ClickDetailsModal({ onClose }) {
+  const [rows, setRows] = useState([]);
+  const [count, setCount] = useState(0);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const res = await affiliateFetch(`${API}/api/affiliate/clicks/?page=${page}`);
+    if (res?.ok) {
+      const json = await res.json();
+      setRows(json.results || []);
+      setCount(json.count || 0);
+    }
+    setLoading(false);
+  }, [page]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const totalPages = Math.max(1, Math.ceil(count / CLICKS_PAGE_SIZE));
+
   return (
-    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, ...style }}>
-      {children}
+    <div
+      onClick={onClose}
+      style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.72)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+    >
+      <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 900, maxHeight: "82vh", display: "flex", flexDirection: "column" }}>
+        <Card style={{ padding: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 18px", borderBottom: `1px solid ${C.border}` }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "white" }}>Total Clicks</div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>{count} recorded visit{count === 1 ? "" : "s"} to your referral link</div>
+            </div>
+            <button onClick={onClose} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", cursor: "pointer" }}>
+              <X size={18} />
+            </button>
+          </div>
+          <div style={{ padding: 18 }}>
+            <Table
+              headers={["Person / IP", "Country", "City", "Date & Time", "Device", "Browser", "Campaign"]}
+              loading={loading}
+              isEmpty={!loading && rows.length === 0}
+              emptyText="No clicks recorded yet."
+              emptyIcon={MousePointer}
+              minWidth={720}
+              footer={<Pagination page={page} totalPages={totalPages} count={count} onChange={setPage} />}
+            >
+              {rows.map((r, i) => (
+                <Tr key={r.id} index={i}>
+                  <Td style={{ color: r.registered ? C.green : undefined, fontWeight: r.registered ? 700 : undefined }}>{r.visitor}</Td>
+                  <Td muted>{r.country || "—"}</Td>
+                  <Td muted>{r.city || "—"}</Td>
+                  <Td muted style={{ whiteSpace: "nowrap" }}>{new Date(r.created_at).toLocaleString("en-IN")}</Td>
+                  <Td muted>{r.device || "—"}</Td>
+                  <Td muted>{r.browser || "—"}</Td>
+                  <Td gold>{r.campaign_name || "—"}</Td>
+                </Tr>
+              ))}
+            </Table>
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }
@@ -26,6 +89,7 @@ function Card({ children, style = {} }) {
 export default function OverviewTab() {
   const [stats, setStats] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [showClicks, setShowClicks] = useState(false);
 
   const load = useCallback(async () => {
     const res = await affiliateFetch(`${API}/api/affiliate/dashboard/`);
@@ -88,9 +152,9 @@ export default function OverviewTab() {
       {/* Stat cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
         {[
-          { label: "Total Clicks", value: stats?.stats?.total_clicks ?? "—", icon: MousePointerClick, color: C.blue },
+          { label: "Total Clicks", value: stats?.stats?.total_clicks ?? "—", icon: MousePointerClick, color: C.blue, onClick: () => setShowClicks(true) },
           { label: "Total Players", value: stats?.stats?.total_referred ?? "—", icon: Users, color: C.blue },
-          { label: "Active Players", value: stats?.stats?.active_referred ?? "—", icon: CheckCircle2, color: C.green },
+          { label: "Deposit Players", value: stats?.stats?.deposit_players ?? "—", icon: CheckCircle2, color: C.green },
           { label: "Total Qualified Players", value: stats?.stats?.total_qualified_players ?? "—", icon: Star, color: "#A78BFA" },
           { label: "Total Deposits", value: stats ? fmt(stats.stats.total_deposits) : "—", icon: Banknote, color: C.gold },
           { label: "Commission Earned", value: stats ? fmt(stats.stats.commission_earned) : "—", icon: TrendingUp, color: C.gold },
@@ -98,9 +162,20 @@ export default function OverviewTab() {
           { label: "Commission Paid", value: stats ? fmt(stats.stats.commission_paid) : "—", icon: Wallet, color: C.green },
           { label: "Available Balance", value: stats ? fmt(stats.stats.available_balance) : "—", icon: PiggyBank, color: C.green },
         ].map(s => (
-          <Card key={s.label}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: `${s.color}18`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
-              <s.icon size={14} style={{ color: s.color }} />
+          <Card
+            key={s.label}
+            style={s.onClick ? { cursor: "pointer", transition: "border-color 0.15s" } : {}}
+            {...(s.onClick ? {
+              onClick: s.onClick,
+              onMouseEnter: e => e.currentTarget.style.borderColor = `${s.color}50`,
+              onMouseLeave: e => e.currentTarget.style.borderColor = C.border,
+            } : {})}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: `${s.color}18`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <s.icon size={14} style={{ color: s.color }} />
+              </div>
+              {s.onClick && <Eye size={12} style={{ color: "rgba(255,255,255,0.25)" }} />}
             </div>
             <div style={{ fontSize: 18, fontWeight: 900, color: "white", fontFamily: "monospace" }}>{s.value}</div>
             <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 2 }}>{s.label}</div>
@@ -138,6 +213,8 @@ export default function OverviewTab() {
           </div>
         </Card>
       )}
+
+      {showClicks && <ClickDetailsModal onClose={() => setShowClicks(false)} />}
     </div>
   );
 }

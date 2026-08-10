@@ -1,19 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { ChevronLeft, ChevronRight, Gift } from "lucide-react";
+import { Gift, History } from "lucide-react";
 import { API, affiliateFetch, fmt, fmtD } from "../helpers";
-
-const C = {
-  bg: "#06080E", surface: "rgba(255,255,255,0.03)", border: "rgba(255,255,255,0.07)",
-  gold: "#D4AF37", green: "#34D399", red: "#F87171", blue: "#60A5FA",
-};
-
-function Card({ children, style = {} }) {
-  return (
-    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, ...style }}>
-      {children}
-    </div>
-  );
-}
+import { C, Table, Tr, Td, Pagination } from "../components/SharedUI";
 
 const PAGE_SIZE = 20;
 
@@ -80,6 +68,7 @@ export default function ActivityTab() {
   useEffect(() => { load(); }, [load]);
 
   const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
+  const isBonus = type === "bonus";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -101,55 +90,22 @@ export default function ActivityTab() {
         ))}
       </div>
 
-      <Card style={{ padding: 0, overflow: "hidden" }}>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-            <thead>
-              <tr style={{ background: "rgba(255,255,255,0.02)" }}>
-                {cfg.columns.map(h => (
-                  <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontSize: 10, color: "rgba(255,255,255,0.55)", fontWeight: 800, textTransform: "uppercase", borderBottom: `1px solid ${C.border}`, textShadow: "0 0 8px rgba(212,175,55,0.25)" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {type === "bonus" ? (
-                <tr>
-                  <td colSpan={cfg.columns.length} style={{ padding: 32, textAlign: "center", color: "rgba(255,255,255,0.45)" }}>
-                    <Gift size={22} style={{ marginBottom: 8, opacity: 0.4 }} />
-                    <div>No bonus rewards yet — coming soon.</div>
-                  </td>
-                </tr>
-              ) : loading ? (
-                <tr><td colSpan={cfg.columns.length} style={{ padding: 28, textAlign: "center", color: "rgba(255,255,255,0.4)" }}>Loading…</td></tr>
-              ) : rows.length === 0 ? (
-                <tr><td colSpan={cfg.columns.length} style={{ padding: 28, textAlign: "center", color: "rgba(255,255,255,0.4)" }}>No {cfg.label.toLowerCase()} yet.</td></tr>
-              ) : rows.map(r => (
-                <tr key={r.id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                  {cfg.row(r).map((cell, i) => (
-                    <td key={i} style={{ padding: "11px 14px", color: i === 0 ? "rgba(255,255,255,0.5)" : "white" }}>{cell}</td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {cfg.endpoint && totalPages > 1 && (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderTop: `1px solid ${C.border}` }}>
-            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>Page {page} of {totalPages} · {count} total</div>
-            <div style={{ display: "flex", gap: 6 }}>
-              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}
-                style={{ width: 28, height: 28, borderRadius: 7, background: C.surface, border: `1px solid ${C.border}`, color: page <= 1 ? "rgba(255,255,255,0.15)" : "white", cursor: page <= 1 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <ChevronLeft size={14} />
-              </button>
-              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}
-                style={{ width: 28, height: 28, borderRadius: 7, background: C.surface, border: `1px solid ${C.border}`, color: page >= totalPages ? "rgba(255,255,255,0.15)" : "white", cursor: page >= totalPages ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <ChevronRight size={14} />
-              </button>
-            </div>
-          </div>
-        )}
-      </Card>
+      <Table
+        headers={cfg.columns}
+        loading={!isBonus && loading}
+        isEmpty={isBonus || (!loading && rows.length === 0)}
+        emptyText={isBonus ? "No bonus rewards yet — coming soon." : `No ${cfg.label.toLowerCase()} yet.`}
+        emptyIcon={isBonus ? Gift : History}
+        footer={cfg.endpoint && <Pagination page={page} totalPages={totalPages} count={count} onChange={setPage} />}
+      >
+        {!isBonus && rows.map((r, ri) => (
+          <Tr key={r.id} index={ri}>
+            {cfg.row(r).map((cell, i) => (
+              <Td key={i} muted={i === 0}>{cell}</Td>
+            ))}
+          </Tr>
+        ))}
+      </Table>
     </div>
   );
 }

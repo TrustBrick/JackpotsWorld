@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -32,7 +32,8 @@ import ProfileTab        from "./tabs/Validations/ProfileTab";
 import KycTab             from "./tabs/Validations/KycTab";
 import SupportTab        from "./tabs/Validations/SupportTab";
 import ResponsibleGamblingTab from "./tabs/Validations/ResponsibleGamblingTab";
-import SpinWheelModal     from "./SpinWheelModal";
+import SignupWheelModal   from "./wheel/SignupWheelModal";
+import BonusWheelModal    from "./wheel/BonusWheelModal";
 import ChatBot            from "../ChatBot";
 import PageScrollButtons  from "../PageScrollButtons";
 
@@ -121,7 +122,9 @@ export default function Dashboard() {
   const [bannedMessage,      setBannedMessage]      = useState(null);
   const [bannedSupportEmail, setBannedSupportEmail] = useState(null);
   const [notifCount,         setNotifCount]         = useState(0);
-  const [showSpin,           setShowSpin]           = useState(false);
+  const [showSignupWheel,    setShowSignupWheel]    = useState(false);
+  const [showBonusWheel,     setShowBonusWheel]     = useState(false);
+  const bonusWheelPendingRef = useRef(false);
 
   // ── Compute responsive left margin ────────────────────────────────────────
   // desktop  → full sidebar width
@@ -192,24 +195,38 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [checked, fetchNotifCount]);
 
-  // Daily Login Spin Wheel — show once per calendar day, only if the user
-  // still has spins left this month. The "already shown today" flag is a
-  // pure UX nicety (don't show it in an admin's face every tab switch);
-  // the real spins-remaining cap is enforced server-side regardless.
+  // Signup Wheel + Bonus Wheel — checked at most once per calendar day (a
+  // pure UX nicety via localStorage; real gating is always server-side).
+  // Signup Wheel takes priority if both are available the same day; Bonus
+  // Wheel opens automatically once the Signup Wheel modal is closed, so the
+  // two never stack on top of each other.
   useEffect(() => {
     if (!checked) return;
     const today = new Date().toISOString().slice(0, 10);
-    if (localStorage.getItem("spin_last_shown") === today) return;
-    authFetch(`${API}/api/spin/status/`)
-      .then(r => r?.json())
-      .then(d => {
-        if (d?.spins_remaining > 0) {
-          setShowSpin(true);
-          localStorage.setItem("spin_last_shown", today);
-        }
-      })
-      .catch(() => {});
+    if (localStorage.getItem("wheel_last_shown") === today) return;
+    localStorage.setItem("wheel_last_shown", today);
+
+    Promise.all([
+      authFetch(`${API}/api/wheel/signup/status/`).then(r => r?.json()).catch(() => null),
+      authFetch(`${API}/api/wheel/bonus/available/`).then(r => r?.json()).catch(() => null),
+    ]).then(([signupStatus, bonusAvail]) => {
+      const bonusEligible = (bonusAvail?.count || 0) > 0;
+      if (signupStatus?.eligible) {
+        bonusWheelPendingRef.current = bonusEligible;
+        setShowSignupWheel(true);
+      } else if (bonusEligible) {
+        setShowBonusWheel(true);
+      }
+    });
   }, [checked]);
+
+  const closeSignupWheel = () => {
+    setShowSignupWheel(false);
+    if (bonusWheelPendingRef.current) {
+      bonusWheelPendingRef.current = false;
+      setShowBonusWheel(true);
+    }
+  };
 
   if (!checked) return null;
 
@@ -342,8 +359,9 @@ export default function Dashboard() {
         {toast && <Toast msg={toast.msg} ok={toast.ok} onDone={() => setToast(null)} />}
       </AnimatePresence>
 
-      {/* Daily Login Spin Wheel */}
-      {showSpin && <SpinWheelModal onClose={() => setShowSpin(false)} />}
+      {/* Signup Wheel + Bonus Wheel */}
+      {showSignupWheel && <SignupWheelModal onClose={closeSignupWheel} />}
+      {showBonusWheel && <BonusWheelModal onClose={() => setShowBonusWheel(false)} />}
 
       {/* AI Live Chat — opened via the Live Support tab's "Live Chat" card.
           Hidden while the Service Request tab itself is open, since that tab

@@ -35,7 +35,11 @@ player wallet/transaction history, so nothing of value is lost there):
     Notification, AffiliateProfile, ReferralCommission,
     AffiliateClickLog, AffiliateLoginLog, ResponsibleGamblingSettings,
     SpinHistory, UserGift, UserLevel, EventTicketRequest,
-    PokerRegistration, SupportTicket — per-user data.
+    PokerRegistration, SupportTicket, SignupWheelSpin, BonusWheelSpin,
+    BonusWheelGrant, BonusWheelAssignment — per-user data. (BonusWheel /
+    BonusWheelReward / SignupWheelReward / SignupWheelSettings are config /
+    static-reference data, same bucket as SpinConfig/SpinSettings below —
+    not touched.)
   * The actual uploaded files behind KYCSubmission (doc_front, doc_back,
     selfie, id_proof_file) and User.avatar are deleted from storage, not
     just their DB rows — Django never does this automatically on row
@@ -78,6 +82,9 @@ from authapp.models import (
     Notification,
     SpinHistory,
     SpinGlobalCounter,
+)
+from authapp.models.wheel_models import (
+    SignupWheelSpin, BonusWheelSpin, BonusWheelGrant, BonusWheelAssignment,
 )
 from authapp.models.affiliate_models import (
     AffiliateProfile, ReferralCommission, AffiliateClickLog, AffiliateLoginLog,
@@ -124,6 +131,13 @@ _FULL_WIPE_MODELS = [
     EventTicketRequest,
     PokerRegistration,
     SupportTicket,
+    # Signup Wheel / Bonus Wheel — per-user spin/grant data. Children listed
+    # before the parents they CASCADE to (Spin -> Grant -> Assignment),
+    # matching this list's own ordering convention above.
+    BonusWheelSpin,
+    BonusWheelGrant,
+    BonusWheelAssignment,
+    SignupWheelSpin,
 ]
 
 # Reset to these defaults on the *preserved* admin accounts only — these

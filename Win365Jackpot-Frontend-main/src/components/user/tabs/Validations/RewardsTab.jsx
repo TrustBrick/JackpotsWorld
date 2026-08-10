@@ -1,26 +1,24 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { Gift, Clock, CheckCircle, Sparkles, History, Crown, RefreshCw } from "lucide-react";
+import { Gift, Clock, CheckCircle, Sparkles, History, Crown, PartyPopper } from "lucide-react";
 import { C } from "../../constants";
 import { authFetch, API, fmtD, fmtDT } from "../../helpers";
 import { Spinner, Btn } from "../../components/SharedUI";
-import SpinWheelModal from "../../SpinWheelModal";
+import SignupWheelModal from "../../wheel/SignupWheelModal";
+import BonusWheelModal from "../../wheel/BonusWheelModal";
 
 const REWARD_TYPE_LABELS = {
-  cash_wallet_bonus: "Cash Wallet Bonus",
-  casino_wallet_bonus: "Casino Wallet Bonus",
-  rolling_points: "Rolling Points",
-  cashback: "Cashback",
-  bonus_credits: "Bonus Credits",
-  merch: "Merchandise",
-  gift_voucher: "Gift Voucher",
-  discount_coupon: "Discount Voucher",
-  event_pass: "Event Pass",
-  tournament_entry: "Tournament Entry",
-  jackpot_bonus: "Jackpot Bonus",
-  vip_upgrade: "VIP Upgrade",
-  no_reward: "No Reward",
+  // Current (Signup Wheel / Bonus Wheel)
+  cash_bonus: "Cash Bonus", cashback: "Cashback", rolling_points: "Rolling Points",
+  vip_points: "VIP Points", gift_voucher: "Gift Voucher", merchandise: "Merchandise",
+  hotel_stay: "Hotel Stay", event_ticket: "Event Ticket", casino_coupon: "Casino Coupon",
+  free_travel: "Free Travel", discount: "Discount", free_spins: "Free Spins",
+  physical_gift: "Physical Gift", mystery_reward: "Mystery Reward", no_reward: "Try Again",
+  // Legacy (retired Daily Login Spin — still shown in combined history)
+  cash_wallet_bonus: "Cash Wallet Bonus", casino_wallet_bonus: "Casino Wallet Bonus",
+  bonus_credits: "Bonus Credits", discount_coupon: "Discount Voucher", event_pass: "Event Pass",
+  tournament_entry: "Tournament Entry", jackpot_bonus: "Jackpot Bonus", vip_upgrade: "VIP Upgrade",
 };
 
 const GIFT_TYPE_LABELS = {
@@ -28,32 +26,45 @@ const GIFT_TYPE_LABELS = {
   vip_upgrade: "VIP Upgrade Gift", tournament: "Tournament Prize", welcome: "Welcome Bonus",
   manual: "Manual Gift", merchandise: "Merchandise", gift_voucher: "Gift Voucher",
   discount_voucher: "Discount Voucher", spin_reward: "Spin Wheel Reward",
+  hotel_stay: "Hotel Stay", free_travel: "Free Travel", physical_gift: "Physical Gift",
 };
+
+const SOURCE_LABEL = { signup: "Signup Wheel", bonus: "Bonus Wheel", legacy: "Daily Login Spin" };
 
 export default function RewardsTab({ onToast, onRefresh }) {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState("spin");
-  const [spinOpen, setSpinOpen] = useState(false);
-  const [spinData, setSpinData] = useState(null);
+  const [activeTab, setActiveTab] = useState("signup");
+  const [signupOpen, setSignupOpen] = useState(false);
+  const [bonusOpen, setBonusOpen] = useState(false);
+  const [signupStatus, setSignupStatus] = useState(null);
+  const [bonusGrants, setBonusGrants] = useState([]);
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [gifts, setGifts] = useState([]);
   const [giftsLoading, setGiftsLoading] = useState(true);
   const [claiming, setClaiming] = useState(null);
 
-  const loadStatus = useCallback(async () => {
+  const loadSignupStatus = useCallback(async () => {
     try {
-      const r = await authFetch(`${API}/api/spin/status/`);
-      if (r?.ok) setSpinData(await r.json());
+      const r = await authFetch(`${API}/api/wheel/signup/status/`);
+      if (r?.ok) setSignupStatus(await r.json());
+    } catch {}
+  }, []);
+
+  const loadBonusGrants = useCallback(async () => {
+    try {
+      const r = await authFetch(`${API}/api/wheel/bonus/available/`);
+      const j = await r?.json();
+      setBonusGrants(j?.results || []);
     } catch {}
   }, []);
 
   const loadHistory = useCallback(async () => {
     setHistoryLoading(true);
     try {
-      const r = await authFetch(`${API}/api/spin/history/`);
+      const r = await authFetch(`${API}/api/wheel/history/`);
       const j = await r?.json();
-      setHistory(j?.results || j || []);
+      setHistory(j?.results || []);
     } catch {}
     setHistoryLoading(false);
   }, []);
@@ -68,15 +79,14 @@ export default function RewardsTab({ onToast, onRefresh }) {
     setGiftsLoading(false);
   }, []);
 
-  useEffect(() => { loadStatus(); loadHistory(); loadGifts(); }, [loadStatus, loadHistory, loadGifts]);
+  useEffect(() => { loadSignupStatus(); loadBonusGrants(); loadHistory(); loadGifts(); }, [loadSignupStatus, loadBonusGrants, loadHistory, loadGifts]);
 
-  const closeSpin = () => {
-    setSpinOpen(false);
-    loadStatus();
-    loadHistory();
-    loadGifts();
+  const refreshAll = () => {
+    loadSignupStatus(); loadBonusGrants(); loadHistory(); loadGifts();
     onRefresh?.();
   };
+  const closeSignup = () => { setSignupOpen(false); refreshAll(); };
+  const closeBonus = () => { setBonusOpen(false); refreshAll(); };
 
   const claimGift = async (id) => {
     setClaiming(id);
@@ -91,10 +101,12 @@ export default function RewardsTab({ onToast, onRefresh }) {
     setClaiming(null);
   };
 
+  const bonusCount = bonusGrants.length;
+
   return (
     <div>
       <div style={{ display: "flex", gap: 8, marginBottom: 22, flexWrap: "wrap" }}>
-        {[["spin", "Spin Wheel", Sparkles], ["history", "Spin History", History], ["gifts", "My Gifts", Gift]].map(([m, l, Icon]) => (
+        {[["signup", "Signup Wheel", Sparkles], ["bonus", "Bonus Wheel", Crown], ["history", "Wheel History", History], ["gifts", "My Gifts", Gift]].map(([m, l, Icon]) => (
           <button key={m} onClick={() => setActiveTab(m)} style={{
             display: "flex", alignItems: "center", gap: 6,
             padding: "8px 18px", borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer",
@@ -102,12 +114,12 @@ export default function RewardsTab({ onToast, onRefresh }) {
             background: activeTab === m ? `${C.gold}12` : "transparent",
             color: activeTab === m ? C.gold : "rgba(255,255,255,0.4)",
           }}>
-            <Icon size={13} /> {l}
+            <Icon size={13} /> {l}{m === "bonus" && bonusCount > 0 && ` (${bonusCount})`}
           </button>
         ))}
       </div>
 
-      {activeTab === "spin" && (
+      {activeTab === "signup" && (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "24px 16px", textAlign: "center" }}>
           <div style={{
             width: 72, height: 72, borderRadius: "50%",
@@ -116,30 +128,66 @@ export default function RewardsTab({ onToast, onRefresh }) {
           }}>
             <Sparkles size={30} style={{ color: C.gold }} />
           </div>
-          <div style={{ fontSize: 20, fontWeight: 900, color: "white", marginBottom: 6 }}>Daily Login Spin</div>
+          <div style={{ fontSize: 20, fontWeight: 900, color: "white", marginBottom: 6 }}>Signup Wheel</div>
           <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 4, maxWidth: 360 }}>
-            Spin the wheel for a chance to win cash bonuses, rolling points, VIP upgrades, tournament entries, and more.
+            A one-time welcome gift for new players — a handful of free spins within your first 30 days.
           </div>
-          {spinData && (
-            <div style={{ fontSize: 12, color: C.gold, fontWeight: 700, marginBottom: 20 }}>
-              {spinData.spins_remaining} of {spinData.max_spins_per_month} spins remaining this month
+          {signupStatus?.eligible ? (
+            <>
+              <div style={{ fontSize: 12, color: C.gold, fontWeight: 700, marginTop: 12, marginBottom: 20 }}>
+                {signupStatus.spins_remaining} spin{signupStatus.spins_remaining === 1 ? "" : "s"} remaining
+              </div>
+              <button
+                onClick={() => setSignupOpen(true)}
+                style={{
+                  padding: "13px 40px", borderRadius: 50, fontSize: 14, fontWeight: 800, letterSpacing: "0.03em",
+                  border: "none", cursor: "pointer",
+                  background: `linear-gradient(135deg, ${C.gold}, ${C.gold}CC)`, color: "#07080F",
+                  boxShadow: `0 4px 20px ${C.gold}40`, transition: "all 0.2s",
+                }}
+              >
+                Spin the Wheel
+              </button>
+            </>
+          ) : (
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 16 }}>
+              {signupStatus?.reason === "no_spins_left" && "You've used all your Signup Wheel spins."}
+              {signupStatus?.reason === "window_expired" && "Your Signup Wheel window has ended."}
+              {signupStatus?.reason === "disabled" && "The Signup Wheel is currently unavailable."}
+              {!signupStatus && "Loading…"}
             </div>
           )}
-          <button
-            onClick={() => setSpinOpen(true)}
-            disabled={spinData && spinData.spins_remaining <= 0}
-            style={{
-              padding: "13px 40px", borderRadius: 50, fontSize: 14, fontWeight: 800,
-              letterSpacing: "0.03em",
-              border: "none", cursor: (!spinData || spinData.spins_remaining > 0) ? "pointer" : "not-allowed",
-              background: (!spinData || spinData.spins_remaining > 0) ? `linear-gradient(135deg, ${C.gold}, ${C.gold}CC)` : "rgba(255,255,255,0.06)",
-              color: (!spinData || spinData.spins_remaining > 0) ? "#07080F" : "rgba(255,255,255,0.3)",
-              boxShadow: (!spinData || spinData.spins_remaining > 0) ? `0 4px 20px ${C.gold}40` : "none",
-              transition: "all 0.2s",
-            }}
-          >
-            {spinData && spinData.spins_remaining <= 0 ? "No spins left this month" : "Spin the Wheel"}
-          </button>
+        </div>
+      )}
+
+      {activeTab === "bonus" && (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "24px 16px", textAlign: "center" }}>
+          <div style={{
+            width: 72, height: 72, borderRadius: "50%",
+            background: `radial-gradient(circle, ${C.gold}25, transparent 70%)`,
+            display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16,
+          }}>
+            <Crown size={30} style={{ color: C.gold }} />
+          </div>
+          <div style={{ fontSize: 20, fontWeight: 900, color: "white", marginBottom: 6 }}>Bonus Wheel</div>
+          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 20, maxWidth: 360 }}>
+            Granted by our team for special occasions — a VIP level-up, your birthday, a loyalty reward, and more. Check back after big wins or milestones!
+          </div>
+          {bonusCount > 0 ? (
+            <button
+              onClick={() => setBonusOpen(true)}
+              style={{
+                padding: "13px 40px", borderRadius: 50, fontSize: 14, fontWeight: 800, letterSpacing: "0.03em",
+                border: "none", cursor: "pointer",
+                background: `linear-gradient(135deg, ${C.gold}, ${C.gold}CC)`, color: "#07080F",
+                boxShadow: `0 4px 20px ${C.gold}40`, transition: "all 0.2s",
+              }}
+            >
+              {bonusCount} Bonus Wheel{bonusCount === 1 ? "" : "s"} Available!
+            </button>
+          ) : (
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>No bonus wheels available right now.</div>
+          )}
         </div>
       )}
 
@@ -147,31 +195,28 @@ export default function RewardsTab({ onToast, onRefresh }) {
         historyLoading ? <Spinner /> : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {history.length === 0 ? (
-              <div style={{ textAlign: "center", padding: 44, color: "rgba(255,255,255,0.4)", fontSize: 13 }}>No spins yet — try the Spin Wheel!</div>
+              <div style={{ textAlign: "center", padding: 44, color: "rgba(255,255,255,0.4)", fontSize: 13 }}>No spins yet — try the Signup Wheel!</div>
             ) : history.map(h => (
-              <div key={h.id} style={{
+              <div key={`${h.source}-${h.id}`} style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
                 padding: "12px 16px", borderRadius: 12,
-                background: h.is_jackpot_win ? `${C.gold}0C` : "rgba(255,255,255,0.02)",
-                border: `1px solid ${h.is_jackpot_win ? `${C.gold}35` : C.border}`,
+                background: h.source === "bonus" ? `${C.gold}0C` : "rgba(255,255,255,0.02)",
+                border: `1px solid ${h.source === "bonus" ? `${C.gold}35` : C.border}`,
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                  {h.is_jackpot_win ? <Crown size={16} style={{ color: C.gold, flexShrink: 0 }} /> : <Gift size={14} style={{ color: "rgba(255,255,255,0.35)", flexShrink: 0 }} />}
+                  {h.source === "bonus" ? <Crown size={16} style={{ color: C.gold, flexShrink: 0 }} /> : <PartyPopper size={14} style={{ color: "rgba(255,255,255,0.35)", flexShrink: 0 }} />}
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: "white", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {h.reward_label_snapshot}
+                      {h.label}
                     </div>
                     <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>
-                      {REWARD_TYPE_LABELS[h.reward_type_snapshot] || h.reward_type_snapshot} · {fmtDT(h.spun_at)}
+                      {SOURCE_LABEL[h.source] || h.source}{h.wheel_name ? ` · ${h.wheel_name}` : ""} · {REWARD_TYPE_LABELS[h.reward_type] || h.reward_type} · {fmtDT(h.spun_at)}
                     </div>
                   </div>
                 </div>
                 <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  {Number(h.value_snapshot) > 0 && (
-                    <div style={{ fontSize: 13, fontWeight: 800, fontFamily: "monospace", color: C.gold }}>{Number(h.value_snapshot).toLocaleString("en-IN")}</div>
-                  )}
-                  {h.needs_manual_fulfillment && (
-                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)" }}>Manual follow-up</div>
+                  {Number(h.value) > 0 && (
+                    <div style={{ fontSize: 13, fontWeight: 800, fontFamily: "monospace", color: C.gold }}>{Number(h.value).toLocaleString("en-IN")}</div>
                   )}
                 </div>
               </div>
@@ -217,7 +262,8 @@ export default function RewardsTab({ onToast, onRefresh }) {
       )}
 
       <AnimatePresence>
-        {spinOpen && <SpinWheelModal onClose={closeSpin} />}
+        {signupOpen && <SignupWheelModal onClose={closeSignup} />}
+        {bonusOpen && <BonusWheelModal onClose={closeBonus} />}
       </AnimatePresence>
     </div>
   );

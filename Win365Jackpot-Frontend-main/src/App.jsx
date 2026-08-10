@@ -99,6 +99,29 @@ export default function App() {
     localStorage.removeItem('w365-theme')
   }, [])
 
+  // Affiliate referral-link click tracking — fires once per real page load
+  // (mount-once, any route) so a visit is recorded the moment someone lands
+  // via a ?ref= link, not only if they happen to open the register modal.
+  // referral_code/campaign_id are read later by AuthModal's RegisterPanel;
+  // affiliate_click_id lets a resulting signup be attributed back to this
+  // exact click for campaign analytics (see otp_views.VerifyOTPView).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const ref = params.get('ref')
+    if (!ref) return
+    sessionStorage.setItem('referral_code', ref)
+    const campaign = params.get('campaign') || ''
+    if (campaign) sessionStorage.setItem('campaign_id', campaign)
+    fetch(`${API || ''}/api/affiliate/track-click/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ referral_code: ref, campaign_id: campaign, landing_path: window.location.pathname }),
+    })
+      .then(r => (r.ok ? r.json() : null))
+      .then(json => { if (json?.click_id) sessionStorage.setItem('affiliate_click_id', String(json.click_id)) })
+      .catch(() => {})
+  }, [])
+
   return (
     <ThemeProvider>
     <BrowserRouter>

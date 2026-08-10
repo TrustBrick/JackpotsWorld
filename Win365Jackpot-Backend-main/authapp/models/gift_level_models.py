@@ -80,6 +80,12 @@ class UserGift(models.Model):
         ("loyalty",         "Loyalty Reward"),
         ("achievement",     "Achievement Reward"),
         ("seasonal",        "Seasonal Reward"),
+        # Signup Wheel / Bonus Wheel — new reward types with no automated
+        # wallet/points path (see services/wheel_service.py's dispatch);
+        # user claims these manually like any other gift.
+        ("hotel_stay",      "Hotel Stay"),
+        ("free_travel",     "Free Travel"),
+        ("physical_gift",   "Physical Gift"),
     ]
 
     user        = models.ForeignKey(

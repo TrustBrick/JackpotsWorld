@@ -172,6 +172,23 @@ class VerifyOTPView(APIView):
                     referrer.referral_earnings += 50
                     referrer.wallet_balance    += 50
                     referrer.save(update_fields=["referral_count", "referral_earnings", "wallet_balance"])
+
+                    # Best-effort campaign/click attribution: stamps the
+                    # AffiliateClickLog this signup originated from (if any)
+                    # so campaign analytics can show a "Registered" status
+                    # per visitor. Scoped to the same affiliate as `ref` so a
+                    # forged click_id can't attribute a signup to a click
+                    # that belongs to a different affiliate. Never blocks
+                    # registration on failure.
+                    click_id = request.data.get("click_id")
+                    if click_id:
+                        try:
+                            from authapp.models.affiliate_models import AffiliateClickLog
+                            AffiliateClickLog.objects.filter(
+                                pk=click_id, affiliate=referrer, registered_user__isnull=True,
+                            ).update(registered_user=user)
+                        except Exception:
+                            logger.warning("Affiliate click attribution failed for click_id=%r", click_id)
                 except User.DoesNotExist:
                     pass
 

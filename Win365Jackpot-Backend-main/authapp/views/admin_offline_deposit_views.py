@@ -459,6 +459,18 @@ class AdminOfflineDepositsView(APIView):
                 _log_offline(user=user, txn_type=txn_type, casino=casino,
                              wallet_type=wallet_type, amount=amount,
                              main_balance=None, actor=actor, note=note)
+
+                # Losing Commission — re-evaluates the referrer's cumulative
+                # qualifying-loss commission, if any. No-ops entirely unless
+                # this player's referrer has been assigned a new-engine plan
+                # (see affiliate_commission_service module docstring); the
+                # legacy flat-rate flow has no loss-based commission, so
+                # there is no fallback call needed here.
+                try:
+                    from authapp.services.affiliate_commission_service import evaluate_player_commission
+                    evaluate_player_commission(user)
+                except Exception as e:
+                    logger.warning("commission evaluation failed for LAC entry: %s", e)
                 ActivityLog.log(
                     action="wallet_debit", actor=actor, target_user=user,
                     description=f"LAC ${amount:,.2f} {wallet_type}: {casino} casino ▼ (loss)",
@@ -652,10 +664,19 @@ class AdminOfflineDepositsView(APIView):
             # Referral commission — only created once the Bet Slip (slip_number)
             # has been entered and verified (the uniqueness check above already
             # confirmed it), per "no commission until Bet Slip is verified".
+            # Dispatches to the new configurable engine for any affiliate
+            # explicitly assigned a commission plan; every other affiliate
+            # keeps earning under the original flat-rate flow, unchanged.
             if slip_number:
                 try:
-                    from authapp.services.affiliate_service import record_referral_commission
-                    record_referral_commission(user, bet_amount, source_ref=slip_number)
+                    from authapp.services.affiliate_commission_service import (
+                        evaluate_player_commission, has_commission_assignment,
+                    )
+                    if has_commission_assignment(user.referred_by):
+                        evaluate_player_commission(user, bet_amount=bet_amount, slip_number=slip_number)
+                    else:
+                        from authapp.services.affiliate_service import record_referral_commission
+                        record_referral_commission(user, bet_amount, source_ref=slip_number)
                 except Exception as e:
                     logger.warning("referral commission failed for RP entry: %s", e)
 

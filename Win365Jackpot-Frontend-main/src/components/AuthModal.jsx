@@ -836,19 +836,10 @@ function RegisterPanel({ onRegistered }) {
 
   const [step, setStep] = useState('form') // 'form' | 'otp'
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const ref = params.get('ref')
-    if (ref) {
-      sessionStorage.setItem('referral_code', ref)
-      // Best-effort click log — never blocks rendering or signup if it fails.
-      fetch(`${API || ''}/api/affiliate/track-click/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ referral_code: ref, landing_path: window.location.pathname }),
-      }).catch(() => {})
-    }
-  }, [])
+  // ?ref= (and ?campaign=, click_id) capture + the track-click call itself
+  // now happen once, app-wide, in App.jsx the moment the page loads — that
+  // covers every visitor, not just ones who happen to open this modal's
+  // Register tab. This just reads back what App.jsx already stored.
 
   const eTimer = useRef(null), pTimer = useRef(null)
   useEffect(() => () => { clearTimeout(eTimer.current); clearTimeout(pTimer.current) }, [])
@@ -972,6 +963,7 @@ function RegisterPanel({ onRegistered }) {
     dial_code:      country.code,
     password:       pw,
     referral_code:  sessionStorage.getItem('referral_code') || '',
+    click_id:       sessionStorage.getItem('affiliate_click_id') || undefined,
   }
 
   // ── OTP step ──────────────────────────────────────────────────────────────
@@ -982,6 +974,8 @@ function RegisterPanel({ onRegistered }) {
         registrationData={registrationData}
         onSuccess={() => {
           sessionStorage.removeItem('referral_code')
+          sessionStorage.removeItem('campaign_id')
+          sessionStorage.removeItem('affiliate_click_id')
           onRegistered?.()
         }}
         onBack={() => setStep('form')}

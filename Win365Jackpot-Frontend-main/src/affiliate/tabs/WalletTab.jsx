@@ -3,39 +3,23 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Wallet, PiggyBank, Lock, TrendingUp, Banknote, Clock,
-  ChevronLeft, ChevronRight, X, AlertCircle, CheckCircle2, Info,
+  X, AlertCircle, CheckCircle2, Info, Receipt,
 } from "lucide-react";
 import { API, affiliateFetch, fmt, fmtD } from "../helpers";
-
-const C = {
-  bg: "#06080E", surface: "rgba(255,255,255,0.03)", border: "rgba(255,255,255,0.07)",
-  gold: "#D4AF37", green: "#34D399", red: "#F87171", blue: "#60A5FA",
-};
+import { C, Card, Table, Tr, Td, Pagination, Select, Pill } from "../components/SharedUI";
 
 const STATUS_STYLE = {
-  pending:    { color: "#FB923C", bg: "rgba(251,146,60,0.15)", label: "Pending" },
-  processing: { color: C.blue,    bg: `${C.blue}15`,           label: "Processing" },
-  approved:   { color: "#A78BFA", bg: "rgba(167,139,250,0.15)", label: "Approved" },
-  paid:       { color: C.green,   bg: `${C.green}15`,          label: "Paid" },
-  rejected:   { color: C.red,     bg: `${C.red}15`,             label: "Rejected" },
-  cancelled:  { color: "rgba(255,255,255,0.45)", bg: "rgba(255,255,255,0.06)", label: "Cancelled" },
+  pending:    { color: "#FB923C", label: "Pending" },
+  processing: { color: C.blue,    label: "Processing" },
+  approved:   { color: "#A78BFA", label: "Approved" },
+  paid:       { color: C.green,   label: "Paid" },
+  rejected:   { color: C.red,     label: "Rejected" },
+  cancelled:  { color: "rgba(255,255,255,0.45)", label: "Cancelled" },
 };
 
 function StatusBadge({ status }) {
   const s = STATUS_STYLE[status] || STATUS_STYLE.pending;
-  return (
-    <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 20, background: s.bg, color: s.color }}>
-      {s.label}
-    </span>
-  );
-}
-
-function Card({ children, style = {} }) {
-  return (
-    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, ...style }}>
-      {children}
-    </div>
-  );
+  return <Pill color={s.color}>{s.label}</Pill>;
 }
 
 const PAGE_SIZE = 20;
@@ -152,71 +136,48 @@ export default function WalletTab({ onToast }) {
       <div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 10 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: "white" }}>Withdrawal History</div>
-          <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-            style={{ padding: "8px 12px", borderRadius: 8, background: "rgba(12,14,22,0.95)", border: `1px solid ${C.border}`, color: "white", fontSize: 12, outline: "none" }}>
-            <option value="" style={{ background: "rgba(12,14,22,0.95)" }}>All Statuses</option>
-            {Object.entries(STATUS_STYLE).map(([k, v]) => (
-              <option key={k} value={k} style={{ background: "rgba(12,14,22,0.95)" }}>{v.label}</option>
-            ))}
-          </select>
+          <Select
+            value={statusFilter}
+            onChange={v => { setStatusFilter(v); setPage(1); }}
+            minWidth={150}
+            options={[
+              { value: "", label: "All Statuses" },
+              ...Object.entries(STATUS_STYLE).map(([k, v]) => ({ value: k, label: v.label })),
+            ]}
+          />
         </div>
 
-        <Card style={{ padding: 0, overflow: "hidden" }}>
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-              <thead>
-                <tr style={{ background: "rgba(255,255,255,0.02)" }}>
-                  {["Reference", "Method", "Amount", "Status", "Requested", "Txn Hash", ""].map(h => (
-                    <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontSize: 10, color: "rgba(255,255,255,0.55)", fontWeight: 800, textTransform: "uppercase", borderBottom: `1px solid ${C.border}`, textShadow: "0 0 8px rgba(212,175,55,0.25)" }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr><td colSpan={7} style={{ padding: 28, textAlign: "center", color: "rgba(255,255,255,0.4)" }}>Loading…</td></tr>
-                ) : requests.length === 0 ? (
-                  <tr><td colSpan={7} style={{ padding: 28, textAlign: "center", color: "rgba(255,255,255,0.4)" }}>No withdrawal requests yet.</td></tr>
-                ) : requests.map(r => (
-                  <tr key={r.id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                    <td style={{ padding: "11px 14px", fontFamily: "monospace", fontSize: 11, color: "rgba(255,255,255,0.6)" }}>{r.request_reference}</td>
-                    <td style={{ padding: "11px 14px", color: "rgba(255,255,255,0.7)" }}>{r.method_label}</td>
-                    <td style={{ padding: "11px 14px", fontFamily: "monospace", color: C.gold, fontWeight: 700 }}>{fmt(r.amount)}</td>
-                    <td style={{ padding: "11px 14px" }}><StatusBadge status={r.status} /></td>
-                    <td style={{ padding: "11px 14px", color: "rgba(255,255,255,0.5)" }}>{fmtD(r.requested_at)}</td>
-                    <td style={{ padding: "11px 14px", fontFamily: "monospace", fontSize: 11, color: "rgba(255,255,255,0.4)" }}>{r.txn_hash || "—"}</td>
-                    <td style={{ padding: "11px 14px" }}>
-                      {r.status === "pending" && (
-                        <button
-                          onClick={() => handleCancel(r.id)}
-                          disabled={cancelling === r.id}
-                          style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${C.red}40`, background: `${C.red}12`, color: C.red, fontSize: 11, fontWeight: 700, cursor: cancelling === r.id ? "not-allowed" : "pointer" }}
-                        >
-                          {cancelling === r.id ? "Cancelling…" : "Cancel"}
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {totalPages > 1 && (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderTop: `1px solid ${C.border}` }}>
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>Page {page} of {totalPages} · {count} total</div>
-              <div style={{ display: "flex", gap: 6 }}>
-                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}
-                  style={{ width: 28, height: 28, borderRadius: 7, background: C.surface, border: `1px solid ${C.border}`, color: page <= 1 ? "rgba(255,255,255,0.15)" : "white", cursor: page <= 1 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <ChevronLeft size={14} />
-                </button>
-                <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}
-                  style={{ width: 28, height: 28, borderRadius: 7, background: C.surface, border: `1px solid ${C.border}`, color: page >= totalPages ? "rgba(255,255,255,0.15)" : "white", cursor: page >= totalPages ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <ChevronRight size={14} />
-                </button>
-              </div>
-            </div>
-          )}
-        </Card>
+        <Table
+          headers={["Reference", "Method", "Amount", "Status", "Requested", "Txn Hash", ""]}
+          loading={loading}
+          isEmpty={!loading && requests.length === 0}
+          emptyText="No withdrawal requests yet."
+          emptyIcon={Receipt}
+          minWidth={820}
+          footer={<Pagination page={page} totalPages={totalPages} count={count} onChange={setPage} />}
+        >
+          {requests.map((r, i) => (
+            <Tr key={r.id} index={i}>
+              <Td mono muted style={{ fontSize: 11 }}>{r.request_reference}</Td>
+              <Td>{r.method_label}</Td>
+              <Td mono gold>{fmt(r.amount)}</Td>
+              <Td><StatusBadge status={r.status} /></Td>
+              <Td muted>{fmtD(r.requested_at)}</Td>
+              <Td mono muted style={{ fontSize: 11 }}>{r.txn_hash || "—"}</Td>
+              <Td>
+                {r.status === "pending" && (
+                  <button
+                    onClick={() => handleCancel(r.id)}
+                    disabled={cancelling === r.id}
+                    style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${C.red}40`, background: `${C.red}12`, color: C.red, fontSize: 11, fontWeight: 700, cursor: cancelling === r.id ? "not-allowed" : "pointer" }}
+                  >
+                    {cancelling === r.id ? "Cancelling…" : "Cancel"}
+                  </button>
+                )}
+              </Td>
+            </Tr>
+          ))}
+        </Table>
       </div>
 
       {showModal && summary && (

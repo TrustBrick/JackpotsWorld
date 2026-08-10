@@ -89,9 +89,9 @@ export default function AffiliatesTab({ onToast }) {
       </div>
 
       <Table
-        headers={["UID", "Email", "Name", "Commission Rate", "Earned", "Paid", "Applied On", "Status", ""]}
+        headers={["UID", "Email", "Name", "Country", "Commission Rate", "Earned", "Paid", "Applied On", "Status", ""]}
         loading={loading}
-        colSpan={9}
+        colSpan={10}
         emptyText="No affiliates in this view"
       >
         {items.map(row => {
@@ -101,6 +101,7 @@ export default function AffiliatesTab({ onToast }) {
               <td style={{ padding: "11px 14px", fontSize: 12.5, fontFamily: "monospace" }}>{row.user_uid}</td>
               <td style={{ padding: "11px 14px", fontSize: 12.5 }}>{row.email}</td>
               <td style={{ padding: "11px 14px", fontSize: 12.5 }}>{row.name || "—"}</td>
+              <td style={{ padding: "11px 14px", fontSize: 12.5 }}>{row.country || "—"}</td>
               <td style={{ padding: "11px 14px" }}>
                 <input
                   type="number" step="0.01"

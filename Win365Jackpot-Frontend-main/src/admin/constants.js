@@ -66,7 +66,7 @@ export const ADMIN_TABS = [
   { id:"deposit-requests",    label:"Deposit Requests",    icon:"ArrowDownCircle" },
   { id:"withdrawal-requests", label:"Withdrawal Requests", icon:"ArrowUpCircle"   },
   // { id:"vip",           label:"VIP / XP",         icon:"Crown"      },
-  { id:"rewards",       label:"Rewards & Spin",   icon:"Gift"       },
+  { id:"rewards",       label:"Wheels & Rewards", icon:"Gift"       },
   // GIFTS-REWARDS: new tab (local preview feature) — safe to remove this
   // line along with GiftsRewardsTab.jsx and its case in AdminPanel.jsx to
   // remove the feature.
@@ -84,6 +84,10 @@ export const ADMIN_TABS = [
   // this line along with AffiliateWithdrawalsTab.jsx and its case in
   // AdminPanel.jsx to remove the feature.
   { id:"affiliate-withdrawals", label:"Affiliate Withdrawals", icon:"Wallet" },
+  // Commission Engine (Deposit / Losing / Rolling) — safe to remove this
+  // line along with AffiliateCommissionsTab.jsx and its case in
+  // AdminPanel.jsx to remove the feature.
+  { id:"affiliate-commissions", label:"Affiliate Commissions", icon:"Percent" },
   // MULTILINGUAL-CHAT: 2 new tabs (local preview feature)
   { id:"support-tickets",  label:"Support Tickets",     icon:"LifeBuoy"   },
   { id:"support-settings", label:"Support Settings",    icon:"Languages"  },

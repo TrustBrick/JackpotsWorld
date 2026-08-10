@@ -13,7 +13,7 @@ import UsersTab          from "./tabs/UsersTab";
 import WalletTab         from "./tabs/WalletTab";
 import OfflineDepositTab from "./tabs/offline_deposits/OfflineDepositTab";
 import VIPTab            from "./tabs/VIPTab";
-import RewardsTab        from "./tabs/RewardsTab";
+import WheelsTab         from "./tabs/WheelsTab";
 import NotifsTab         from "./tabs/NotifsTab";
 import TxnsTab           from "./tabs/TxnsTab";
 import KycTab            from "./tabs/KycTab";
@@ -26,6 +26,7 @@ import LocationsManageTab   from "./tabs/content/LocationsManageTab";
 import LandingManageTab     from "./tabs/content/LandingManageTab";
 import AffiliatesTab        from "./tabs/AffiliatesTab";
 import AffiliateWithdrawalsTab from "./tabs/AffiliateWithdrawalsTab"; // AFFILIATE-WITHDRAWALS
+import AffiliateCommissionsTab from "./tabs/AffiliateCommissionsTab"; // Commission Engine
 import DepositRequestsTab    from "./tabs/DepositRequestsTab";     // WALLET-REQUESTS
 import WithdrawalRequestsTab from "./tabs/WithdrawalRequestsTab";  // WALLET-REQUESTS
 import GiftsRewardsTab       from "./tabs/GiftsRewardsTab";        // GIFTS-REWARDS
@@ -220,7 +221,7 @@ function AdminPanelInner() {
       case "deposit-requests":    return <DepositRequestsTab    {...props} />; // WALLET-REQUESTS
       case "withdrawal-requests": return <WithdrawalRequestsTab {...props} />; // WALLET-REQUESTS
       case "vip":       return <VIPTab            {...props} />;
-      case "rewards":   return <RewardsTab        {...props} />;
+      case "rewards":   return <WheelsTab         {...props} />;
       case "gifts-rewards": return <GiftsRewardsTab {...props} />; // GIFTS-REWARDS
       case "notifications": return <NotifsTab     {...props} />;
       case "transactions":  return <TxnsTab       {...props} />;
@@ -232,6 +233,7 @@ function AdminPanelInner() {
       case "landing":   return <LandingManageTab     {...props} />;
       case "affiliates":return <AffiliatesTab        {...props} />;
       case "affiliate-withdrawals": return <AffiliateWithdrawalsTab {...props} />; // AFFILIATE-WITHDRAWALS
+      case "affiliate-commissions": return <AffiliateCommissionsTab {...props} />; // Commission Engine
       // MULTILINGUAL-CHAT: 2 new cases
       case "support-tickets":  return <SupportTicketsTab  {...props} />;
       case "support-settings": return <SupportSettingsTab {...props} />;

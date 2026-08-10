@@ -1,7 +1,7 @@
 # authapp/urls.py
 from django.urls import path, include
 
-from authapp.url_patterns import events_urls, poker_urls, promotion_urls, location_urls, affiliate_urls, affiliate_wallet_urls, wallet_request_urls, admin_gift_urls, support_urls, spin_urls, chat_urls, landing_urls
+from authapp.url_patterns import events_urls, poker_urls, promotion_urls, location_urls, affiliate_urls, affiliate_wallet_urls, wallet_request_urls, admin_gift_urls, support_urls, spin_urls, chat_urls, landing_urls, wheel_urls
 
 urlpatterns = [
     path("", include("authapp.url_patterns.auth_urls")),
@@ -48,9 +48,16 @@ urlpatterns = [
     path("", include(support_urls.public_urlpatterns)),
     path("admin-panel/", include(support_urls.admin_urlpatterns)),
 
-    # ── Daily Login Spin Wheel ───────────────────────────────────────────────────
+    # ── Daily Login Spin Wheel — RETIRED (see spin_views.py: the 3 live
+    #    endpoints now return 410 Gone). Admin CRUD endpoints are left
+    #    working for reference; SpinHistory is frozen, permanent historical
+    #    data. Replaced by the two wheels below. ──────────────────────────────
     path("", include(spin_urls.public_urlpatterns)),
     path("admin-panel/", include(spin_urls.admin_urlpatterns)),
+
+    # ── Signup Wheel + Bonus Wheel ───────────────────────────────────────────────
+    path("", include(wheel_urls.public_urlpatterns)),
+    path("admin-panel/", include(wheel_urls.admin_urlpatterns)),
 
     # ── AI Live Chat (rule-based today, provider-swappable later) ──────────────
     path("", include(chat_urls.public_urlpatterns)),
