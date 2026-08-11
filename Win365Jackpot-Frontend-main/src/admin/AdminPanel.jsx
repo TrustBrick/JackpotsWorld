@@ -7,6 +7,7 @@ import {
   LifeBuoy, Languages, // MULTILINGUAL-CHAT
   ArrowDownCircle, ArrowUpCircle, Sparkles, // WALLET-REQUESTS / GIFTS-REWARDS
   MessageCircle, // LIVE-CHAT
+  Percent, ChevronDown, // AFFILIATE-APPROVAL: sidebar groups + Commission Engine icon
 } from "lucide-react";
 
 import OverviewTab       from "./tabs/OverviewTab";
@@ -35,10 +36,10 @@ import SupportTicketsTab    from "./tabs/SupportTicketsTab";           // MULTIL
 import SupportSettingsTab   from "./tabs/content/SupportSettingsTab";  // MULTILINGUAL-CHAT
 import LiveSupportTab       from "./tabs/LiveSupportTab";              // LIVE-CHAT
 
-import { Card, Toast } from "./components/SharedUI";
+import { Card, Toast, NotificationPopup } from "./components/SharedUI";
 import { API, adminFetch } from "./helpers";
 import { endSession, noteLogin } from "../services/sessionManager";
-import { C, ADMIN_TABS } from "./constants";
+import { C, ADMIN_TABS, ADMIN_NAV_GROUPS } from "./constants";
 
 import AdminWalletBanner from "./AdminWalletBanner";
 import { AdminThemeProvider, useAdminTheme } from "./context/AdminThemeContext";
@@ -53,7 +54,63 @@ const ICON_MAP = {
   LifeBuoy, Languages, // MULTILINGUAL-CHAT
   ArrowDownCircle, ArrowUpCircle, Sparkles, // WALLET-REQUESTS / GIFTS-REWARDS
   MessageCircle, // LIVE-CHAT
+  Percent, // Affiliate Commissions — was referenced but never mapped/imported before this change
 };
+
+// AFFILIATE-APPROVAL: sessionStorage keys for sidebar state that should
+// survive a refresh (Part 16 — active tab/group shouldn't reset to Overview
+// every reload, which is what happened before this change since `tab` was
+// plain useState with no persistence at all).
+const ACTIVE_TAB_KEY    = "admin_active_tab";
+const OPEN_GROUPS_KEY   = "admin_sidebar_open_groups";
+const LAST_ALERTED_KEY  = "admin_notif_last_alerted_id"; // highest Notification id already popped-up/chimed for
+
+function initialTab() {
+  // ?tab=<id> (used by the affiliate-registration email's CTA button and the
+  // in-app notification popup's "Review Affiliate" button) wins over
+  // whatever was last open, which wins over the "overview" default.
+  try {
+    const fromQuery = new URLSearchParams(window.location.search).get("tab");
+    if (fromQuery && ADMIN_TABS.some(t => t.id === fromQuery)) return fromQuery;
+  } catch {}
+  try {
+    const stored = sessionStorage.getItem(ACTIVE_TAB_KEY);
+    if (stored && ADMIN_TABS.some(t => t.id === stored)) return stored;
+  } catch {}
+  return "overview";
+}
+
+function groupForTab(tabId) {
+  return ADMIN_NAV_GROUPS.find(g => g.items.some(i => i.id === tabId))?.group;
+}
+
+function initialOpenGroups() {
+  try {
+    const stored = JSON.parse(sessionStorage.getItem(OPEN_GROUPS_KEY) || "null");
+    if (stored && typeof stored === "object") return stored;
+  } catch {}
+  return {}; // absent = open (see isGroupOpen) — every group starts expanded
+}
+
+// Single rising tone via the Web Audio API — same technique as
+// LiveSupportTab.jsx's playChime() (no binary asset needed/exists in this
+// frontend), pitched differently so the two are distinguishable by ear.
+function playNotifChime() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [660, 990].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.frequency.value = freq;
+      osc.type = "sine";
+      gain.gain.setValueAtTime(0.16, ctx.currentTime + i * 0.13);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.13 + 0.28);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(ctx.currentTime + i * 0.13);
+      osc.stop(ctx.currentTime + i * 0.13 + 0.28);
+    });
+  } catch { /* best-effort only */ }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Admin Login Screen
@@ -172,13 +229,44 @@ export default function AdminPanel() {
 function AdminPanelInner() {
   const { C } = useAdminTheme();
   const [authed,    setAuthed]    = useState(false);
-  const [tab,       setTab]       = useState("overview");
+  const [tab,       setTabState]  = useState(initialTab);
+  const [openGroups, setOpenGroups] = useState(initialOpenGroups);
   const [toast,     setToast]     = useState(null);
   const [adminUser, setAdminUser] = useState(null);
   // LIVE-CHAT: sidebar unread badge — polls independently of whether the
   // "Live Support" tab is actually open (that tab keeps its own WebSocket
   // connection for its own live view while it's mounted).
   const [liveSupportUnread, setLiveSupportUnread] = useState(0);
+  // AFFILIATE-APPROVAL: sidebar "Notifications" badge + the popup below,
+  // both fed by the same poll of the existing per-user Notification model
+  // (GET /api/user/notifications/, already used by the player dashboard and
+  // affiliate panel — see authapp/views/user_views.py). Not WebSocket-based:
+  // the only real-time channel in this app is chat-specific, and the channel
+  // layer silently no-ops without REDIS_URL configured, so polling (like the
+  // live-chat badge above) is the mechanism that's guaranteed to work.
+  const [adminNotifUnread, setAdminNotifUnread] = useState(0);
+  const [notifPopup, setNotifPopup] = useState(null);
+
+  const setTab = (id) => {
+    setTabState(id);
+    try { sessionStorage.setItem(ACTIVE_TAB_KEY, id); } catch {}
+    const g = groupForTab(id);
+    if (g) setOpenGroups(prev => {
+      if (prev[g] !== false) return prev; // already open (or unset = open)
+      const next = { ...prev, [g]: true };
+      try { sessionStorage.setItem(OPEN_GROUPS_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+
+  const toggleGroup = (g) => {
+    setOpenGroups(prev => {
+      const next = { ...prev, [g]: prev[g] === false ? true : false };
+      try { sessionStorage.setItem(OPEN_GROUPS_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+  const isGroupOpen = (g) => openGroups[g] !== false;
 
   useEffect(() => {
     if (!authed) return undefined;
@@ -189,6 +277,39 @@ function AdminPanelInner() {
         const list = Array.isArray(j) ? j : j?.results || [];
         setLiveSupportUnread(list.reduce((sum, s) => sum + (s.unread_count || 0), 0));
       } catch { /* keep previous count on a transient failure */ }
+    };
+    poll();
+    const interval = setInterval(poll, 20000);
+    return () => clearInterval(interval);
+  }, [authed]);
+
+  // AFFILIATE-APPROVAL: admin notification poll — popup + one-time chime for
+  // genuinely new items, badge count for everything unread. "Genuinely new"
+  // is tracked separately from the server's is_read flag via the highest
+  // notification id already alerted-on, persisted to localStorage (mirrors
+  // LiveSupportTab.jsx's SOUND_PREF_KEY pattern) — is_read only changes when
+  // an admin explicitly reads it, which would otherwise mean an unread item
+  // keeps re-popping/re-chiming on every 20s poll forever.
+  useEffect(() => {
+    if (!authed) return undefined;
+    const poll = async () => {
+      try {
+        const r = await adminFetch(`${API}/api/user/notifications/`);
+        const list = await r?.json();
+        if (!Array.isArray(list)) return;
+        setAdminNotifUnread(list.filter(n => !n.is_read).length);
+
+        const lastAlerted = Number(localStorage.getItem(LAST_ALERTED_KEY) || 0);
+        const registrationAlerts = list.filter(n => n.icon === "affiliate_registration");
+        const unseen = registrationAlerts.filter(n => n.id > lastAlerted);
+        if (unseen.length > 0) {
+          const newest = unseen.reduce((a, b) => (a.id > b.id ? a : b));
+          setNotifPopup(newest);
+          playNotifChime();
+        }
+        const highestId = registrationAlerts.reduce((max, n) => Math.max(max, n.id), lastAlerted);
+        if (highestId > lastAlerted) localStorage.setItem(LAST_ALERTED_KEY, String(highestId));
+      } catch { /* keep previous state on a transient failure */ }
     };
     poll();
     const interval = setInterval(poll, 20000);
@@ -235,7 +356,7 @@ function AdminPanelInner() {
   
 
   const renderTab = () => {
-    const props = { onToast: showToast };
+    const props = { onToast: showToast, onNavigate: setTab };
     switch (tab) {
       case "overview":  return <OverviewTab       {...props} />;
       case "users":     return <UsersTab          {...props} />;
@@ -278,10 +399,10 @@ function AdminPanelInner() {
         padding: "22px 14px",
         display: "flex", flexDirection: "column",
         position: "fixed", top: 0, left: 0, height: "100vh",
-        zIndex: 10, overflowY: "auto",
+        zIndex: 10, overflow: "hidden",
       }}>
-        {/* Logo */}
-        <div style={{ marginBottom: 22, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+        {/* Logo — stays fixed above the scrolling nav below */}
+        <div style={{ flexShrink: 0, marginBottom: 22, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
           <div>
             <BrandMark size={40} />
     <Logo size="md" />
@@ -292,53 +413,88 @@ function AdminPanelInner() {
 
         {/* Admin user badge */}
         {adminUser && (
-          <div style={{ marginBottom: 16, padding: "10px 12px", borderRadius: 10, background: `${C.gold}10`, border: `1px solid ${C.gold}20` }}>
+          <div style={{ flexShrink: 0, marginBottom: 16, padding: "10px 12px", borderRadius: 10, background: `${C.gold}10`, border: `1px solid ${C.gold}20` }}>
             <div style={{ fontSize: 11, color: C.gold, fontWeight: 700 }}>{adminUser.email}</div>
             <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>{adminUser.role || "Admin"}</div>
           </div>
         )}
 
-        {/* Nav items */}
-        <nav style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
-          {ADMIN_TABS.map(t => {
-            const Icon = ICON_MAP[t.icon];
-            const active = tab === t.id;
+        {/* Nav groups — the only part that scrolls, so logo/badge above and
+            Logout below stay put regardless of how many items are in view
+            (Part 15: sidebar scrolling). Each group is collapsible; the
+            group containing the active tab is force-opened by setTab(). */}
+        <nav className="admin-sidebar-nav" style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 2, marginRight: -6, paddingRight: 6 }}>
+          {ADMIN_NAV_GROUPS.map(g => {
+            const open = isGroupOpen(g.group);
             return (
-              <button key={t.id} onClick={() => setTab(t.id)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 10,
-                  padding: "9px 12px", borderRadius: 10,
-                  fontSize: 12, fontWeight: active ? 700 : 500,
-                  textAlign: "left", width: "100%", cursor: "pointer",
-                  border: active ? `1px solid ${C.gold}30` : "1px solid transparent",
-                  background: active ? `${C.gold}12` : "transparent",
-                  color: active ? C.gold : C.muted,
-                  transition: "all 0.15s",
-                }}
-                onMouseEnter={e => { if (!active) { e.currentTarget.style.background = C.hoverBg; e.currentTarget.style.color = C.text; } }}
-                onMouseLeave={e => { if (!active) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.muted; } }}
-              >
-                {Icon && <Icon size={13} />}
-                {t.label}
-                {t.id === "wallet" && (
-                  <span style={{ marginLeft: "auto", fontSize: 9, fontWeight: 900, padding: "1px 5px", borderRadius: 20, background: C.orange, color: "white" }}>NEW</span>
-                )}
-                {t.id === "live-support" && liveSupportUnread > 0 && (
-                  <span style={{ marginLeft: "auto", fontSize: 9.5, fontWeight: 800, minWidth: 16, height: 16, borderRadius: 8, padding: "0 4px", background: "#ff3366", color: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    {liveSupportUnread}
+              <div key={g.group} style={{ marginBottom: 2 }}>
+                <button onClick={() => toggleGroup(g.group)}
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    width: "100%", padding: "10px 10px 6px", background: "none", border: "none",
+                    cursor: "pointer", textAlign: "left",
+                  }}>
+                  <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: C.dim }}>
+                    {g.group}
                   </span>
+                  <ChevronDown size={11} style={{ color: C.dim, transform: open ? "none" : "rotate(-90deg)", transition: "transform 0.15s", flexShrink: 0 }} />
+                </button>
+                {open && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    {g.items.map(t => {
+                      const Icon = ICON_MAP[t.icon];
+                      const active = tab === t.id;
+                      return (
+                        <button key={t.id} onClick={() => setTab(t.id)}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 10,
+                            padding: "9px 12px", borderRadius: 10,
+                            fontSize: 12, fontWeight: active ? 700 : 500,
+                            textAlign: "left", width: "100%", cursor: "pointer",
+                            border: active ? `1px solid ${C.gold}30` : "1px solid transparent",
+                            background: active ? `${C.gold}12` : "transparent",
+                            color: active ? C.gold : C.muted,
+                            transition: "all 0.15s",
+                          }}
+                          onMouseEnter={e => { if (!active) { e.currentTarget.style.background = C.hoverBg; e.currentTarget.style.color = C.text; } }}
+                          onMouseLeave={e => { if (!active) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.muted; } }}
+                        >
+                          {Icon && <Icon size={13} />}
+                          {t.label}
+                          {t.id === "wallet" && (
+                            <span style={{ marginLeft: "auto", fontSize: 9, fontWeight: 900, padding: "1px 5px", borderRadius: 20, background: C.orange, color: "white" }}>NEW</span>
+                          )}
+                          {t.id === "live-support" && liveSupportUnread > 0 && (
+                            <span style={{ marginLeft: "auto", fontSize: 9.5, fontWeight: 800, minWidth: 16, height: 16, borderRadius: 8, padding: "0 4px", background: "#ff3366", color: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              {liveSupportUnread}
+                            </span>
+                          )}
+                          {t.id === "notifications" && adminNotifUnread > 0 && (
+                            <span style={{ marginLeft: "auto", fontSize: 9.5, fontWeight: 800, minWidth: 16, height: 16, borderRadius: 8, padding: "0 4px", background: "#ff3366", color: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              {adminNotifUnread}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 )}
-              </button>
+              </div>
             );
           })}
         </nav>
 
         {/* Logout */}
         <button onClick={logout}
-          style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", borderRadius: 10, fontSize: 12, fontWeight: 600, background: "none", border: "none", color: "rgba(248,113,113,0.7)", cursor: "pointer", width: "100%", marginTop: 8 }}>
+          style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", borderRadius: 10, fontSize: 12, fontWeight: 600, background: "none", border: "none", color: "rgba(248,113,113,0.7)", cursor: "pointer", width: "100%", marginTop: 8 }}>
           <LogOut size={13} /> Logout
         </button>
       </aside>
+      <style>{`
+        .admin-sidebar-nav::-webkit-scrollbar { width: 5px; }
+        .admin-sidebar-nav::-webkit-scrollbar-thumb { background: rgba(212,175,55,0.25); border-radius: 10px; }
+        .admin-sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+      `}</style>
 
       {/* ── Main content ── */}
       {/* <AdminWalletBanner /> */}
@@ -364,6 +520,24 @@ function AdminPanelInner() {
       {/* Toast */}
       <AnimatePresence>
         {toast && <Toast msg={toast.msg} ok={toast.ok} onDone={() => setToast(null)} />}
+      </AnimatePresence>
+
+      {/* New-affiliate-registration popup — separate from Toast above since
+          it needs structured fields + an action button, not just a one-line
+          message (see SharedUI.NotificationPopup). */}
+      <AnimatePresence>
+        {notifPopup && (
+          <NotificationPopup
+            notif={notifPopup}
+            onReview={() => {
+              adminFetch(`${API}/api/user/notifications/${notifPopup.id}/read/`, { method: "POST" }).catch(() => {});
+              setAdminNotifUnread(n => Math.max(0, n - 1));
+              setNotifPopup(null);
+              setTab("affiliates");
+            }}
+            onDismiss={() => setNotifPopup(null)}
+          />
+        )}
       </AnimatePresence>
     </div>
   );
