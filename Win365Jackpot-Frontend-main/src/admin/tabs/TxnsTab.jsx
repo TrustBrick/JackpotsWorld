@@ -172,7 +172,7 @@ export default function TxnsTab({ onToast }) {
       </div>
 
       {/* ── Table ── */}
-      <Card style={{ padding: 0, overflow: "hidden" }}>
+      <Card solid style={{ padding: 0, overflow: "hidden" }}>
         {loading ? (
           <div style={{ padding: 60, textAlign: "center" }}><Spinner /></div>
         ) : (

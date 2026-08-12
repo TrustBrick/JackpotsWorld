@@ -6,10 +6,17 @@ import { fmtN } from "../helpers";
 import { useAdminTheme } from "../context/AdminThemeContext";
 
 // ─── Card ─────────────────────────────────────────────────────────────────────
-export function Card({ children, style = {} }) {
+// `solid` opts into C.panelBg (the same opaque surface the Select dropdown
+// popup already uses) instead of the default C.surface, which is only ~3%
+// opaque — fine for a panel sitting on the page background, but it makes
+// dense small-text content like tables unreadable, since the header tint and
+// row dividers end up stacked translucency-on-translucency-on-page-bg with
+// almost no resulting contrast. Defaults to false so every existing Card
+// call site (non-table panels, modals) keeps its exact current look.
+export function Card({ children, style = {}, solid = false }) {
   const { C } = useAdminTheme();
   return (
-    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, ...style }}>
+    <div style={{ background: solid ? C.panelBg : C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, ...style }}>
       {children}
     </div>
   );
@@ -240,7 +247,7 @@ export function Pagination({ page, total, perPage = 20, onChange }) {
 export function Table({ headers, children, loading, colSpan, emptyText = "No records found" }) {
   const { C } = useAdminTheme();
   return (
-    <Card style={{ padding: 0, overflow: "hidden" }}>
+    <Card solid style={{ padding: 0, overflow: "hidden" }}>
       <div style={{ overflowX: "auto" }}>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
         <thead>

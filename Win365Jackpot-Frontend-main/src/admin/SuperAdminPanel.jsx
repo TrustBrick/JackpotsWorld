@@ -88,6 +88,11 @@ const injectGlobalStyles = () => {
       --bg:        #060810;
       --surface:   rgba(255,255,255,0.03);
       --surface2:  rgba(255,255,255,0.055);
+      /* Opaque near-black (same hue as --bg, ~97% alpha) — for tables, where
+         --surface's ~3% opacity leaves header/rows/dividers indistinguishable
+         from the page underneath. Same fix, same reasoning as C.panelBg in
+         the main Admin Panel's shared theme (src/admin/constants.js). */
+      --panel-bg:  rgba(6,8,16,0.97);
       --border:    rgba(255,255,255,0.07);
       --border2:   rgba(255,255,255,0.13);
       --gold:      #D4AF37;
@@ -145,9 +150,9 @@ function Toast({ msg, ok, onClose }) {
   );
 }
 
-function Card({ children, style, title, icon: Icon, accent }) {
+function Card({ children, style, title, icon: Icon, accent, solid }) {
   return (
-    <div className="sa-card-hover" style={{ ...T.card, ...style }}>
+    <div className="sa-card-hover" style={{ ...T.card, ...(solid ? { background: "var(--panel-bg)" } : null), ...style }}>
       {title && (
         <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:18, paddingBottom:14, borderBottom:"1px solid var(--border)" }}>
           {Icon && <div style={{ width:28, height:28, borderRadius:7, background: accent ? `${accent}15` : "var(--surface2)", display:"flex", alignItems:"center", justifyContent:"center" }}>
@@ -879,7 +884,7 @@ function AdminsTab({ toast }) {
       )}
 
       {/* ── Table ── */}
-      <Card style={{ padding:0, overflow:"hidden" }}>
+      <Card solid style={{ padding:0, overflow:"hidden" }}>
         <div style={{ overflowX:"auto" }} className="sa-scrollbar">
           <table style={{ width:"100%", borderCollapse:"collapse", minWidth:700 }}>
             <thead>
@@ -989,7 +994,7 @@ function HistoryTab({ toast }) {
         <span style={{ marginLeft:"auto", fontSize:12, color:"var(--muted)" }}>{total} records</span>
       </div>
 
-      <Card style={{ padding:0, overflow:"hidden" }}>
+      <Card solid style={{ padding:0, overflow:"hidden" }}>
         <div style={{ overflowX:"auto" }} className="sa-scrollbar">
           <table style={{ width:"100%", borderCollapse:"collapse", minWidth:820 }}>
             <thead>

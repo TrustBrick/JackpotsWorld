@@ -345,7 +345,7 @@ const VIP_BY_LVL_H = Object.fromEntries(
 function HistoryTable({ history }) {
   const { C } = useAdminTheme();
   return (
-    <div style={{ borderRadius:12, overflow:"hidden", border:`1px solid ${C.border}` }}>
+    <div style={{ borderRadius:12, overflow:"hidden", border:`1px solid ${C.border}`, background:C.panelBg }}>
       <div style={{ overflowX:"auto" }}>
         <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11 }}>
           <thead>

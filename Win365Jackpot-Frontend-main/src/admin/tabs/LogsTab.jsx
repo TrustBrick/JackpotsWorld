@@ -118,9 +118,11 @@ const getS = (C) => ({
     padding: "5px 12px", borderRadius: 6,
   },
 
-  // Table card
+  // Table card — opaque (C.panelBg, not C.hoverBg) so the header row below,
+  // which is tinted with this same C.hoverBg, actually reads as a distinct
+  // band instead of matching the card it sits on with zero contrast.
   tableCard: {
-    background: C.hoverBg,
+    background: C.panelBg,
     border: `1px solid ${C.border}`,
     borderRadius: 12, overflow: "hidden",
   },

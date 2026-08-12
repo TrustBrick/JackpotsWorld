@@ -71,7 +71,7 @@ function StatBox({ label, value, color, sub }) {
 function RefTable() {
   const { C } = useAdminTheme();
   return (
-    <div style={{ borderRadius:10, overflow:"hidden", border:`1px solid ${C.border}`, marginBottom:4 }}>
+    <div style={{ borderRadius:10, overflow:"hidden", border:`1px solid ${C.border}`, marginBottom:4, background:C.panelBg }}>
       <div style={{ padding:"10px 14px", borderBottom:`1px solid ${C.border}`, fontSize:11, fontWeight:700, color:C.text, background:C.hoverBg }}>
         VIP Reference — RP = Game Level Points (unified) · Formula: $Bet Amount ÷ 100
       </div>

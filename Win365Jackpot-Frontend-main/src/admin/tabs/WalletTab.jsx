@@ -423,7 +423,7 @@ function VerifyPane({ onToast }) {
         <Btn small outline onClick={() => load(page)}><RefreshCw size={12} /></Btn>
       </div>
 
-      <Card style={{ padding: 0, overflow: "hidden" }}>
+      <Card solid style={{ padding: 0, overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
           <thead>
@@ -566,7 +566,7 @@ function HistoryPane({ onToast }) {
         <Btn small outline onClick={() => load(1)}><RefreshCw size={12} /></Btn>
       </div>
 
-      <Card style={{ padding: 0, overflow: "hidden" }}>
+      <Card solid style={{ padding: 0, overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
           <thead>
@@ -665,7 +665,7 @@ function ValidationPane({ onToast }) {
         <Btn small outline onClick={() => load(page)}><RefreshCw size={12} /></Btn>
       </div>
 
-      <Card style={{ padding: 0, overflow: "hidden" }}>
+      <Card solid style={{ padding: 0, overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
           <thead>

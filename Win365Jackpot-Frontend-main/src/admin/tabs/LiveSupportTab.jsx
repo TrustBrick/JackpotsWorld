@@ -251,7 +251,7 @@ export default function LiveSupportTab({ onToast }) {
 
       <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 14, alignItems: "start" }}>
         {/* Session list */}
-        <Card style={{ padding: 0, overflow: "hidden" }}>
+        <Card solid style={{ padding: 0, overflow: "hidden" }}>
           {loading ? <Spinner /> : sessions.length === 0 ? (
             <div style={{ padding: 24, textAlign: "center", color: C.muted, fontSize: 12.5 }}>No live chat sessions yet</div>
           ) : (
