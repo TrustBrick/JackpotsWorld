@@ -193,7 +193,11 @@ DEFAULT_FROM_EMAIL  = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
 STATIC_URL  = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 MEDIA_URL   = '/media/'
-MEDIA_ROOT  = os.path.join(BASE_DIR, 'media')
+# Defaults to BASE_DIR/media for local dev. On EB, MEDIA_ROOT_DIR points
+# outside /var/app/current (see .platform/hooks/postdeploy) because that
+# whole directory is replaced on every deploy — anything saved under
+# BASE_DIR/media would silently vanish on the next deploy otherwise.
+MEDIA_ROOT = config('MEDIA_ROOT_DIR', default=os.path.join(BASE_DIR, 'media'))
 
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
