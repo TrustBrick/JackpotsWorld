@@ -229,7 +229,7 @@ function ImageCarousel({ images, color, glow }) {
                 ref={videoRef}
                 src={images[idx].src}
                 autoPlay muted={muted} loop playsInline
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000', display: 'block' }}
               />
             ) : (
               <img
