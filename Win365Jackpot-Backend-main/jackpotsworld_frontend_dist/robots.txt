@@ -1,0 +1,27 @@
+# https://jackpotsworld.vip/robots.txt
+
+User-agent: *
+Allow: /
+
+# Authenticated surfaces and credential-entry forms — no search value, and
+# indexing them leaks the admin surface area into public results.
+Disallow: /dashboard
+Disallow: /admin-panel
+Disallow: /super-admin
+Disallow: /affiliate-panel
+Disallow: /affiliate-login
+Disallow: /sign-in
+Disallow: /sign-up
+Disallow: /kyc
+
+# Django's own API and admin — never useful to a search engine.
+Disallow: /api/
+Disallow: /admin/
+
+# Affiliate tracking params create an endless supply of duplicate URLs for
+# the same page. Crawlers honour the wildcard form; the canonical tag on
+# every page is the real fix, this just saves crawl budget.
+Disallow: /*?ref=
+Disallow: /*?utm_
+
+Sitemap: https://jackpotsworld.vip/sitemap.xml

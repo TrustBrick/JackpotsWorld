@@ -1,0 +1,1 @@
+import{aa as r,r as u,j as a,at as n,az as c}from"./index-DSTXT4sh.js";function d({tab:t}){const e=r(),s=u.useRef(!1);return a.jsxs("div",{className:"min-h-screen",style:{background:"var(--w365-bg)"},children:[a.jsx(n,{}),a.jsx(c,{isOpen:!0,onClose:()=>{s.current||e("/")},defaultTab:t,onAuthSuccess:()=>{s.current=!0,e("/dashboard")}})]})}export{d as default};

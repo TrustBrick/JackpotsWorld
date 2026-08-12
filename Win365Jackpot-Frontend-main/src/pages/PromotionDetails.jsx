@@ -7,6 +7,9 @@ import PageScrollButtons from '../components/PageScrollButtons'
 import { fetchPromotionDetail } from '../services/promotionService'
 import { flagFromCountryCode } from '../utils/countryFlags'
 import { getCasinoFallbackImage } from '../utils/mediaFallback'
+import Seo from '../components/Seo'
+import { promotionSchema, breadcrumbSchema } from '../utils/seoSchemas'
+import { toMetaDescription, TITLE_SUFFIX } from '../config/seo'
 
 export default function PromotionDetails() {
   const { id } = useParams()
@@ -27,6 +30,24 @@ export default function PromotionDetails() {
   return (
     <div className="min-h-screen" style={{ background: 'var(--w365-bg)' }}>
       <Navbar />
+
+      {promo && (
+        <Seo
+          title={`${promo.title}${promo.casino_name ? ` — ${promo.casino_name}` : ''}${TITLE_SUFFIX}`}
+          description={toMetaDescription(promo.bonus_details || promo.description)}
+          path={`/promotions/${promo.id}`}
+          image={promo.image}
+          type="article"
+          jsonLd={[
+            promotionSchema(promo),
+            breadcrumbSchema([
+              { name: 'Home', path: '/' },
+              { name: 'Promotions', path: '/promotions' },
+              { name: promo.title, path: `/promotions/${promo.id}` },
+            ]),
+          ].filter(Boolean)}
+        />
+      )}
 
       <main>
       <section className="max-w-3xl mx-auto px-4 pt-28 pb-24">

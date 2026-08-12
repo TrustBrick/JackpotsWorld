@@ -437,6 +437,14 @@ SECURE_HSTS_PRELOAD = config('SECURE_HSTS_PRELOAD', default=False, cast=bool)
 
 TURNSTILE_SECRET_KEY = config("TURNSTILE_SECRET_KEY", default="")
 
+# ── SEO ───────────────────────────────────────────────────────────────────────
+# Canonical public origin, used to build absolute URLs in /sitemap.xml
+# (authapp/views/seo_views.py). Override per-environment so a dev or staging
+# deploy doesn't publish a sitemap full of production URLs — a sitemap whose
+# <loc> entries point at a different host is rejected outright by Search
+# Console. Must match SITE_URL in the frontend's src/config/seo.js.
+SITE_BASE_URL = config("SITE_BASE_URL", default="https://jackpotsworld.vip")
+
 # MULTILINGUAL-CHAT: local-preview feature flag — hard master switch. False
 # (the default, and production's implicit value since the var is unset there)
 # means every code path this feature touches behaves exactly as before it
