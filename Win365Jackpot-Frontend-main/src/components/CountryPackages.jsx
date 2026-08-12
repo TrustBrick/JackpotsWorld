@@ -228,7 +228,12 @@ function ImageCarousel({ images, color, glow }) {
                 ref={videoRef}
                 src={images[idx].src}
                 autoPlay muted={muted} loop playsInline
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                // contain (not cover) — uploaded destination videos can be any
+                // aspect ratio, and cover crops whatever doesn't match this
+                // fixed-height box. contain always shows the entire frame,
+                // letterboxing against the container background instead of
+                // cutting off the top/bottom or sides.
+                style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', background: '#000' }}
               />
             ) : (
               <img
