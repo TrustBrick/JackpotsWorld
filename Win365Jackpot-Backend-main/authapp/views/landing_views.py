@@ -129,13 +129,21 @@ class AdminLandingSettingsView(APIView):
         return Response(serializer.data)
 
 
-def _admin_crud_views(_model, _serializer_cls):
+def _admin_crud_views(_model, _serializer_cls, prefetch=None):
     """Build (ListCreateView, DetailView) classes for a model — every landing
     content type follows the exact same admin CRUD shape, so this avoids
-    repeating the same two-class boilerplate 12 times."""
+    repeating the same two-class boilerplate 12 times.
+
+    `prefetch` — optional list of related-manager names to prefetch on the
+    list queryset, for models whose serializer nests a related set (e.g.
+    Destination -> images, VipTier -> benefits). Without it, listing N rows
+    issues one extra query per row (N+1) instead of one. Not applied to the
+    detail queryset — a single-object retrieve already only pays for the one
+    nested query either way, so there's no N+1 there to fix."""
+    list_queryset = _model.objects.all().prefetch_related(*prefetch) if prefetch else _model.objects.all()
 
     class ListCreateView(generics.ListCreateAPIView):
-        queryset = _model.objects.all()
+        queryset = list_queryset
         serializer_class = _serializer_cls
         permission_classes = [IsAdminOrSuperAdmin]
 
@@ -152,10 +160,10 @@ AdminWhyChooseUsFeatureListCreateView, AdminWhyChooseUsFeatureDetailView = _admi
 AdminTrustBadgeListCreateView, AdminTrustBadgeDetailView = _admin_crud_views(TrustBadge, TrustBadgeSerializer)
 AdminGiftItemListCreateView, AdminGiftItemDetailView = _admin_crud_views(GiftItem, GiftItemSerializer)
 AdminGiftStepListCreateView, AdminGiftStepDetailView = _admin_crud_views(GiftStep, GiftStepSerializer)
-AdminVipTierListCreateView, AdminVipTierDetailView = _admin_crud_views(VipTier, VipTierSerializer)
+AdminVipTierListCreateView, AdminVipTierDetailView = _admin_crud_views(VipTier, VipTierSerializer, prefetch=["benefits"])
 AdminVipTierBenefitListCreateView, AdminVipTierBenefitDetailView = _admin_crud_views(VipTierBenefit, VipTierBenefitSerializer)
 AdminTestimonialListCreateView, AdminTestimonialDetailView = _admin_crud_views(Testimonial, TestimonialSerializer)
-AdminDestinationListCreateView, AdminDestinationDetailView = _admin_crud_views(Destination, DestinationSerializer)
+AdminDestinationListCreateView, AdminDestinationDetailView = _admin_crud_views(Destination, DestinationSerializer, prefetch=["images"])
 AdminDestinationMediaListCreateView, AdminDestinationMediaDetailView = _admin_crud_views(DestinationMedia, DestinationMediaSerializer)
 AdminVipServiceImageListCreateView, AdminVipServiceImageDetailView = _admin_crud_views(VipServiceImage, VipServiceImageSerializer)
 AdminTourPackageListCreateView, AdminTourPackageDetailView = _admin_crud_views(TourPackage, TourPackageSerializer)

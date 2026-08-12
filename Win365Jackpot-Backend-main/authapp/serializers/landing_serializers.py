@@ -4,6 +4,7 @@ from authapp.models.landing_models import (
     GiftItem, GiftStep, VipTier, VipTierBenefit, Testimonial,
     Destination, DestinationMedia, VipServiceImage, TourPackage,
 )
+from authapp.utils.file_validation import validate_uploaded_image, validate_uploaded_video
 
 
 class LandingSettingsSerializer(serializers.ModelSerializer):
@@ -16,6 +17,9 @@ class LandingSettingsSerializer(serializers.ModelSerializer):
             "whatsapp_number", "updated_at",
         ]
         read_only_fields = ["id", "updated_at"]
+
+    def validate_hero_background_video(self, value):
+        return validate_uploaded_video(value)
 
 
 class HeroStatSerializer(serializers.ModelSerializer):
@@ -58,6 +62,9 @@ class GiftItemSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
 
+    def validate_logo(self, value):
+        return validate_uploaded_image(value)
+
 
 class GiftStepSerializer(serializers.ModelSerializer):
     is_active = serializers.BooleanField(default=True, required=False)
@@ -97,12 +104,31 @@ class TestimonialSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
 
+    def validate_avatar(self, value):
+        return validate_uploaded_image(value)
+
 
 class DestinationMediaSerializer(serializers.ModelSerializer):
     class Meta:
         model = DestinationMedia
         fields = ["id", "destination", "media", "media_type", "label", "order", "created_at"]
         read_only_fields = ["id", "created_at"]
+
+    def validate(self, attrs):
+        # `media` can be an image or a video depending on the sibling
+        # `media_type` field, so the right check can't be a single-field
+        # validator — it has to read both together. Falls back to the
+        # existing instance's media_type (or the model default) so a partial
+        # PATCH that only sends a new file still validates against the
+        # media_type that's actually already saved.
+        media_file = attrs.get("media")
+        if media_file:
+            media_type = attrs.get("media_type") or getattr(self.instance, "media_type", "image")
+            if media_type == "video":
+                validate_uploaded_video(media_file)
+            else:
+                validate_uploaded_image(media_file)
+        return attrs
 
 
 class DestinationSerializer(serializers.ModelSerializer):
@@ -126,6 +152,9 @@ class VipServiceImageSerializer(serializers.ModelSerializer):
         model = VipServiceImage
         fields = ["id", "image", "label", "category", "is_active", "order", "created_at", "updated_at"]
         read_only_fields = ["id", "created_at", "updated_at"]
+
+    def validate_image(self, value):
+        return validate_uploaded_image(value)
 
 
 class TourPackageSerializer(serializers.ModelSerializer):
