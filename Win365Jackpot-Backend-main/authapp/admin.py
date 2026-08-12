@@ -11,6 +11,7 @@ from authapp.models.wheel_models import (
     SignupWheelSettings, SignupWheelReward, SignupWheelSpin,
     BonusWheel, BonusWheelReward, BonusWheelAssignment, BonusWheelGrant, BonusWheelSpin,
 )
+from authapp.models.landing_models import Destination, DestinationMedia
 
 admin.site.register(Casino)
 admin.site.register(CasinoEvent)
@@ -31,3 +32,5 @@ admin.site.register(BonusWheelReward)
 admin.site.register(BonusWheelAssignment)
 admin.site.register(BonusWheelGrant)
 admin.site.register(BonusWheelSpin)
+admin.site.register(Destination)
+admin.site.register(DestinationMedia)
