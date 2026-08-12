@@ -1,5 +1,6 @@
 import React from "react";
 import ManageContentTab from "./ManageContentTab";
+import { invalidateLandingCache } from "../../../services/landingService";
 
 const FIELDS = [
   { name: "name", label: "Name", placeholder: "Rajesh K." },
@@ -29,6 +30,7 @@ export default function TestimonialsManageTab({ onToast }) {
       fields={FIELDS}
       columns={COLUMNS}
       onToast={onToast}
+      onSaved={invalidateLandingCache}
     />
   );
 }

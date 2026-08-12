@@ -1,5 +1,6 @@
 import React from "react";
 import ManageContentTab from "./ManageContentTab";
+import { invalidateLandingCache } from "../../../services/landingService";
 
 const FIELDS = [
   { name: "tier", label: "VIP Tier", type: "asyncSelect", optionsUrl: "/api/admin-panel/vip-tiers/", optionLabelKey: "label", placeholder: "— Select tier —" },
@@ -22,6 +23,7 @@ export default function VipTierBenefitsManageTab({ onToast }) {
       fields={FIELDS}
       columns={COLUMNS}
       onToast={onToast}
+      onSaved={invalidateLandingCache}
     />
   );
 }

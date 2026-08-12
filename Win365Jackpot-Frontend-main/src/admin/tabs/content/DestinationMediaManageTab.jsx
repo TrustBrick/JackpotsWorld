@@ -1,5 +1,6 @@
 import React from "react";
 import ManageContentTab from "./ManageContentTab";
+import { invalidateLandingCache } from "../../../services/landingService";
 
 const FIELDS = [
   { name: "destination", label: "Destination", type: "asyncSelect", optionsUrl: "/api/admin-panel/destinations/", optionLabelKey: "name", placeholder: "— Select destination —" },
@@ -23,6 +24,7 @@ export default function DestinationMediaManageTab({ onToast }) {
       fields={FIELDS}
       columns={COLUMNS}
       onToast={onToast}
+      onSaved={invalidateLandingCache}
     />
   );
 }

@@ -1,5 +1,6 @@
 import React from "react";
 import ManageContentTab from "./ManageContentTab";
+import { invalidateLandingCache } from "../../../services/landingService";
 
 // Matches the Lucide icon names looked up by WhyChooseUs.jsx's ICON_MAP.
 const ICON_OPTIONS = [
@@ -29,6 +30,7 @@ export default function WhyChooseUsManageTab({ onToast }) {
       fields={FIELDS}
       columns={COLUMNS}
       onToast={onToast}
+      onSaved={invalidateLandingCache}
     />
   );
 }

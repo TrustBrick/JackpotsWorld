@@ -1,5 +1,6 @@
 import React from "react";
 import ManageContentTab from "./ManageContentTab";
+import { invalidateLandingCache } from "../../../services/landingService";
 
 const ICON_OPTIONS = [
   "CheckCircle", "Lock", "BadgeCheck", "MapPin", "Star", "ShieldCheck", "Globe",
@@ -26,6 +27,7 @@ export default function TrustBadgesManageTab({ onToast }) {
       fields={FIELDS}
       columns={COLUMNS}
       onToast={onToast}
+      onSaved={invalidateLandingCache}
     />
   );
 }

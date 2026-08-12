@@ -7,7 +7,7 @@
  * src/admin/tabs/offline_deposits/OfflineDepositTab.jsx.
  */
 import React, { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Settings, BarChart3, Sparkles, ShieldCheck, Gift, ListOrdered,
   Crown, ListChecks, Quote, MapPin, Images, GalleryHorizontal, Plane,
@@ -76,11 +76,9 @@ export default function LandingManageTab({ onToast }) {
         })}
       </div>
 
-      <AnimatePresence mode="wait">
-        <motion.div key={tab} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-          <ActiveComp onToast={onToast} />
-        </motion.div>
-      </AnimatePresence>
+      <motion.div key={tab} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+        <ActiveComp onToast={onToast} />
+      </motion.div>
     </div>
   );
 }

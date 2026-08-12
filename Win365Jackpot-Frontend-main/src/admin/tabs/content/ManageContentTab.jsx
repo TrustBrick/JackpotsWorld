@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Plus, X, Pencil, Trash2, RefreshCw, ImageOff } from "lucide-react";
-import { Card, Btn, Spinner, Table, rowHover } from "../../components/SharedUI";
+import { Card, Btn, Spinner, Table, Pagination, rowHover } from "../../components/SharedUI";
 import { adminFetch, API } from "../../helpers";
 import { useAdminTheme } from "../../context/AdminThemeContext";
 
@@ -21,8 +21,15 @@ function emptyForm(fields) {
  * ManageContentTab — generic list + create/edit/delete UI, config-driven so
  * the Events / Poker / Promotions admin tabs (near-identical CRUD shape)
  * don't each need their own bespoke table+form implementation.
+ *
+ * `onSaved` — optional, called after every successful create/update/toggle/
+ * delete. The Landing Page sub-tabs (GiftItemsManageTab.jsx etc.) pass
+ * invalidateLandingCache here, since their apiPath also backs a cached
+ * public-site fetcher (src/services/landingService.js) that would otherwise
+ * keep serving pre-edit content for up to its 60s TTL. Callers that don't
+ * back a public cache (Events/Poker/Promotions/Locations) simply omit it.
  */
-export default function ManageContentTab({ resourceLabel, apiPath, fields, columns, onToast }) {
+export default function ManageContentTab({ resourceLabel, apiPath, fields, columns, onToast, onSaved }) {
   const { C } = useAdminTheme();
   const inputStyle = {
     width: "100%", padding: "9px 12px", borderRadius: 8,
@@ -37,6 +44,15 @@ export default function ManageContentTab({ resourceLabel, apiPath, fields, colum
   const [submitting, setSubmitting] = useState(false);
   const [files, setFiles] = useState({});
   const [asyncOptions, setAsyncOptions] = useState({});
+  // Pagination — the backend already paginates list responses (DRF
+  // PageNumberPagination, PAGE_SIZE=20); without tracking `total`/`page`
+  // here, anything past the first 20 rows was silently unreachable with no
+  // indication more existed.
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  // Per-row in-flight guard for Active-toggle/Delete — a Set (not a single
+  // boolean) so acting on one row never blocks another.
+  const [busyIds, setBusyIds] = useState(() => new Set());
   // Gallery-type fields: existing already-saved images for the item being
   // edited, keyed by field name — separate from `files` (newly picked, not
   // yet uploaded) since edits append to the gallery rather than replacing it.
@@ -60,11 +76,15 @@ export default function ManageContentTab({ resourceLabel, apiPath, fields, colum
 
   const load = useCallback(() => {
     setLoading(true);
-    adminFetch(`${API}${apiPath}`)
+    adminFetch(`${API}${apiPath}?page=${page}`)
       .then(r => r?.json())
-      .then(j => { if (j) setItems(Array.isArray(j) ? j : (j.results || [])); })
+      .then(j => {
+        if (!j) return;
+        if (Array.isArray(j)) { setItems(j); setTotal(j.length); }
+        else { setItems(j.results || []); setTotal(j.count || 0); }
+      })
       .finally(() => setLoading(false));
-  }, [apiPath]);
+  }, [apiPath, page]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -94,12 +114,14 @@ export default function ManageContentTab({ resourceLabel, apiPath, fields, colum
     if (r?.ok) {
       setExistingGallery(prev => ({ ...prev, [field.name]: (prev[field.name] || []).filter(g => g.id !== imageId) }));
       onToast?.("Gallery image removed", true);
+      onSaved?.();
     } else {
       onToast?.("Failed to remove gallery image", false);
     }
   };
 
   const submit = async () => {
+    if (submitting) return; // defense in depth — the Save button is already disabled while submitting
     setSubmitting(true);
     const fd = new FormData();
     fields.forEach(f => {
@@ -124,45 +146,89 @@ export default function ManageContentTab({ resourceLabel, apiPath, fields, colum
 
     const url = editingId ? `${API}${apiPath}${editingId}/` : `${API}${apiPath}`;
     const method = editingId ? "PATCH" : "POST";
-    const r = await adminFetch(url, { method, body: fd });
-    if (!r) { onToast?.("Session expired", false); setSubmitting(false); return; }
-    const j = await r.json().catch(() => ({}));
-    if (r.ok) {
-      onToast?.(editingId ? `${resourceLabel} updated` : `${resourceLabel} created`, true);
-      setShowForm(false);
+    try {
+      const r = await adminFetch(url, { method, body: fd });
+      if (!r) { onToast?.("Session expired", false); return; }
+      if (r.ok) {
+        onToast?.(editingId ? `${resourceLabel} updated` : `${resourceLabel} created`, true);
+        setShowForm(false);
+        load();
+        onSaved?.();
+        return;
+      }
+      // Real HTTP error with a parseable body -> show the actual cause.
+      // Unparseable (an nginx/ALB gateway/timeout page, not JSON) -> the
+      // outcome is genuinely ambiguous, so say that honestly and re-fetch
+      // rather than either lying "success" or leaving a stale "Failed".
+      const j = await r.json().catch(() => null);
+      if (j) {
+        const firstError = Object.values(j)?.[0];
+        onToast?.((Array.isArray(firstError) ? firstError[0] : firstError) || `Failed (HTTP ${r.status})`, false);
+      } else {
+        onToast?.(`Save may have failed (HTTP ${r.status}) — refreshing to confirm…`, false);
+        load();
+      }
+    } catch {
+      // adminFetch's fetch() itself rejected (connection reset, gateway
+      // timeout, offline) — the request may or may not have completed
+      // server-side. Never leave the button stuck; re-sync instead of
+      // guessing.
+      onToast?.("Network error — refreshing to check whether it saved…", false);
       load();
-    } else {
-      const firstError = Object.values(j)?.[0];
-      onToast?.((Array.isArray(firstError) ? firstError[0] : firstError) || "Failed", false);
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
   const toggleActive = async (item) => {
-    const fd = new FormData();
-    fd.append("is_active", item.is_active ? "false" : "true");
-    const r = await adminFetch(`${API}${apiPath}${item.id}/`, { method: "PATCH", body: fd });
-    if (!r) { onToast?.("Session expired", false); return; }
-    if (r.ok) {
-      setItems(prev => prev.map(i => i.id === item.id ? { ...i, is_active: !item.is_active } : i));
-      onToast?.(item.is_active ? `${resourceLabel} disabled` : `${resourceLabel} enabled`, true);
-    } else {
-      onToast?.("Failed to update status", false);
+    if (busyIds.has(item.id)) return; // rapid double-click guard
+    setBusyIds(prev => new Set(prev).add(item.id));
+    try {
+      const fd = new FormData();
+      fd.append("is_active", item.is_active ? "false" : "true");
+      const r = await adminFetch(`${API}${apiPath}${item.id}/`, { method: "PATCH", body: fd });
+      if (!r) { onToast?.("Session expired", false); return; }
+      if (r.ok) {
+        setItems(prev => prev.map(i => i.id === item.id ? { ...i, is_active: !item.is_active } : i));
+        onToast?.(item.is_active ? `${resourceLabel} disabled` : `${resourceLabel} enabled`, true);
+        onSaved?.();
+      } else {
+        onToast?.(`Failed to update status (HTTP ${r.status})`, false);
+      }
+    } catch {
+      onToast?.("Network error — refreshing to check current status…", false);
+      load();
+    } finally {
+      setBusyIds(prev => { const next = new Set(prev); next.delete(item.id); return next; });
     }
   };
 
   const remove = async (item) => {
+    if (busyIds.has(item.id)) return; // rapid double-click guard
     if (!window.confirm(`Delete "${item[columns[0].key]}"? This cannot be undone.`)) return;
-    const r = await adminFetch(`${API}${apiPath}${item.id}/`, { method: "DELETE" });
-    if (!r) { onToast?.("Session expired", false); return; }
-    onToast?.(r.ok ? `${resourceLabel} deleted` : "Failed to delete", r.ok);
-    if (r.ok) load();
+    setBusyIds(prev => new Set(prev).add(item.id));
+    try {
+      const r = await adminFetch(`${API}${apiPath}${item.id}/`, { method: "DELETE" });
+      if (!r) { onToast?.("Session expired", false); return; }
+      if (r.ok) {
+        onToast?.(`${resourceLabel} deleted`, true);
+        load();
+        onSaved?.();
+      } else {
+        onToast?.(`Failed to delete (HTTP ${r.status})`, false);
+      }
+    } catch {
+      onToast?.("Network error — refreshing to check whether it was deleted…", false);
+      load();
+    } finally {
+      setBusyIds(prev => { const next = new Set(prev); next.delete(item.id); return next; });
+    }
   };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ fontSize: 13, color: C.muted }}>{items.length} {resourceLabel.toLowerCase()}{items.length !== 1 ? "s" : ""} total</div>
+        <div style={{ fontSize: 13, color: C.muted }}>{total} {resourceLabel.toLowerCase()}{total !== 1 ? "s" : ""} total</div>
         <div style={{ display: "flex", gap: 8 }}>
           <Btn outline small onClick={load}><RefreshCw size={12} /> Refresh</Btn>
           <Btn small onClick={() => (showForm ? setShowForm(false) : openCreate())} color={showForm ? C.red : C.gold}>
@@ -300,8 +366,9 @@ export default function ManageContentTab({ resourceLabel, apiPath, fields, colum
               <button
                 type="button"
                 onClick={() => toggleActive(item)}
+                disabled={busyIds.has(item.id)}
                 title={item.is_active ? "Click to disable" : "Click to enable"}
-                style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 20, background: item.is_active ? `${C.green}18` : `${C.red}18`, color: item.is_active ? C.green : C.red, border: "none", cursor: "pointer" }}
+                style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 20, background: item.is_active ? `${C.green}18` : `${C.red}18`, color: item.is_active ? C.green : C.red, border: "none", cursor: busyIds.has(item.id) ? "not-allowed" : "pointer", opacity: busyIds.has(item.id) ? 0.5 : 1 }}
               >
                 {item.is_active ? "Active" : "Inactive"}
               </button>
@@ -310,13 +377,18 @@ export default function ManageContentTab({ resourceLabel, apiPath, fields, colum
               <button onClick={() => openEdit(item)} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", marginRight: 10 }}>
                 <Pencil size={13} />
               </button>
-              <button onClick={() => remove(item)} style={{ background: "none", border: "none", color: "rgba(248,113,113,0.7)", cursor: "pointer" }}>
+              <button
+                onClick={() => remove(item)}
+                disabled={busyIds.has(item.id)}
+                style={{ background: "none", border: "none", color: "rgba(248,113,113,0.7)", cursor: busyIds.has(item.id) ? "not-allowed" : "pointer", opacity: busyIds.has(item.id) ? 0.5 : 1 }}
+              >
                 <Trash2 size={13} />
               </button>
             </td>
           </tr>
         ))}
       </Table>
+      <Pagination page={page} total={total} perPage={20} onChange={setPage} />
     </div>
   );
 }

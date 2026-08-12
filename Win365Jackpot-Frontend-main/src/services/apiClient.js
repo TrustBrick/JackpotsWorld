@@ -53,6 +53,14 @@ export function createCache(ttlMs = 60_000) {
     set(key, data) {
       store.set(key, { data, time: Date.now() })
     },
+    // Drops every cached entry so the next get() is a guaranteed miss —
+    // for services that need to invalidate after a write they know about
+    // (e.g. an admin save) rather than waiting out the full TTL. Each
+    // createCache() call owns an independent Map, so this only ever
+    // clears the caller's own cache, never another service's.
+    clear() {
+      store.clear()
+    },
   }
 }
 
