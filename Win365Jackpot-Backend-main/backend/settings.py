@@ -193,7 +193,11 @@ DEFAULT_FROM_EMAIL  = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
 STATIC_URL  = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 MEDIA_URL   = '/media/'
-MEDIA_ROOT  = os.path.join(BASE_DIR, 'media')
+# Defaults to BASE_DIR/media for local dev. On EB, MEDIA_ROOT_DIR points
+# outside /var/app/current (see .platform/hooks/postdeploy) because that
+# whole directory is replaced on every deploy — anything saved under
+# BASE_DIR/media would silently vanish on the next deploy otherwise.
+MEDIA_ROOT = config('MEDIA_ROOT_DIR', default=os.path.join(BASE_DIR, 'media'))
 
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
@@ -436,6 +440,14 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = config('SECURE_HSTS_INCLUDE_SUBDOMAINS', defaul
 SECURE_HSTS_PRELOAD = config('SECURE_HSTS_PRELOAD', default=False, cast=bool)
 
 TURNSTILE_SECRET_KEY = config("TURNSTILE_SECRET_KEY", default="")
+
+# ── SEO ───────────────────────────────────────────────────────────────────────
+# Canonical public origin, used to build absolute URLs in /sitemap.xml
+# (authapp/views/seo_views.py). Override per-environment so a dev or staging
+# deploy doesn't publish a sitemap full of production URLs — a sitemap whose
+# <loc> entries point at a different host is rejected outright by Search
+# Console. Must match SITE_URL in the frontend's src/config/seo.js.
+SITE_BASE_URL = config("SITE_BASE_URL", default="https://jackpotsworld.vip")
 
 # MULTILINGUAL-CHAT: local-preview feature flag — hard master switch. False
 # (the default, and production's implicit value since the var is unset there)

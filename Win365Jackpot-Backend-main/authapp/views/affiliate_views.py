@@ -232,6 +232,34 @@ class AffiliateApplyView(APIView):
             }, status=200)
 
         profile = AffiliateProfile.objects.create(user=user, is_active=False)
+
+        # Admin alert (in-app notification + support email) — only reachable
+        # on the true first application for this user, since the `existing`
+        # branch above returns before ever reaching here on a repeat call, so
+        # this can't double-notify/double-email one registration. Both
+        # helpers are best-effort (catch and log internally, never raise),
+        # so a notification or SMTP hiccup never blocks the response below.
+        from authapp.services.notification_service import notify_generic
+        from authapp.utils.email_utils import send_affiliate_registration_alert
+        registered_at = profile.created_at.strftime("%b %d, %Y %I:%M %p")
+        for staff in User.objects.filter(is_staff=True, is_active=True):
+            notify_generic(
+                staff,
+                title="New Affiliate Registration – Approval Required",
+                # One field per line — rendered as-is (white-space: pre-line)
+                # by the admin popup and Notifications tab, so keep this in
+                # sync with what SharedUI.NotificationPopup expects to show.
+                message=(
+                    f"Name: {user.name or user.email}\n"
+                    f"Email: {user.email}\n"
+                    f"Affiliate ID: {user.user_uid}\n"
+                    f"Registered: {registered_at}\n"
+                    f"Status: Pending Approval"
+                ),
+                icon="affiliate_registration",
+            )
+        send_affiliate_registration_alert(user, profile)
+
         return Response({
             "message": "Application submitted. Our team will review it and activate your affiliate account.",
             "affiliate_profile": AffiliateProfileSerializer(profile).data,

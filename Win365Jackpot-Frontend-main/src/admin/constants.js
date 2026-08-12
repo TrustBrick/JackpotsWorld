@@ -55,81 +55,97 @@ export const VALIDATABLE = ["LUB","LUBNC","LUBOT","WBA","MBA"];
 
 export const ADMIN_API = import.meta.env.VITE_API_URL;
 
-// ─── Admin sidebar navigation ──────────────────────────────────────────────
-// Grouped, collapsible information architecture. Each item's `id` is the
-// source of truth AdminPanel.jsx's renderTab() switch keys off — reordering
-// or regrouping here never touches routing, APIs, or permissions, only what
-// category an item is filed under and how it's labeled/iconed. Commented-out
-// entries are inactive/not-yet-shipped features (components already exist,
-// just not wired into AdminPanel.jsx) — left in place as a reminder of where
-// they'd land, same as before this reorganization.
+// ─── Sidebar navigation — grouped, collapsible sections ───────────────────────
+// Grouping/labels only — every `id` below is unchanged from the old flat
+// ADMIN_TABS list, so every existing route/tab-key/API call it drives is
+// untouched. Items commented out here were already disabled before this
+// reorg (dead config, kept for the same "safe to remove" notes as before) —
+// not reactivated by this change.
 export const ADMIN_NAV_GROUPS = [
-  { type:"pinned", id:"overview", label:"Overview", icon:"LayoutDashboard" },
-
-  { type:"group", id:"user-management", label:"User Management", icon:"UsersRound", items:[
-    { id:"users", label:"Users", icon:"Users" },
-    { id:"kyc",   label:"KYC Management", icon:"ShieldCheck" },
-    // { id:"vip", label:"VIP / XP", icon:"Crown" },
-  ]},
-
-  { type:"group", id:"financial-operations", label:"Financial Operations", icon:"Landmark", items:[
-    // WALLET-REQUESTS: 2 items (local preview feature) — safe to remove
-    // both along with DepositRequestsTab.jsx / WithdrawalRequestsTab.jsx
-    // and their cases in AdminPanel.jsx to remove the feature.
-    { id:"deposit-requests",    label:"Deposit Requests",    icon:"ArrowDownCircle" },
-    { id:"withdrawal-requests", label:"Withdrawal Requests", icon:"ArrowUpCircle"   },
-    { id:"deposits",     label:"Offline Transactions", icon:"Building2" },
-    { id:"transactions", label:"Transaction History",  icon:"History"   },
-    // { id:"wallet", label:"Wallet Manager", icon:"Wallet" },
-  ]},
-
-  { type:"group", id:"rewards-engagement", label:"Rewards & Engagement", icon:"Award", items:[
-    { id:"rewards", label:"Wheels & Rewards", icon:"Dices" },
-    // GIFTS-REWARDS: safe to remove along with GiftsRewardsTab.jsx and its
-    // case in AdminPanel.jsx to remove the feature.
-    { id:"gifts-rewards", label:"Gifts & Rewards", icon:"Sparkles" },
-  ]},
-
-  { type:"group", id:"content-management", label:"Content Management", icon:"FileEdit", items:[
-    { id:"events",     label:"Manage Events",     icon:"CalendarDays" },
-    { id:"poker",      label:"Manage Poker",       icon:"Spade" },
-    { id:"promotions", label:"Manage Promotions", icon:"Megaphone" },
-    { id:"locations",  label:"Manage Locations",  icon:"MapPin" },
-    { id:"landing",    label:"Landing Page",      icon:"LayoutTemplate" },
-  ]},
-
-  { type:"group", id:"affiliate-management", label:"Affiliate Management", icon:"Network", items:[
-    { id:"affiliates", label:"Affiliates", icon:"Handshake" },
-    // AFFILIATE-WITHDRAWALS: safe to remove along with
-    // AffiliateWithdrawalsTab.jsx and its case in AdminPanel.jsx.
-    { id:"affiliate-withdrawals", label:"Affiliate Withdrawals", icon:"Wallet" },
-    // Commission Engine (Deposit / Losing / Rolling) — safe to remove along
-    // with AffiliateCommissionsTab.jsx and its case in AdminPanel.jsx.
-    { id:"affiliate-commissions", label:"Affiliate Commissions", icon:"Percent" },
-  ]},
-
-  { type:"group", id:"support-communication", label:"Support & Communication", icon:"Headset", items:[
-    // MULTILINGUAL-CHAT: 2 items (local preview feature)
-    { id:"support-tickets",  label:"Support Tickets",  icon:"LifeBuoy"  },
-    { id:"support-settings", label:"Support Settings", icon:"Languages" },
-    // LIVE-CHAT: real-time human-agent chat (distinct from the async ticket
-    // items above) — safe to remove along with LiveSupportTab.jsx and its
-    // case in AdminPanel.jsx to remove the feature.
-    { id:"live-support", label:"Live Support", icon:"MessageCircle" },
-    // { id:"notifications", label:"Notifications", icon:"Bell" },
-  ]},
-
-  { type:"group", id:"system", label:"System", icon:"Settings", items:[
-    { id:"logs", label:"Activity Logs", icon:"Activity" },
-    // { id:"staff", label:"Staff", icon:"UserCog" },
-  ]},
+  {
+    group: "Overview",
+    items: [
+      { id:"overview", label:"Overview", icon:"BarChart3" },
+    ],
+  },
+  {
+    group: "User Management",
+    items: [
+      { id:"users", label:"Users", icon:"Users" },
+      { id:"kyc",   label:"KYC Management", icon:"Shield" },
+    ],
+  },
+  {
+    group: "Financial Operations",
+    items: [
+      // { id:"wallet", label:"Wallet Manager", icon:"Wallet" },
+      // WALLET-REQUESTS: 2 new tabs (local preview feature) — safe to remove
+      // these lines along with DepositRequestsTab.jsx / WithdrawalRequestsTab.jsx
+      // and their cases in AdminPanel.jsx to remove the feature.
+      { id:"deposit-requests",    label:"Deposit Requests",    icon:"ArrowDownCircle" },
+      { id:"withdrawal-requests", label:"Withdrawal Requests", icon:"ArrowUpCircle"   },
+      { id:"deposits",     label:"Offline Transactions",  icon:"Building2" },
+      { id:"transactions", label:"Transaction History",   icon:"FileText"  },
+    ],
+  },
+  {
+    group: "Rewards & Engagement",
+    items: [
+      // { id:"vip", label:"VIP / XP", icon:"Crown" },
+      { id:"rewards", label:"Wheels & Rewards", icon:"Gift" },
+      // GIFTS-REWARDS: new tab (local preview feature) — safe to remove this
+      // line along with GiftsRewardsTab.jsx and its case in AdminPanel.jsx to
+      // remove the feature.
+      { id:"gifts-rewards", label:"Gifts & Rewards", icon:"Sparkles" },
+    ],
+  },
+  {
+    group: "Affiliate Management",
+    items: [
+      { id:"affiliates", label:"Affiliates", icon:"Handshake" },
+      // Commission Engine (Deposit / Losing / Rolling) — safe to remove this
+      // line along with AffiliateCommissionsTab.jsx and its case in
+      // AdminPanel.jsx to remove the feature.
+      { id:"affiliate-commissions", label:"Affiliate Commissions", icon:"Percent" },
+      // AFFILIATE-WITHDRAWALS: new tab (local preview feature) — safe to
+      // remove this line along with AffiliateWithdrawalsTab.jsx and its case
+      // in AdminPanel.jsx to remove the feature.
+      { id:"affiliate-withdrawals", label:"Affiliate Withdrawals", icon:"Wallet" },
+    ],
+  },
+  {
+    group: "Content Management",
+    items: [
+      { id:"events",     label:"Manage Events",     icon:"CalendarDays"   },
+      { id:"poker",      label:"Manage Poker",       icon:"Spade"         },
+      { id:"promotions", label:"Manage Promotions",  icon:"Gift"          },
+      { id:"locations",  label:"Manage Locations",   icon:"MapPin"        },
+      { id:"landing",    label:"Landing Page",       icon:"LayoutTemplate"},
+    ],
+  },
+  {
+    group: "Support & Communication",
+    items: [
+      // MULTILINGUAL-CHAT: 2 new tabs (local preview feature)
+      { id:"support-tickets",  label:"Support Tickets",  icon:"LifeBuoy"  },
+      { id:"support-settings", label:"Support Settings", icon:"Languages" },
+      // LIVE-CHAT: real-time human-agent chat (distinct from the async
+      // ticket tabs above) — safe to remove this line + LiveSupportTab.jsx +
+      // its case in AdminPanel.jsx to remove the feature.
+      { id:"live-support", label:"Live Support", icon:"MessageCircle" },
+      { id:"notifications", label:"Notifications", icon:"Bell" },
+    ],
+  },
+  {
+    group: "System",
+    items: [
+      { id:"logs", label:"Activity Logs", icon:"Activity" },
+      // { id:"staff", label:"Staff", icon:"UserCog" },
+    ],
+  },
 ];
 
-// Flat lookup derived from the grouped structure above — every existing
-// consumer (renderTab()'s switch, the page-title lookup in AdminPanel.jsx)
-// keys off `id`/`label` and doesn't care about grouping, so deriving this
-// keeps them working unchanged and guarantees it can never drift out of
-// sync with the sidebar.
-export const ADMIN_TABS = ADMIN_NAV_GROUPS.flatMap(g =>
-  g.type === "pinned" ? [{ id: g.id, label: g.label, icon: g.icon }] : g.items
-);
+// Flat list derived from the groups above — kept as ADMIN_TABS so every
+// existing lookup (header title, icon resolution, etc.) keeps working
+// unchanged; the groups above are additive, not a replacement data source.
+export const ADMIN_TABS = ADMIN_NAV_GROUPS.flatMap(g => g.items);

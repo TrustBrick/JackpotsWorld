@@ -12,6 +12,9 @@ import PageScrollButtons from '../components/PageScrollButtons'
 import { fetchPokerDetail, registerForTournament } from '../services/pokerService'
 import { getFallbackImage, fixMojibakeCurrency } from '../utils/mediaFallback'
 import { getToken } from '../services/authStorage'
+import Seo from '../components/Seo'
+import { pokerSchema, breadcrumbSchema } from '../utils/seoSchemas'
+import { toMetaDescription, TITLE_SUFFIX } from '../config/seo'
 
 const STATUS_LABEL_KEYS = {
   upcoming: 'common.statusUpcoming',
@@ -66,6 +69,27 @@ export default function PokerDetails() {
   return (
     <div className="min-h-screen" style={{ background: 'var(--w365-bg)' }}>
       <Navbar />
+
+      {tournament && (
+        <Seo
+          title={`${tournament.name}${TITLE_SUFFIX}`}
+          description={toMetaDescription(
+            tournament.description ||
+            `${tournament.name} at ${tournament.casino_name || ''}, ${tournament.location || ''}.`
+          )}
+          path={`/poker/${tournament.id}`}
+          image={tournament.image}
+          type="article"
+          jsonLd={[
+            pokerSchema(tournament),
+            breadcrumbSchema([
+              { name: 'Home', path: '/' },
+              { name: 'Poker', path: '/poker' },
+              { name: tournament.name, path: `/poker/${tournament.id}` },
+            ]),
+          ].filter(Boolean)}
+        />
+      )}
       <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} defaultTab="login" onAuthSuccess={() => setAuthOpen(false)} />
 
       <main>

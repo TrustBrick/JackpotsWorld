@@ -89,6 +89,7 @@ const FALLBACK_COUNTRIES = [
       { src: '/images/majesticpride-srilanka.jpg', label: 'Majestic Pride' },
       { src: '/images/ballys-srilanka.jpg',        label: "Bally's" },
       { src: '/images/ballagio-srilanka.jpeg',     label: 'Ballagio' },
+      { src: '/images/ballagio-lobby-srilanka.jpeg', label: 'Ballagio Lobby' },
       { src: '/images/marina-srilanka.jpg',        label: 'Marina' },
       { src: '/images/cod-srilanka.jpg',           label: 'City of Dreams' },
     ],

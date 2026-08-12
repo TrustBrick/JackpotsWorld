@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { motion } from "framer-motion";
-import { CheckCircle, AlertCircle, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
+import { CheckCircle, AlertCircle, ChevronLeft, ChevronRight, ChevronDown, Handshake, X } from "lucide-react";
 import { VIP_COLOR } from "../constants";
 import { fmtN } from "../helpers";
 import { useAdminTheme } from "../context/AdminThemeContext";
@@ -160,6 +160,54 @@ export function Toast({ msg, ok, onDone }) {
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
       style={{ position: "fixed", bottom: 24, right: 24, zIndex: 9999, padding: "12px 20px", borderRadius: 12, background: ok ? `${C.green}18` : `${C.red}18`, border: `1px solid ${ok ? C.green : C.red}40`, color: ok ? C.green : C.red, fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 8, boxShadow: "0 8px 32px rgba(0,0,0,0.5)" }}>
       {ok ? <CheckCircle size={15} /> : <AlertCircle size={15} />}{msg}
+    </motion.div>
+  );
+}
+
+// ─── Notification popup (structured, with an action button) ───────────────────
+// Distinct from Toast above — Toast is a one-line, self-triggered
+// action-result strip; this carries structured fields plus a CTA for an
+// event the admin didn't trigger themselves (new affiliate registration —
+// see AdminPanel.jsx's admin-notification poll). Longer auto-dismiss than
+// Toast since there's more to read, plus a manual close.
+export function NotificationPopup({ notif, onReview, onDismiss }) {
+  const { C } = useAdminTheme();
+  useEffect(() => {
+    const t = setTimeout(onDismiss, 12000);
+    return () => clearTimeout(t);
+  }, []);
+  return (
+    <motion.div initial={{ opacity: 0, y: 20, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10 }}
+      style={{
+        position: "fixed", bottom: 24, right: 24, zIndex: 9999, width: 340, maxWidth: "calc(100vw - 48px)",
+        borderRadius: 14, background: C.panelBg, border: `1px solid ${C.gold}40`,
+        boxShadow: "0 16px 48px rgba(0,0,0,0.55)", overflow: "hidden",
+      }}>
+      <div style={{ height: 3, background: `linear-gradient(90deg, transparent, ${C.gold}, transparent)` }} />
+      <div style={{ padding: "16px 18px" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 30, height: 30, borderRadius: 9, background: `${C.gold}18`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Handshake size={14} style={{ color: C.gold }} />
+            </div>
+            <div style={{ fontSize: 12.5, fontWeight: 800, color: C.gold, lineHeight: 1.3 }}>New Affiliate Registration</div>
+          </div>
+          <button onClick={onDismiss} aria-label="Dismiss" style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, padding: 2, lineHeight: 0, flexShrink: 0 }}>
+            <X size={14} />
+          </button>
+        </div>
+        <div style={{ fontSize: 12, color: C.sub, lineHeight: 1.8, whiteSpace: "pre-line", marginBottom: 14 }}>
+          {notif.message}
+        </div>
+        <button onClick={onReview}
+          style={{
+            width: "100%", padding: "9px 0", borderRadius: 9, fontSize: 12.5, fontWeight: 800,
+            background: `linear-gradient(135deg, ${C.gold}, ${C.gold}CC)`, color: "#07080F",
+            border: "none", cursor: "pointer",
+          }}>
+          Review Affiliate
+        </button>
+      </div>
     </motion.div>
   );
 }

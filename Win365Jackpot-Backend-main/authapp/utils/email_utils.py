@@ -17,6 +17,9 @@ logger = logging.getLogger(__name__)
 
 AFFILIATE_PORTAL_URL = "https://jackpotsworld.vip/affiliates"
 SUPPORT_EMAIL = "support@jackpotsworld.vip"
+# ?tab=affiliates is read by AdminPanel.jsx on mount (see src/admin/AdminPanel.jsx)
+# to land directly on the Affiliates tab instead of the default Overview.
+ADMIN_PORTAL_AFFILIATES_URL = "https://jackpotsworld.vip/admin-panel?tab=affiliates"
 
 # Illustration assets for the affiliate approval email, embedded as inline
 # CID attachments (see _attach_inline_images) rather than remote-hosted
@@ -207,3 +210,111 @@ def send_affiliate_approval_email(user) -> None:
         logger.info(f"Affiliate onboarding email sent to {user.email}")
     except Exception as exc:
         logger.error(f"Affiliate onboarding email to {user.email} failed: {exc}")
+
+
+# Internal ops alert — same card/gold-CTA layout language as
+# _APPROVAL_EMAIL_HTML above (kept as its own standalone document rather than
+# a shared base template, matching how otp_verification_gold.html and
+# _APPROVAL_EMAIL_HTML each already do), but simpler: single-column, no
+# illustration/social-icon row, since those are affiliate-facing brand touches
+# that don't apply to an internal support-inbox alert. Reuses the same
+# cid:logo asset via _attach_inline_images for brand consistency.
+_ADMIN_ALERT_EMAIL_HTML = """<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>New Affiliate Registration – Approval Required</title>
+<style>
+  body, table, td { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+  @media (max-width: 620px) {
+    .w365-container { width: 100% !important; }
+    .w365-px { padding-left: 22px !important; padding-right: 22px !important; }
+  }
+</style>
+</head>
+<body style="margin:0;padding:0;background:#050505;font-family:'Segoe UI',Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#050505;">
+    <tr><td align="center" style="padding:36px 14px;">
+      <table role="presentation" width="600" class="w365-container" cellpadding="0" cellspacing="0"
+        style="width:600px;max-width:100%;background:#0B0B0B;border:1px solid rgba(212,175,55,0.28);border-radius:18px;overflow:hidden;">
+
+        <tr><td style="height:3px;line-height:3px;font-size:0;background:linear-gradient(90deg,transparent,#D4AF37,#F4E5A1,#D4AF37,transparent);">&nbsp;</td></tr>
+
+        <tr><td align="center" style="padding:30px 40px 0;">
+          <img src="cid:logo" width="88" height="88" alt="JackpotsWorld" style="display:block;border:0;margin:0 auto;">
+        </td></tr>
+
+        <tr><td class="w365-px" style="padding:22px 40px 0;">
+          <div style="font-size:21px;line-height:1.3;font-weight:800;color:#D4AF37;margin-bottom:14px;text-align:center;">New Affiliate Registration &ndash; Approval Required</div>
+          <p style="margin:0 0 16px;font-size:13.5px;line-height:1.7;color:rgba(255,255,255,0.82);text-align:center;">A new affiliate has registered and requires approval.</p>
+
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 18px;border:1px solid rgba(212,175,55,0.4);border-radius:10px;">
+            <tr><td style="padding:16px 18px;">
+              <div style="font-size:13px;line-height:1.95;color:rgba(255,255,255,0.85);">Name: <span style="color:#FFFFFF;font-weight:700;">__NAME__</span></div>
+              <div style="font-size:13px;line-height:1.95;color:rgba(255,255,255,0.85);">Email: <span style="color:#FFFFFF;font-weight:700;">__EMAIL__</span></div>
+              <div style="font-size:13px;line-height:1.95;color:rgba(255,255,255,0.85);">Affiliate ID: <span style="color:#D4AF37;font-weight:800;font-family:'Courier New',monospace;">__UID__</span></div>
+              <div style="font-size:13px;line-height:1.95;color:rgba(255,255,255,0.85);">Registered: <span style="color:#FFFFFF;font-weight:700;">__REGISTERED_AT__</span></div>
+              <div style="font-size:13px;line-height:1.95;color:rgba(255,255,255,0.85);">Status: <span style="color:#F4C430;font-weight:800;">Pending Approval</span></div>
+            </td></tr>
+          </table>
+
+          <p style="margin:0 0 4px;font-size:13px;line-height:1.7;color:rgba(255,255,255,0.6);text-align:center;">Kindly review and approve the affiliate from the admin panel.</p>
+        </td></tr>
+
+        <tr><td align="center" style="padding:22px 40px 34px;">
+          <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+            <td bgcolor="#D4AF37" style="border-radius:10px;background-color:#D4AF37;background-image:linear-gradient(135deg,#D4AF37,#B8860B);">
+              <a href="__ADMIN_URL__" target="_blank" style="display:inline-block;padding:14px 38px;font-size:14px;font-weight:800;color:#08080A;text-decoration:none;letter-spacing:0.4px;">Review &amp; Approve Affiliate</a>
+            </td>
+          </tr></table>
+        </td></tr>
+
+        <tr><td class="w365-px" style="padding:0 40px 30px;">
+          <div style="font-size:10.5px;color:rgba(255,255,255,0.25);text-align:center;line-height:1.6;">This is an automated message from JackpotsWorld.</div>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>"""
+
+
+def send_affiliate_registration_alert(user, profile) -> None:
+    """
+    Alert the support inbox that a new affiliate has registered and is
+    awaiting approval. Best-effort: failures are logged, not raised, so an
+    SMTP hiccup never blocks the applicant's own registration response (same
+    convention as send_affiliate_approval_email above).
+    """
+    subject = "New Affiliate Registration – Approval Required"
+    display_name = user.name or user.email
+    registered_at = profile.created_at.strftime("%b %d, %Y %I:%M %p")
+    message = (
+        f"A new affiliate has registered and requires approval.\n\n"
+        f"Name: {display_name}\n"
+        f"Email: {user.email}\n"
+        f"Affiliate ID: {user.user_uid}\n"
+        f"Registered: {registered_at}\n"
+        f"Status: Pending Approval\n\n"
+        f"Kindly review and approve the affiliate from the admin panel.\n"
+        f"{ADMIN_PORTAL_AFFILIATES_URL}"
+    )
+    html_message = (
+        _ADMIN_ALERT_EMAIL_HTML
+        .replace("__NAME__", html.escape(display_name))
+        .replace("__EMAIL__", html.escape(user.email))
+        .replace("__UID__", html.escape(user.user_uid))
+        .replace("__REGISTERED_AT__", html.escape(registered_at))
+        .replace("__ADMIN_URL__", ADMIN_PORTAL_AFFILIATES_URL)
+    )
+    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@jackpotsworld.vip")
+    try:
+        msg = EmailMultiAlternatives(subject, message, from_email, [SUPPORT_EMAIL])
+        msg.attach_alternative(html_message, "text/html")
+        msg.mixed_subtype = "related"
+        _attach_inline_images(msg)
+        msg.send(fail_silently=False)
+        logger.info(f"Affiliate registration alert sent to {SUPPORT_EMAIL} for {user.email}")
+    except Exception as exc:
+        logger.error(f"Affiliate registration alert for {user.email} failed: {exc}")

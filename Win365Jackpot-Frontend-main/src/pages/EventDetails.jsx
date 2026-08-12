@@ -12,6 +12,9 @@ import PageScrollButtons from '../components/PageScrollButtons'
 import { fetchEventDetail, requestEventTicket } from '../services/eventService'
 import { getFallbackImage, fixMojibakeCurrency } from '../utils/mediaFallback'
 import { getToken } from '../services/authStorage'
+import Seo from '../components/Seo'
+import { eventSchema, breadcrumbSchema } from '../utils/seoSchemas'
+import { toMetaDescription, TITLE_SUFFIX } from '../config/seo'
 
 function formatDate(iso) {
   if (!iso) return ''
@@ -60,6 +63,28 @@ export default function EventDetails() {
   return (
     <div className="min-h-screen" style={{ background: 'var(--w365-bg)' }}>
       <Navbar />
+
+      {/* Overrides the generic route defaults from <RouteSeo> once the
+          record has actually loaded. Rendering nothing while loading or on
+          error leaves the listing-level title in place rather than
+          publishing an empty one. */}
+      {event && (
+        <Seo
+          title={`${event.name}${TITLE_SUFFIX}`}
+          description={toMetaDescription(event.short_description || event.description)}
+          path={`/events/${event.id}`}
+          image={event.image}
+          type="article"
+          jsonLd={[
+            eventSchema(event),
+            breadcrumbSchema([
+              { name: 'Home', path: '/' },
+              { name: 'Events', path: '/events' },
+              { name: event.name, path: `/events/${event.id}` },
+            ]),
+          ].filter(Boolean)}
+        />
+      )}
       <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} defaultTab="login" onAuthSuccess={() => setAuthOpen(false)} />
 
       <main>

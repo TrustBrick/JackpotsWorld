@@ -6,6 +6,7 @@ from django.conf import settings
 from django.http import JsonResponse, FileResponse, Http404
 from django.views.static import serve as serve_static
 from authapp.url_patterns.gift_level_urls import admin_urlpatterns, user_urlpatterns
+from authapp.views.seo_views import sitemap_xml
 
 
 def healthz(request):
@@ -48,6 +49,10 @@ urlpatterns = [
     # Main app APIs (auth, users, wallet, rewards, etc.)
     path('api/', include('authapp.urls')),
 
+    # Dynamic sitemap — must be registered before the SPA catch-all below,
+    # or the catch-all would answer /sitemap.xml with index.html.
+    path('sitemap.xml', sitemap_xml),
+
     # Admin panel APIs from gift_level_urls
     path('admin-panel/', include((admin_urlpatterns, 'admin_gifts'))),
 
@@ -76,5 +81,5 @@ urlpatterns = [
     # top-level pattern rather than raising immediately — without this
     # exclusion a bad /api/... request would silently return the SPA's
     # index.html with a 200 instead of a real 404.
-    re_path(r'^(?!api/|admin/|admin-panel/|static/|media/|healthz/).*$', spa_index),
+    re_path(r'^(?!api/|admin/|admin-panel/|static/|media/|healthz/|sitemap\.xml).*$', spa_index),
 ]

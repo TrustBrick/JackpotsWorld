@@ -5,6 +5,8 @@ import { ThemeProvider } from './context/ThemeContext'
 import { authFetch, API } from './components/user/helpers'
 import { getToken } from './services/authStorage'
 import SessionTimeoutProvider from './components/SessionTimeoutProvider'
+import { HelmetProvider } from 'react-helmet-async'
+import RouteSeo from './components/RouteSeo'
 
 // ── Route-level code splitting ─────────────────────────────────────────────
 // LandingPage stays eager (first paint); everything else is only needed
@@ -123,8 +125,13 @@ export default function App() {
   }, [])
 
   return (
+    <HelmetProvider>
     <ThemeProvider>
     <BrowserRouter>
+      {/* Per-route <head> tags (title/description/canonical/OG/JSON-LD).
+          Inside BrowserRouter because it reads useLocation(); above
+          <Routes> so it applies to every route including lazy ones. */}
+      <RouteSeo />
       {/* One global inactivity manager for every route and every panel —
           see src/config/session.js for the timeout values. */}
       <SessionTimeoutProvider>
@@ -162,5 +169,6 @@ export default function App() {
       </SessionTimeoutProvider>
     </BrowserRouter>
     </ThemeProvider>
+    </HelmetProvider>
   )
 }

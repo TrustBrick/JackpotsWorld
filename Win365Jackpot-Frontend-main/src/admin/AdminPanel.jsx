@@ -7,12 +7,8 @@ import {
   LifeBuoy, Languages, // MULTILINGUAL-CHAT
   ArrowDownCircle, ArrowUpCircle, Sparkles, // WALLET-REQUESTS / GIFTS-REWARDS
   MessageCircle, // LIVE-CHAT
-  LayoutDashboard, ShieldCheck, History, Dices, Megaphone, UsersRound,
-  Landmark, Award, FileEdit, Network, Headset, Settings, ChevronDown,
-  Menu, X, // sidebar reorg: group chevrons + mobile drawer controls
-  Percent, // Affiliate Commissions — was referenced in constants.js but never
-           // actually imported/registered, so this icon silently never
-           // rendered even before this reorganization; fixed while here.
+  Percent, ChevronDown, // AFFILIATE-APPROVAL: sidebar groups + Commission Engine icon
+  Menu, X, // mobile off-canvas drawer controls
 } from "lucide-react";
 
 import OverviewTab       from "./tabs/OverviewTab";
@@ -41,7 +37,7 @@ import SupportTicketsTab    from "./tabs/SupportTicketsTab";           // MULTIL
 import SupportSettingsTab   from "./tabs/content/SupportSettingsTab";  // MULTILINGUAL-CHAT
 import LiveSupportTab       from "./tabs/LiveSupportTab";              // LIVE-CHAT
 
-import { Card, Toast } from "./components/SharedUI";
+import { Card, Toast, NotificationPopup } from "./components/SharedUI";
 import { API, adminFetch } from "./helpers";
 import { endSession, noteLogin } from "../services/sessionManager";
 import { C, ADMIN_TABS, ADMIN_NAV_GROUPS } from "./constants";
@@ -59,9 +55,62 @@ const ICON_MAP = {
   LifeBuoy, Languages, // MULTILINGUAL-CHAT
   ArrowDownCircle, ArrowUpCircle, Sparkles, // WALLET-REQUESTS / GIFTS-REWARDS
   MessageCircle, // LIVE-CHAT
-  LayoutDashboard, ShieldCheck, History, Dices, Megaphone, UsersRound,
-  Landmark, Award, FileEdit, Network, Headset, Settings, Percent,
+  Percent, // Affiliate Commissions — was referenced but never mapped/imported before this change
 };
+
+// AFFILIATE-APPROVAL: sessionStorage keys for sidebar state that should
+// survive a refresh (active tab/group shouldn't reset to Overview every
+// reload).
+const ACTIVE_TAB_KEY    = "admin_active_tab";
+const OPEN_GROUPS_KEY   = "admin_sidebar_open_groups";
+const LAST_ALERTED_KEY  = "admin_notif_last_alerted_id"; // highest Notification id already popped-up/chimed for
+
+function initialTab() {
+  // ?tab=<id> (used by the affiliate-registration email's CTA button and the
+  // in-app notification popup's "Review Affiliate" button) wins over
+  // whatever was last open, which wins over the "overview" default.
+  try {
+    const fromQuery = new URLSearchParams(window.location.search).get("tab");
+    if (fromQuery && ADMIN_TABS.some(t => t.id === fromQuery)) return fromQuery;
+  } catch {}
+  try {
+    const stored = sessionStorage.getItem(ACTIVE_TAB_KEY);
+    if (stored && ADMIN_TABS.some(t => t.id === stored)) return stored;
+  } catch {}
+  return "overview";
+}
+
+function groupForTab(tabId) {
+  return ADMIN_NAV_GROUPS.find(g => g.items.some(i => i.id === tabId))?.group;
+}
+
+function initialOpenGroups() {
+  try {
+    const stored = JSON.parse(sessionStorage.getItem(OPEN_GROUPS_KEY) || "null");
+    if (stored && typeof stored === "object") return stored;
+  } catch {}
+  return {}; // absent = open (see isGroupOpen) — every group starts expanded
+}
+
+// Single rising tone via the Web Audio API — same technique as
+// LiveSupportTab.jsx's playChime() (no binary asset needed/exists in this
+// frontend), pitched differently so the two are distinguishable by ear.
+function playNotifChime() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [660, 990].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.frequency.value = freq;
+      osc.type = "sine";
+      gain.gain.setValueAtTime(0.16, ctx.currentTime + i * 0.13);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.13 + 0.28);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(ctx.currentTime + i * 0.13);
+      osc.stop(ctx.currentTime + i * 0.13 + 0.28);
+    });
+  } catch { /* best-effort only */ }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Admin Login Screen
@@ -87,7 +136,7 @@ function AdminLoginScreen({ onSuccess }) {
         body: JSON.stringify({ email, password }),
       });
       const json = await res.json();
-      // console.log("ADMIN LOGIN RESPONSE:", json); use for dev 
+      // console.log("ADMIN LOGIN RESPONSE:", json); use for dev
       if (res.ok && json.user?.is_staff) {
         localStorage.setItem("admin_token", json.tokens?.access || json.access);
         localStorage.setItem("admin_refresh", json.tokens?.refresh || json.refresh);
@@ -180,33 +229,23 @@ export default function AdminPanel() {
 function AdminPanelInner() {
   const { C } = useAdminTheme();
   const [authed,    setAuthed]    = useState(false);
-  // Persisted across refreshes so re-loading the panel reopens the same
-  // page instead of always resetting to Overview.
-  const [tab,       setTab]       = useState(() => {
-    try { return localStorage.getItem("admin_active_tab") || "overview"; } catch { return "overview"; }
-  });
+  const [tab,       setTabState]  = useState(initialTab);
+  const [openGroups, setOpenGroups] = useState(initialOpenGroups);
   const [toast,     setToast]     = useState(null);
   const [adminUser, setAdminUser] = useState(null);
   // LIVE-CHAT: sidebar unread badge — polls independently of whether the
   // "Live Support" tab is actually open (that tab keeps its own WebSocket
   // connection for its own live view while it's mounted).
   const [liveSupportUnread, setLiveSupportUnread] = useState(0);
-
-  // Which collapsible nav groups are open — defaults to all-open so every
-  // feature stays discoverable; the group containing the active tab is
-  // always treated as open too (see activeGroupId below), even if the admin
-  // had manually collapsed it, so navigating there never hides the page.
-  const [expandedGroups, setExpandedGroups] = useState(
-    () => new Set(ADMIN_NAV_GROUPS.filter(g => g.type === "group").map(g => g.id))
-  );
-  const activeGroupId = ADMIN_NAV_GROUPS.find(
-    g => g.type === "group" && g.items.some(i => i.id === tab)
-  )?.id;
-  const toggleGroup = (id) => setExpandedGroups(prev => {
-    const next = new Set(prev);
-    next.has(id) ? next.delete(id) : next.add(id);
-    return next;
-  });
+  // AFFILIATE-APPROVAL: sidebar "Notifications" badge + the popup below,
+  // both fed by the same poll of the existing per-user Notification model
+  // (GET /api/user/notifications/, already used by the player dashboard and
+  // affiliate panel — see authapp/views/user_views.py). Not WebSocket-based:
+  // the only real-time channel in this app is chat-specific, and the channel
+  // layer silently no-ops without REDIS_URL configured, so polling (like the
+  // live-chat badge above) is the mechanism that's guaranteed to work.
+  const [adminNotifUnread, setAdminNotifUnread] = useState(0);
+  const [notifPopup, setNotifPopup] = useState(null);
 
   // Sidebar becomes an off-canvas drawer below the tablet breakpoint —
   // desktop/laptop keep the always-visible layout unchanged.
@@ -220,11 +259,27 @@ function AdminPanelInner() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  const selectTab = (id) => {
-    setTab(id);
-    try { localStorage.setItem("admin_active_tab", id); } catch {}
-    if (isMobile) setSidebarOpen(false);
+  const setTab = (id) => {
+    setTabState(id);
+    try { sessionStorage.setItem(ACTIVE_TAB_KEY, id); } catch {}
+    const g = groupForTab(id);
+    if (g) setOpenGroups(prev => {
+      if (prev[g] !== false) return prev; // already open (or unset = open)
+      const next = { ...prev, [g]: true };
+      try { sessionStorage.setItem(OPEN_GROUPS_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+    if (isMobile) setSidebarOpen(false); // navigating on mobile closes the drawer
   };
+
+  const toggleGroup = (g) => {
+    setOpenGroups(prev => {
+      const next = { ...prev, [g]: prev[g] === false ? true : false };
+      try { sessionStorage.setItem(OPEN_GROUPS_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+  const isGroupOpen = (g) => openGroups[g] !== false;
 
   useEffect(() => {
     if (!authed) return undefined;
@@ -235,6 +290,39 @@ function AdminPanelInner() {
         const list = Array.isArray(j) ? j : j?.results || [];
         setLiveSupportUnread(list.reduce((sum, s) => sum + (s.unread_count || 0), 0));
       } catch { /* keep previous count on a transient failure */ }
+    };
+    poll();
+    const interval = setInterval(poll, 20000);
+    return () => clearInterval(interval);
+  }, [authed]);
+
+  // AFFILIATE-APPROVAL: admin notification poll — popup + one-time chime for
+  // genuinely new items, badge count for everything unread. "Genuinely new"
+  // is tracked separately from the server's is_read flag via the highest
+  // notification id already alerted-on, persisted to localStorage (mirrors
+  // LiveSupportTab.jsx's SOUND_PREF_KEY pattern) — is_read only changes when
+  // an admin explicitly reads it, which would otherwise mean an unread item
+  // keeps re-popping/re-chiming on every 20s poll forever.
+  useEffect(() => {
+    if (!authed) return undefined;
+    const poll = async () => {
+      try {
+        const r = await adminFetch(`${API}/api/user/notifications/`);
+        const list = await r?.json();
+        if (!Array.isArray(list)) return;
+        setAdminNotifUnread(list.filter(n => !n.is_read).length);
+
+        const lastAlerted = Number(localStorage.getItem(LAST_ALERTED_KEY) || 0);
+        const registrationAlerts = list.filter(n => n.icon === "affiliate_registration");
+        const unseen = registrationAlerts.filter(n => n.id > lastAlerted);
+        if (unseen.length > 0) {
+          const newest = unseen.reduce((a, b) => (a.id > b.id ? a : b));
+          setNotifPopup(newest);
+          playNotifChime();
+        }
+        const highestId = registrationAlerts.reduce((max, n) => Math.max(max, n.id), lastAlerted);
+        if (highestId > lastAlerted) localStorage.setItem(LAST_ALERTED_KEY, String(highestId));
+      } catch { /* keep previous state on a transient failure */ }
     };
     poll();
     const interval = setInterval(poll, 20000);
@@ -278,10 +366,10 @@ function AdminPanelInner() {
       try { setAdminUser(JSON.parse(localStorage.getItem("admin_user") || "{}")); } catch {}
     }} />
   );
-  
+
 
   const renderTab = () => {
-    const props = { onToast: showToast };
+    const props = { onToast: showToast, onNavigate: setTab };
     switch (tab) {
       case "overview":  return <OverviewTab       {...props} />;
       case "users":     return <UsersTab          {...props} />;
@@ -313,56 +401,8 @@ function AdminPanelInner() {
     }
   };
 
-  // Shared button styling for both the pinned Overview item and every
-  // nested group item — identical look, so factored out once rather than
-  // duplicated per render site.
-  const navItemStyle = (active) => ({
-    display: "flex", alignItems: "center", gap: 10,
-    padding: "9px 12px", borderRadius: 10,
-    fontSize: 12, fontWeight: active ? 700 : 500,
-    textAlign: "left", width: "100%", cursor: "pointer",
-    border: active ? `1px solid ${C.gold}30` : "1px solid transparent",
-    background: active ? `${C.gold}12` : "transparent",
-    color: active ? C.gold : C.muted,
-    transition: "all 0.15s",
-  });
-  const navItemHover = (e, active, entering) => {
-    if (active) return;
-    e.currentTarget.style.background = entering ? C.hoverBg : "transparent";
-    e.currentTarget.style.color = entering ? C.text : C.muted;
-  };
-  const groupHeaderStyle = {
-    display: "flex", alignItems: "center", gap: 8,
-    padding: "8px 12px", borderRadius: 8,
-    fontSize: 10.5, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase",
-    textAlign: "left", width: "100%", cursor: "pointer",
-    background: "transparent", border: "none", color: C.muted,
-  };
-
-  const renderBadge = (id) => (
-    <>
-      {id === "wallet" && (
-        <span style={{ marginLeft: "auto", fontSize: 9, fontWeight: 900, padding: "1px 5px", borderRadius: 20, background: C.orange, color: "white" }}>NEW</span>
-      )}
-      {id === "live-support" && liveSupportUnread > 0 && (
-        <span style={{ marginLeft: "auto", fontSize: 9.5, fontWeight: 800, minWidth: 16, height: 16, borderRadius: 8, padding: "0 4px", background: "#ff3366", color: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          {liveSupportUnread}
-        </span>
-      )}
-    </>
-  );
-
   return (
     <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Manrope', sans-serif", display: "flex" }}>
-
-      {/* Themed scrollbar for the sidebar nav region only — subtle, matches
-          the dark/gold theme in both light and dark admin themes. */}
-      <style>{`
-        .admin-sidebar-scroll::-webkit-scrollbar { width: 6px; }
-        .admin-sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
-        .admin-sidebar-scroll::-webkit-scrollbar-thumb { background: ${C.gold}30; border-radius: 10px; }
-        .admin-sidebar-scroll::-webkit-scrollbar-thumb:hover { background: ${C.gold}55; }
-      `}</style>
 
       {/* Mobile hamburger — only rendered below the drawer breakpoint */}
       {isMobile && (
@@ -391,12 +431,12 @@ function AdminPanelInner() {
         padding: "22px 14px",
         display: "flex", flexDirection: "column",
         position: "fixed", top: 0, left: 0, height: "100vh",
-        zIndex: 40,
+        zIndex: 40, overflow: "hidden",
         transition: "transform 0.2s ease",
         transform: isMobile && !sidebarOpen ? "translateX(-100%)" : "translateX(0)",
       }}>
-        {/* Logo — stays fixed, never scrolls with the nav below it */}
-        <div style={{ marginBottom: 22, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, flexShrink: 0 }}>
+        {/* Logo — stays fixed above the scrolling nav below */}
+        <div style={{ flexShrink: 0, marginBottom: 22, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
           <div>
             <BrandMark size={40} />
     <Logo size="md" />
@@ -415,60 +455,72 @@ function AdminPanelInner() {
 
         {/* Admin user badge — also fixed */}
         {adminUser && (
-          <div style={{ marginBottom: 16, padding: "10px 12px", borderRadius: 10, background: `${C.gold}10`, border: `1px solid ${C.gold}20`, flexShrink: 0 }}>
+          <div style={{ flexShrink: 0, marginBottom: 16, padding: "10px 12px", borderRadius: 10, background: `${C.gold}10`, border: `1px solid ${C.gold}20` }}>
             <div style={{ fontSize: 11, color: C.gold, fontWeight: 700 }}>{adminUser.email}</div>
             <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>{adminUser.role || "Admin"}</div>
           </div>
         )}
 
-        {/* Nav — the only scrollable region, so long lists never push the
-            logo/header off-screen or overflow the viewport. */}
-        <nav className="admin-sidebar-scroll" style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden", display: "flex", flexDirection: "column", gap: 2 }}>
+        {/* Nav groups — the only part that scrolls, so logo/badge above and
+            Logout below stay put regardless of how many items are in view.
+            Each group is collapsible; the group containing the active tab
+            is force-opened by setTab(). */}
+        <nav className="admin-sidebar-nav" style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 2, marginRight: -6, paddingRight: 6 }}>
           {ADMIN_NAV_GROUPS.map(g => {
-            if (g.type === "pinned") {
-              const Icon = ICON_MAP[g.icon];
-              const active = tab === g.id;
-              return (
-                <button key={g.id} onClick={() => selectTab(g.id)} style={navItemStyle(active)}
-                  onMouseEnter={e => navItemHover(e, active, true)} onMouseLeave={e => navItemHover(e, active, false)}>
-                  {Icon && <Icon size={13} />}
-                  {g.label}
-                </button>
-              );
-            }
-            const GroupIcon = ICON_MAP[g.icon];
-            const isOpen = expandedGroups.has(g.id) || g.id === activeGroupId;
+            const open = isGroupOpen(g.group);
             return (
-              <div key={g.id} style={{ marginTop: 8 }}>
-                <button onClick={() => toggleGroup(g.id)} style={groupHeaderStyle}
-                  onMouseEnter={e => e.currentTarget.style.color = C.text}
-                  onMouseLeave={e => e.currentTarget.style.color = C.muted}>
-                  {GroupIcon && <GroupIcon size={12} />}
-                  <span style={{ flex: 1 }}>{g.label}</span>
-                  <ChevronDown size={12} style={{ transform: isOpen ? "none" : "rotate(-90deg)", transition: "transform 0.15s", flexShrink: 0 }} />
+              <div key={g.group} style={{ marginBottom: 2 }}>
+                <button onClick={() => toggleGroup(g.group)}
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    width: "100%", padding: "10px 10px 6px", background: "none", border: "none",
+                    cursor: "pointer", textAlign: "left",
+                  }}>
+                  <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: C.dim }}>
+                    {g.group}
+                  </span>
+                  <ChevronDown size={11} style={{ color: C.dim, transform: open ? "none" : "rotate(-90deg)", transition: "transform 0.15s", flexShrink: 0 }} />
                 </button>
-                <AnimatePresence initial={false}>
-                  {isOpen && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.15 }} style={{ overflow: "hidden" }}>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 2, paddingTop: 2 }}>
-                        {g.items.map(t => {
-                          const Icon = ICON_MAP[t.icon];
-                          const active = tab === t.id;
-                          return (
-                            <button key={t.id} onClick={() => selectTab(t.id)} style={navItemStyle(active)}
-                              onMouseEnter={e => navItemHover(e, active, true)} onMouseLeave={e => navItemHover(e, active, false)}>
-                              {Icon && <Icon size={13} />}
-                              {t.label}
-                              {renderBadge(t.id)}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                {open && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    {g.items.map(t => {
+                      const Icon = ICON_MAP[t.icon];
+                      const active = tab === t.id;
+                      return (
+                        <button key={t.id} onClick={() => setTab(t.id)}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 10,
+                            padding: "9px 12px", borderRadius: 10,
+                            fontSize: 12, fontWeight: active ? 700 : 500,
+                            textAlign: "left", width: "100%", cursor: "pointer",
+                            border: active ? `1px solid ${C.gold}30` : "1px solid transparent",
+                            background: active ? `${C.gold}12` : "transparent",
+                            color: active ? C.gold : C.muted,
+                            transition: "all 0.15s",
+                          }}
+                          onMouseEnter={e => { if (!active) { e.currentTarget.style.background = C.hoverBg; e.currentTarget.style.color = C.text; } }}
+                          onMouseLeave={e => { if (!active) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.muted; } }}
+                        >
+                          {Icon && <Icon size={13} />}
+                          {t.label}
+                          {t.id === "wallet" && (
+                            <span style={{ marginLeft: "auto", fontSize: 9, fontWeight: 900, padding: "1px 5px", borderRadius: 20, background: C.orange, color: "white" }}>NEW</span>
+                          )}
+                          {t.id === "live-support" && liveSupportUnread > 0 && (
+                            <span style={{ marginLeft: "auto", fontSize: 9.5, fontWeight: 800, minWidth: 16, height: 16, borderRadius: 8, padding: "0 4px", background: "#ff3366", color: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              {liveSupportUnread}
+                            </span>
+                          )}
+                          {t.id === "notifications" && adminNotifUnread > 0 && (
+                            <span style={{ marginLeft: "auto", fontSize: 9.5, fontWeight: 800, minWidth: 16, height: 16, borderRadius: 8, padding: "0 4px", background: "#ff3366", color: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              {adminNotifUnread}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -476,10 +528,15 @@ function AdminPanelInner() {
 
         {/* Logout — stays fixed at the bottom */}
         <button onClick={logout}
-          style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", borderRadius: 10, fontSize: 12, fontWeight: 600, background: "none", border: "none", color: "rgba(248,113,113,0.7)", cursor: "pointer", width: "100%", marginTop: 8, flexShrink: 0 }}>
+          style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", borderRadius: 10, fontSize: 12, fontWeight: 600, background: "none", border: "none", color: "rgba(248,113,113,0.7)", cursor: "pointer", width: "100%", marginTop: 8 }}>
           <LogOut size={13} /> Logout
         </button>
       </aside>
+      <style>{`
+        .admin-sidebar-nav::-webkit-scrollbar { width: 5px; }
+        .admin-sidebar-nav::-webkit-scrollbar-thumb { background: rgba(212,175,55,0.25); border-radius: 10px; }
+        .admin-sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+      `}</style>
 
       {/* ── Main content ── */}
       {/* <AdminWalletBanner /> */}
@@ -505,6 +562,24 @@ function AdminPanelInner() {
       {/* Toast */}
       <AnimatePresence>
         {toast && <Toast msg={toast.msg} ok={toast.ok} onDone={() => setToast(null)} />}
+      </AnimatePresence>
+
+      {/* New-affiliate-registration popup — separate from Toast above since
+          it needs structured fields + an action button, not just a one-line
+          message (see SharedUI.NotificationPopup). */}
+      <AnimatePresence>
+        {notifPopup && (
+          <NotificationPopup
+            notif={notifPopup}
+            onReview={() => {
+              adminFetch(`${API}/api/user/notifications/${notifPopup.id}/read/`, { method: "POST" }).catch(() => {});
+              setAdminNotifUnread(n => Math.max(0, n - 1));
+              setNotifPopup(null);
+              setTab("affiliates");
+            }}
+            onDismiss={() => setNotifPopup(null)}
+          />
+        )}
       </AnimatePresence>
     </div>
   );
