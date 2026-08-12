@@ -7,6 +7,12 @@ import {
   LifeBuoy, Languages, // MULTILINGUAL-CHAT
   ArrowDownCircle, ArrowUpCircle, Sparkles, // WALLET-REQUESTS / GIFTS-REWARDS
   MessageCircle, // LIVE-CHAT
+  LayoutDashboard, ShieldCheck, History, Dices, Megaphone, UsersRound,
+  Landmark, Award, FileEdit, Network, Headset, Settings, ChevronDown,
+  Menu, X, // sidebar reorg: group chevrons + mobile drawer controls
+  Percent, // Affiliate Commissions — was referenced in constants.js but never
+           // actually imported/registered, so this icon silently never
+           // rendered even before this reorganization; fixed while here.
 } from "lucide-react";
 
 import OverviewTab       from "./tabs/OverviewTab";
@@ -38,7 +44,7 @@ import LiveSupportTab       from "./tabs/LiveSupportTab";              // LIVE-C
 import { Card, Toast } from "./components/SharedUI";
 import { API, adminFetch } from "./helpers";
 import { endSession, noteLogin } from "../services/sessionManager";
-import { C, ADMIN_TABS } from "./constants";
+import { C, ADMIN_TABS, ADMIN_NAV_GROUPS } from "./constants";
 
 import AdminWalletBanner from "./AdminWalletBanner";
 import { AdminThemeProvider, useAdminTheme } from "./context/AdminThemeContext";
@@ -53,6 +59,8 @@ const ICON_MAP = {
   LifeBuoy, Languages, // MULTILINGUAL-CHAT
   ArrowDownCircle, ArrowUpCircle, Sparkles, // WALLET-REQUESTS / GIFTS-REWARDS
   MessageCircle, // LIVE-CHAT
+  LayoutDashboard, ShieldCheck, History, Dices, Megaphone, UsersRound,
+  Landmark, Award, FileEdit, Network, Headset, Settings, Percent,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -172,13 +180,51 @@ export default function AdminPanel() {
 function AdminPanelInner() {
   const { C } = useAdminTheme();
   const [authed,    setAuthed]    = useState(false);
-  const [tab,       setTab]       = useState("overview");
+  // Persisted across refreshes so re-loading the panel reopens the same
+  // page instead of always resetting to Overview.
+  const [tab,       setTab]       = useState(() => {
+    try { return localStorage.getItem("admin_active_tab") || "overview"; } catch { return "overview"; }
+  });
   const [toast,     setToast]     = useState(null);
   const [adminUser, setAdminUser] = useState(null);
   // LIVE-CHAT: sidebar unread badge — polls independently of whether the
   // "Live Support" tab is actually open (that tab keeps its own WebSocket
   // connection for its own live view while it's mounted).
   const [liveSupportUnread, setLiveSupportUnread] = useState(0);
+
+  // Which collapsible nav groups are open — defaults to all-open so every
+  // feature stays discoverable; the group containing the active tab is
+  // always treated as open too (see activeGroupId below), even if the admin
+  // had manually collapsed it, so navigating there never hides the page.
+  const [expandedGroups, setExpandedGroups] = useState(
+    () => new Set(ADMIN_NAV_GROUPS.filter(g => g.type === "group").map(g => g.id))
+  );
+  const activeGroupId = ADMIN_NAV_GROUPS.find(
+    g => g.type === "group" && g.items.some(i => i.id === tab)
+  )?.id;
+  const toggleGroup = (id) => setExpandedGroups(prev => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+
+  // Sidebar becomes an off-canvas drawer below the tablet breakpoint —
+  // desktop/laptop keep the always-visible layout unchanged.
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== "undefined" && window.innerWidth < 1024
+  );
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  const selectTab = (id) => {
+    setTab(id);
+    try { localStorage.setItem("admin_active_tab", id); } catch {}
+    if (isMobile) setSidebarOpen(false);
+  };
 
   useEffect(() => {
     if (!authed) return undefined;
@@ -267,8 +313,75 @@ function AdminPanelInner() {
     }
   };
 
+  // Shared button styling for both the pinned Overview item and every
+  // nested group item — identical look, so factored out once rather than
+  // duplicated per render site.
+  const navItemStyle = (active) => ({
+    display: "flex", alignItems: "center", gap: 10,
+    padding: "9px 12px", borderRadius: 10,
+    fontSize: 12, fontWeight: active ? 700 : 500,
+    textAlign: "left", width: "100%", cursor: "pointer",
+    border: active ? `1px solid ${C.gold}30` : "1px solid transparent",
+    background: active ? `${C.gold}12` : "transparent",
+    color: active ? C.gold : C.muted,
+    transition: "all 0.15s",
+  });
+  const navItemHover = (e, active, entering) => {
+    if (active) return;
+    e.currentTarget.style.background = entering ? C.hoverBg : "transparent";
+    e.currentTarget.style.color = entering ? C.text : C.muted;
+  };
+  const groupHeaderStyle = {
+    display: "flex", alignItems: "center", gap: 8,
+    padding: "8px 12px", borderRadius: 8,
+    fontSize: 10.5, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase",
+    textAlign: "left", width: "100%", cursor: "pointer",
+    background: "transparent", border: "none", color: C.muted,
+  };
+
+  const renderBadge = (id) => (
+    <>
+      {id === "wallet" && (
+        <span style={{ marginLeft: "auto", fontSize: 9, fontWeight: 900, padding: "1px 5px", borderRadius: 20, background: C.orange, color: "white" }}>NEW</span>
+      )}
+      {id === "live-support" && liveSupportUnread > 0 && (
+        <span style={{ marginLeft: "auto", fontSize: 9.5, fontWeight: 800, minWidth: 16, height: 16, borderRadius: 8, padding: "0 4px", background: "#ff3366", color: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          {liveSupportUnread}
+        </span>
+      )}
+    </>
+  );
+
   return (
     <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Manrope', sans-serif", display: "flex" }}>
+
+      {/* Themed scrollbar for the sidebar nav region only — subtle, matches
+          the dark/gold theme in both light and dark admin themes. */}
+      <style>{`
+        .admin-sidebar-scroll::-webkit-scrollbar { width: 6px; }
+        .admin-sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+        .admin-sidebar-scroll::-webkit-scrollbar-thumb { background: ${C.gold}30; border-radius: 10px; }
+        .admin-sidebar-scroll::-webkit-scrollbar-thumb:hover { background: ${C.gold}55; }
+      `}</style>
+
+      {/* Mobile hamburger — only rendered below the drawer breakpoint */}
+      {isMobile && (
+        <button onClick={() => setSidebarOpen(true)} aria-label="Open menu"
+          style={{
+            position: "fixed", top: 16, left: 16, zIndex: 30,
+            width: 38, height: 38, borderRadius: 10,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: C.panelBg, border: `1px solid ${C.border}`, color: C.text, cursor: "pointer",
+          }}>
+          <Menu size={17} />
+        </button>
+      )}
+
+      {/* Backdrop — closes the drawer on click, mobile only */}
+      {isMobile && sidebarOpen && (
+        <div onClick={() => setSidebarOpen(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 35 }} />
+      )}
 
       {/* ── Sidebar ── */}
       <aside style={{
@@ -278,71 +391,99 @@ function AdminPanelInner() {
         padding: "22px 14px",
         display: "flex", flexDirection: "column",
         position: "fixed", top: 0, left: 0, height: "100vh",
-        zIndex: 10, overflowY: "auto",
+        zIndex: 40,
+        transition: "transform 0.2s ease",
+        transform: isMobile && !sidebarOpen ? "translateX(-100%)" : "translateX(0)",
       }}>
-        {/* Logo */}
-        <div style={{ marginBottom: 22, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+        {/* Logo — stays fixed, never scrolls with the nav below it */}
+        <div style={{ marginBottom: 22, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, flexShrink: 0 }}>
           <div>
             <BrandMark size={40} />
     <Logo size="md" />
             <div style={{ fontSize: 10, color: C.muted, letterSpacing: "0.3em", textTransform: "uppercase" }}>Admin Panel</div>
           </div>
-          <AdminThemeToggle size={28} />
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <AdminThemeToggle size={28} />
+            {isMobile && (
+              <button onClick={() => setSidebarOpen(false)} aria-label="Close menu"
+                style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 4 }}>
+                <X size={18} />
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Admin user badge */}
+        {/* Admin user badge — also fixed */}
         {adminUser && (
-          <div style={{ marginBottom: 16, padding: "10px 12px", borderRadius: 10, background: `${C.gold}10`, border: `1px solid ${C.gold}20` }}>
+          <div style={{ marginBottom: 16, padding: "10px 12px", borderRadius: 10, background: `${C.gold}10`, border: `1px solid ${C.gold}20`, flexShrink: 0 }}>
             <div style={{ fontSize: 11, color: C.gold, fontWeight: 700 }}>{adminUser.email}</div>
             <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>{adminUser.role || "Admin"}</div>
           </div>
         )}
 
-        {/* Nav items */}
-        <nav style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
-          {ADMIN_TABS.map(t => {
-            const Icon = ICON_MAP[t.icon];
-            const active = tab === t.id;
+        {/* Nav — the only scrollable region, so long lists never push the
+            logo/header off-screen or overflow the viewport. */}
+        <nav className="admin-sidebar-scroll" style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden", display: "flex", flexDirection: "column", gap: 2 }}>
+          {ADMIN_NAV_GROUPS.map(g => {
+            if (g.type === "pinned") {
+              const Icon = ICON_MAP[g.icon];
+              const active = tab === g.id;
+              return (
+                <button key={g.id} onClick={() => selectTab(g.id)} style={navItemStyle(active)}
+                  onMouseEnter={e => navItemHover(e, active, true)} onMouseLeave={e => navItemHover(e, active, false)}>
+                  {Icon && <Icon size={13} />}
+                  {g.label}
+                </button>
+              );
+            }
+            const GroupIcon = ICON_MAP[g.icon];
+            const isOpen = expandedGroups.has(g.id) || g.id === activeGroupId;
             return (
-              <button key={t.id} onClick={() => setTab(t.id)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 10,
-                  padding: "9px 12px", borderRadius: 10,
-                  fontSize: 12, fontWeight: active ? 700 : 500,
-                  textAlign: "left", width: "100%", cursor: "pointer",
-                  border: active ? `1px solid ${C.gold}30` : "1px solid transparent",
-                  background: active ? `${C.gold}12` : "transparent",
-                  color: active ? C.gold : C.muted,
-                  transition: "all 0.15s",
-                }}
-                onMouseEnter={e => { if (!active) { e.currentTarget.style.background = C.hoverBg; e.currentTarget.style.color = C.text; } }}
-                onMouseLeave={e => { if (!active) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.muted; } }}
-              >
-                {Icon && <Icon size={13} />}
-                {t.label}
-                {t.id === "wallet" && (
-                  <span style={{ marginLeft: "auto", fontSize: 9, fontWeight: 900, padding: "1px 5px", borderRadius: 20, background: C.orange, color: "white" }}>NEW</span>
-                )}
-                {t.id === "live-support" && liveSupportUnread > 0 && (
-                  <span style={{ marginLeft: "auto", fontSize: 9.5, fontWeight: 800, minWidth: 16, height: 16, borderRadius: 8, padding: "0 4px", background: "#ff3366", color: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    {liveSupportUnread}
-                  </span>
-                )}
-              </button>
+              <div key={g.id} style={{ marginTop: 8 }}>
+                <button onClick={() => toggleGroup(g.id)} style={groupHeaderStyle}
+                  onMouseEnter={e => e.currentTarget.style.color = C.text}
+                  onMouseLeave={e => e.currentTarget.style.color = C.muted}>
+                  {GroupIcon && <GroupIcon size={12} />}
+                  <span style={{ flex: 1 }}>{g.label}</span>
+                  <ChevronDown size={12} style={{ transform: isOpen ? "none" : "rotate(-90deg)", transition: "transform 0.15s", flexShrink: 0 }} />
+                </button>
+                <AnimatePresence initial={false}>
+                  {isOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.15 }} style={{ overflow: "hidden" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 2, paddingTop: 2 }}>
+                        {g.items.map(t => {
+                          const Icon = ICON_MAP[t.icon];
+                          const active = tab === t.id;
+                          return (
+                            <button key={t.id} onClick={() => selectTab(t.id)} style={navItemStyle(active)}
+                              onMouseEnter={e => navItemHover(e, active, true)} onMouseLeave={e => navItemHover(e, active, false)}>
+                              {Icon && <Icon size={13} />}
+                              {t.label}
+                              {renderBadge(t.id)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             );
           })}
         </nav>
 
-        {/* Logout */}
+        {/* Logout — stays fixed at the bottom */}
         <button onClick={logout}
-          style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", borderRadius: 10, fontSize: 12, fontWeight: 600, background: "none", border: "none", color: "rgba(248,113,113,0.7)", cursor: "pointer", width: "100%", marginTop: 8 }}>
+          style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", borderRadius: 10, fontSize: 12, fontWeight: 600, background: "none", border: "none", color: "rgba(248,113,113,0.7)", cursor: "pointer", width: "100%", marginTop: 8, flexShrink: 0 }}>
           <LogOut size={13} /> Logout
         </button>
       </aside>
 
       {/* ── Main content ── */}
       {/* <AdminWalletBanner /> */}
-      <main style={{ flex: 1, marginLeft: 228, padding: 26, minHeight: "100vh", overflowX: "hidden" }}>
+      <main style={{ flex: 1, marginLeft: isMobile ? 0 : 228, padding: 26, paddingTop: isMobile ? 70 : 26, minHeight: "100vh", overflowX: "hidden" }}>
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 22 }}>
           <div style={{ fontSize: 18, fontWeight: 900, color: C.text }}>
