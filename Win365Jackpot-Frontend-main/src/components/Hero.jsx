@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from 'react-scroll'
 import { useNavigate } from 'react-router-dom'
-import { Gem, CalendarDays, MapPinned, Gift, MapPin } from 'lucide-react'
+import { Gem, CalendarDays, MapPinned, Gift, MapPin, Crown, Star } from 'lucide-react'
 import { useAutoFetch } from '../hooks/useAutoFetch'
 import { fetchLocations } from '../services/locationService'
 import { fetchHeroStats, fetchLandingSettings } from '../services/landingService'
@@ -351,6 +351,77 @@ const FALLBACK_LOCATIONS = [
   { id: 'ge', name: 'Georgia', country_code: 'GE' },
 ]
 
+// ─── Sri Lankan Premium Valued Partner badge ───────────────────────────────
+// No standalone Bellagio logo/icon asset exists anywhere in the project (the
+// admin-uploaded Bellagio media are full venue photographs, not a mark) — the
+// emblem below is a typographic monogram in the same premium gold language
+// as the rest of the hero, not a cropped photo.
+function PartnerBadge() {
+  return (
+    <motion.div
+      initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }}
+      transition={{ delay:0.8, duration:0.5 }}
+      style={{
+        display:'inline-flex', flexDirection:'column', alignItems:'center', gap:7,
+        padding:'clamp(14px,3.5vw,20px) clamp(22px,6vw,34px)',
+        marginBottom:'clamp(14px,3.5vw,22px)',
+        borderRadius:20,
+        border:'1px solid rgba(212,175,55,0.4)',
+        background:'linear-gradient(180deg, rgba(212,175,55,0.09) 0%, rgba(10,0,8,0.5) 100%)',
+        boxShadow:'0 0 34px rgba(212,175,55,0.14), inset 0 1px 0 rgba(255,255,255,0.06)',
+        maxWidth:'min(92vw, 320px)',
+      }}
+      aria-label="Our Sri Lankan Premium Valued Partner: Bellagio Casino, Colombo"
+    >
+      {/* Emblem — monogram, not a cropped venue photo (see note above) */}
+      <div style={{
+        width:50, height:50, borderRadius:'50%', flexShrink:0,
+        border:'1.5px solid #D4AF37',
+        background:'radial-gradient(circle at 50% 35%, rgba(212,175,55,0.22), rgba(10,0,8,0.6))',
+        display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+        boxShadow:'0 0 16px rgba(212,175,55,0.35), inset 0 0 10px rgba(212,175,55,0.15)',
+      }}>
+        <Crown size={15} color="#F5E07A" strokeWidth={1.5} style={{ marginBottom:1 }} />
+        <span style={{ fontSize:6.5, fontWeight:900, letterSpacing:'0.08em', color:'#D4AF37', fontFamily:"'Manrope', sans-serif" }}>BELLAGIO</span>
+      </div>
+
+      <div style={{
+        fontFamily:"'Manrope', sans-serif", fontSize:'clamp(7px,1.6vw,8.5px)', fontWeight:700,
+        letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(212,175,55,0.75)',
+        textAlign:'center', maxWidth:220,
+      }}>
+        Our Sri Lankan Premium Valued Partner
+      </div>
+
+      <div style={{
+        fontFamily:"'Manrope', sans-serif", fontSize:'clamp(16px,4.2vw,21px)', fontWeight:900,
+        letterSpacing:'0.02em', color:'#F5E07A',
+        textShadow:'0 0 18px rgba(212,175,55,0.45)', lineHeight:1.1,
+      }}>
+        BELLAGIO CASINO
+      </div>
+
+      <div style={{
+        fontFamily:"'Manrope', sans-serif", fontSize:'clamp(9px,2vw,10.5px)', fontWeight:600,
+        letterSpacing:'0.26em', color:'rgba(255,255,255,0.5)', textTransform:'uppercase',
+      }}>
+        Colombo
+      </div>
+
+      <div style={{ display:'flex', gap:3 }} aria-label="5 out of 5 stars">
+        {[0,1,2,3,4].map(i => <Star key={i} size={11} color="#D4AF37" fill="#D4AF37" />)}
+      </div>
+
+      <div style={{
+        fontFamily:"'Manrope', sans-serif", fontSize:'clamp(7px,1.6vw,8px)', fontWeight:700,
+        letterSpacing:'0.18em', color:'rgba(212,175,55,0.55)', textTransform:'uppercase',
+      }}>
+        Trusted • Premium • Exclusive
+      </div>
+    </motion.div>
+  )
+}
+
 // ─── Main Hero ────────────────────────────────────────────────────────────
 export default function Hero() {
   const navigate = useNavigate()
@@ -687,6 +758,8 @@ useEffect(() => {
             </div>
           </div>
         </motion.div>
+
+        <PartnerBadge />
 
         <motion.p
           initial={{ opacity:0 }} animate={{ opacity:1 }}
