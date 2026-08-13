@@ -94,149 +94,173 @@ function RobotIcon({ size = 28 }) {
 }
 
 // ─── VIP concierge avatar ──────────────────────────────────────────────────
-// A compact bust (head + shoulders, no limbs) rather than a full-body
-// character, so it stays avatar-sized in the corner and never competes with
-// page content. Stylized robot throughout — hard shell, headset, visor face —
-// so it can never read as a photographic or realistic person.
+// A glossy black-and-gold concierge bot: domed helmet with a thick gold visor
+// ring, gold ear discs, a single antenna, and a rounded pebble body in a black
+// tuxedo with gold lapels, a necktie and a crown badge on the chest.
 //
-// The support-desk headset with its mic boom is what makes the role legible
-// at ~110px; the crown badge on the chest and the gold-trimmed tuxedo carry
-// the VIP/casino register. Palette is the app's own #D4AF37 gold family.
+// Chibi proportions on purpose — the helmet is deliberately oversized against
+// the body, which is what keeps the face readable once the whole character is
+// only ~120px tall in the corner. Stylized throughout (hard shell, visor, no
+// human features) so it can never read as a photographic or realistic person.
 //
-// Idle life is deliberately understated — float, breathe, blink, a slight
-// head tilt — a premium concierge, not a bouncing mascot. `reduceMotion`
-// stills all of it.
+// Depth is done with layered gradients and specular highlights rather than a
+// raster image, so it stays crisp at any size and recolours with the palette.
+// The app's own gold family (#F7E9A8 / #D4AF37 / #A9801F) is used throughout.
+//
+// Idle life is restrained — float, breathe, a slight head tilt, and an
+// occasional blink. `reduceMotion` stills all of it.
 function ConciergeRobot({ reduceMotion }) {
-  // A single blink cycle carrying two blinks at uneven offsets — a lone
-  // evenly-spaced blink reads as a metronome, which is exactly the robotic
-  // tell the design is trying to avoid.
-  const blink = reduceMotion ? undefined : { ry: [5, 5, 0.4, 5, 5, 5, 0.4, 5, 5] }
-  const blinkTx = { duration: 7.4, repeat: Infinity, times: [0, 0.34, 0.36, 0.38, 0.72, 0.75, 0.77, 0.79, 1], ease: "easeInOut" }
+  // The eyes are happy arcs, so a "blink" is a quick vertical squash of the
+  // pair rather than a lid closing. Two blinks at uneven offsets in one long
+  // cycle — a single evenly-spaced blink reads as a metronome, which is the
+  // robotic tell the design is trying to avoid.
+  const blink = reduceMotion ? undefined : { scaleY: [1, 1, 0.12, 1, 1, 1, 0.12, 1, 1] }
+  const blinkTx = { duration: 7.6, repeat: Infinity, times: [0, 0.33, 0.355, 0.38, 0.7, 0.73, 0.755, 0.78, 1], ease: "easeInOut" }
 
   return (
-    <svg viewBox="0 0 100 108" width="100%" height="100%" style={{ overflow: "visible", display: "block" }}>
+    <svg viewBox="0 0 120 138" width="100%" height="100%" style={{ overflow: "visible", display: "block" }}>
       <defs>
-        <radialGradient id="cb-halo" cx="50%" cy="42%" r="52%">
-          <stop offset="0%" stopColor="#D4AF37" stopOpacity="0.3" />
+        <radialGradient id="cb-halo" cx="50%" cy="38%" r="55%">
+          <stop offset="0%" stopColor="#D4AF37" stopOpacity="0.22" />
           <stop offset="100%" stopColor="#D4AF37" stopOpacity="0" />
         </radialGradient>
         <radialGradient id="cb-ground" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#D4AF37" stopOpacity="0.42" />
+          <stop offset="0%" stopColor="#F5E07A" stopOpacity="0.75" />
+          <stop offset="55%" stopColor="#D4AF37" stopOpacity="0.3" />
           <stop offset="100%" stopColor="#D4AF37" stopOpacity="0" />
         </radialGradient>
-        <linearGradient id="cb-gold" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#F7E9A8" />
-          <stop offset="48%" stopColor="#D4AF37" />
-          <stop offset="100%" stopColor="#A9801F" />
+        <linearGradient id="cb-gold" x1="12%" y1="0%" x2="88%" y2="100%">
+          <stop offset="0%" stopColor="#FBF0BE" />
+          <stop offset="30%" stopColor="#E8C558" />
+          <stop offset="62%" stopColor="#D4AF37" />
+          <stop offset="100%" stopColor="#8E6B18" />
         </linearGradient>
-        <linearGradient id="cb-head" x1="22%" y1="4%" x2="80%" y2="100%">
-          <stop offset="0%" stopColor="#3d382f" />
-          <stop offset="42%" stopColor="#1c1915" />
-          <stop offset="100%" stopColor="#0a0908" />
+        {/* Brighter, more vertical gold for the visor ring so it reads as a
+            polished bezel catching light from above rather than flat trim. */}
+        <linearGradient id="cb-gold-ring" x1="30%" y1="0%" x2="70%" y2="100%">
+          <stop offset="0%" stopColor="#FFF6D2" />
+          <stop offset="26%" stopColor="#EBCB63" />
+          <stop offset="58%" stopColor="#C99F2C" />
+          <stop offset="100%" stopColor="#7E5D14" />
         </linearGradient>
-        <linearGradient id="cb-body" x1="50%" y1="0%" x2="50%" y2="100%">
-          <stop offset="0%" stopColor="#26231e" />
-          <stop offset="55%" stopColor="#111010" />
-          <stop offset="100%" stopColor="#050505" />
-        </linearGradient>
-        <linearGradient id="cb-visor" x1="50%" y1="0%" x2="50%" y2="100%">
-          <stop offset="0%" stopColor="#171320" />
-          <stop offset="100%" stopColor="#050409" />
+        {/* Helmet: lit from upper-left, falling to near-black at the jaw. */}
+        <radialGradient id="cb-helmet" cx="34%" cy="24%" r="82%">
+          <stop offset="0%" stopColor="#55504a" />
+          <stop offset="34%" stopColor="#221f1c" />
+          <stop offset="72%" stopColor="#0d0c0b" />
+          <stop offset="100%" stopColor="#040404" />
+        </radialGradient>
+        <radialGradient id="cb-torso" cx="38%" cy="18%" r="88%">
+          <stop offset="0%" stopColor="#3a3630" />
+          <stop offset="38%" stopColor="#171512" />
+          <stop offset="100%" stopColor="#040404" />
+        </radialGradient>
+        {/* Visor glass — darkest at the centre so the specular streak pops. */}
+        <radialGradient id="cb-visor" cx="32%" cy="22%" r="86%">
+          <stop offset="0%" stopColor="#1d1a24" />
+          <stop offset="45%" stopColor="#0a0910" />
+          <stop offset="100%" stopColor="#030307" />
+        </radialGradient>
+        <linearGradient id="cb-sheen" x1="0%" y1="0%" x2="60%" y2="100%">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.4" />
+          <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
         </linearGradient>
       </defs>
 
       {/* ambient gold pool behind the character */}
-      <circle cx="50" cy="46" r="50" fill="url(#cb-halo)" />
+      <ellipse cx="60" cy="58" rx="58" ry="60" fill="url(#cb-halo)" />
 
       {/* Ground glow — stays put while the body floats above it, and softens
           as the body rises. This contact shadow is what sells "hovering"
           rather than "drifting in space". */}
       <motion.ellipse
-        cx="50" cy="103" rx="24" ry="4.5" fill="url(#cb-ground)"
-        initial={{ scaleX: 1, opacity: 0.9 }}
-        animate={reduceMotion ? undefined : { scaleX: [1, 0.86, 1], opacity: [0.9, 0.62, 0.9] }}
+        cx="60" cy="133" rx="26" ry="3.6" fill="url(#cb-ground)"
+        initial={{ scaleX: 1, opacity: 0.95 }}
+        animate={reduceMotion ? undefined : { scaleX: [1, 0.84, 1], opacity: [0.95, 0.6, 0.95] }}
         transition={{ duration: 3.8, repeat: Infinity, ease: "easeInOut" }}
-        style={{ transformOrigin: "50px 103px" }}
+        style={{ transformOrigin: "60px 133px" }}
       />
 
       {/* Everything above the shadow floats as one unit. */}
       <motion.g
-        animate={reduceMotion ? undefined : { y: [0, -3.4, 0] }}
+        animate={reduceMotion ? undefined : { y: [0, -3.6, 0] }}
         transition={{ duration: 3.8, repeat: Infinity, ease: "easeInOut" }}
       >
-        {/* ── Bust: black tuxedo, gold trim ── */}
-        {/* Breathing — a very slight vertical swell from the shoulder line. */}
+        {/* ── Body: rounded pebble in a black tuxedo ── */}
         <motion.g
-          animate={reduceMotion ? undefined : { scaleY: [1, 1.018, 1] }}
+          animate={reduceMotion ? undefined : { scaleY: [1, 1.016, 1] }}
           transition={{ duration: 4.6, repeat: Infinity, ease: "easeInOut" }}
-          style={{ transformOrigin: "50px 100px" }}
+          style={{ transformOrigin: "60px 126px" }}
         >
-          <path d="M17 100 Q17 72 50 66 Q83 72 83 100 Z"
-            fill="url(#cb-body)" stroke="url(#cb-gold)" strokeWidth="1.1" strokeOpacity="0.5" />
-          {/* lapels — the V that makes it a tuxedo and not a t-shirt */}
-          <path d="M41 69 L50 88 L59 69" fill="none" stroke="url(#cb-gold)" strokeWidth="1.2" strokeOpacity="0.55" strokeLinejoin="round" />
-          <path d="M36 72 Q50 82 64 72" fill="none" stroke="url(#cb-gold)" strokeWidth="1.3" strokeLinecap="round" opacity="0.75" />
+          <path d="M60 78 C44 78 33 89 31 103 C29 116 42 126 60 126 C78 126 91 116 89 103 C87 89 76 78 60 78 Z"
+            fill="url(#cb-torso)" />
+          {/* rim light down the left shoulder — separates body from background */}
+          <path d="M40 88 C34 94 32 100 32 106" fill="none" stroke="#fff" strokeWidth="1.5" strokeOpacity="0.1" strokeLinecap="round" />
 
-          {/* crown badge on the chest — the VIP mark, sized as a lapel pin */}
-          <g transform="translate(31.5 79) scale(0.52)">
+          {/* Shirt: the champagne wedge the lapels open onto. */}
+          <path d="M52 80 L60 79 L68 80 L64 100 L56 100 Z" fill="url(#cb-gold)" opacity="0.92" />
+          {/* Collar points folding over the shirt. */}
+          <path d="M52 80 L60 87 L68 80" fill="none" stroke="#0b0a09" strokeWidth="1.5" strokeLinejoin="round" />
+
+          {/* Necktie — black with a gold edge, as in the reference. */}
+          <path d="M57 87 L63 87 L64.6 106 L60 110 L55.4 106 Z" fill="#08080a" stroke="url(#cb-gold)" strokeWidth="0.7" strokeOpacity="0.55" />
+          <path d="M57.6 84.4 L62.4 84.4 L63 87.4 L57 87.4 Z" fill="#0d0c0e" stroke="url(#cb-gold)" strokeWidth="0.6" strokeOpacity="0.5" />
+
+          {/* Lapels — gold-edged panels sweeping out from the collar. */}
+          <path d="M52 80 C46 84 41 92 39.5 103 L48 100 C49 92 50.5 85 53.5 81.5 Z" fill="#0a0a09" stroke="url(#cb-gold)" strokeWidth="1.15" strokeLinejoin="round" />
+          <path d="M68 80 C74 84 79 92 80.5 103 L72 100 C71 92 69.5 85 66.5 81.5 Z" fill="#0a0a09" stroke="url(#cb-gold)" strokeWidth="1.15" strokeLinejoin="round" />
+
+          {/* Crown badge on the chest — the VIP mark, sized as a lapel pin. */}
+          <g transform="translate(70.5 104) scale(0.42)">
             <path d="M0 12 L3.2 0.8 L8 7.4 L13 -1 L18 7.4 L22.8 0.8 L26 12 Z" fill="url(#cb-gold)" />
-            <circle cx="13" cy="2.4" r="1.5" fill="#F7E9A8" />
+            <circle cx="13" cy="2.2" r="1.6" fill="#FBF0BE" />
           </g>
-
-          {/* gold bow tie at the collar */}
-          <path d="M46.5 67.5 L39.5 63.5 L39.5 71.5 Z" fill="url(#cb-gold)" />
-          <path d="M53.5 67.5 L60.5 63.5 L60.5 71.5 Z" fill="url(#cb-gold)" />
-          <circle cx="50" cy="67.5" r="2.2" fill="#F7E9A8" />
         </motion.g>
-
-        {/* neck */}
-        <rect x="44" y="58" width="12" height="8" rx="3" fill="#14120f" stroke="url(#cb-gold)" strokeWidth="0.9" strokeOpacity="0.55" />
 
         {/* ── Head — a slow, small tilt so it reads as attentive ── */}
         <motion.g
-          animate={reduceMotion ? undefined : { rotate: [0, 1.6, 0, -1.6, 0] }}
+          animate={reduceMotion ? undefined : { rotate: [0, 1.5, 0, -1.5, 0] }}
           transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
-          style={{ transformOrigin: "50px 60px" }}
+          style={{ transformOrigin: "60px 80px" }}
         >
-          {/* head shell */}
-          <rect x="27" y="15" width="46" height="44" rx="15"
-            fill="url(#cb-head)" stroke="url(#cb-gold)" strokeWidth="1.4" strokeOpacity="0.7" />
-          {/* glossy highlight across the crown of the shell */}
-          <path d="M35 21 Q50 16.5 65 21" fill="none" stroke="#fff" strokeWidth="1.3" strokeOpacity="0.18" strokeLinecap="round" />
+          {/* Antenna, off the upper right of the helmet. */}
+          <path d="M88 30 L99 17" stroke="url(#cb-gold)" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+          <circle cx="100.5" cy="15" r="5" fill="url(#cb-gold)" />
+          <circle cx="99" cy="13.4" r="1.6" fill="#FFF6D2" opacity="0.85" />
 
-          {/* headset band + ear cups — the support-desk read */}
-          <path d="M25 33 Q25 11 50 10 Q75 11 75 33" fill="none" stroke="url(#cb-gold)" strokeWidth="3.4" strokeLinecap="round" />
-          <rect x="20.5" y="29" width="9" height="16" rx="4.5" fill="url(#cb-gold)" />
-          <rect x="70.5" y="29" width="9" height="16" rx="4.5" fill="url(#cb-gold)" />
-          {/* mic boom, sweeping in toward the mouth */}
-          <path d="M75 43 Q77 53 65 55" fill="none" stroke="url(#cb-gold)" strokeWidth="1.9" strokeLinecap="round" />
-          <circle cx="64" cy="55.2" r="2.1" fill="url(#cb-gold)" />
+          {/* Ear discs — gold cylinders either side of the helmet. */}
+          <ellipse cx="27" cy="56" rx="7.5" ry="11" fill="url(#cb-gold)" />
+          <ellipse cx="93" cy="56" rx="8.5" ry="12" fill="url(#cb-gold)" />
+          <ellipse cx="94.5" cy="56" rx="4.6" ry="7" fill="#0c0b0a" opacity="0.82" />
 
-          {/* dark glossy visor face plate */}
-          <rect x="32" y="23" width="36" height="27" rx="12"
-            fill="url(#cb-visor)" stroke="url(#cb-gold)" strokeWidth="1" strokeOpacity="0.55" />
-          {/* specular sheen across the visor — the "glossy" cue */}
-          <path d="M35.5 30 Q41 25.5 47 25.5" fill="none" stroke="#fff" strokeWidth="1.6" strokeOpacity="0.13" strokeLinecap="round" />
+          {/* Helmet dome. No outline — the gradient's own falloff is what
+              gives it a glossy moulded edge; a stroke would flatten it. */}
+          <ellipse cx="60" cy="52" rx="34" ry="32" fill="url(#cb-helmet)" />
+          {/* broad specular across the top-left of the dome */}
+          <ellipse cx="47" cy="32" rx="17" ry="9" fill="url(#cb-sheen)" transform="rotate(-24 47 32)" />
+          {/* tight hot spot */}
+          <ellipse cx="43.5" cy="30" rx="5.5" ry="2.8" fill="#fff" opacity="0.3" transform="rotate(-24 43.5 30)" />
 
-          {/* eyes — soft glow pools, then the lit iris. framer-motion animates
-              these as style values, so the starting number must come from
-              `initial`: it does not read back the SVG presentation attribute,
-              and without it the blink silently never runs. */}
-          <ellipse cx="41.5" cy="36" rx="6.4" ry="6.8" fill="#D4AF37" opacity="0.2" />
-          <ellipse cx="58.5" cy="36" rx="6.4" ry="6.8" fill="#D4AF37" opacity="0.2" />
-          <motion.ellipse
-            cx="41.5" cy="36" rx="4.1" ry="5" fill="#F7E9A8"
-            initial={{ ry: 5 }} animate={blink} transition={blinkTx}
-          />
-          <motion.ellipse
-            cx="58.5" cy="36" rx="4.1" ry="5" fill="#F7E9A8"
-            initial={{ ry: 5 }} animate={blink} transition={blinkTx}
-          />
-          <circle cx="42.9" cy="34.2" r="1.15" fill="#fffdf2" opacity="0.9" />
-          <circle cx="59.9" cy="34.2" r="1.15" fill="#fffdf2" opacity="0.9" />
+          {/* Visor bezel + glass. */}
+          <ellipse cx="59" cy="53" rx="26.5" ry="22.5"
+            fill="url(#cb-visor)" stroke="url(#cb-gold-ring)" strokeWidth="4.2" />
+          {/* sheen sweeping across the glass */}
+          <path d="M42 40 C36 45 34.5 53 36 60 C40 50 48 43 58 41 C52 39 46 38.5 42 40 Z" fill="#fff" opacity="0.09" />
+          <ellipse cx="47" cy="43" rx="8" ry="3.4" fill="#fff" opacity="0.1" transform="rotate(-26 47 43)" />
 
-          {/* friendly, restrained smile */}
-          <path d="M44 44 Q50 48.4 56 44" fill="none" stroke="#F7E9A8" strokeWidth="1.7" strokeLinecap="round" opacity="0.9" />
+          {/* Eyes — happy gold arcs. Grouped so the blink squashes both at
+              once about the eye line. framer-motion animates these as style
+              transforms, so `initial` has to seed the starting value: it does
+              not read back the element's own presentation attributes. */}
+          <motion.g
+            initial={{ scaleY: 1 }}
+            animate={blink}
+            transition={blinkTx}
+            style={{ transformOrigin: "59px 55px" }}
+          >
+            <path d="M45 50 Q51.5 60 58 50" fill="none" stroke="#F7E9A8" strokeWidth="4.4" strokeLinecap="round" />
+            <path d="M62 50 Q68.5 60 75 50" fill="none" stroke="#F7E9A8" strokeWidth="4.4" strokeLinecap="round" />
+          </motion.g>
         </motion.g>
       </motion.g>
     </svg>
@@ -859,12 +883,14 @@ export default function ChatBot({ portal = "player" }) {
             transition={{ delay: 1.1, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
             style={{
               position: "relative",
-              maxWidth: "clamp(124px,36vw,156px)",
-              padding: "8px 11px",
-              borderRadius: 12,
-              background: "linear-gradient(160deg, rgba(26,18,6,0.94), rgba(8,5,2,0.94))",
-              border: "1px solid rgba(212,175,55,0.45)",
-              boxShadow: "0 0 20px rgba(212,175,55,0.2), 0 8px 24px rgba(0,0,0,0.5)",
+              maxWidth: "clamp(124px,36vw,158px)",
+              padding: "9px 12px",
+              borderRadius: 16,
+              background: "linear-gradient(160deg, rgba(20,15,5,0.96), rgba(6,4,2,0.96))",
+              border: "1px solid rgba(212,175,55,0.5)",
+              // The inset highlight is the gold catch along the top edge that
+              // the reference bubble has.
+              boxShadow: "0 0 22px rgba(212,175,55,0.18), 0 8px 24px rgba(0,0,0,0.55), inset 0 1px 0 rgba(245,224,122,0.28)",
               backdropFilter: "blur(4px)",
               textAlign: "center",
               pointerEvents: "none",
@@ -883,13 +909,13 @@ export default function ChatBot({ portal = "player" }) {
               Need any help?<br />I'm here for you!
             </div>
             {/* tail — sits over the avatar below it on every breakpoint (the
-                avatar is ~63px wide on a phone, ~115px on desktop) */}
+                avatar is ~59px wide on a phone, ~108px on desktop) */}
             <span aria-hidden style={{
-              position: "absolute", width: 9, height: 9,
-              background: "rgba(8,5,2,0.94)",
-              borderRight: "1px solid rgba(212,175,55,0.45)",
-              borderBottom: "1px solid rgba(212,175,55,0.45)",
-              bottom: -5, right: 24, transform: "rotate(45deg)",
+              position: "absolute", width: 10, height: 10,
+              background: "rgba(6,4,2,0.96)",
+              borderRight: "1px solid rgba(212,175,55,0.5)",
+              borderBottom: "1px solid rgba(212,175,55,0.5)",
+              bottom: -5.5, right: 22, transform: "rotate(45deg)",
             }} />
           </motion.div>
 
@@ -906,9 +932,9 @@ export default function ChatBot({ portal = "player" }) {
               position: "relative",
               // Avatar-sized, never a full-body character: ~68px tall on a
               // 390px phone, ~124px on desktop. Height is what the design is
-              // specified in, so width is derived from the 100x108 viewBox.
+              // specified in, so width is derived from the 120x138 viewBox.
               height: AVATAR_H,
-              width: `calc(${AVATAR_H} / 1.08)`,
+              width: `calc(${AVATAR_H} / 1.15)`,
               padding: 0, border: "none", flexShrink: 0,
               background: "transparent", cursor: "pointer", touchAction: "manipulation",
               WebkitTapHighlightColor: "transparent",
