@@ -233,7 +233,10 @@ function AffiliateDashboard({ affiliateUser, onLogout }) {
         </div>
       )}
 
-      <ChatBot />
+      {/* portal="affiliate" makes the widget read the affiliate token
+          namespace and open the affiliate-side conversation — without it the
+          widget looked for a player session that an affiliate doesn't have. */}
+      <ChatBot portal="affiliate" />
     </div>
   );
 }

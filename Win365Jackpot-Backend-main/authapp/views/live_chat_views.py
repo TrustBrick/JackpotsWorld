@@ -37,7 +37,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from authapp.models.support_ticket_models import SupportTicket
+from authapp.models.support_ticket_models import (
+    SupportTicket,
+    PARTICIPANT_AFFILIATE,
+    PARTICIPANT_PLAYER,
+)
 from authapp.permissions.super_admin_permissions import IsAdminOrSuperAdmin
 from authapp.serializers.live_chat_serializers import (
     ChatMessageSerializer,
@@ -86,7 +90,17 @@ class LiveChatStartView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        session, created = live_chat_service.get_or_create_active_session(request.user)
+        # `portal` is a hint, never an authorisation: the widget knows which
+        # panel it was mounted in, but resolve_participant_type re-checks the
+        # claim against an active AffiliateProfile before honouring it. The
+        # session itself is always keyed to request.user, so the worst a
+        # forged value can do is pick the wrong one of *your own* two threads.
+        participant_type = live_chat_service.resolve_participant_type(
+            request.user, (request.data.get("portal") or "").strip().lower(),
+        )
+        session, created = live_chat_service.get_or_create_active_session(
+            request.user, participant_type,
+        )
         if created:
             live_chat_service.notify_session_started(session)
         messages = session.chat_messages.all()
@@ -115,7 +129,10 @@ class LiveChatMessageListCreateView(generics.ListCreateAPIView):
         text = (request.data.get("message") or "").strip()
         if not text:
             return Response({"error": "message is required"}, status=400)
-        msg = live_chat_service.post_message(ticket, "user", request.user, text)
+        msg = live_chat_service.post_message(
+            ticket, "user", request.user, text,
+            client_message_id=request.data.get("client_message_id"),
+        )
         return Response(ChatMessageSerializer(msg).data, status=201)
 
     def get_throttles(self):
@@ -139,12 +156,19 @@ class AdminLiveChatListView(generics.ListAPIView):
     permission_classes = [IsAdminOrSuperAdmin]
 
     def get_queryset(self):
-        return (
+        qs = (
             SupportTicket.objects
             .filter(is_live_chat=True)
             .select_related("user")
             .order_by("-updated_at")
         )
+        # ?participant_type=player|affiliate backs the inbox's Players /
+        # Affiliates tabs. An unrecognised value is ignored rather than 400ing
+        # so the "All" tab and any older client keep working unchanged.
+        wanted = (self.request.query_params.get("participant_type") or "").strip().lower()
+        if wanted in {PARTICIPANT_PLAYER, PARTICIPANT_AFFILIATE}:
+            qs = qs.filter(participant_type=wanted)
+        return qs
 
 
 class AdminLiveChatMessageListCreateView(generics.ListCreateAPIView):
@@ -163,7 +187,10 @@ class AdminLiveChatMessageListCreateView(generics.ListCreateAPIView):
         text = (request.data.get("message") or "").strip()
         if not text:
             return Response({"error": "message is required"}, status=400)
-        msg = live_chat_service.post_message(ticket, "admin", request.user, text)
+        msg = live_chat_service.post_message(
+            ticket, "admin", request.user, text,
+            client_message_id=request.data.get("client_message_id"),
+        )
         return Response(ChatMessageSerializer(msg).data, status=201)
 
 

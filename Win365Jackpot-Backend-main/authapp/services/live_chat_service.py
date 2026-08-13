@@ -10,23 +10,59 @@
 
 import logging
 
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
-from authapp.models.support_ticket_models import SupportTicket, ChatMessage
+from authapp.models.affiliate_models import AffiliateProfile
+from authapp.models.support_ticket_models import (
+    SupportTicket,
+    ChatMessage,
+    PARTICIPANT_AFFILIATE,
+    PARTICIPANT_PLAYER,
+)
 
 logger = logging.getLogger(__name__)
 
 LIVE_CHAT_SUBJECT = "Live Chat Session"
+AFFILIATE_LIVE_CHAT_SUBJECT = "Affiliate Live Chat Session"
 ACTIVE_STATUSES = ["open", "in_progress"]
 
 
-def get_or_create_active_session(user):
-    """One active live-chat session per user (spec edge case). A
-    resolved/closed session no longer counts, so the next click starts a
-    fresh one — prior sessions remain visible in ticket history."""
+def resolve_participant_type(user, requested):
+    """Decides which portal a session belongs to.
+
+    The client says which portal it *thinks* it is (it knows which panel the
+    widget was opened from), but that claim is only ever honoured after
+    checking the database: "affiliate" requires a real, active AffiliateProfile
+    on the authenticated user. Anything else — a forged body, a stale hint from
+    a revoked affiliate — falls back to "player" rather than being trusted or
+    rejected outright. A user cannot reach another user's thread either way,
+    since the session is always looked up by request.user.
+    """
+    if requested != PARTICIPANT_AFFILIATE:
+        return PARTICIPANT_PLAYER
+    is_affiliate = AffiliateProfile.objects.filter(user=user, is_active=True).exists()
+    return PARTICIPANT_AFFILIATE if is_affiliate else PARTICIPANT_PLAYER
+
+
+def get_or_create_active_session(user, participant_type=PARTICIPANT_PLAYER):
+    """One active live-chat session per user *per portal*. A resolved/closed
+    session no longer counts, so the next click starts a fresh one — prior
+    sessions remain visible in ticket history.
+
+    Scoping by participant_type is what stops the same person's affiliate
+    conversation and player conversation from collapsing into one thread:
+    AffiliateProfile is a OneToOne on User, so both portals authenticate as
+    the same User row and the FK alone can't tell them apart.
+    """
     session = (
         SupportTicket.objects
-        .filter(user=user, is_live_chat=True, status__in=ACTIVE_STATUSES)
+        .filter(
+            user=user,
+            is_live_chat=True,
+            participant_type=participant_type,
+            status__in=ACTIVE_STATUSES,
+        )
         .order_by("-created_at")
         .first()
     )
@@ -34,9 +70,14 @@ def get_or_create_active_session(user):
     if session is None:
         session = SupportTicket.objects.create(
             user=user,
-            subject=LIVE_CHAT_SUBJECT,
+            subject=(
+                AFFILIATE_LIVE_CHAT_SUBJECT
+                if participant_type == PARTICIPANT_AFFILIATE
+                else LIVE_CHAT_SUBJECT
+            ),
             message="(live chat session)",
             is_live_chat=True,
+            participant_type=participant_type,
             status="open",
         )
         created = True
@@ -67,7 +108,22 @@ def _broadcast(group, event_type, payload):
         logger.exception("live-chat: failed to broadcast %s to %s", event_type, group)
 
 
-def post_message(ticket, sender_type, sender_user, text):
+def _message_payload(ticket, msg):
+    return {
+        "id": msg.id,
+        "ticket_id": ticket.id,
+        # Lets the admin inbox file an incoming message under Players or
+        # Affiliates without re-fetching the session list to find out which.
+        "participant_type": ticket.participant_type,
+        "sender_type": msg.sender_type,
+        "message": msg.message,
+        "is_read": msg.is_read,
+        "client_message_id": msg.client_message_id,
+        "created_at": msg.created_at.isoformat(),
+    }
+
+
+def post_message(ticket, sender_type, sender_user, text, client_message_id=None):
     # Stored as plain text, not HTML-escaped — every consumer (both chat
     # widgets) renders this as text content, not raw HTML, so escaping here
     # would just show up as literal "&amp;"/"&lt;" to the recipient.
@@ -75,12 +131,38 @@ def post_message(ticket, sender_type, sender_user, text):
     if not text:
         return None
 
-    msg = ChatMessage.objects.create(
-        ticket=ticket,
-        sender_type=sender_type,
-        sender=sender_user,
-        message=text,
-    )
+    client_message_id = (client_message_id or "").strip() or None
+
+    # Idempotent on client_message_id (see the field's comment): a retried
+    # send whose first attempt actually landed returns the original row
+    # instead of writing a second copy. Racing requests are caught by the
+    # unique constraint rather than by a check-then-insert, which would still
+    # let two concurrent retries through.
+    if client_message_id:
+        existing = ChatMessage.objects.filter(
+            ticket=ticket, client_message_id=client_message_id,
+        ).first()
+        if existing:
+            return existing
+
+    try:
+        with transaction.atomic():
+            msg = ChatMessage.objects.create(
+                ticket=ticket,
+                sender_type=sender_type,
+                sender=sender_user,
+                message=text,
+                client_message_id=client_message_id,
+            )
+    except IntegrityError:
+        if not client_message_id:
+            raise
+        existing = ChatMessage.objects.filter(
+            ticket=ticket, client_message_id=client_message_id,
+        ).first()
+        if existing is None:
+            raise
+        return existing
 
     update_fields = ["updated_at"]
     if sender_type == "user" and ticket.status == "open":
@@ -89,14 +171,7 @@ def post_message(ticket, sender_type, sender_user, text):
     ticket.updated_at = timezone.now()
     ticket.save(update_fields=update_fields)
 
-    payload = {
-        "id": msg.id,
-        "ticket_id": ticket.id,
-        "sender_type": msg.sender_type,
-        "message": msg.message,
-        "is_read": msg.is_read,
-        "created_at": msg.created_at.isoformat(),
-    }
+    payload = _message_payload(ticket, msg)
     _broadcast(f"livechat_{ticket.id}", "chat.message", payload)
     _broadcast("livechat_admins", "chat.message", payload)
     return msg
@@ -105,8 +180,10 @@ def post_message(ticket, sender_type, sender_user, text):
 def notify_session_started(ticket):
     payload = {
         "ticket_id": ticket.id,
+        "participant_type": ticket.participant_type,
         "user_uid": getattr(ticket.user, "user_uid", None),
         "email": ticket.user.email,
+        "name": getattr(ticket.user, "name", "") or "",
         "status": ticket.status,
         "created_at": ticket.created_at.isoformat(),
     }
@@ -121,7 +198,11 @@ def mark_read(ticket, reader_is_admin):
     if not ids:
         return []
     updated.update(is_read=True)
-    payload = {"ticket_id": ticket.id, "message_ids": ids}
+    payload = {
+        "ticket_id": ticket.id,
+        "participant_type": ticket.participant_type,
+        "message_ids": ids,
+    }
     _broadcast(f"livechat_{ticket.id}", "chat.read", payload)
     _broadcast("livechat_admins", "chat.read", payload)
     return ids
