@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from 'react-scroll'
 import { useNavigate } from 'react-router-dom'
-import { Gem, CalendarDays, MapPinned, Gift, MapPin, Star } from 'lucide-react'
+import { Gem, CalendarDays, MapPinned, Gift, MapPin, Star, ShieldCheck, Crown } from 'lucide-react'
 import { useAutoFetch } from '../hooks/useAutoFetch'
 import { fetchLocations } from '../services/locationService'
 import { fetchHeroStats, fetchLandingSettings } from '../services/landingService'
@@ -66,6 +66,20 @@ const CSS = `
      true hover state, so the ticker keeps scrolling there without change. */
   @media (hover: hover) and (pointer: fine) {
     .w365-location-ticker:hover .w365-countries-track { animation-play-state: paused !important; }
+  }
+  /* Partner plaque — logo left / text right on desktop, stacked+centered
+     once the row no longer comfortably fits both side by side. */
+  .w365-partner-plaque { flex-direction: row; text-align: left; }
+  .w365-partner-plaque .w365-partner-info { align-items: flex-start; }
+  @media (max-width: 720px) {
+    .w365-partner-plaque {
+      flex-direction: column; text-align: center;
+      padding: clamp(14px,4vw,20px) clamp(20px,6vw,32px) !important;
+      gap: clamp(10px,2.5vw,16px) !important;
+    }
+    .w365-partner-plaque .w365-partner-info { align-items: center; gap: 6px !important; }
+    .w365-partner-plaque .w365-partner-emblem-wrap { width: 56px !important; height: 56px !important; }
+    .w365-partner-plaque .w365-trust-row { gap: 4px 10px !important; }
   }
 `
 
@@ -399,6 +413,13 @@ function PartnerEmblem({ size = 80 }) {
   )
 }
 
+const TRUST_ITEMS = [
+  { Icon: ShieldCheck, label: 'Trusted' },
+  { Icon: Crown, label: 'Premium' },
+  { Icon: Gem, label: 'Exclusive' },
+  { Icon: Gift, label: 'Gifts & Games' },
+]
+
 // ─── Sri Lankan Premium Valued Partner plaque ──────────────────────────────
 // No literal Bellagio logo file is available in this project — the reference
 // art supplied in chat isn't saved anywhere on disk this build can reach
@@ -406,78 +427,96 @@ function PartnerEmblem({ size = 80 }) {
 // its exact composition (red heart lobe + black circle lobe + stem, gold
 // trim) in SVG rather than embedding a raster copy. Swap in a real asset via
 // PartnerEmblem if one becomes available in /public/images.
+//
+// Wide horizontal plaque (logo left, copy right) on desktop — deliberately
+// breaks out of the Hero's normal 660px-capped content column (see the
+// wrapper in the main render below) so it can occupy real horizontal width
+// instead of reading as a narrow centered card. Collapses to a centered
+// stacked column under 720px via .w365-partner-plaque in the CSS block up
+// top, since a two-column layout has no room to breathe on phones.
 function PartnerBadge() {
   return (
     <motion.div
+      className="w365-partner-plaque"
       initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }}
       transition={{ delay:0.8, duration:0.5 }}
       style={{
         position:'relative',
-        display:'inline-flex', flexDirection:'column', alignItems:'center', gap:8,
-        padding:'clamp(16px,4vw,26px) clamp(30px,8vw,48px)',
-        marginBottom:'clamp(12px,3vw,20px)',
-        borderRadius:16,
+        display:'flex', alignItems:'center', gap:'clamp(20px,4vw,40px)',
+        padding:'clamp(18px,3.5vw,30px) clamp(24px,5vw,52px)',
+        borderRadius:18,
         border:'1px solid rgba(212,175,55,0.45)',
         background:'linear-gradient(180deg, rgba(212,175,55,0.1) 0%, rgba(10,0,8,0.55) 100%)',
-        boxShadow:'0 0 44px rgba(212,175,55,0.16), inset 0 1px 0 rgba(255,255,255,0.06)',
-        maxWidth:'min(92vw, 460px)',
+        boxShadow:'0 0 50px rgba(212,175,55,0.16), inset 0 1px 0 rgba(255,255,255,0.06)',
+        width:'min(94vw, 920px)',
       }}
       aria-label="Our Sri Lankan Premium Valued Partner: Bellagio Casino, Colombo"
     >
       {/* Corner flourishes — plaque/certificate framing, not a plain box */}
       {[
-        { top:8, left:8, borderWidth:'2px 0 0 2px', borderRadius:'6px 0 0 0' },
-        { top:8, right:8, borderWidth:'2px 2px 0 0', borderRadius:'0 6px 0 0' },
-        { bottom:8, left:8, borderWidth:'0 0 2px 2px', borderRadius:'0 0 0 6px' },
-        { bottom:8, right:8, borderWidth:'0 2px 2px 0', borderRadius:'0 0 6px 0' },
+        { top:10, left:10, borderWidth:'2px 0 0 2px', borderRadius:'6px 0 0 0' },
+        { top:10, right:10, borderWidth:'2px 2px 0 0', borderRadius:'0 6px 0 0' },
+        { bottom:10, left:10, borderWidth:'0 0 2px 2px', borderRadius:'0 0 0 6px' },
+        { bottom:10, right:10, borderWidth:'0 2px 2px 0', borderRadius:'0 0 6px 0' },
       ].map((c, i) => (
         <span key={i} aria-hidden style={{
-          position:'absolute', width:16, height:16,
+          position:'absolute', width:20, height:20,
           borderStyle:'solid', borderColor:'#D4AF37', opacity:0.65,
           ...c,
         }} />
       ))}
 
-      <div style={{
-        width:'clamp(66px,16vw,84px)', height:'clamp(66px,16vw,84px)',
-        display:'flex', alignItems:'center', justifyContent:'center',
-        filter:'drop-shadow(0 0 14px rgba(212,175,55,0.4))',
+      <div className="w365-partner-emblem-wrap" style={{
+        width:'clamp(72px,12vw,120px)', height:'clamp(72px,12vw,120px)',
+        display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
+        filter:'drop-shadow(0 0 16px rgba(212,175,55,0.45))',
       }}>
         <PartnerEmblem size="100%" />
       </div>
 
-      <div style={{
-        fontFamily:"'Manrope', sans-serif", fontSize:'clamp(9px,2.1vw,11px)', fontWeight:700,
-        letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(212,175,55,0.8)',
-        textAlign:'center', maxWidth:280,
-      }}>
-        Our Sri Lankan Premium Valued Partner
-      </div>
+      <div className="w365-partner-info" style={{ display:'flex', flexDirection:'column', gap:8, minWidth:0 }}>
+        <div style={{
+          fontFamily:"'Manrope', sans-serif", fontSize:'clamp(9px,1.6vw,11.5px)', fontWeight:700,
+          letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(212,175,55,0.8)',
+        }}>
+          Our Sri Lankan Premium Valued Partner
+        </div>
 
-      <div style={{
-        fontFamily:"'Manrope', sans-serif", fontSize:'clamp(22px,5.5vw,30px)', fontWeight:900,
-        letterSpacing:'0.02em', color:'#F5E07A',
-        textShadow:'0 0 22px rgba(212,175,55,0.5)', lineHeight:1.1,
-      }}>
-        BELLAGIO CASINO
-      </div>
+        <div style={{
+          fontFamily:"'Manrope', sans-serif", fontSize:'clamp(24px,4.2vw,34px)', fontWeight:900,
+          letterSpacing:'0.02em', color:'#F5E07A',
+          textShadow:'0 0 22px rgba(212,175,55,0.5)', lineHeight:1.1,
+        }}>
+          BELLAGIO CASINO
+        </div>
 
-      <div style={{
-        fontFamily:"'Manrope', sans-serif", fontSize:'clamp(10px,2.4vw,12px)', fontWeight:600,
-        letterSpacing:'0.3em', color:'rgba(255,255,255,0.55)', textTransform:'uppercase',
-      }}>
-        Colombo
-      </div>
+        <div style={{
+          fontFamily:"'Manrope', sans-serif", fontSize:'clamp(10px,1.7vw,13px)', fontWeight:600,
+          letterSpacing:'0.3em', color:'rgba(255,255,255,0.55)', textTransform:'uppercase',
+        }}>
+          Colombo
+        </div>
 
-      <div style={{ display:'flex', gap:4 }} aria-label="5 out of 5 stars">
-        {[0,1,2,3,4].map(i => <Star key={i} size={15} color="#D4AF37" fill="#D4AF37" />)}
-      </div>
+        <div style={{ display:'flex', gap:4 }} aria-label="5 out of 5 stars">
+          {[0,1,2,3,4].map(i => <Star key={i} size={15} color="#D4AF37" fill="#D4AF37" />)}
+        </div>
 
-      <div style={{
-        fontFamily:"'Manrope', sans-serif", fontSize:'clamp(8px,1.9vw,9.5px)', fontWeight:700,
-        letterSpacing:'0.2em', color:'rgba(212,175,55,0.6)', textTransform:'uppercase',
-      }}>
-        Trusted • Premium • Exclusive
+        <div className="w365-trust-row" style={{ display:'flex', flexWrap:'wrap', gap:'6px 16px', marginTop:2 }}>
+          {TRUST_ITEMS.map(({ Icon, label }, i) => (
+            <span key={label} style={{ display:'inline-flex', alignItems:'center', gap:5 }}>
+              <Icon size={11} color="#D4AF37" strokeWidth={2} />
+              <span style={{
+                fontFamily:"'Manrope', sans-serif", fontSize:'clamp(8px,1.5vw,10px)', fontWeight:700,
+                letterSpacing:'0.16em', color:'rgba(212,175,55,0.7)', textTransform:'uppercase',
+              }}>
+                {label}
+              </span>
+              {i < TRUST_ITEMS.length - 1 && (
+                <span aria-hidden style={{ color:'rgba(212,175,55,0.35)', marginLeft:11 }}>|</span>
+              )}
+            </span>
+          ))}
+        </div>
       </div>
     </motion.div>
   )
@@ -755,7 +794,19 @@ useEffect(() => {
           <span style={{ width:6, height:6, borderRadius:'50%', background:'#4ade80', flexShrink:0, animation:'pulse-dot 2s infinite', display:'inline-block' }} />
           {settings?.global_reach_tagline || 'Experience World-Class Casino Gaming Across'}
         </motion.div>
+      </div>
 
+      {/* Wide section — the ticker and partner plaque deliberately break out
+          of the 660px-capped column above/below (title, badges, CTAs stay in
+          that narrower centered column unchanged) so they can use real
+          horizontal space on desktop instead of reading as a narrow pill/
+          card, while each still centers itself and caps its own width so
+          neither ever touches the viewport edge or overflows on mobile. */}
+      <div style={{
+        position:'relative', zIndex:10, width:'100%',
+        display:'flex', flexDirection:'column', alignItems:'center',
+        paddingLeft:'clamp(16px,5vw,24px)', paddingRight:'clamp(16px,5vw,24px)',
+      }}>
         {/* Location ticker — small/thin premium pill, independent of the
             badge above (no longer size-locked to it). Same metallic-gold
             theme (gradient + shimmer sweep) as the CTA/heading elsewhere on
@@ -772,16 +823,16 @@ useEffect(() => {
           style={{
             display:'inline-flex', alignItems:'center', gap:6,
             border:'1px solid #F5E07A', borderRadius:999,
-            padding:'3px 12px', marginBottom:'clamp(12px,3vw,24px)',
+            padding:'4px 16px', marginBottom:'clamp(12px,3vw,24px)',
             background:'linear-gradient(135deg,#9c7a24,#D4AF37,#F9E8A0,#D4AF37,#9c7a24)',
             backgroundSize:'220% auto',
             animation:'shimmer 4.5s linear infinite',
             boxShadow:'0 0 10px rgba(212,175,55,0.4), 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.5)',
             fontFamily:"'Manrope', sans-serif",
-            fontSize:'clamp(7px,1.5vw,8.5px)', fontWeight:700,
+            fontSize:'clamp(7px,1.3vw,9.5px)', fontWeight:700,
             letterSpacing:'0.14em', textTransform:'uppercase',
             color:'#1a0010',
-            width:'clamp(200px,54vw,340px)', maxWidth:'92vw',
+            width:'min(94vw, 900px)',
             boxSizing:'border-box',
             overflow:'hidden',
             position:'relative',
@@ -795,7 +846,7 @@ useEffect(() => {
               style={{
                 display:'inline-flex', alignItems:'center', gap:'1.1em',
                 whiteSpace:'nowrap', width:'max-content',
-                animation:'w365-countries-marquee 22s linear infinite',
+                animation:'w365-countries-marquee 26s linear infinite',
                 willChange:'transform',
               }}
             >
@@ -821,7 +872,14 @@ useEffect(() => {
         </motion.div>
 
         <PartnerBadge />
+      </div>
 
+      <div style={{
+        position:'relative', zIndex:10, textAlign:'center', width:'100%',
+        maxWidth:660, margin:'0 auto',
+        paddingLeft:'clamp(16px,5vw,24px)',
+        paddingRight:'clamp(16px,5vw,24px)',
+      }}>
         <motion.p
           initial={{ opacity:0 }} animate={{ opacity:1 }}
           transition={{ delay:0.82 }}
@@ -829,17 +887,28 @@ useEffect(() => {
             fontFamily:"'Manrope', sans-serif",
             color:'rgba(255,255,255,0.28)',
             fontSize:'clamp(8px,2vw,11px)', letterSpacing:'0.14em',
+            marginTop:'clamp(8px,2vw,16px)',
             marginBottom:'clamp(20px,4vw,32px)',
           }}
         >
           {settings?.hero_tagline || 'www.jackpotsworld.vip'}
         </motion.p>
 
-        {/* CTAs */}
+        {/* CTAs — className is a hook SupportAssistant.jsx queries to keep
+            its own floating position clear of these buttons at runtime */}
         <motion.div
+          className="w365-hero-ctas"
           initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }}
           transition={{ delay:0.92 }}
-          style={{ display:'flex', gap:'clamp(8px,2.5vw,16px)', justifyContent:'center', flexWrap:'wrap' }}
+          style={{
+            display:'flex', gap:'clamp(8px,2.5vw,16px)', justifyContent:'center', flexWrap:'wrap',
+            // width:fit-content (not the parent's full width) so this
+            // container's own bounding box hugs the two buttons — SupportAssistant.jsx
+            // measures this rect to keep clear of the CTAs, and a full-width
+            // box padded with empty centered space would make that check
+            // wildly over-conservative.
+            width:'fit-content', maxWidth:'100%', margin:'0 auto',
+          }}
         >
           <Link to="register" smooth duration={600} offset={-80}>
             <motion.button

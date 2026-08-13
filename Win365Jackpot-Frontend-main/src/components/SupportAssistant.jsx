@@ -1,5 +1,13 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+
+// Elements this floating companion must never overlap. Matched by selector
+// rather than a shared React ref since they live in a different component
+// (Hero.jsx) with no context wiring between the two — querying by the same
+// stable className/aria-label Hero.jsx already exposes is simpler than
+// threading refs across files for a one-way visibility check.
+const AVOID_SELECTORS = ['.w365-partner-plaque', '.w365-hero-ctas']
+const AVOID_MARGIN_PX = 8
 
 // ─── Premium floating support assistant ────────────────────────────────────
 // A stylized (non-photorealistic, non-human) black+gold concierge character
@@ -15,7 +23,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 //   PageScrollButtons:  stacked directly above the launcher
 //   SupportAssistant:   stacked directly above PageScrollButtons (below)
 const STACK_BOTTOM = 'calc(clamp(14px, 4vw, 24px) + clamp(50px, 12vw, 60px) + clamp(12px, 3vw, 16px) + clamp(38px, 8vw, 46px) + clamp(10px, 2.5vw, 14px))'
-const SIZE = 'clamp(44px, 11vw, 72px)'
+const SIZE = 'clamp(28px, 9vw, 128px)'
 const GREETING_MS = 6000
 
 function openSupportChat() {
@@ -36,10 +44,67 @@ export default function SupportAssistant() {
     return () => { clearTimeout(inTimer); clearTimeout(outTimer) }
   }, [])
 
+  // No fixed pixel budget or CSS height breakpoint survives every
+  // width/height combination — proved that the hard way (this collided with
+  // the partner plaque, then the Packages button, then the plaque again, at
+  // three different viewport sizes across several rounds of manual margin
+  // tuning; width and height both affect the plaque's wrapped height, so no
+  // single threshold covers every case). Real collision detection against
+  // the actual rendered rects is the only fix that generalizes: measure this
+  // button against the hero elements it must never cover, and hide it
+  // (rather than let it overlap) whenever they'd intersect. The original
+  // ChatBot headset button (unaffected, always rendered) remains the actual
+  // support entry point regardless of what this companion does.
+  const btnWrapRef = useRef(null)
+  const [clear, setClear] = useState(false)
+
+  useEffect(() => {
+    const checkClearance = () => {
+      const el = btnWrapRef.current
+      if (!el) return
+      const mine = el.getBoundingClientRect()
+      const overlapsAny = AVOID_SELECTORS.some(sel => {
+        const target = document.querySelector(sel)
+        if (!target) return false
+        const r = target.getBoundingClientRect()
+        return !(
+          mine.right < r.left - AVOID_MARGIN_PX ||
+          mine.left > r.right + AVOID_MARGIN_PX ||
+          mine.bottom < r.top - AVOID_MARGIN_PX ||
+          mine.top > r.bottom + AVOID_MARGIN_PX
+        )
+      })
+      setClear(!overlapsAny)
+    }
+
+    checkClearance()
+
+    // Web-font swap / late image decode reflows hero content's height after
+    // the first paint — a fixed settle timeout guessed wrong in testing (a
+    // real reflow landed after the guessed delay and was missed), so this
+    // observes the actual avoid-zone elements directly and re-checks on any
+    // genuine size change instead of guessing when things have settled.
+    const ro = new ResizeObserver(checkClearance)
+    AVOID_SELECTORS.forEach(sel => {
+      const target = document.querySelector(sel)
+      if (target) ro.observe(target)
+    })
+    document.fonts?.ready?.then(checkClearance)
+
+    window.addEventListener('resize', checkClearance)
+    window.addEventListener('scroll', checkClearance, { passive: true })
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', checkClearance)
+      window.removeEventListener('scroll', checkClearance)
+    }
+  }, [])
+
   return (
     <div
-      className="fixed z-40 flex flex-col items-end gap-2"
-      style={{ bottom: STACK_BOTTOM, right: 'clamp(12px, 3vw, 24px)' }}
+      ref={btnWrapRef}
+      className="w365-support-assistant fixed z-40 flex flex-col items-end gap-2"
+      style={{ bottom: STACK_BOTTOM, right: 'clamp(12px, 3vw, 24px)', display: clear ? undefined : 'none' }}
     >
       <AnimatePresence>
         {showGreeting && (
@@ -157,12 +222,14 @@ export default function SupportAssistant() {
 
             {/* eyes — blink by squashing ry to near-zero and back */}
             <motion.ellipse
-              cx="40.5" cy="41.5" rx="3.1" fill="#F5E07A"
+              cx="40.5" cy="41.5" rx="3.1" ry="3.6" fill="#F5E07A"
+              initial={{ ry: 3.6 }}
               animate={{ ry: [3.6, 3.6, 0.3, 3.6, 3.6] }}
               transition={{ duration: 4.2, repeat: Infinity, times: [0, 0.9, 0.94, 0.98, 1], ease: 'easeInOut' }}
             />
             <motion.ellipse
-              cx="59.5" cy="41.5" rx="3.1" fill="#F5E07A"
+              cx="59.5" cy="41.5" rx="3.1" ry="3.6" fill="#F5E07A"
+              initial={{ ry: 3.6 }}
               animate={{ ry: [3.6, 3.6, 0.3, 3.6, 3.6] }}
               transition={{ duration: 4.2, repeat: Infinity, times: [0, 0.9, 0.94, 0.98, 1], ease: 'easeInOut' }}
             />
