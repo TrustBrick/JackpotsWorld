@@ -93,7 +93,7 @@ const FALLBACK_COUNTRIES = [
       { src: '/images/marina-srilanka.jpg',        label: 'Marina' },
       { src: '/images/cod-srilanka.jpg',           label: 'City of Dreams' },
     ],
-    casinos: "Bally's Colombo, Marina, Ballagio, Majestic Pride, City of Dreams",
+    casinos: "Bally's Casino, Marina Casino, Bellagio Casino, Majestic Pride, City of Dreams",
     bestFor: 'Blackjack, Slots, Live Poker',
   },
   {
@@ -164,29 +164,71 @@ function WhatsAppBtn({ label = 'Enquire on WhatsApp', pkg = '' }) {
   )
 }
 
+// Browsers block audible autoplay until the visitor has interacted with the
+// page at least once. This tiny module-level flag is shared by every
+// ImageCarousel instance (only one is ever mounted at a time — countries are
+// swapped via AnimatePresence — but the flag must survive that remount), so
+// destination video audio only turns on automatically once a real gesture
+// (click/tap/keypress) has happened anywhere on the page.
+let hasInteractedWithPage = false
+const INTERACTION_EVENTS = ['pointerdown', 'keydown', 'touchstart']
+
+function useHasInteracted() {
+  const [interacted, setInteracted] = useState(hasInteractedWithPage)
+  useEffect(() => {
+    if (interacted) return
+    const markInteracted = () => { hasInteractedWithPage = true; setInteracted(true) }
+    INTERACTION_EVENTS.forEach(evt => document.addEventListener(evt, markInteracted, { passive: true }))
+    return () => INTERACTION_EVENTS.forEach(evt => document.removeEventListener(evt, markInteracted))
+  }, [interacted])
+  return interacted
+}
+
 /* ══════════════════════════════════════════════
    IMAGE CAROUSEL — mobile-first heights
-   • Video slide: starts at low volume (0.18), not blasting
-   • Re-mutes when leaving video slide
+   • Video slide audio follows scroll position: only plays with sound while
+     its section is meaningfully visible (isVisible) AND the browser allows
+     audible playback (hasInteracted) — see the scroll-mute effect below.
+   • Speaker button still works as a manual override, but resets back to the
+     automatic behavior whenever the slide changes or visibility flips.
 ══════════════════════════════════════════════ */
-function ImageCarousel({ images, color, glow }) {
+function ImageCarousel({ images, color, glow, isVisible }) {
   const [idx, setIdx]     = useState(0)
   const [muted, setMuted] = useState(true)   // ← always start muted
+  const [manualMute, setManualMute] = useState(null) // null = automatic, true/false = user override
   const timerRef          = useRef(null)
   const videoRef          = useRef(null)
+  const hasInteracted      = useHasInteracted()
+  const isVideo            = images[idx]?.type === 'video'
 
-  // Sync muted state to video element
+  // Reset any manual override on slide change so a newly active video always
+  // starts from the automatic scroll-driven behavior.
+  useEffect(() => {
+    setManualMute(null)
+  }, [idx])
+
+  // Audio follows scroll position: on only while this video is the active
+  // slide AND its section is meaningfully visible AND the browser will allow
+  // audible playback; a manual speaker click overrides this until the next
+  // slide change or visibility flip. Only one video can ever be unmuted at a
+  // time since this section only ever mounts one ImageCarousel/video at once.
+  useEffect(() => {
+    if (!isVideo) return
+    setMuted(manualMute !== null ? manualMute : !(isVisible && hasInteracted))
+  }, [isVideo, isVisible, hasInteracted, manualMute])
+
+  // Sync muted/volume to the video element, gracefully falling back to muted
+  // playback if the browser rejects an audible play() (autoplay policy).
   useEffect(() => {
     const el = videoRef.current
     if (!el) return
-    el.muted  = muted
     el.volume = muted ? 0 : 0.18
+    el.muted  = muted
+    if (!muted) {
+      const p = el.play()
+      if (p?.catch) p.catch(() => { el.muted = true; setMuted(true) })
+    }
   }, [muted, idx])
-
-  // When switching slides, always re-mute
-  useEffect(() => {
-    setMuted(true)   // ← re-mute on every slide change (was auto-unmuting before)
-  }, [idx])
 
   useEffect(() => {
     setIdx(0)
@@ -208,8 +250,6 @@ function ImageCarousel({ images, color, glow }) {
     clearInterval(timerRef.current)
     timerRef.current = setInterval(() => setIdx(p => (p + 1) % images.length), 2800)
   }
-
-  const isVideo = images[idx]?.type === 'video'
 
   return (
     <div style={{ borderRadius: '14px 14px 0 0', overflow: 'hidden', boxShadow: `0 0 32px ${glow}` }}>
@@ -253,7 +293,7 @@ function ImageCarousel({ images, color, glow }) {
         {/* Speaker toggle — video slides only */}
         {isVideo && (
           <motion.button
-            onClick={() => setMuted(v => !v)}
+            onClick={() => setManualMute(v => !(v === null ? muted : v))}
             initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
             whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.92 }}
             title={muted ? 'Unmute' : 'Mute'}
@@ -911,14 +951,15 @@ function PackagesSection() {
 /* ══════════════════════════════════════════════
    MAIN COMPONENT
    • carouselRef: centers carousel in viewport on country select
-   • carouselInViewRef: scroll listener mutes video when carousel leaves viewport
+   • carouselVisible: IntersectionObserver-driven, powers the video's
+     scroll-based audio behavior (see ImageCarousel's isVisible prop)
 ══════════════════════════════════════════════ */
 export default function CountryPackages() {
   const [active, setActive]   = useState(0)
   const sectionRef            = useRef(null)
   const carouselRef           = useRef(null)
-  const carouselInViewRef     = useRef(false)   // tracks whether carousel is visible
   const { ref: inViewRef, inView } = useInView({ threshold: 0.1, triggerOnce: true })
+  const { ref: carouselVisibleRef, inView: carouselVisible } = useInView({ threshold: 0.5 })
 
   const { data: destinationsData } = useAutoFetch(fetchDestinations, {}, { intervalMs: 60_000 })
   const countries = (Array.isArray(destinationsData) && destinationsData.length > 0 ? destinationsData : FALLBACK_COUNTRIES).map(d => {
@@ -943,25 +984,6 @@ export default function CountryPackages() {
     }
   })
   const country = countries[Math.min(active, countries.length - 1)]
-
-  // Scroll-mute: mute video the moment carousel leaves the viewport
-  useEffect(() => {
-    const handleScroll = () => {
-      if (!carouselRef.current) return
-      const rect = carouselRef.current.getBoundingClientRect()
-      const isVisible = rect.top < window.innerHeight && rect.bottom > 0
-
-      if (!isVisible && carouselInViewRef.current) {
-        // Just scrolled OUT — mute any playing video
-        const video = carouselRef.current.querySelector('video')
-        if (video) { video.muted = true; video.volume = 0 }
-      }
-      carouselInViewRef.current = isVisible
-    }
-
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
 
   const switchCountry = (i) => {
     setActive(i)
@@ -1031,9 +1053,10 @@ export default function CountryPackages() {
           <AnimatePresence mode="wait">
             <motion.div key={active} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -14 }} transition={{ duration: 0.35 }}>
 
-              {/* Carousel — carouselRef enables center-scroll + scroll-mute */}
-              <div ref={carouselRef}>
-                <ImageCarousel images={country.images} color={country.color} glow={country.glow} />
+              {/* Carousel — carouselRef enables center-scroll; carouselVisibleRef
+                  (IntersectionObserver) drives the video's scroll-based audio */}
+              <div ref={el => { carouselRef.current = el; carouselVisibleRef(el) }}>
+                <ImageCarousel images={country.images} color={country.color} glow={country.glow} isVisible={carouselVisible} />
               </div>
 
               {/* Info bar — stacked on mobile, 3-col on desktop */}

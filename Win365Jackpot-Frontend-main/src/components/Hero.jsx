@@ -6,7 +6,7 @@ import { Gem, CalendarDays, MapPinned, Gift, MapPin } from 'lucide-react'
 import { useAutoFetch } from '../hooks/useAutoFetch'
 import { fetchLocations } from '../services/locationService'
 import { fetchHeroStats, fetchLandingSettings } from '../services/landingService'
-import { flagFromCountryCode } from '../utils/countryFlags'
+import { flagFromCountryCode, flagIconUrl } from '../utils/countryFlags'
 
 // ─── CSS ───────────────────────────────────────────────────────────────────
 const CSS = `
@@ -61,6 +61,11 @@ const CSS = `
   }
   @media (prefers-reduced-motion: reduce) {
     .w365-countries-track { animation: none !important; }
+  }
+  /* Pause-on-hover only for devices with a real mouse — touch/mobile has no
+     true hover state, so the ticker keeps scrolling there without change. */
+  @media (hover: hover) and (pointer: fine) {
+    .w365-location-ticker:hover .w365-countries-track { animation-play-state: paused !important; }
   }
 `
 
@@ -336,9 +341,14 @@ function WinnerFeedMobile() {
 const FALLBACK_LOCATIONS = [
   { id: 'vn', name: 'Vietnam', country_code: 'VN' },
   { id: 'mo', name: 'Macau', country_code: 'MO' },
-  { id: 'in', name: 'India', country_code: 'IN' },
+  { id: 'in', name: 'India (Goa)', country_code: 'IN' },
   { id: 'lk', name: 'Sri Lanka', country_code: 'LK' },
   { id: 'ph', name: 'Philippines', country_code: 'PH' },
+  { id: 'us', name: 'Las Vegas', country_code: 'US' },
+  { id: 'my', name: 'Malaysia', country_code: 'MY' },
+  { id: 'sg', name: 'Singapore', country_code: 'SG' },
+  { id: 'am', name: 'Armenia', country_code: 'AM' },
+  { id: 'ge', name: 'Georgia', country_code: 'GE' },
 ]
 
 // ─── Main Hero ────────────────────────────────────────────────────────────
@@ -347,31 +357,6 @@ export default function Hero() {
   const [dailyCr, setDailyCr] = useState(getDailyWinnings)
 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
-
-  // Countries ribbon — pinned to the exact rendered size of the "Experience
-  // World-Class Casino Gaming Across" badge above it, so the scrolling text
-  // never grows the pill wider/taller than that badge at any breakpoint.
-  const countriesBadgeRef = useRef(null)
-  const [countriesBadgeSize, setCountriesBadgeSize] = useState(null)
-  useEffect(() => {
-    const el = countriesBadgeRef.current
-    if (!el) return
-    const update = () => setCountriesBadgeSize({ width: el.offsetWidth, height: el.offsetHeight })
-    update()
-    const ro = new ResizeObserver(update)
-    ro.observe(el)
-    // Web-font swap (e.g. Manrope finishing load) can reflow the badge
-    // narrower after the first measurement without ResizeObserver firing
-    // again reliably in every browser, so re-measure once fonts settle too.
-    document.fonts?.ready?.then(update)
-    // Belt-and-suspenders: some browsers throttle ResizeObserver callbacks
-    // for backgrounded/occluded tabs, so also re-measure on window resize.
-    window.addEventListener('resize', update)
-    return () => {
-      ro.disconnect()
-      window.removeEventListener('resize', update)
-    }
-  }, [])
 
   const { data: locationsData } = useAutoFetch(fetchLocations, {}, { intervalMs: 60_000 })
   const locations = Array.isArray(locationsData) && locationsData.length > 0 ? locationsData : FALLBACK_LOCATIONS
@@ -622,7 +607,6 @@ useEffect(() => {
 
         {/* Destinations badge — same component/styling as the top badge */}
         <motion.div
-          ref={countriesBadgeRef}
           initial={{ opacity:0, y:-20 }} animate={{ opacity:1, y:0 }}
           transition={{ delay:0.68, duration:0.45 }}
           style={{
@@ -640,56 +624,66 @@ useEffect(() => {
           {settings?.global_reach_tagline || 'Experience World-Class Casino Gaming Across'}
         </motion.div>
 
-        {/* Countries ribbon — same size/position/layout as before (pinned to
-            the badge above's exact rendered width/height), restyled to the
-            premium metallic-gold theme: same gradient + shimmer sweep as
-            the CTA button/JACKPOTS heading elsewhere on this page. Only the
-            country text scrolls inside it; data comes from the same
-            admin-managed SupportedLocation API, so new countries added in
-            the Admin Panel show up automatically. */}
+        {/* Location ticker — small/thin premium pill, independent of the
+            badge above (no longer size-locked to it). Same metallic-gold
+            theme (gradient + shimmer sweep) as the CTA/heading elsewhere on
+            the page, just compact. Only the location text scrolls inside it;
+            data comes from the same admin-managed SupportedLocation API, so
+            new locations added in the Admin Panel show up automatically.
+            Hover-to-pause only applies on real-mouse (desktop) devices —
+            see .w365-location-ticker:hover in the CSS block above — so
+            touch/mobile keeps scrolling continuously without needing hover. */}
         <motion.div
+          className="w365-location-ticker"
           initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }}
           transition={{ delay:0.75, duration:0.45 }}
           style={{
-            display:'inline-flex', alignItems:'center', gap:8,
-            border:'1.5px solid #F5E07A', borderRadius:999,
-            padding:'6px 16px', marginBottom:'clamp(12px,3vw,24px)',
+            display:'inline-flex', alignItems:'center', gap:6,
+            border:'1px solid #F5E07A', borderRadius:999,
+            padding:'3px 12px', marginBottom:'clamp(12px,3vw,24px)',
             background:'linear-gradient(135deg,#9c7a24,#D4AF37,#F9E8A0,#D4AF37,#9c7a24)',
             backgroundSize:'220% auto',
             animation:'shimmer 4.5s linear infinite',
-            boxShadow:'0 0 16px rgba(212,175,55,0.5), 0 4px 14px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.55), inset 0 -1px 2px rgba(120,80,10,0.35)',
+            boxShadow:'0 0 10px rgba(212,175,55,0.4), 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.5)',
             fontFamily:"'Manrope', sans-serif",
-            fontSize:'clamp(8px,1.8vw,10px)', fontWeight:700,
-            letterSpacing:'0.18em', textTransform:'uppercase',
+            fontSize:'clamp(7px,1.5vw,8.5px)', fontWeight:700,
+            letterSpacing:'0.14em', textTransform:'uppercase',
             color:'#1a0010',
-            width: countriesBadgeSize ? countriesBadgeSize.width : undefined,
-            height: countriesBadgeSize ? countriesBadgeSize.height : undefined,
+            width:'clamp(200px,54vw,340px)', maxWidth:'92vw',
             boxSizing:'border-box',
             overflow:'hidden',
             position:'relative',
           }}
           aria-label="Casino destinations we operate in"
         >
-          <span style={{ width:6, height:6, borderRadius:'50%', background:'#1a6b1f', flexShrink:0, animation:'pulse-dot 2s infinite', display:'inline-block' }} />
+          <span aria-hidden style={{ width:4, height:4, borderRadius:'50%', background:'#1a6b1f', flexShrink:0, animation:'pulse-dot 2s infinite', display:'inline-block' }} />
           <div style={{ overflow:'hidden', flex:'1 1 auto', minWidth:0 }}>
             <div
               className="w365-countries-track"
               style={{
-                display:'inline-flex', alignItems:'center', gap:'1.4em',
+                display:'inline-flex', alignItems:'center', gap:'1.1em',
                 whiteSpace:'nowrap', width:'max-content',
-                animation:'w365-countries-marquee 16s linear infinite',
+                animation:'w365-countries-marquee 22s linear infinite',
                 willChange:'transform',
               }}
             >
-              {countriesTrack.map((loc, i) => (
-                <span key={`${loc.id ?? loc.name}-${i}`} style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
-                  <span style={{ fontSize:'1.3em', lineHeight:1 }}>
-                    {flagFromCountryCode(loc.country_code) || <MapPin size={9} />}
+              {countriesTrack.map((loc, i) => {
+                const iconUrl = flagIconUrl(loc.country_code)
+                const emoji = flagFromCountryCode(loc.country_code)
+                return (
+                  <span key={`${loc.id ?? loc.name}-${i}`} style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
+                    {iconUrl ? (
+                      <img src={iconUrl} alt="" aria-hidden style={{ width:'1.2em', height:'0.9em', objectFit:'cover', borderRadius:2, boxShadow:'0 0 0 1px rgba(0,0,0,0.15)', flexShrink:0 }} />
+                    ) : emoji ? (
+                      <span style={{ fontSize:'1.1em', lineHeight:1 }}>{emoji}</span>
+                    ) : (
+                      <MapPin size={7} />
+                    )}
+                    {loc.name}
+                    <span aria-hidden style={{ color:'rgba(26,0,16,0.5)' }}>•</span>
                   </span>
-                  {loc.name}
-                  <span aria-hidden style={{ color:'rgba(26,0,16,0.55)' }}>•</span>
-                </span>
-              ))}
+                )
+              })}
             </div>
           </div>
         </motion.div>
