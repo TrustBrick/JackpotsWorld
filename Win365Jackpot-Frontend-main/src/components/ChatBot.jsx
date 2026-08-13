@@ -58,11 +58,9 @@ function mergeLiveMessages(prev, incoming) {
 
 // SVG headset icon
 // The concierge robot mascot, reduced to a solid mark that stays legible at
-// launcher size. Same character as SupportAssistant's full-body robot in the
-// hero (crown, antenna, ear pods, bow tie) so the minimized button and the
-// hero greeter read as one assistant rather than two different things.
-// Drawn in currentColor against the gold disc it always sits on, with the
-// eyes and smile knocked back out in pale gold.
+// launcher size (crown, antenna, ear pods, bow tie). Drawn in currentColor
+// against the gold disc it always sits on, with the eyes and smile knocked
+// back out in pale gold.
 function RobotIcon({ size = 28 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">

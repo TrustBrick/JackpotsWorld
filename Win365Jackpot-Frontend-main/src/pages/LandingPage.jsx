@@ -65,9 +65,6 @@ export default function LandingPage() {
         <Testimonials />
       </main>
       <Footer />
-      {/* SupportAssistant is rendered inside <Hero> itself — it's positioned
-          against the hero's own layout (beside the partner plaque), not as a
-          page-level floating badge. */}
       <PageScrollButtons />
     </div>
   )
