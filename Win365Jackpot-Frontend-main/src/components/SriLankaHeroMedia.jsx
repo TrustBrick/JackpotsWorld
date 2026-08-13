@@ -69,7 +69,12 @@ function normalizeMedia(destination) {
 function HeroVideo({ src, poster, active, onError }) {
   const videoRef = useRef(null)
   const pendingPlayRef = useRef(null)
-  const [muted, setMuted] = useState(true)
+  // Sound defaults on: by the time this mounts the intro has already
+  // collapsed, which only happens after the visitor scrolled, tapped, or
+  // pressed a key (or the hold timer elapsed with no interaction at all).
+  // A real interaction counts as user activation, so an unmuted play()
+  // here is honoured by the browser instead of being autoplay-blocked.
+  const [muted, setMuted] = useState(false)
 
   const play = useCallback(async () => {
     const v = videoRef.current
@@ -115,10 +120,11 @@ function HeroVideo({ src, poster, active, onError }) {
   // Pause on unmount so a route change can't leave audio running.
   useEffect(() => () => { const v = videoRef.current; if (v && !v.paused) v.pause() }, [])
 
-  // Sound starts off: muted autoplay is the only kind every browser allows,
-  // and attempting audio without a prior gesture just gets rejected. If the
-  // visitor has already interacted with the page, the browser will honour an
-  // unmuted start, so take that opportunity when the API reports it.
+  // Retry unmuted once activation lands after the fact: the initial
+  // unmuted play() above can still get autoplay-blocked (e.g. the 4s hold
+  // timer fired with zero interaction), which silently falls back to
+  // muted. The moment the browser reports real user activation, take the
+  // opportunity to switch sound back on.
   useEffect(() => {
     if (!active) return
     if (!navigator.userActivation?.hasBeenActive) return

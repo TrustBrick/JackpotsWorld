@@ -586,12 +586,11 @@ useEffect(() => {
       {/* Winner feeds */}
       {isMobile ? <WinnerFeedMobile /> : <WinnerFeedDesktop />}
 
-      {/* Main Content */}
+      {/* Main Content — badge */}
       <div style={{
         position:'relative', zIndex:10, textAlign:'center', width:'100%',
         maxWidth:660,
         paddingTop:'clamp(72px,18vw,108px)',
-        paddingBottom:'clamp(6px,1.5vw,12px)',
         paddingLeft:'clamp(16px,5vw,24px)',
         paddingRight:'clamp(16px,5vw,24px)',
       }}>
@@ -619,16 +618,30 @@ useEffect(() => {
             .replace(/CASINO'S\b/, 'CASINOS')
             .replace(/\bASIA'S\b/, "ASIA's")}
         </motion.div>
+      </div>
 
-        {/* H1 — the two words are laid out as flex items rather than being
-            split by a <br>, so the stacked intro state and the compact
-            one-line state are the same two nodes in a different direction.
-            framer-motion's `layout` then FLIPs between them: it measures both
-            boxes and animates the difference with transforms, which is what
-            keeps the collapse smooth instead of the hard reflow a font-size
-            or <br> swap on its own would produce. flexWrap is the guard that
-            keeps the wordmark from ever overflowing a narrow viewport — it
-            drops back to two lines rather than spilling sideways. */}
+      {/* H1 — its own full-width wrapper, wider than the 660px text column
+          above/below. At the intro's max font-size a single stacked word
+          like "JACKPOTS" can render wider than that 660px column; when a
+          centered flex item overflows its box, browsers fall back to
+          "safe" start-alignment instead of true centering, which is what
+          made the giant wordmark look shoved to one side. Giving it a much
+          wider box (980px cap) means it never overflows, so centering
+          actually holds. The two words are laid out as flex items rather
+          than being split by a <br>, so the stacked intro state and the
+          compact one-line state are the same two nodes in a different
+          direction. framer-motion's `layout` then FLIPs between them: it
+          measures both boxes and animates the difference with transforms,
+          which is what keeps the collapse smooth instead of the hard
+          reflow a font-size or <br> swap on its own would produce.
+          flexWrap is the guard that keeps the wordmark from ever
+          overflowing a narrow viewport — it drops back to two lines rather
+          than spilling sideways. */}
+      <div style={{
+        position:'relative', zIndex:10, width:'100%',
+        display:'flex', flexDirection:'column', alignItems:'center',
+        paddingLeft:'clamp(16px,5vw,24px)', paddingRight:'clamp(16px,5vw,24px)',
+      }}>
         <motion.h1
           layout
           initial={{ opacity:0, y:32 }} animate={{ opacity:1, y:0 }}
@@ -645,7 +658,8 @@ useEffect(() => {
             alignItems:'center', justifyContent:'center',
             flexWrap:'wrap',
             gap: compact ? '0.26em' : 0,
-            maxWidth:'100%',
+            width:'100%',
+            maxWidth:'min(92vw, 980px)',
           }}
         >
           <motion.span
@@ -665,8 +679,16 @@ useEffect(() => {
             style={{ whiteSpace:'nowrap', color:'rgba(255,255,255,0.92)' }}
           >WORLD</motion.span>
         </motion.h1>
+      </div>
 
-        {/* Gold divider */}
+      {/* Main Content — gold divider */}
+      <div style={{
+        position:'relative', zIndex:10, textAlign:'center', width:'100%',
+        maxWidth:660,
+        paddingBottom:'clamp(6px,1.5vw,12px)',
+        paddingLeft:'clamp(16px,5vw,24px)',
+        paddingRight:'clamp(16px,5vw,24px)',
+      }}>
         <motion.div
           layout
           initial={{ scaleX:0 }} animate={{ scaleX:1 }}
@@ -677,7 +699,6 @@ useEffect(() => {
             margin:'10px auto 16px auto',
           }}
         />
-
       </div>
 
       {/* Sri Lanka premium-partner media — the hero's major visual element,
