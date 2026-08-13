@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, memo } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { Link } from 'react-scroll'
 import { useNavigate } from 'react-router-dom'
 import { Gem, CalendarDays, MapPinned, Gift, MapPin, Star, ShieldCheck, Crown } from 'lucide-react'
@@ -7,6 +7,26 @@ import { useAutoFetch } from '../hooks/useAutoFetch'
 import { fetchLocations } from '../services/locationService'
 import { fetchHeroStats, fetchLandingSettings } from '../services/landingService'
 import { flagFromCountryCode, flagIconUrl } from '../utils/countryFlags'
+import SriLankaHeroMedia from './SriLankaHeroMedia'
+
+// ─── Hero intro timing ─────────────────────────────────────────────────────
+// How long the oversized stacked wordmark holds before collapsing to the
+// compact one-line heading that the rest of the page is laid out around.
+// Change this one number to retime the intro.
+const HERO_INTRO_HOLD_MS = 4000
+// Duration of the collapse itself, shared by the title and by the blocks
+// directly around it so nothing arrives out of step.
+const HERO_COLLAPSE_SEC = 1.1
+const HERO_COLLAPSE_EASE = [0.22, 0.61, 0.36, 1]
+// Spread into each animated block's `transition`.
+//
+// Deliberately applied only inside the title's own column: the Sri Lanka
+// media band is sized to take back roughly what the collapsing title gives
+// up, so the location ticker, partner plaque and CTAs below barely move.
+// That matters because SupportAssistant.jsx measures .w365-hero-ctas and
+// .w365-partner-plaque rects at runtime to keep itself clear of them —
+// animating those elements' transforms would feed it moving targets.
+const HERO_LAYOUT_TWEEN = { duration: HERO_COLLAPSE_SEC, ease: HERO_COLLAPSE_EASE }
 
 // ─── CSS ───────────────────────────────────────────────────────────────────
 const CSS = `
@@ -529,6 +549,34 @@ export default function Hero() {
 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
 
+  // ─── Hero intro ──────────────────────────────────────────────────────────
+  // `compact` false = the oversized stacked wordmark the visitor lands on.
+  // true = the one-line heading, with the freed vertical space handed to the
+  // Sri Lanka premium-partner media band below it.
+  //
+  // Visitors who asked for reduced motion skip the intro entirely and start
+  // compact: they still get the Sri Lanka content, just without the collapse.
+  const reduceMotion = useReducedMotion()
+  const [compact, setCompact] = useState(() => !!reduceMotion)
+
+  useEffect(() => {
+    if (reduceMotion) { setCompact(true); return }
+
+    const collapse = () => setCompact(true)
+    const timer = setTimeout(collapse, HERO_INTRO_HOLD_MS)
+
+    // Someone who starts scrolling or interacting has stopped watching the
+    // intro — collapse immediately rather than making them wait out the hold.
+    const events = ['scroll', 'wheel', 'touchmove', 'keydown', 'pointerdown']
+    const onInteract = () => { clearTimeout(timer); collapse() }
+    events.forEach(e => window.addEventListener(e, onInteract, { passive: true, once: true }))
+
+    return () => {
+      clearTimeout(timer)
+      events.forEach(e => window.removeEventListener(e, onInteract))
+    }
+  }, [reduceMotion])
+
   const { data: locationsData } = useAutoFetch(fetchLocations, {}, { intervalMs: 60_000 })
   const locations = Array.isArray(locationsData) && locationsData.length > 0 ? locationsData : FALLBACK_LOCATIONS
   const countriesTrack = [...locations, ...locations]
@@ -742,33 +790,57 @@ useEffect(() => {
             .replace(/\bASIA'S\b/, "ASIA's")}
         </motion.div>
 
-        {/* H1 */}
+        {/* H1 — the two words are laid out as flex items rather than being
+            split by a <br>, so the stacked intro state and the compact
+            one-line state are the same two nodes in a different direction.
+            framer-motion's `layout` then FLIPs between them: it measures both
+            boxes and animates the difference with transforms, which is what
+            keeps the collapse smooth instead of the hard reflow a font-size
+            or <br> swap on its own would produce. flexWrap is the guard that
+            keeps the wordmark from ever overflowing a narrow viewport — it
+            drops back to two lines rather than spilling sideways. */}
         <motion.h1
+          layout
           initial={{ opacity:0, y:32 }} animate={{ opacity:1, y:0 }}
-          transition={{ delay:0.35, duration:0.65 }}
+          transition={{ delay:0.35, duration:0.65, layout: HERO_LAYOUT_TWEEN }}
           style={{
             fontFamily:"'Manrope', sans-serif",
             fontWeight:700,
-            fontSize:'clamp(52px,13vw,120px)',
+            fontSize: compact ? 'clamp(28px,8vw,62px)' : 'clamp(56px,16vw,150px)',
             lineHeight:0.9,
             margin:'0 0 6px 0',
             letterSpacing:'-0.01em',
+            display:'flex',
+            flexDirection: compact ? 'row' : 'column',
+            alignItems:'center', justifyContent:'center',
+            flexWrap:'wrap',
+            gap: compact ? '0.26em' : 0,
+            maxWidth:'100%',
           }}
         >
-          <span style={{
-            background:'linear-gradient(135deg, #D4AF37 0%, #F5E07A 40%, #C9972A 70%, #D4AF37 100%)',
-            backgroundSize:'200% auto',
-            WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text',
-            animation:'shimmer 3.5s linear infinite',
-          }}>JACKPOTS</span>
-          <br />
-          <span style={{ color:'rgba(255,255,255,0.92)' }}>WORLD</span>
+          <motion.span
+            layout
+            transition={{ layout: HERO_LAYOUT_TWEEN }}
+            style={{
+              whiteSpace:'nowrap',
+              background:'linear-gradient(135deg, #D4AF37 0%, #F5E07A 40%, #C9972A 70%, #D4AF37 100%)',
+              backgroundSize:'200% auto',
+              WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text',
+              animation:'shimmer 3.5s linear infinite',
+            }}
+          >JACKPOTS</motion.span>
+          <motion.span
+            layout
+            transition={{ layout: HERO_LAYOUT_TWEEN }}
+            style={{ whiteSpace:'nowrap', color:'rgba(255,255,255,0.92)' }}
+          >WORLD</motion.span>
         </motion.h1>
 
         {/* Gold divider */}
         <motion.div
+          layout
           initial={{ scaleX:0 }} animate={{ scaleX:1 }}
-          transition={{ delay:0.58, duration:0.45 }}
+          transition={{ delay:0.58, duration:0.45, layout: HERO_LAYOUT_TWEEN }}
           style={{
             width:56, height:2,
             background:'linear-gradient(90deg, transparent, #D4AF37, transparent)',
@@ -776,10 +848,19 @@ useEffect(() => {
           }}
         />
 
+        {/* Sri Lanka premium-partner media — occupies the vertical space the
+            wordmark gives back when it collapses. Complements, rather than
+            replaces, the Sri Lankan Premium Valued Partner plaque further
+            down this hero: that one is the credential, this one is the view.
+            Mounted only once the intro is done, so none of its media is
+            fetched or decoded while the intro is still playing. */}
+        {compact && <SriLankaHeroMedia />}
+
         {/* Destinations badge — same component/styling as the top badge */}
         <motion.div
+          layout
           initial={{ opacity:0, y:-20 }} animate={{ opacity:1, y:0 }}
-          transition={{ delay:0.68, duration:0.45 }}
+          transition={{ delay:0.68, duration:0.45, layout: HERO_LAYOUT_TWEEN }}
           style={{
             display:'inline-flex', alignItems:'center', gap:8,
             border:'1px solid rgba(212,175,55,0.35)', borderRadius:999,
