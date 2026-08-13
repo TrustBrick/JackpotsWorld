@@ -7,6 +7,18 @@ import { asMessageArray, highestRealId } from "../services/liveChatMessages"
 const API = import.meta.env.VITE_API_URL || ""
 const INACTIVITY_MS = 3 * 60 * 1000 // 3 minutes
 const HISTORY_KEY = "chatbot_messages"
+
+// Which stored session this widget speaks for. The affiliate panel is a
+// genuinely separate login with its own token namespace (see
+// affiliate/helpers.js) — reading the player's "access" key while mounted
+// there is what stopped affiliate live chats from ever reaching an agent:
+// with no player session the token was simply null and the widget answered
+// "please sign in", and with a stale player session still in localStorage it
+// opened a chat as *that player* instead, so the agent saw the message under
+// the wrong identity. The portal also tells the server which of the user's
+// two conversations to attach to (it re-verifies the claim; see
+// live_chat_service.resolve_participant_type).
+const PORTAL_TOKEN_KEYS = { player: "access", affiliate: "affiliate_token" }
 // Only a client-side default — the server sends poll_interval_ms from
 // /api/live-chat/start/ and that value wins.
 const LIVE_POLL_MS = 2000
@@ -45,11 +57,32 @@ function mergeLiveMessages(prev, incoming) {
 
 
 // SVG headset icon
-function HeadsetIcon({ size = 28 }) {
+// The concierge robot mascot, reduced to a solid mark that stays legible at
+// launcher size. Same character as SupportAssistant's full-body robot in the
+// hero (crown, antenna, ear pods, bow tie) so the minimized button and the
+// hero greeter read as one assistant rather than two different things.
+// Drawn in currentColor against the gold disc it always sits on, with the
+// eyes and smile knocked back out in pale gold.
+function RobotIcon({ size = 28 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
-      <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* antenna */}
+      <path d="M6.6 6.4 L4.8 3.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="4.5" cy="2.9" r="1.35" fill="currentColor" />
+      {/* crown */}
+      <path d="M8.4 5.6 L9.5 2.5 L11 4.6 L12.6 1.7 L14.2 4.6 L15.7 2.5 L16.8 5.6 Z" fill="currentColor" />
+      {/* ear pods */}
+      <rect x="2.9" y="9.6" width="2.5" height="5" rx="1.25" fill="currentColor" />
+      <rect x="18.6" y="9.6" width="2.5" height="5" rx="1.25" fill="currentColor" />
+      {/* head */}
+      <rect x="5.2" y="5.6" width="13.6" height="11.4" rx="4.4" fill="currentColor" />
+      {/* shoulders / bow tie */}
+      <path d="M4.2 22.5 Q4.2 18.6 12 17.7 Q19.8 18.6 19.8 22.5 Z" fill="currentColor" />
+      <path d="M10.9 18.6 L8.6 17.1 L8.6 20.1 Z M13.1 18.6 L15.4 17.1 L15.4 20.1 Z" fill="#F7E9A8" />
+      {/* face */}
+      <ellipse cx="9.4" cy="10.7" rx="1.55" ry="1.85" fill="#F7E9A8" />
+      <ellipse cx="14.6" cy="10.7" rx="1.55" ry="1.85" fill="#F7E9A8" />
+      <path d="M9.8 13.9 Q12 15.5 14.2 13.9" stroke="#F7E9A8" strokeWidth="1.3" strokeLinecap="round" fill="none" />
     </svg>
   )
 }
@@ -88,18 +121,25 @@ function TypingDots() {
   )
 }
 
-function loadStoredMessages() {
+// Per-portal, so a player transcript and an affiliate transcript don't read
+// back into each other's widget on a browser that has been used for both.
+function historyKey(portal) {
+  return portal === "player" ? HISTORY_KEY : `${HISTORY_KEY}_${portal}`
+}
+
+function loadStoredMessages(portal) {
   try {
-    const saved = JSON.parse(sessionStorage.getItem(HISTORY_KEY) || "null")
+    const saved = JSON.parse(sessionStorage.getItem(historyKey(portal)) || "null")
     return Array.isArray(saved) && saved.length ? saved : [WELCOME]
   } catch {
     return [WELCOME]
   }
 }
 
-export default function ChatBot() {
+export default function ChatBot({ portal = "player" }) {
+  const tokenKey = PORTAL_TOKEN_KEYS[portal] || PORTAL_TOKEN_KEYS.player
   const [open, setOpen]         = useState(false)
-  const [messages, setMessages] = useState(loadStoredMessages)
+  const [messages, setMessages] = useState(() => loadStoredMessages(portal))
   const [input, setInput]       = useState("")
   const [loading, setLoading]   = useState(false)
   const [unread, setUnread]     = useState(0)
@@ -151,7 +191,7 @@ export default function ChatBot() {
   useEffect(() => () => teardownLiveConnection(), [teardownLiveConnection])
 
   const startLiveChat = async () => {
-    const token = getToken("access")
+    const token = getToken(tokenKey)
     if (!token) {
       setMessages(prev => [...prev, {
         role: "bot",
@@ -165,7 +205,8 @@ export default function ChatBot() {
     try {
       const res = await fetch(`${API}/api/live-chat/start/`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ portal }),
       })
       if (!res.ok) throw new Error("start failed")
       const data = await res.json()
@@ -208,15 +249,21 @@ export default function ChatBot() {
   }
 
   const sendLiveMessage = async (text) => {
-    const token = getToken("access")
+    const token = getToken(tokenKey)
     if (!token || !liveTicketId) return
     const tempId = `pending-${Date.now()}`
+    // Stable across both attempts below, so the retry is recognised as the
+    // same message server-side rather than posting a second copy when the
+    // first request actually landed and only its response was lost.
+    const clientMessageId = typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `${sessionIdRef.current}-${Date.now()}`
     setLiveMessages(prev => [...prev, { id: tempId, sender_type: "user", message: text, status: "pending", created_at: new Date().toISOString() }])
 
     const attempt = () => fetch(`${API}/api/live-chat/${liveTicketId}/messages/`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ message: text }),
+      body: JSON.stringify({ message: text, client_message_id: clientMessageId }),
     })
 
     try {
@@ -243,8 +290,8 @@ export default function ChatBot() {
 
   // persist within the browser session (survives refresh, clears on browser close)
   useEffect(() => {
-    try { sessionStorage.setItem(HISTORY_KEY, JSON.stringify(messages)) } catch {}
-  }, [messages])
+    try { sessionStorage.setItem(historyKey(portal), JSON.stringify(messages)) } catch {}
+  }, [messages, portal])
 
   // clear unread when opened
   useEffect(() => {
@@ -269,9 +316,9 @@ export default function ChatBot() {
     inactivityRef.current = setTimeout(() => {
       setMessages([WELCOME])
       setUnread(0)
-      try { sessionStorage.removeItem(HISTORY_KEY) } catch {}
+      try { sessionStorage.removeItem(historyKey(portal)) } catch {}
     }, INACTIVITY_MS)
-  }, [])
+  }, [portal])
 
   // start inactivity timer when chat opens
   useEffect(() => {
@@ -304,7 +351,7 @@ export default function ChatBot() {
       // Attach the access token when the visitor is signed in so support
       // can look up their own wallet/transaction/KYC data — never sent for
       // anonymous, pre-login visitors.
-      const token = getToken("access")
+      const token = getToken(tokenKey)
 
       const res = await fetch(`${API}/api/chat/message/`, {
         method: "POST",
@@ -393,7 +440,7 @@ export default function ChatBot() {
                 display: "flex", alignItems: "center", justifyContent: "center",
                 flexShrink: 0,
               }}>
-                <HeadsetIcon size={18} />
+                <RobotIcon size={22} />
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", letterSpacing: "0.02em" }}>
@@ -468,7 +515,7 @@ export default function ChatBot() {
                         display: "flex", alignItems: "center", justifyContent: "center",
                         marginRight: 7, marginTop: 2, alignSelf: "flex-start",
                       }}>
-                        <HeadsetIcon size={12} />
+                        <RobotIcon size={15} />
                       </div>
                     )}
                     <div style={{
@@ -493,7 +540,7 @@ export default function ChatBot() {
                   </div>
                   {m.signInPrompt && (
                     <button
-                      onClick={() => { window.location.href = "/sign-in" }}
+                      onClick={() => { window.location.href = portal === "affiliate" ? "/affiliate-login" : "/sign-in" }}
                       style={{
                         marginTop: 6, marginLeft: 31, padding: "5px 12px", borderRadius: 8,
                         background: "rgba(212,175,55,0.15)", border: "1px solid rgba(212,175,55,0.3)",
@@ -524,7 +571,7 @@ export default function ChatBot() {
                     display: "flex", alignItems: "center", justifyContent: "center",
                     marginRight: 7, flexShrink: 0,
                   }}>
-                    <HeadsetIcon size={12} />
+                    <RobotIcon size={15} />
                   </div>
                   <div style={{
                     background: "rgba(255,255,255,0.07)",
@@ -646,7 +693,7 @@ export default function ChatBot() {
             </motion.span>
           ) : (
             <motion.span key="open" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}>
-              <HeadsetIcon size={26} />
+              <RobotIcon size={30} />
             </motion.span>
           )}
         </AnimatePresence>

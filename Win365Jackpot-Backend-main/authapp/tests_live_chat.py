@@ -12,6 +12,7 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase
 
+from authapp.models.affiliate_models import AffiliateProfile
 from authapp.models.support_ticket_models import ChatMessage, SupportTicket
 
 User = get_user_model()
@@ -166,3 +167,210 @@ class LiveChatDeliveryTests(APITestCase):
         self._as(self.player)
         res = self.client.get(f"/api/admin-panel/live-chat/{ticket_id}/messages/")
         self.assertIn(res.status_code, (401, 403))
+
+
+class AffiliateChatRoutingTests(APITestCase):
+    """Affiliate -> Admin -> Affiliate, and its separation from player chat.
+
+    The bug these cover: an affiliate is the *same* User row as a player
+    (AffiliateProfile is a OneToOne on top of it), so nothing in the session
+    lookup distinguished "this person opened the chat from the affiliate
+    portal" from "...from the player dashboard" — both collapsed onto one
+    thread. On the client side the widget only ever read the player token
+    namespace, so an affiliate without a player session couldn't open a chat
+    at all, and one with a stale player session opened it as that player.
+    """
+
+    def setUp(self):
+        counter = count()
+        patcher = patch(
+            "authapp.signals.generate_account_number",
+            side_effect=lambda wtype: f"TEST{wtype}{next(counter):06d}",
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+        self.affiliate = User.objects.create_user(
+            email="aff@example.com", password="pw-Test-1", user_uid="TESTAFF1",
+        )
+        AffiliateProfile.objects.create(user=self.affiliate, is_active=True)
+
+        self.player = User.objects.create_user(
+            email="plr@example.com", password="pw-Test-1", user_uid="TESTPLR2",
+        )
+        self.agent = User.objects.create_user(
+            email="agent2@example.com", password="pw-Test-1", user_uid="TESTAGT2",
+            is_staff=True, is_superuser=True,
+        )
+
+    def _as(self, user):
+        self.client.force_authenticate(user=user)
+
+    def _start(self, user, portal):
+        self._as(user)
+        res = self.client.post("/api/live-chat/start/", {"portal": portal}, format="json")
+        self.assertEqual(res.status_code, 200)
+        return res.data["session"]
+
+    def _rows(self, response):
+        data = response.data
+        return data if isinstance(data, list) else data["results"]
+
+    # -- Affiliate -> Admin --------------------------------------------------
+    def test_affiliate_message_reaches_the_admin_inbox(self):
+        session = self._start(self.affiliate, "affiliate")
+        self.assertEqual(session["participant_type"], "affiliate")
+
+        self._as(self.affiliate)
+        sent = self.client.post(
+            f"/api/live-chat/{session['id']}/messages/",
+            {"message": "Hello, I need help with my account."}, format="json",
+        )
+        self.assertEqual(sent.status_code, 201)
+
+        self._as(self.agent)
+        rows = self._rows(
+            self.client.get("/api/admin-panel/live-chat/list/?participant_type=affiliate")
+        )
+        self.assertEqual([r["id"] for r in rows], [session["id"]])
+        self.assertEqual(rows[0]["affiliate_id"], "AFF-TESTAFF1")
+        self.assertEqual(rows[0]["unread_count"], 1)
+        self.assertEqual(rows[0]["last_message"]["message"], "Hello, I need help with my account.")
+
+        thread = self.client.get(f"/api/admin-panel/live-chat/{session['id']}/messages/")
+        self.assertEqual(
+            [m["message"] for m in thread.data], ["Hello, I need help with my account."],
+        )
+
+    # -- Admin -> Affiliate --------------------------------------------------
+    def test_admin_reply_reaches_the_affiliate(self):
+        session = self._start(self.affiliate, "affiliate")
+
+        self._as(self.agent)
+        replied = self.client.post(
+            f"/api/admin-panel/live-chat/{session['id']}/messages/",
+            {"message": "Sure, I will check that."}, format="json",
+        )
+        self.assertEqual(replied.status_code, 201)
+
+        self._as(self.affiliate)
+        res = self.client.get(f"/api/live-chat/{session['id']}/messages/")
+        self.assertEqual([m["message"] for m in res.data], ["Sure, I will check that."])
+
+    # -- No cross-routing ----------------------------------------------------
+    def test_player_and_affiliate_chats_are_separate_threads(self):
+        aff = self._start(self.affiliate, "affiliate")
+        plr = self._start(self.player, "player")
+        self.assertNotEqual(aff["id"], plr["id"])
+        self.assertEqual(plr["participant_type"], "player")
+
+        self._as(self.affiliate)
+        self.client.post(f"/api/live-chat/{aff['id']}/messages/", {"message": "aff-side"}, format="json")
+        self._as(self.player)
+        self.client.post(f"/api/live-chat/{plr['id']}/messages/", {"message": "plr-side"}, format="json")
+
+        self._as(self.agent)
+        aff_thread = self.client.get(f"/api/admin-panel/live-chat/{aff['id']}/messages/")
+        plr_thread = self.client.get(f"/api/admin-panel/live-chat/{plr['id']}/messages/")
+        self.assertEqual([m["message"] for m in aff_thread.data], ["aff-side"])
+        self.assertEqual([m["message"] for m in plr_thread.data], ["plr-side"])
+
+    def test_same_person_gets_one_thread_per_portal(self):
+        """An affiliate who also plays has two conversations, not one."""
+        as_affiliate = self._start(self.affiliate, "affiliate")
+        as_player = self._start(self.affiliate, "player")
+        self.assertNotEqual(as_affiliate["id"], as_player["id"])
+        self.assertEqual(as_player["participant_type"], "player")
+
+    def test_reopening_reuses_the_same_session(self):
+        first = self._start(self.affiliate, "affiliate")
+        second = self._start(self.affiliate, "affiliate")
+        self.assertEqual(first["id"], second["id"])
+
+    # -- The portal claim is verified, never trusted -------------------------
+    def test_non_affiliate_claiming_the_affiliate_portal_is_downgraded(self):
+        session = self._start(self.player, "affiliate")
+        self.assertEqual(session["participant_type"], "player")
+        self.assertIsNone(session["affiliate_id"])
+
+    def test_deactivated_affiliate_is_downgraded(self):
+        AffiliateProfile.objects.filter(user=self.affiliate).update(is_active=False)
+        session = self._start(self.affiliate, "affiliate")
+        self.assertEqual(session["participant_type"], "player")
+
+    def test_missing_portal_defaults_to_player(self):
+        """The pre-existing clients send no portal at all."""
+        self._as(self.affiliate)
+        res = self.client.post("/api/live-chat/start/")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.data["session"]["participant_type"], "player")
+
+    # -- Admin segmentation --------------------------------------------------
+    def test_admin_list_filters_by_participant_type(self):
+        aff = self._start(self.affiliate, "affiliate")
+        plr = self._start(self.player, "player")
+
+        self._as(self.agent)
+        for wanted, expected in (("affiliate", {aff["id"]}), ("player", {plr["id"]})):
+            rows = self._rows(
+                self.client.get(f"/api/admin-panel/live-chat/list/?participant_type={wanted}")
+            )
+            self.assertEqual({r["id"] for r in rows}, expected)
+
+        rows = self._rows(self.client.get("/api/admin-panel/live-chat/list/"))
+        self.assertEqual({r["id"] for r in rows}, {aff["id"], plr["id"]})
+
+    def test_unknown_participant_type_filter_is_ignored(self):
+        self._start(self.affiliate, "affiliate")
+        self._as(self.agent)
+        rows = self._rows(
+            self.client.get("/api/admin-panel/live-chat/list/?participant_type=bogus")
+        )
+        self.assertEqual(len(rows), 1)
+
+    # -- Ownership still holds across portals --------------------------------
+    def test_player_cannot_read_an_affiliate_session(self):
+        aff = self._start(self.affiliate, "affiliate")
+        self._as(self.player)
+        res = self.client.get(f"/api/live-chat/{aff['id']}/messages/")
+        self.assertEqual(res.status_code, 404)
+
+    # -- Duplicate prevention ------------------------------------------------
+    def test_retrying_a_send_does_not_duplicate_the_message(self):
+        session = self._start(self.affiliate, "affiliate")
+        self._as(self.affiliate)
+        body = {"message": "only once", "client_message_id": "fixed-key-1"}
+
+        first = self.client.post(f"/api/live-chat/{session['id']}/messages/", body, format="json")
+        second = self.client.post(f"/api/live-chat/{session['id']}/messages/", body, format="json")
+        self.assertEqual(first.status_code, 201)
+        self.assertEqual(second.status_code, 201)
+        self.assertEqual(first.data["id"], second.data["id"])
+        self.assertEqual(ChatMessage.objects.filter(ticket_id=session["id"]).count(), 1)
+
+    def test_sends_without_a_client_id_are_still_independent(self):
+        """Two genuinely separate messages with identical text must both land."""
+        session = self._start(self.affiliate, "affiliate")
+        self._as(self.affiliate)
+        for _ in range(2):
+            self.client.post(
+                f"/api/live-chat/{session['id']}/messages/", {"message": "same text"}, format="json",
+            )
+        self.assertEqual(ChatMessage.objects.filter(ticket_id=session["id"]).count(), 2)
+
+    # -- Offline admin -------------------------------------------------------
+    def test_message_persists_when_no_admin_is_connected(self):
+        """WebSockets are a latency optimisation; the row is the source of truth."""
+        session = self._start(self.affiliate, "affiliate")
+        self._as(self.affiliate)
+        self.client.post(
+            f"/api/live-chat/{session['id']}/messages/", {"message": "anyone there?"}, format="json",
+        )
+
+        # The agent only "comes online" now.
+        self._as(self.agent)
+        rows = self._rows(
+            self.client.get("/api/admin-panel/live-chat/list/?participant_type=affiliate")
+        )
+        self.assertEqual(rows[0]["unread_count"], 1)
+        self.assertEqual(rows[0]["last_message"]["message"], "anyone there?")

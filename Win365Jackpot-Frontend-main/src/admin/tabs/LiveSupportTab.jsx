@@ -12,6 +12,21 @@ import { asMessageArray, highestRealId, mergeById } from "../../services/liveCha
 
 const SOUND_PREF_KEY = "admin_live_chat_sound";
 
+// Player and affiliate conversations share the SupportTicket table and are
+// told apart by participant_type (set server-side from the portal the chat
+// was opened in — never from anything the sender can forge). Filtering is
+// done client-side off the single list request so switching tabs doesn't
+// re-hit the API or lose the unread counts already loaded.
+const FILTERS = [
+  { key: "all",       label: "All",        empty: "No live chat sessions yet" },
+  { key: "player",    label: "Players",    empty: "No player sessions" },
+  { key: "affiliate", label: "Affiliates", empty: "No affiliate sessions" },
+];
+
+// Older sessions predate participant_type and have no value; they are all
+// player chats, which is exactly what the column defaults to server-side.
+const participantOf = s => s.participant_type || "player";
+
 // The session list is far heavier per request than a thread poll (it
 // serialises unread counts and a last-message preview for every session), so
 // it refreshes on a slower cadence than the open conversation does.
@@ -45,6 +60,7 @@ export default function LiveSupportTab({ onToast }) {
   const [sending, setSending] = useState(false);
   const [connStatus, setConnStatus] = useState("connecting");
   const [soundOn, setSoundOn] = useState(() => localStorage.getItem(SOUND_PREF_KEY) !== "off");
+  const [filter, setFilter] = useState("all");
 
   const socketRef = useRef(null);
   const selectedIdRef = useRef(null);
@@ -226,6 +242,12 @@ export default function LiveSupportTab({ onToast }) {
   };
 
   const selected = sessions.find(s => s.id === selectedId);
+  const visibleSessions = filter === "all"
+    ? sessions
+    : sessions.filter(s => participantOf(s) === filter);
+  const unreadFor = key => sessions
+    .filter(s => key === "all" || participantOf(s) === key)
+    .reduce((n, s) => n + (s.unread_count || 0), 0);
 
   return (
     <div>
@@ -252,11 +274,49 @@ export default function LiveSupportTab({ onToast }) {
       <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 14, alignItems: "start" }}>
         {/* Session list */}
         <Card solid style={{ padding: 0, overflow: "hidden" }}>
-          {loading ? <Spinner /> : sessions.length === 0 ? (
-            <div style={{ padding: 24, textAlign: "center", color: C.muted, fontSize: 12.5 }}>No live chat sessions yet</div>
+          {/* Players / Affiliates segmentation — an affiliate asking about a
+              commission and a player asking about a withdrawal are different
+              queues, and previously both landed in one undifferentiated list. */}
+          <div style={{ display: "flex", borderBottom: `1px solid ${C.border}` }}>
+            {FILTERS.map(f => {
+              const active = filter === f.key;
+              const n = unreadFor(f.key);
+              return (
+                <button
+                  key={f.key}
+                  onClick={() => setFilter(f.key)}
+                  style={{
+                    flex: 1, padding: "9px 4px", border: "none", cursor: "pointer",
+                    background: active ? `${C.gold}14` : "transparent",
+                    borderBottom: `2px solid ${active ? C.gold : "transparent"}`,
+                    color: active ? C.gold : C.muted,
+                    fontSize: 11, fontWeight: 700, letterSpacing: "0.03em",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                  }}
+                >
+                  {f.label}
+                  {n > 0 && (
+                    <span style={{
+                      fontSize: 9, fontWeight: 800, minWidth: 15, height: 15, borderRadius: 8,
+                      background: "#ff3366", color: "#fff", padding: "0 4px",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      {n}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          {loading ? <Spinner /> : visibleSessions.length === 0 ? (
+            <div style={{ padding: 24, textAlign: "center", color: C.muted, fontSize: 12.5 }}>
+              {sessions.length === 0
+                ? FILTERS[0].empty
+                : FILTERS.find(f => f.key === filter).empty}
+            </div>
           ) : (
             <div style={{ maxHeight: 520, overflowY: "auto" }}>
-              {sessions.map(s => (
+              {visibleSessions.map(s => (
                 <button
                   key={s.id}
                   onClick={() => setSelectedId(s.id)}
@@ -268,7 +328,7 @@ export default function LiveSupportTab({ onToast }) {
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 6 }}>
                     <span style={{ fontSize: 12.5, fontWeight: 700, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {s.email}
+                      {s.name || s.email}
                     </span>
                     {s.unread_count > 0 && (
                       <span style={{
@@ -279,16 +339,29 @@ export default function LiveSupportTab({ onToast }) {
                       </span>
                     )}
                   </div>
+                  <div style={{ fontSize: 10, color: C.dim, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {s.affiliate_id || s.user_uid} · {s.email}
+                  </div>
                   <div style={{ fontSize: 11, color: C.muted, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {s.last_message?.message || "—"}
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-                    <span style={{
-                      fontSize: 9.5, fontWeight: 700, padding: "1px 7px", borderRadius: 20,
-                      background: s.status === "resolved" || s.status === "closed" ? `${C.green}18` : `${C.orange}18`,
-                      color: s.status === "resolved" || s.status === "closed" ? C.green : C.orange,
-                    }}>
-                      {s.status.replace("_", " ")}
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, gap: 6, alignItems: "center" }}>
+                    <span style={{ display: "flex", gap: 5, alignItems: "center", minWidth: 0 }}>
+                      {participantOf(s) === "affiliate" && (
+                        <span style={{
+                          fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 20,
+                          background: `${C.gold}20`, color: C.gold, letterSpacing: "0.04em", flexShrink: 0,
+                        }}>
+                          AFFILIATE
+                        </span>
+                      )}
+                      <span style={{
+                        fontSize: 9.5, fontWeight: 700, padding: "1px 7px", borderRadius: 20,
+                        background: s.status === "resolved" || s.status === "closed" ? `${C.green}18` : `${C.orange}18`,
+                        color: s.status === "resolved" || s.status === "closed" ? C.green : C.orange,
+                      }}>
+                        {s.status.replace("_", " ")}
+                      </span>
                     </span>
                     <span style={{ fontSize: 9.5, color: C.dim }}>{fmtDT(s.updated_at)}</span>
                   </div>
@@ -308,8 +381,22 @@ export default function LiveSupportTab({ onToast }) {
             <>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{selected.email}</div>
-                  <div style={{ fontSize: 10.5, color: C.muted }}>{selected.user_uid}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+                      {selected.name || selected.email}
+                    </span>
+                    <span style={{
+                      fontSize: 9, fontWeight: 800, padding: "1.5px 7px", borderRadius: 20,
+                      letterSpacing: "0.04em",
+                      background: participantOf(selected) === "affiliate" ? `${C.gold}20` : `${C.blue}18`,
+                      color: participantOf(selected) === "affiliate" ? C.gold : C.blue,
+                    }}>
+                      {participantOf(selected) === "affiliate" ? "AFFILIATE SUPPORT" : "PLAYER SUPPORT"}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 10.5, color: C.muted, marginTop: 1 }}>
+                    {selected.affiliate_id || selected.user_uid} · {selected.email}
+                  </div>
                 </div>
                 {selected.status !== "resolved" && selected.status !== "closed" && (
                   <Btn small onClick={markResolved}><CheckCircle2 size={12} /> Mark Resolved</Btn>
