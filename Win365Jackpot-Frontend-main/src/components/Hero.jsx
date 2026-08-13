@@ -591,7 +591,7 @@ useEffect(() => {
         position:'relative', zIndex:10, textAlign:'center', width:'100%',
         maxWidth:660,
         paddingTop:'clamp(72px,18vw,108px)',
-        paddingBottom:'clamp(80px,12vw,90px)',
+        paddingBottom:'clamp(6px,1.5vw,12px)',
         paddingLeft:'clamp(16px,5vw,24px)',
         paddingRight:'clamp(16px,5vw,24px)',
       }}>
@@ -678,15 +678,33 @@ useEffect(() => {
           }}
         />
 
-        {/* Sri Lanka premium-partner media — occupies the vertical space the
-            wordmark gives back when it collapses. Complements, rather than
-            replaces, the Sri Lankan Premium Valued Partner plaque further
-            down this hero: that one is the credential, this one is the view.
-            Mounted only once the intro is done, so none of its media is
-            fetched or decoded while the intro is still playing. */}
-        {compact && <SriLankaHeroMedia />}
+      </div>
 
-        {/* Destinations badge — same component/styling as the top badge */}
+      {/* Sri Lanka premium-partner media — the hero's major visual element,
+          not a small card, so it breaks out of the 660px text column into
+          its own much wider band (same technique the ticker below uses).
+          Occupies the vertical space the wordmark gives back when it
+          collapses. Mounted only once the intro is done, so none of its
+          media is fetched or decoded while the intro is still playing. */}
+      {compact && (
+        <div style={{
+          position:'relative', zIndex:10, width:'100%',
+          display:'flex', flexDirection:'column', alignItems:'center',
+          paddingLeft:'clamp(16px,5vw,24px)', paddingRight:'clamp(16px,5vw,24px)',
+        }}>
+          <div style={{ width:'min(94vw, 1220px)' }}>
+            <SriLankaHeroMedia />
+          </div>
+        </div>
+      )}
+
+      {/* Destinations badge — same component/styling as the top badge */}
+      <div style={{
+        position:'relative', zIndex:10, textAlign:'center', width:'100%',
+        maxWidth:660,
+        paddingLeft:'clamp(16px,5vw,24px)',
+        paddingRight:'clamp(16px,5vw,24px)',
+      }}>
         <motion.div
           layout
           initial={{ opacity:0, y:-20 }} animate={{ opacity:1, y:0 }}
@@ -694,7 +712,7 @@ useEffect(() => {
           style={{
             display:'inline-flex', alignItems:'center', gap:8,
             border:'1px solid rgba(212,175,55,0.35)', borderRadius:999,
-            padding:'6px 16px', marginBottom:'clamp(12px,3vw,24px)',
+            padding:'6px 16px', marginBottom:'clamp(10px,2.5vw,18px)',
             background:'rgba(212,175,55,0.07)',
             fontFamily:"'Manrope', sans-serif",
             fontSize:'clamp(8px,1.8vw,10px)', fontWeight:700,
@@ -732,15 +750,16 @@ useEffect(() => {
           initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }}
           transition={{ delay:0.75, duration:0.45 }}
           style={{
-            display:'inline-flex', alignItems:'center', gap:6,
+            display:'inline-flex', alignItems:'center', gap:8,
             border:'1px solid #F5E07A', borderRadius:999,
-            padding:'4px 16px', marginBottom:'clamp(12px,3vw,24px)',
+            padding:'clamp(7px,1.4vw,12px) clamp(14px,2vw,20px)',
+            marginBottom:'clamp(12px,3vw,24px)',
             background:'linear-gradient(135deg,#9c7a24,#D4AF37,#F9E8A0,#D4AF37,#9c7a24)',
             backgroundSize:'220% auto',
             animation:'shimmer 4.5s linear infinite',
             boxShadow:'0 0 10px rgba(212,175,55,0.4), 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.5)',
             fontFamily:"'Manrope', sans-serif",
-            fontSize:'clamp(7px,1.3vw,9.5px)', fontWeight:700,
+            fontSize:'clamp(8px,1.1vw,11px)', fontWeight:700,
             letterSpacing:'0.14em', textTransform:'uppercase',
             color:'#1a0010',
             width:'min(94vw, 900px)',

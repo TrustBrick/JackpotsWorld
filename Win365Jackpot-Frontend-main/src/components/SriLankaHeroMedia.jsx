@@ -258,20 +258,19 @@ export default function SriLankaHeroMedia() {
       style={{
         position: 'relative',
         width: '100%',
-        borderRadius: 14,
+        borderRadius: 18,
         overflow: 'hidden',
-        border: '1px solid rgba(212,175,55,0.35)',
-        boxShadow: '0 0 28px rgba(212,175,55,0.22), 0 10px 30px rgba(0,0,0,0.45)',
+        border: '1px solid rgba(212,175,55,0.4)',
+        boxShadow: '0 0 42px rgba(212,175,55,0.24), 0 14px 40px rgba(0,0,0,0.5)',
         background: 'rgba(255,255,255,0.02)',
         marginBottom: 'clamp(12px,3vw,24px)',
       }}
     >
-      {/* Sized to take back roughly what the collapsing title gives up, so
-          the location ticker, partner plaque and CTAs below it stay put.
-          SupportAssistant.jsx measures those elements' rects at runtime to
-          keep its floating button clear of them, so a large net shift here
-          would move the very targets it is checking against. */}
-      <div style={{ position: 'relative', height: 'clamp(150px,26vh,240px)', overflow: 'hidden' }}>
+      {/* The major visual element of the hero, not a small card — width comes
+          from the wide container Hero.jsx wraps this in (up to ~1220px), and
+          height scales with it here so the box keeps a consistent banner
+          proportion across breakpoints instead of a fixed vh slice. */}
+      <div style={{ position: 'relative', height: 'clamp(220px,34vw,520px)', overflow: 'hidden' }}>
         {video
           ? <HeroVideo src={video.src} poster={photoItems[0]?.src} active={active} onError={() => setVideoFailed(true)} />
           : <HeroPhotos items={photoItems} active={active} reduceMotion={reduceMotion} />
@@ -294,7 +293,7 @@ export default function SriLankaHeroMedia() {
           background: 'rgba(10,0,5,0.55)',
           backdropFilter: 'blur(8px)',
           fontFamily: "'Manrope', sans-serif",
-          fontSize: 'clamp(7px,1.6vw,9px)', fontWeight: 900,
+          fontSize: 'clamp(8px,1.4vw,11px)', fontWeight: 900,
           letterSpacing: '0.16em', textTransform: 'uppercase',
           color: '#F5E07A',
         }}>
@@ -303,19 +302,19 @@ export default function SriLankaHeroMedia() {
         </div>
 
         <div style={{
-          position: 'absolute', left: 12, right: 12, bottom: 9, zIndex: 2,
-          display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap',
+          position: 'absolute', left: 16, right: 16, bottom: 12, zIndex: 2,
+          display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap',
           fontFamily: "'Manrope', sans-serif",
         }}>
           <span style={{
-            fontSize: 'clamp(13px,3.2vw,19px)', fontWeight: 700, lineHeight: 1.1,
+            fontSize: 'clamp(16px,2.6vw,26px)', fontWeight: 700, lineHeight: 1.1,
             background: 'linear-gradient(135deg,#D4AF37,#F5E07A)',
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
           }}>
             🇱🇰 {sriLanka?.name || DESTINATION_NAME}
           </span>
           <span style={{
-            fontSize: 'clamp(7px,1.7vw,9.5px)', fontWeight: 700,
+            fontSize: 'clamp(8px,1.3vw,11px)', fontWeight: 700,
             letterSpacing: '0.16em', textTransform: 'uppercase',
             color: 'rgba(255,255,255,0.55)',
           }}>
