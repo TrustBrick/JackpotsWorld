@@ -7,6 +7,7 @@ import { useAutoFetch } from '../hooks/useAutoFetch'
 import { fetchLocations } from '../services/locationService'
 import { fetchHeroStats, fetchLandingSettings } from '../services/landingService'
 import { flagFromCountryCode, flagIconUrl } from '../utils/countryFlags'
+import SupportAssistant from './SupportAssistant'
 
 // ─── CSS ───────────────────────────────────────────────────────────────────
 const CSS = `
@@ -367,49 +368,21 @@ const FALLBACK_LOCATIONS = [
 ]
 
 // ─── Partner emblem ─────────────────────────────────────────────────────────
-// Hand-vectorized to match the provided reference art (red heart-shaped lobe
-// + black circular lobe + tapered stem, gold trim throughout) — no standalone
-// logo file exists anywhere in the project or as an accessible asset (see
-// PartnerBadge note below), so this is a faithful recreation in code rather
-// than an embedded image.
+// The real Bellagio Colombo logo mark — symbol only (red heart lobe + black
+// circular lobe + tapered stem, gold trim throughout). Generated from the
+// supplied symbol-only artwork with the white JPEG backdrop keyed out to
+// alpha so it composites cleanly on the dark plaque; the wordmark from the
+// full logo file is deliberately not part of this asset, since the plaque
+// sets "BELLAGIO CASINO / COLOMBO" in the site's own type instead.
 function PartnerEmblem({ size = 80 }) {
   return (
-    <svg viewBox="0 0 100 100" width={size} height={size} style={{ display: 'block', flexShrink: 0 }}>
-      <defs>
-        <linearGradient id="pb-gold" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#F5E07A" />
-          <stop offset="50%" stopColor="#D4AF37" />
-          <stop offset="100%" stopColor="#B8860B" />
-        </linearGradient>
-        <radialGradient id="pb-red" cx="35%" cy="28%" r="80%">
-          <stop offset="0%" stopColor="#ea4f45" />
-          <stop offset="55%" stopColor="#c22019" />
-          <stop offset="100%" stopColor="#821410" />
-        </radialGradient>
-        <radialGradient id="pb-black" cx="35%" cy="28%" r="80%">
-          <stop offset="0%" stopColor="#333" />
-          <stop offset="70%" stopColor="#0e0e0e" />
-          <stop offset="100%" stopColor="#000" />
-        </radialGradient>
-      </defs>
-
-      {/* stem / base */}
-      <path d="M45 66 Q39 83 32 92 Q50 98 68 92 Q61 83 55 66 Z"
-        fill="url(#pb-black)" stroke="url(#pb-gold)" strokeWidth="2.4" strokeLinejoin="round" />
-
-      {/* black circular lobe (lower-left) */}
-      <circle cx="37" cy="50" r="24" fill="url(#pb-black)" stroke="url(#pb-gold)" strokeWidth="2.6" />
-
-      {/* red heart-shaped lobe (upper-right) */}
-      <path d="M64 32
-               C64 23 56 16 47 18
-               C40 20 36 26 37 33
-               C38 45 51 57 64 70
-               C77 57 90 45 91 33
-               C92 26 88 20 81 18
-               C72 16 64 23 64 32 Z"
-        fill="url(#pb-red)" stroke="url(#pb-gold)" strokeWidth="2.6" strokeLinejoin="round" />
-    </svg>
+    <img
+      src="/images/bellagio-logo.png"
+      alt="Bellagio Casino Colombo"
+      width={size}
+      height={size}
+      style={{ display: 'block', width: size, height: size, objectFit: 'contain', flexShrink: 0 }}
+    />
   )
 }
 
@@ -420,14 +393,7 @@ const TRUST_ITEMS = [
   { Icon: Gift, label: 'Gifts & Games' },
 ]
 
-// ─── Sri Lankan Premium Valued Partner plaque ──────────────────────────────
-// No literal Bellagio logo file is available in this project — the reference
-// art supplied in chat isn't saved anywhere on disk this build can reach
-// (no upload path resolves to a file), so PartnerEmblem above hand-recreates
-// its exact composition (red heart lobe + black circle lobe + stem, gold
-// trim) in SVG rather than embedding a raster copy. Swap in a real asset via
-// PartnerEmblem if one becomes available in /public/images.
-//
+// ─── Sri Lanka Premium Valued Partner plaque ───────────────────────────────
 // Wide horizontal plaque (logo left, copy right) on desktop — deliberately
 // breaks out of the Hero's normal 660px-capped content column (see the
 // wrapper in the main render below) so it can occupy real horizontal width
@@ -450,7 +416,7 @@ function PartnerBadge() {
         boxShadow:'0 0 50px rgba(212,175,55,0.16), inset 0 1px 0 rgba(255,255,255,0.06)',
         width:'min(94vw, 920px)',
       }}
-      aria-label="Our Sri Lankan Premium Valued Partner: Bellagio Casino, Colombo"
+      aria-label="Our Srilanka Premium Valued Partner: Bellagio Casino, Colombo"
     >
       {/* Corner flourishes — plaque/certificate framing, not a plain box */}
       {[
@@ -466,11 +432,19 @@ function PartnerBadge() {
         }} />
       ))}
 
+      {/* Emblem, with a soft gold pool behind it rather than a hard ring —
+          the mark already carries its own gold trim, so an outline here would
+          read as two competing borders. */}
       <div className="w365-partner-emblem-wrap" style={{
-        width:'clamp(72px,12vw,120px)', height:'clamp(72px,12vw,120px)',
+        position:'relative',
+        width:'clamp(72px,12vw,124px)', height:'clamp(72px,12vw,124px)',
         display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
-        filter:'drop-shadow(0 0 16px rgba(212,175,55,0.45))',
+        filter:'drop-shadow(0 0 18px rgba(212,175,55,0.45))',
       }}>
+        <span aria-hidden style={{
+          position:'absolute', inset:'-14%', borderRadius:'50%',
+          background:'radial-gradient(circle, rgba(212,175,55,0.22) 0%, rgba(212,175,55,0.07) 55%, transparent 72%)',
+        }} />
         <PartnerEmblem size="100%" />
       </div>
 
@@ -479,7 +453,7 @@ function PartnerBadge() {
           fontFamily:"'Manrope', sans-serif", fontSize:'clamp(9px,1.6vw,11.5px)', fontWeight:700,
           letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(212,175,55,0.8)',
         }}>
-          Our Sri Lankan Premium Valued Partner
+          Our Srilanka Premium Valued Partner
         </div>
 
         <div style={{
@@ -1051,6 +1025,12 @@ useEffect(() => {
   ))}
 </motion.div>
       </div>
+
+      {/* Animated concierge robot — measures the free column to the right of
+          the partner plaque at runtime and places itself there, or stands down
+          entirely when there isn't room (phones), where ChatBot's own fixed
+          robot launcher remains the visible, always-available entry point. */}
+      <SupportAssistant />
 
       {/* Scroll indicator */}
       <div style={{

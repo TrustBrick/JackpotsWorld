@@ -14,7 +14,6 @@ import GiftsSection from '../components/Giftssection'
 import VIPLevels from '../components/VIPLevels'
 import Register from '../components/Register'
 import PageScrollButtons from '../components/PageScrollButtons'
-import SupportAssistant from '../components/SupportAssistant'
 
 export default function LandingPage() {
   const { theme } = useTheme()
@@ -66,8 +65,10 @@ export default function LandingPage() {
         <Testimonials />
       </main>
       <Footer />
+      {/* SupportAssistant is rendered inside <Hero> itself — it's positioned
+          against the hero's own layout (beside the partner plaque), not as a
+          page-level floating badge. */}
       <PageScrollButtons />
-      <SupportAssistant />
     </div>
   )
 }
