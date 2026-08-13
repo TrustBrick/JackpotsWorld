@@ -14,6 +14,7 @@ import flagMY from 'flag-icons/flags/4x3/my.svg'
 import flagSG from 'flag-icons/flags/4x3/sg.svg'
 import flagAM from 'flag-icons/flags/4x3/am.svg'
 import flagGE from 'flag-icons/flags/4x3/ge.svg'
+import flagKZ from 'flag-icons/flags/4x3/kz.svg'
 
 // Converts an ISO-3166 alpha-2 country code (e.g. "IN", "VN") into its flag
 // emoji using Unicode regional indicator symbols. Works for any country the
@@ -32,6 +33,7 @@ export function flagFromCountryCode(code) {
 const FLAG_ICON_URLS = {
   VN: flagVN, MO: flagMO, IN: flagIN, LK: flagLK, PH: flagPH,
   US: flagUS, MY: flagMY, SG: flagSG, AM: flagAM, GE: flagGE,
+  KZ: flagKZ,
 }
 
 export function flagIconUrl(code) {

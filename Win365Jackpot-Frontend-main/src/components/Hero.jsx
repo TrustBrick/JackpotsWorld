@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from 'react-scroll'
 import { useNavigate } from 'react-router-dom'
-import { Gem, CalendarDays, MapPinned, Gift, MapPin, Crown, Star } from 'lucide-react'
+import { Gem, CalendarDays, MapPinned, Gift, MapPin, Star } from 'lucide-react'
 import { useAutoFetch } from '../hooks/useAutoFetch'
 import { fetchLocations } from '../services/locationService'
 import { fetchHeroStats, fetchLandingSettings } from '../services/landingService'
@@ -349,72 +349,133 @@ const FALLBACK_LOCATIONS = [
   { id: 'sg', name: 'Singapore', country_code: 'SG' },
   { id: 'am', name: 'Armenia', country_code: 'AM' },
   { id: 'ge', name: 'Georgia', country_code: 'GE' },
+  { id: 'kz', name: 'Kazakhstan', country_code: 'KZ' },
 ]
 
-// ─── Sri Lankan Premium Valued Partner badge ───────────────────────────────
-// No standalone Bellagio logo/icon asset exists anywhere in the project (the
-// admin-uploaded Bellagio media are full venue photographs, not a mark) — the
-// emblem below is a typographic monogram in the same premium gold language
-// as the rest of the hero, not a cropped photo.
+// ─── Partner emblem ─────────────────────────────────────────────────────────
+// Hand-vectorized to match the provided reference art (red heart-shaped lobe
+// + black circular lobe + tapered stem, gold trim throughout) — no standalone
+// logo file exists anywhere in the project or as an accessible asset (see
+// PartnerBadge note below), so this is a faithful recreation in code rather
+// than an embedded image.
+function PartnerEmblem({ size = 80 }) {
+  return (
+    <svg viewBox="0 0 100 100" width={size} height={size} style={{ display: 'block', flexShrink: 0 }}>
+      <defs>
+        <linearGradient id="pb-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#F5E07A" />
+          <stop offset="50%" stopColor="#D4AF37" />
+          <stop offset="100%" stopColor="#B8860B" />
+        </linearGradient>
+        <radialGradient id="pb-red" cx="35%" cy="28%" r="80%">
+          <stop offset="0%" stopColor="#ea4f45" />
+          <stop offset="55%" stopColor="#c22019" />
+          <stop offset="100%" stopColor="#821410" />
+        </radialGradient>
+        <radialGradient id="pb-black" cx="35%" cy="28%" r="80%">
+          <stop offset="0%" stopColor="#333" />
+          <stop offset="70%" stopColor="#0e0e0e" />
+          <stop offset="100%" stopColor="#000" />
+        </radialGradient>
+      </defs>
+
+      {/* stem / base */}
+      <path d="M45 66 Q39 83 32 92 Q50 98 68 92 Q61 83 55 66 Z"
+        fill="url(#pb-black)" stroke="url(#pb-gold)" strokeWidth="2.4" strokeLinejoin="round" />
+
+      {/* black circular lobe (lower-left) */}
+      <circle cx="37" cy="50" r="24" fill="url(#pb-black)" stroke="url(#pb-gold)" strokeWidth="2.6" />
+
+      {/* red heart-shaped lobe (upper-right) */}
+      <path d="M64 32
+               C64 23 56 16 47 18
+               C40 20 36 26 37 33
+               C38 45 51 57 64 70
+               C77 57 90 45 91 33
+               C92 26 88 20 81 18
+               C72 16 64 23 64 32 Z"
+        fill="url(#pb-red)" stroke="url(#pb-gold)" strokeWidth="2.6" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+// ─── Sri Lankan Premium Valued Partner plaque ──────────────────────────────
+// No literal Bellagio logo file is available in this project — the reference
+// art supplied in chat isn't saved anywhere on disk this build can reach
+// (no upload path resolves to a file), so PartnerEmblem above hand-recreates
+// its exact composition (red heart lobe + black circle lobe + stem, gold
+// trim) in SVG rather than embedding a raster copy. Swap in a real asset via
+// PartnerEmblem if one becomes available in /public/images.
 function PartnerBadge() {
   return (
     <motion.div
       initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }}
       transition={{ delay:0.8, duration:0.5 }}
       style={{
-        display:'inline-flex', flexDirection:'column', alignItems:'center', gap:7,
-        padding:'clamp(14px,3.5vw,20px) clamp(22px,6vw,34px)',
-        marginBottom:'clamp(14px,3.5vw,22px)',
-        borderRadius:20,
-        border:'1px solid rgba(212,175,55,0.4)',
-        background:'linear-gradient(180deg, rgba(212,175,55,0.09) 0%, rgba(10,0,8,0.5) 100%)',
-        boxShadow:'0 0 34px rgba(212,175,55,0.14), inset 0 1px 0 rgba(255,255,255,0.06)',
-        maxWidth:'min(92vw, 320px)',
+        position:'relative',
+        display:'inline-flex', flexDirection:'column', alignItems:'center', gap:8,
+        padding:'clamp(16px,4vw,26px) clamp(30px,8vw,48px)',
+        marginBottom:'clamp(12px,3vw,20px)',
+        borderRadius:16,
+        border:'1px solid rgba(212,175,55,0.45)',
+        background:'linear-gradient(180deg, rgba(212,175,55,0.1) 0%, rgba(10,0,8,0.55) 100%)',
+        boxShadow:'0 0 44px rgba(212,175,55,0.16), inset 0 1px 0 rgba(255,255,255,0.06)',
+        maxWidth:'min(92vw, 460px)',
       }}
       aria-label="Our Sri Lankan Premium Valued Partner: Bellagio Casino, Colombo"
     >
-      {/* Emblem — monogram, not a cropped venue photo (see note above) */}
+      {/* Corner flourishes — plaque/certificate framing, not a plain box */}
+      {[
+        { top:8, left:8, borderWidth:'2px 0 0 2px', borderRadius:'6px 0 0 0' },
+        { top:8, right:8, borderWidth:'2px 2px 0 0', borderRadius:'0 6px 0 0' },
+        { bottom:8, left:8, borderWidth:'0 0 2px 2px', borderRadius:'0 0 0 6px' },
+        { bottom:8, right:8, borderWidth:'0 2px 2px 0', borderRadius:'0 0 6px 0' },
+      ].map((c, i) => (
+        <span key={i} aria-hidden style={{
+          position:'absolute', width:16, height:16,
+          borderStyle:'solid', borderColor:'#D4AF37', opacity:0.65,
+          ...c,
+        }} />
+      ))}
+
       <div style={{
-        width:50, height:50, borderRadius:'50%', flexShrink:0,
-        border:'1.5px solid #D4AF37',
-        background:'radial-gradient(circle at 50% 35%, rgba(212,175,55,0.22), rgba(10,0,8,0.6))',
-        display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-        boxShadow:'0 0 16px rgba(212,175,55,0.35), inset 0 0 10px rgba(212,175,55,0.15)',
+        width:'clamp(66px,16vw,84px)', height:'clamp(66px,16vw,84px)',
+        display:'flex', alignItems:'center', justifyContent:'center',
+        filter:'drop-shadow(0 0 14px rgba(212,175,55,0.4))',
       }}>
-        <Crown size={15} color="#F5E07A" strokeWidth={1.5} style={{ marginBottom:1 }} />
-        <span style={{ fontSize:6.5, fontWeight:900, letterSpacing:'0.08em', color:'#D4AF37', fontFamily:"'Manrope', sans-serif" }}>BELLAGIO</span>
+        <PartnerEmblem size="100%" />
       </div>
 
       <div style={{
-        fontFamily:"'Manrope', sans-serif", fontSize:'clamp(7px,1.6vw,8.5px)', fontWeight:700,
-        letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(212,175,55,0.75)',
-        textAlign:'center', maxWidth:220,
+        fontFamily:"'Manrope', sans-serif", fontSize:'clamp(9px,2.1vw,11px)', fontWeight:700,
+        letterSpacing:'0.16em', textTransform:'uppercase', color:'rgba(212,175,55,0.8)',
+        textAlign:'center', maxWidth:280,
       }}>
         Our Sri Lankan Premium Valued Partner
       </div>
 
       <div style={{
-        fontFamily:"'Manrope', sans-serif", fontSize:'clamp(16px,4.2vw,21px)', fontWeight:900,
+        fontFamily:"'Manrope', sans-serif", fontSize:'clamp(22px,5.5vw,30px)', fontWeight:900,
         letterSpacing:'0.02em', color:'#F5E07A',
-        textShadow:'0 0 18px rgba(212,175,55,0.45)', lineHeight:1.1,
+        textShadow:'0 0 22px rgba(212,175,55,0.5)', lineHeight:1.1,
       }}>
         BELLAGIO CASINO
       </div>
 
       <div style={{
-        fontFamily:"'Manrope', sans-serif", fontSize:'clamp(9px,2vw,10.5px)', fontWeight:600,
-        letterSpacing:'0.26em', color:'rgba(255,255,255,0.5)', textTransform:'uppercase',
+        fontFamily:"'Manrope', sans-serif", fontSize:'clamp(10px,2.4vw,12px)', fontWeight:600,
+        letterSpacing:'0.3em', color:'rgba(255,255,255,0.55)', textTransform:'uppercase',
       }}>
         Colombo
       </div>
 
-      <div style={{ display:'flex', gap:3 }} aria-label="5 out of 5 stars">
-        {[0,1,2,3,4].map(i => <Star key={i} size={11} color="#D4AF37" fill="#D4AF37" />)}
+      <div style={{ display:'flex', gap:4 }} aria-label="5 out of 5 stars">
+        {[0,1,2,3,4].map(i => <Star key={i} size={15} color="#D4AF37" fill="#D4AF37" />)}
       </div>
 
       <div style={{
-        fontFamily:"'Manrope', sans-serif", fontSize:'clamp(7px,1.6vw,8px)', fontWeight:700,
-        letterSpacing:'0.18em', color:'rgba(212,175,55,0.55)', textTransform:'uppercase',
+        fontFamily:"'Manrope', sans-serif", fontSize:'clamp(8px,1.9vw,9.5px)', fontWeight:700,
+        letterSpacing:'0.2em', color:'rgba(212,175,55,0.6)', textTransform:'uppercase',
       }}>
         Trusted • Premium • Exclusive
       </div>
