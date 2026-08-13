@@ -224,7 +224,7 @@ _ADMIN_ALERT_EMAIL_HTML = """<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>New Affiliate Registration – Approval Required</title>
+<title>New Affiliate Registration — Approval Required | JackpotsWorld</title>
 <style>
   body, table, td { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
   @media (max-width: 620px) {
@@ -254,6 +254,7 @@ _ADMIN_ALERT_EMAIL_HTML = """<!DOCTYPE html>
               <div style="font-size:13px;line-height:1.95;color:rgba(255,255,255,0.85);">Name: <span style="color:#FFFFFF;font-weight:700;">__NAME__</span></div>
               <div style="font-size:13px;line-height:1.95;color:rgba(255,255,255,0.85);">Email: <span style="color:#FFFFFF;font-weight:700;">__EMAIL__</span></div>
               <div style="font-size:13px;line-height:1.95;color:rgba(255,255,255,0.85);">Affiliate ID: <span style="color:#D4AF37;font-weight:800;font-family:'Courier New',monospace;">__UID__</span></div>
+              <div style="font-size:13px;line-height:1.95;color:rgba(255,255,255,0.85);">Country: <span style="color:#FFFFFF;font-weight:700;">__COUNTRY__</span></div>
               <div style="font-size:13px;line-height:1.95;color:rgba(255,255,255,0.85);">Registered: <span style="color:#FFFFFF;font-weight:700;">__REGISTERED_AT__</span></div>
               <div style="font-size:13px;line-height:1.95;color:rgba(255,255,255,0.85);">Status: <span style="color:#F4C430;font-weight:800;">Pending Approval</span></div>
             </td></tr>
@@ -287,14 +288,16 @@ def send_affiliate_registration_alert(user, profile) -> None:
     SMTP hiccup never blocks the applicant's own registration response (same
     convention as send_affiliate_approval_email above).
     """
-    subject = "New Affiliate Registration – Approval Required"
+    subject = "New Affiliate Registration — Approval Required | JackpotsWorld"
     display_name = user.name or user.email
+    country = user.country or "—"
     registered_at = profile.created_at.strftime("%b %d, %Y %I:%M %p")
     message = (
         f"A new affiliate has registered and requires approval.\n\n"
         f"Name: {display_name}\n"
         f"Email: {user.email}\n"
         f"Affiliate ID: {user.user_uid}\n"
+        f"Country: {country}\n"
         f"Registered: {registered_at}\n"
         f"Status: Pending Approval\n\n"
         f"Kindly review and approve the affiliate from the admin panel.\n"
@@ -305,6 +308,7 @@ def send_affiliate_registration_alert(user, profile) -> None:
         .replace("__NAME__", html.escape(display_name))
         .replace("__EMAIL__", html.escape(user.email))
         .replace("__UID__", html.escape(user.user_uid))
+        .replace("__COUNTRY__", html.escape(country))
         .replace("__REGISTERED_AT__", html.escape(registered_at))
         .replace("__ADMIN_URL__", ADMIN_PORTAL_AFFILIATES_URL)
     )

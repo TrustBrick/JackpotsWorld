@@ -253,6 +253,7 @@ class AffiliateApplyView(APIView):
                     f"Name: {user.name or user.email}\n"
                     f"Email: {user.email}\n"
                     f"Affiliate ID: {user.user_uid}\n"
+                    f"Country: {user.country or '—'}\n"
                     f"Registered: {registered_at}\n"
                     f"Status: Pending Approval"
                 ),
