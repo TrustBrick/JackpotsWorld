@@ -3,40 +3,29 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import { Volume2, VolumeX } from 'lucide-react'
 import { useAutoFetch } from '../hooks/useAutoFetch'
-import { fetchDestinations } from '../services/landingService'
+import { fetchPremiumPartners } from '../services/landingService'
+import { flagFromCountryCode } from '../utils/countryFlags'
 
 /* ─────────────────────────────────────────────────────────────────────────
-   Sri Lanka premium-partner hero media.
+   Top Premium Partners hero media.
 
    Revealed inside the space the hero title frees up when it collapses from
    the stacked intro state to the compact one (see Hero.jsx).
 
-   Media comes from the same admin-managed destinations API that powers the
-   Casino Destinations section, so whatever an admin uploads for Sri Lanka
-   shows up here too — including a video, which the repo currently has none
-   of for this country (only Vietnam ships one). Until a video exists this
-   renders the bundled Sri Lanka property photos as a slow cinematic
-   crossfade; the moment a `media_type: "video"` record appears for Sri
-   Lanka, the video path below takes over with no further code change.
+   Data comes solely from /api/premium-partners/, which returns only
+   partners an admin has marked active + featured + top-premium. This
+   component reads nothing from the destinations API and has no fallback to
+   it: the hero showcase, the Casino Destinations section and the location
+   ticker are three independent systems. Nothing here is hardcoded — the
+   partners shown, their order and their media are entirely Back Office
+   controlled.
+
+   Presentation is unchanged from the previous single-country version: same
+   framing, same video player and mute control, same crossfade, same gold
+   badge and caption treatment.
    ───────────────────────────────────────────────────────────────────────── */
 
-const DESTINATION_NAME = 'Sri Lanka'
-
-// Same bundled assets CountryPackages' fallback list already points at — no
-// new files, no duplicated uploads. Used until the API answers, and as the
-// per-item fallback for admin records with no uploaded file yet (matching
-// how CountryPackages resolves its own destination media).
-const FALLBACK_MEDIA = [
-  { src: '/images/ballagio-srilanka.jpeg',       label: 'Ballagio' },
-  { src: '/images/marina-srilanka.jpg',          label: 'Marina' },
-  { src: '/images/ballys-srilanka.jpg',          label: "Bally's" },
-  { src: '/images/cod-srilanka.jpg',             label: 'City of Dreams' },
-  { src: '/images/majesticpride-srilanka.jpg',   label: 'Majestic Pride' },
-  { src: '/images/ballagio-lobby-srilanka.jpeg', label: 'Ballagio Lobby' },
-]
-const FALLBACK_SRC_BY_LABEL = new Map(FALLBACK_MEDIA.map(m => [m.label, m.src]))
-
-// How long each photo holds before crossfading to the next.
+// How long a still image holds before crossfading to the next partner.
 const SLIDE_MS = 3800
 
 // Fraction of the media box that must be on screen for it to count as
@@ -44,16 +33,34 @@ const SLIDE_MS = 3800
 // without flickering on/off during ordinary scrolling.
 const VISIBILITY_THRESHOLD = 0.5
 
-/** Normalizes an API destination's media list into { src, label, isVideo }. */
-function normalizeMedia(destination) {
-  const items = (destination?.images || [])
-    .map(m => ({
-      src: m.media || FALLBACK_SRC_BY_LABEL.get(m.label),
-      label: m.label,
-      isVideo: m.media_type === 'video',
-    }))
-    .filter(m => m.src)
-  return items.length > 0 ? items : FALLBACK_MEDIA.map(m => ({ ...m, isVideo: false }))
+// A video slide advances when it ends. This bounds the wait so one very long
+// upload can't strand the rotation on a single partner.
+const MAX_VIDEO_SLIDE_MS = 30_000
+
+/** One renderable slide per partner: its video when it has one, else its
+ *  image. Partners with neither are dropped rather than rendered as an empty
+ *  frame. `videoFailedIds` demotes a partner to its image after a playback
+ *  error, and drops it entirely if that's all it had. */
+function buildSlides(partners, videoFailedIds) {
+  if (!Array.isArray(partners)) return []
+  return partners
+    .map(p => {
+      const videoUsable = p.hero_video && !videoFailedIds.has(p.id)
+      const src = videoUsable ? p.hero_video : p.hero_image
+      if (!src) return null
+      return {
+        id: p.id,
+        src,
+        isVideo: !!videoUsable,
+        poster: p.hero_image || undefined,
+        name: p.name,
+        flag: flagFromCountryCode(p.flag_country_code),
+        // Falls back to the place when no description is set, so the caption
+        // line is never empty — but never invents either.
+        caption: p.description || [p.city, p.country].filter(Boolean).join(', '),
+      }
+    })
+    .filter(Boolean)
 }
 
 /* ── Video ────────────────────────────────────────────────────────────────
@@ -66,7 +73,7 @@ function normalizeMedia(destination) {
    is exactly what fast scrolling produces. Every pause therefore awaits the
    in-flight play first, so the two can't race.
    ──────────────────────────────────────────────────────────────────────── */
-function HeroVideo({ src, poster, active, onError }) {
+function HeroVideo({ src, poster, active, loop, onEnded, onError }) {
   const videoRef = useRef(null)
   const pendingPlayRef = useRef(null)
   // Sound defaults on: by the time this mounts the intro has already
@@ -117,7 +124,8 @@ function HeroVideo({ src, poster, active, onError }) {
     else pause()
   }, [active, play, pause])
 
-  // Pause on unmount so a route change can't leave audio running.
+  // Pause on unmount so a slide change or route change can't leave audio
+  // running behind the next partner's media.
   useEffect(() => () => { const v = videoRef.current; if (v && !v.paused) v.pause() }, [])
 
   // Retry unmuted once activation lands after the fact: the initial
@@ -150,10 +158,11 @@ function HeroVideo({ src, poster, active, onError }) {
         ref={videoRef}
         src={src}
         poster={poster}
-        loop
+        loop={loop}
         muted={muted}
         playsInline
         preload="metadata"
+        onEnded={onEnded}
         onError={onError}
         // contain, matching the destinations carousel: uploaded videos can be
         // any aspect ratio and cover would crop whatever doesn't match this
@@ -164,7 +173,7 @@ function HeroVideo({ src, poster, active, onError }) {
         onClick={toggleMuted}
         whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.92 }}
         title={muted ? 'Unmute' : 'Mute'}
-        aria-label={muted ? 'Unmute Sri Lanka video' : 'Mute Sri Lanka video'}
+        aria-label={muted ? 'Unmute partner video' : 'Mute partner video'}
         style={{
           position: 'absolute', top: 10, left: 10, zIndex: 3,
           width: 34, height: 34, borderRadius: '50%',
@@ -181,29 +190,15 @@ function HeroVideo({ src, poster, active, onError }) {
   )
 }
 
-/* ── Photo crossfade ─────────────────────────────────────────────────────── */
-function HeroPhotos({ items, active, reduceMotion }) {
-  const [idx, setIdx] = useState(0)
-
-  // Only advance while the band is actually being looked at — an off-screen
-  // or backgrounded tab shouldn't be running a timer or decoding images.
-  useEffect(() => {
-    if (!active || reduceMotion || items.length < 2) return
-    const id = setInterval(() => setIdx(p => (p + 1) % items.length), SLIDE_MS)
-    return () => clearInterval(id)
-  }, [active, reduceMotion, items.length])
-
-  const current = items[Math.min(idx, items.length - 1)]
-
+/* ── Still image ─────────────────────────────────────────────────────────── */
+function HeroPhoto({ slide, eager, reduceMotion }) {
   return (
     <AnimatePresence mode="sync">
       <motion.img
-        key={current.src}
-        src={current.src}
-        alt={`${current.label} — Sri Lanka`}
-        // The first frame is the one revealed straight after the intro, so it
-        // loads eagerly; the rest are only ever reached later.
-        loading={idx === 0 ? 'eager' : 'lazy'}
+        key={slide.src}
+        src={slide.src}
+        alt={slide.name}
+        loading={eager ? 'eager' : 'lazy'}
         decoding="async"
         initial={{ opacity: 0, scale: reduceMotion ? 1 : 1.05 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -223,9 +218,10 @@ function HeroPhotos({ items, active, reduceMotion }) {
 }
 
 /* ── Main ─────────────────────────────────────────────────────────────────── */
-export default function SriLankaHeroMedia() {
+export default function PremiumPartnerHeroMedia() {
   const reduceMotion = useReducedMotion()
-  const [videoFailed, setVideoFailed] = useState(false)
+  const [videoFailedIds, setVideoFailedIds] = useState(() => new Set())
+  const [idx, setIdx] = useState(0)
   const [documentVisible, setDocumentVisible] = useState(
     () => (typeof document === 'undefined' ? true : document.visibilityState !== 'hidden')
   )
@@ -241,19 +237,51 @@ export default function SriLankaHeroMedia() {
     return () => document.removeEventListener('visibilitychange', onVisibility)
   }, [])
 
-  const { data: destinations } = useAutoFetch(fetchDestinations, {}, { intervalMs: 60_000 })
-  const sriLanka = Array.isArray(destinations)
-    ? destinations.find(d => d?.name === DESTINATION_NAME)
-    : null
-  const media = normalizeMedia(sriLanka)
+  // Server-ordered by the admin's display_order, so no client-side sorting.
+  const { data: partners } = useAutoFetch(fetchPremiumPartners, {}, { intervalMs: 60_000 })
+  const slides = buildSlides(partners, videoFailedIds)
 
-  // One video at most, and only when it hasn't errored — never several
-  // media elements loading at once.
-  const video = videoFailed ? null : media.find(m => m.isVideo)
-  const photos = media.filter(m => !m.isVideo)
-  const photoItems = photos.length > 0 ? photos : FALLBACK_MEDIA.map(m => ({ ...m, isVideo: false }))
-
+  const count = slides.length
+  const safeIdx = count > 0 ? Math.min(idx, count - 1) : 0
+  const current = slides[safeIdx]
   const active = inView && documentVisible
+
+  // A partner removed in the Back Office can shorten the list under a stale
+  // index; snap back rather than showing the clamped last slide forever.
+  useEffect(() => {
+    if (count > 0 && idx >= count) setIdx(0)
+  }, [count, idx])
+
+  const advance = useCallback(() => {
+    setIdx(p => (count > 0 ? (p + 1) % count : 0))
+  }, [count])
+
+  // Image slides advance on a timer; video slides advance when they end
+  // (with MAX_VIDEO_SLIDE_MS as a backstop). A single partner never rotates.
+  useEffect(() => {
+    if (!active || count < 2 || !current) return
+    if (current.isVideo) {
+      const id = setTimeout(advance, MAX_VIDEO_SLIDE_MS)
+      return () => clearTimeout(id)
+    }
+    if (reduceMotion) return
+    const id = setTimeout(advance, SLIDE_MS)
+    return () => clearTimeout(id)
+  }, [active, count, current, advance, reduceMotion])
+
+  const markVideoFailed = useCallback((id) => {
+    setVideoFailedIds(prev => {
+      if (prev.has(id)) return prev
+      const next = new Set(prev)
+      next.add(id)
+      return next
+    })
+  }, [])
+
+  // No eligible partners — render nothing rather than falling back to
+  // unrelated data or leaving a broken media element in the layout. The
+  // hero's wrapper collapses cleanly around this.
+  if (!current) return null
 
   return (
     <motion.div
@@ -277,10 +305,25 @@ export default function SriLankaHeroMedia() {
           height scales with it here so the box keeps a consistent banner
           proportion across breakpoints instead of a fixed vh slice. */}
       <div style={{ position: 'relative', height: 'clamp(220px,34vw,520px)', overflow: 'hidden' }}>
-        {video
-          ? <HeroVideo src={video.src} poster={photoItems[0]?.src} active={active} onError={() => setVideoFailed(true)} />
-          : <HeroPhotos items={photoItems} active={active} reduceMotion={reduceMotion} />
-        }
+        {/* Only the current partner's media is mounted, so several partner
+            videos are never fetched, decoded or played at once. Keying on the
+            slide id tears the previous element down on change, which also
+            stops its audio. */}
+        {current.isVideo ? (
+          <HeroVideo
+            key={current.id}
+            src={current.src}
+            poster={current.poster}
+            active={active}
+            // A lone partner loops as before; with several, ending is what
+            // hands over to the next one.
+            loop={count < 2}
+            onEnded={count > 1 ? advance : undefined}
+            onError={() => markVideoFailed(current.id)}
+          />
+        ) : (
+          <HeroPhoto key={current.id} slide={current} eager={safeIdx === 0} reduceMotion={reduceMotion} />
+        )}
 
         {/* Bottom scrim — keeps the caption legible over any frame, using the
             same dark magenta the hero grades its background video with. */}
@@ -317,16 +360,42 @@ export default function SriLankaHeroMedia() {
             background: 'linear-gradient(135deg,#D4AF37,#F5E07A)',
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
           }}>
-            🇱🇰 {sriLanka?.name || DESTINATION_NAME}
+            {current.flag ? `${current.flag} ` : ''}{current.name}
           </span>
-          <span style={{
-            fontSize: 'clamp(8px,1.3vw,11px)', fontWeight: 700,
-            letterSpacing: '0.16em', textTransform: 'uppercase',
-            color: 'rgba(255,255,255,0.55)',
-          }}>
-            {sriLanka?.tagline || 'Jewel of the Indian Ocean'}
-          </span>
+          {current.caption && (
+            <span style={{
+              fontSize: 'clamp(8px,1.3vw,11px)', fontWeight: 700,
+              letterSpacing: '0.16em', textTransform: 'uppercase',
+              color: 'rgba(255,255,255,0.55)',
+            }}>
+              {current.caption}
+            </span>
+          )}
         </div>
+
+        {/* Slide dots — only when there is actually more than one partner to
+            move between, so a single-partner hero looks exactly as it did. */}
+        {count > 1 && (
+          <div style={{
+            position: 'absolute', bottom: 12, right: 16, zIndex: 3,
+            display: 'flex', alignItems: 'center', gap: 6,
+          }}>
+            {slides.map((s, i) => (
+              <button
+                key={s.id}
+                onClick={() => setIdx(i)}
+                aria-label={`Show ${s.name}`}
+                aria-current={i === safeIdx}
+                style={{
+                  width: i === safeIdx ? 18 : 6, height: 6, borderRadius: 999,
+                  border: 'none', padding: 0, cursor: 'pointer',
+                  background: i === safeIdx ? '#F5E07A' : 'rgba(255,255,255,0.4)',
+                  transition: 'width 0.3s ease, background 0.3s ease',
+                }}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </motion.div>
   )

@@ -1,7 +1,7 @@
 /**
  * LandingManageTab.jsx — ORCHESTRATOR
  *
- * One sidebar entry ("Landing Page") fanning out into the 13 sub-sections
+ * One sidebar entry ("Landing Page") fanning out into the 14 sub-sections
  * that make up the public landing page's admin-managed content. Mirrors the
  * nested pill-tab pattern already used by
  * src/admin/tabs/offline_deposits/OfflineDepositTab.jsx.
@@ -10,7 +10,7 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import {
   Settings, BarChart3, Sparkles, ShieldCheck, Gift, ListOrdered,
-  Crown, ListChecks, Quote, MapPin, Images, GalleryHorizontal, Plane,
+  Crown, ListChecks, Quote, MapPin, Images, GalleryHorizontal, Plane, Star,
 } from "lucide-react";
 import { useAdminTheme } from "../../context/AdminThemeContext";
 
@@ -23,6 +23,7 @@ import GiftStepsManageTab from "./GiftStepsManageTab";
 import VipTiersManageTab from "./VipTiersManageTab";
 import VipTierBenefitsManageTab from "./VipTierBenefitsManageTab";
 import TestimonialsManageTab from "./TestimonialsManageTab";
+import PremiumPartnersManageTab from "./PremiumPartnersManageTab";
 import DestinationsManageTab from "./DestinationsManageTab";
 import DestinationMediaManageTab from "./DestinationMediaManageTab";
 import VipServiceImagesManageTab from "./VipServiceImagesManageTab";
@@ -38,6 +39,7 @@ const SUB_TABS = [
   { id: "viptiers",   label: "VIP Tiers",         Icon: Crown,             Comp: VipTiersManageTab },
   { id: "vipbenefits",label: "VIP Benefits",      Icon: ListChecks,        Comp: VipTierBenefitsManageTab },
   { id: "testimonials",label: "Testimonials",     Icon: Quote,             Comp: TestimonialsManageTab },
+  { id: "partners",   label: "Premium Partners",  Icon: Star,              Comp: PremiumPartnersManageTab },
   { id: "destinations",label: "Destinations",     Icon: MapPin,            Comp: DestinationsManageTab },
   { id: "destmedia",  label: "Destination Media", Icon: Images,            Comp: DestinationMediaManageTab },
   { id: "vipgallery", label: "VIP Gallery",       Icon: GalleryHorizontal, Comp: VipServiceImagesManageTab },

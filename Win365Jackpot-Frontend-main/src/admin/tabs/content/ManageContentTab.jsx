@@ -43,6 +43,11 @@ export default function ManageContentTab({ resourceLabel, apiPath, fields, colum
   const [editingId, setEditingId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [files, setFiles] = useState({});
+  // Whether this save is carrying a file, which is what makes it slow enough
+  // to be worth labelling differently while it runs.
+  const hasPendingUpload = Object.values(files).some(
+    v => v && (Array.isArray(v) ? v.length > 0 : true)
+  );
   const [asyncOptions, setAsyncOptions] = useState({});
   // Pagination — the backend already paginates list responses (DRF
   // PageNumberPagination, PAGE_SIZE=20); without tracking `total`/`page`
@@ -326,9 +331,36 @@ export default function ManageContentTab({ resourceLabel, apiPath, fields, colum
                       onChange={e => setFiles(prev => ({ ...prev, [f.name]: e.target.files?.[0] || null }))}
                       style={{ ...inputStyle, padding: "6px 8px" }}
                     />
-                    {!files[f.name] && typeof form[f.name] === "string" && form[f.name] && (
+                    {files[f.name] && (
                       <div style={{ fontSize: 10, color: C.muted, marginTop: 4 }}>
-                        Current: <a href={form[f.name]} target="_blank" rel="noreferrer" style={{ color: C.gold }}>view file</a>
+                        Selected: {files[f.name].name}{" "}
+                        ({(files[f.name].size / (1024 * 1024)).toFixed(1)}MB) — not uploaded until you save.
+                      </div>
+                    )}
+                    {/* Preview of what is actually stored on the server, so an
+                        admin can confirm a past upload really landed rather
+                        than trusting the filename. Extension-sniffed because
+                        the value here is just the saved media URL. */}
+                    {!files[f.name] && typeof form[f.name] === "string" && form[f.name] && (
+                      <div style={{ marginTop: 6 }}>
+                        {/\.(mp4|webm|mov)(\?|$)/i.test(form[f.name]) ? (
+                          <video
+                            src={form[f.name]}
+                            controls
+                            muted
+                            preload="metadata"
+                            style={{ width: 200, maxWidth: "100%", borderRadius: 8, border: `1px solid ${C.border}`, display: "block", background: "#000" }}
+                          />
+                        ) : (
+                          <img
+                            src={form[f.name]}
+                            alt=""
+                            style={{ width: 120, height: 68, objectFit: "cover", borderRadius: 8, border: `1px solid ${C.border}`, display: "block" }}
+                          />
+                        )}
+                        <a href={form[f.name]} target="_blank" rel="noreferrer" style={{ color: C.gold, fontSize: 10 }}>
+                          open current file
+                        </a>
                       </div>
                     )}
                   </div>
@@ -382,7 +414,12 @@ export default function ManageContentTab({ resourceLabel, apiPath, fields, colum
             ))}
           </div>
           <Btn onClick={submit} disabled={submitting} style={{ marginTop: 16, width: "100%", justifyContent: "center" }}>
-            {submitting ? <><Spinner /> Saving…</> : editingId ? "Save Changes" : `Create ${resourceLabel}`}
+            {submitting
+              // A video upload can run for a while on a slow link; say
+              // "Uploading" rather than "Saving" so a long wait reads as
+              // progress rather than a hang.
+              ? <><Spinner /> {hasPendingUpload ? "Uploading…" : "Saving…"}</>
+              : editingId ? "Save Changes" : `Create ${resourceLabel}`}
           </Btn>
         </Card>
       )}

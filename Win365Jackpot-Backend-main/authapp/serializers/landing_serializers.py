@@ -3,6 +3,7 @@ from authapp.models.landing_models import (
     LandingSettings, HeroStat, WhyChooseUsFeature, TrustBadge,
     GiftItem, GiftStep, VipTier, VipTierBenefit, Testimonial,
     Destination, DestinationMedia, VipServiceImage, TourPackage,
+    PremiumPartner,
 )
 from authapp.utils.file_validation import validate_uploaded_image, validate_uploaded_video
 
@@ -170,3 +171,56 @@ class TourPackageSerializer(serializers.ModelSerializer):
             "is_active", "order", "created_at", "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
+
+
+class PremiumPartnerSerializer(serializers.ModelSerializer):
+    # Multipart posts send a missing boolean as absent, which would otherwise
+    # bypass the model defaults — same treatment the other landing
+    # serializers give is_active.
+    is_active           = serializers.BooleanField(default=True, required=False)
+    is_featured_in_hero = serializers.BooleanField(default=True, required=False)
+    # Derived, so the hero never has to guess from a file extension.
+    media_type          = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = PremiumPartner
+        fields = [
+            "id", "name", "country", "city", "flag_country_code", "description",
+            "logo", "hero_image", "hero_video", "media_type",
+            "partner_type", "is_featured_in_hero", "is_active", "order",
+            "created_at", "updated_at",
+        ]
+        read_only_fields = ["id", "media_type", "created_at", "updated_at"]
+
+    # Reuses the project's shared upload validation rather than a second set
+    # of rules: extension + content-type + size, plus a structural decode for
+    # images. Raising here means DRF returns a 400 with the real reason, which
+    # the Back Office surfaces verbatim instead of a generic "upload failed".
+    def validate_logo(self, value):
+        return validate_uploaded_image(value)
+
+    def validate_hero_image(self, value):
+        return validate_uploaded_image(value)
+
+    def validate_hero_video(self, value):
+        return validate_uploaded_video(value)
+
+    def validate(self, attrs):
+        """A hero partner with no media would render an empty band, so require
+        one — but only when the saved row wouldn't already have some. Checked
+        here rather than per-field because either file satisfies it."""
+        instance = self.instance
+
+        def resolved(field):
+            # A PATCH that doesn't mention the field keeps whatever is saved;
+            # explicitly sending null clears it.
+            return attrs[field] if field in attrs else getattr(instance, field, None)
+
+        featured = attrs.get(
+            "is_featured_in_hero", getattr(instance, "is_featured_in_hero", True),
+        )
+        if featured and not resolved("hero_image") and not resolved("hero_video"):
+            raise serializers.ValidationError({
+                "hero_image": "A partner featured in the hero needs an image or a video.",
+            })
+        return attrs

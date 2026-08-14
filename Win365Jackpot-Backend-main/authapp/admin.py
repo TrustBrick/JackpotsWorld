@@ -13,7 +13,7 @@ from authapp.models.wheel_models import (
     SignupWheelSettings, SignupWheelReward, SignupWheelSpin,
     BonusWheel, BonusWheelReward, BonusWheelAssignment, BonusWheelGrant, BonusWheelSpin,
 )
-from authapp.models.landing_models import Destination, DestinationMedia
+from authapp.models.landing_models import Destination, DestinationMedia, PremiumPartner
 from authapp.models.teenpatti_models import TeenPattiEvent, TeenPattiRegistration
 from authapp.models.commission_rule_models import (
     CommissionRule, CommissionTier, CommissionCondition, CommissionLedgerEntry,
@@ -49,3 +49,4 @@ admin.site.register(CommissionRule)
 admin.site.register(CommissionTier)
 admin.site.register(CommissionCondition)
 admin.site.register(CommissionLedgerEntry)
+admin.site.register(PremiumPartner)

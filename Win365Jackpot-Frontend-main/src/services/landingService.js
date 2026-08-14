@@ -41,6 +41,9 @@ export const fetchGiftSteps         = cached("/api/gift-steps/")
 export const fetchVipTiers          = cached("/api/vip-tiers/")
 export const fetchTestimonials      = cached("/api/testimonials/")
 export const fetchDestinations      = cached("/api/destinations/")
+// Hero showcase. Deliberately its own endpoint rather than a slice of
+// fetchDestinations — the hero and the destinations section share no data.
+export const fetchPremiumPartners   = cached("/api/premium-partners/")
 export const fetchVipServiceImages  = cached("/api/vip-service-images/")
 export const fetchTourPackages      = cached("/api/tour-packages/")
 
