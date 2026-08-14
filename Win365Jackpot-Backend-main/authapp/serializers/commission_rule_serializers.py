@@ -1,0 +1,161 @@
+"""
+authapp/serializers/commission_rule_serializers.py
+─────────────────────────────────────────────────────────────────────────────
+Two audiences, two serializer sets. The admin ones expose the whole rule
+configuration; the affiliate-facing ones deliberately expose only the
+affiliate's own earnings and never the rule internals (Part 40: "Do not expose
+internal admin-only commission rules"), so an affiliate can see *that* they're
+on 12% in Sri Lanka without seeing every other affiliate's arrangement.
+"""
+from rest_framework import serializers
+
+from authapp.models.commission_rule_models import (
+    CommissionCondition, CommissionLedgerEntry, CommissionRule, CommissionTier,
+)
+
+
+class CommissionTierSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CommissionTier
+        fields = [
+            "id", "rule", "name", "metric", "min_value", "max_value",
+            "rate", "fixed_amount", "order", "is_active", "created_at", "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+    def validate(self, attrs):
+        instance = self.instance
+        min_value = attrs.get("min_value", getattr(instance, "min_value", None))
+        max_value = attrs.get("max_value", getattr(instance, "max_value", None))
+        if min_value is not None and max_value is not None and max_value < min_value:
+            raise serializers.ValidationError({"max_value": "Upper bound cannot be below the lower bound."})
+        for field in ("rate", "fixed_amount", "min_value"):
+            value = attrs.get(field)
+            if value is not None and value < 0:
+                raise serializers.ValidationError({field: "Cannot be negative."})
+        return attrs
+
+
+class CommissionConditionSerializer(serializers.ModelSerializer):
+    # SerializerMethodField, not CharField — CommissionCondition.label is a
+    # method, so a plain field would serialise the bound method object.
+    label = serializers.SerializerMethodField()
+
+    def get_label(self, obj):
+        return obj.label()
+
+    class Meta:
+        model = CommissionCondition
+        fields = [
+            "id", "rule", "metric", "operator", "value",
+            "description", "label", "is_active", "created_at", "updated_at",
+        ]
+        read_only_fields = ["id", "label", "created_at", "updated_at"]
+
+
+class CommissionRuleSerializer(serializers.ModelSerializer):
+    tiers = CommissionTierSerializer(many=True, read_only=True)
+    conditions = CommissionConditionSerializer(many=True, read_only=True)
+    casino_name = serializers.CharField(source="casino.name", read_only=True, default="")
+    affiliate_email = serializers.EmailField(source="affiliate.email", read_only=True, default="")
+    affiliate_uid = serializers.CharField(source="affiliate.user_uid", read_only=True, default="")
+    scope_label = serializers.CharField(read_only=True)
+    specificity = serializers.IntegerField(read_only=True)
+    # How many ledger entries this rule has produced — the Part 39 "view usage"
+    # column, annotated by the view.
+    usage_count = serializers.IntegerField(read_only=True, required=False)
+
+    class Meta:
+        model = CommissionRule
+        fields = [
+            "id", "name", "affiliate", "affiliate_email", "affiliate_uid",
+            "country", "casino", "casino_name",
+            "commission_type", "rate_type", "rate", "fixed_amount", "currency",
+            "min_qualifying_amount", "max_commission",
+            "start_date", "end_date", "is_active", "priority",
+            "specificity", "scope_label", "notes",
+            "tiers", "conditions", "usage_count",
+            "created_at", "updated_at",
+        ]
+        read_only_fields = ["id", "specificity", "scope_label", "created_at", "updated_at"]
+
+    def validate(self, attrs):
+        instance = self.instance
+
+        def current(field):
+            return attrs.get(field, getattr(instance, field, None))
+
+        start_date, end_date = current("start_date"), current("end_date")
+        if start_date and end_date and end_date < start_date:
+            raise serializers.ValidationError({"end_date": "End date cannot be before the start date."})
+
+        for field in ("rate", "fixed_amount", "min_qualifying_amount"):
+            value = attrs.get(field)
+            if value is not None and value < 0:
+                raise serializers.ValidationError({field: "Cannot be negative."})
+
+        max_commission = attrs.get("max_commission")
+        if max_commission is not None and max_commission <= 0:
+            raise serializers.ValidationError({"max_commission": "Must be greater than zero, or left blank."})
+
+        rate_type = current("rate_type")
+        if rate_type == "percentage" and not current("rate"):
+            raise serializers.ValidationError({"rate": "A percentage rule needs a rate above zero."})
+        if rate_type == "fixed" and not current("fixed_amount"):
+            raise serializers.ValidationError({"fixed_amount": "A fixed rule needs an amount above zero."})
+
+        # Part 47's country/casino integrity check — a rule scoped to a casino
+        # in a different country than it names could never match anything.
+        casino, country = current("casino"), current("country")
+        if casino and country and casino.country.strip().lower() != country.strip().lower():
+            raise serializers.ValidationError({
+                "casino": f"'{casino.name}' is in {casino.country}, which doesn't match the selected country.",
+            })
+
+        return attrs
+
+
+class CommissionLedgerEntrySerializer(serializers.ModelSerializer):
+    """Back Office view — the full audit trail."""
+    affiliate_email = serializers.EmailField(source="affiliate.email", read_only=True)
+    affiliate_uid = serializers.CharField(source="affiliate.user_uid", read_only=True)
+    affiliate_name = serializers.CharField(source="affiliate.name", read_only=True)
+    player_email = serializers.EmailField(source="referred_player.email", read_only=True, default="")
+    player_uid = serializers.CharField(source="referred_player.user_uid", read_only=True, default="")
+    casino_name = serializers.CharField(source="casino.name", read_only=True, default="")
+
+    class Meta:
+        model = CommissionLedgerEntry
+        fields = [
+            "id", "affiliate", "affiliate_email", "affiliate_uid", "affiliate_name",
+            "referred_player", "player_email", "player_uid",
+            "country", "casino", "casino_name",
+            "rule", "rule_name", "tier", "tier_name",
+            "commission_type", "base_amount", "commission_rate", "commission_amount", "currency",
+            "conditions_snapshot", "calculation_trace", "qualification_reason",
+            "status", "reference_id", "admin_notes",
+            "created_at", "qualified_at", "approved_at", "paid_at", "updated_at",
+        ]
+        # Everything except status/admin_notes is a historical fact — Part 37's
+        # "do not overwrite historical commission records".
+        read_only_fields = [
+            f for f in fields if f not in ("status", "admin_notes")
+        ]
+
+
+class AffiliateCommissionLedgerSerializer(serializers.ModelSerializer):
+    """Affiliate-facing view. Excludes calculation_trace, rule/tier ids,
+    admin_notes and reviewed_by — an affiliate sees what they earned and
+    whether they qualified, not how the rules are configured internally."""
+    casino_name = serializers.CharField(source="casino.name", read_only=True, default="")
+    player_uid = serializers.CharField(source="referred_player.user_uid", read_only=True, default="")
+
+    class Meta:
+        model = CommissionLedgerEntry
+        fields = [
+            "id", "country", "casino_name", "player_uid",
+            "commission_type", "base_amount", "commission_rate", "commission_amount",
+            "currency", "status", "qualification_reason",
+            "created_at", "qualified_at", "paid_at",
+        ]
+        read_only_fields = fields

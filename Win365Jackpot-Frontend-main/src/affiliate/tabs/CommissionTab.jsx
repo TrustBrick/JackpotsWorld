@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { HandCoins, TrendingUp, Clock, Banknote, XCircle, CheckCircle2, Search, X, Info } from "lucide-react";
 import { API, affiliateFetch, fmt, fmtD } from "../helpers";
 import { C, Card, Table, Tr, Td, Pagination, Select, Pill } from "../components/SharedUI";
+import CountryCasinoBreakdown from "../components/CountryCasinoBreakdown";
 
 const TYPE_LABEL = { deposit: "Deposit Commission", losing: "Losing Commission", rolling: "Rolling Commission" };
 const PAGE_SIZE = 20;
@@ -236,6 +237,11 @@ function EngineView({ summary, onAgreed }) {
           </Card>
         ))}
       </div>
+
+      {/* Country + Casino rule-engine earnings. Self-hiding — renders
+          nothing for an affiliate with no rule-based commissions, so the
+          tab is unchanged for anyone still on a plan or the flat rate. */}
+      <CountryCasinoBreakdown />
 
       {/* Plan explainer */}
       {plan && (

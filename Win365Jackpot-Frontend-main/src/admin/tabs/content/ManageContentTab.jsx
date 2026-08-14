@@ -61,12 +61,16 @@ export default function ManageContentTab({ resourceLabel, apiPath, fields, colum
   // Fields of type "asyncSelect" fetch their own dropdown options from a
   // separate admin-panel list endpoint (e.g. picking a specific Poker
   // Tournament / Casino Event to link a reward to) — fetched once per field.
+  //
+  // `optionsKey` picks a list other than `results` out of the response, for
+  // endpoints that return several (the casino catalog returns both countries
+  // and casinos in one payload). Defaults to the previous behaviour.
   useEffect(() => {
     fields.filter(f => f.type === "asyncSelect").forEach(f => {
       adminFetch(`${API}${f.optionsUrl}`)
         .then(r => r?.json())
         .then(j => {
-          const list = Array.isArray(j) ? j : (j?.results || []);
+          const list = Array.isArray(j) ? j : (j?.[f.optionsKey || "results"] || []);
           setAsyncOptions(prev => ({ ...prev, [f.name]: list }));
         })
         .catch(() => {});
@@ -267,13 +271,42 @@ export default function ManageContentTab({ resourceLabel, apiPath, fields, colum
                 ) : f.type === "asyncSelect" ? (
                   <select
                     value={form[f.name] ?? ""}
-                    onChange={e => setForm(prev => ({ ...prev, [f.name]: e.target.value }))}
+                    onChange={e => {
+                      const next = e.target.value;
+                      setForm(prev => {
+                        const updated = { ...prev, [f.name]: next };
+                        // Clear any field that filters off this one, so a
+                        // stale child selection (a casino in the country the
+                        // admin just switched away from) can't be submitted.
+                        fields.forEach(other => {
+                          if (other.dependsOn?.field === f.name) updated[other.name] = "";
+                        });
+                        return updated;
+                      });
+                    }}
                     style={inputStyle}
                   >
                     <option value="" style={{ background: C.surface, color: C.text }}>{f.placeholder || "— None —"}</option>
-                    {(asyncOptions[f.name] || []).map(o => (
-                      <option key={o.id} value={o.id} style={{ background: C.surface, color: C.text }}>{o[f.optionLabelKey || "name"]}</option>
-                    ))}
+                    {(asyncOptions[f.name] || [])
+                      // `dependsOn` narrows this dropdown to the options whose
+                      // `optionKey` matches another field's current value —
+                      // e.g. only casinos in the selected country. Fields
+                      // without it are unfiltered, as before.
+                      .filter(o => {
+                        if (!f.dependsOn) return true;
+                        const parent = form[f.dependsOn.field];
+                        if (!parent) return true;
+                        return String(o[f.dependsOn.optionKey] ?? "") === String(parent);
+                      })
+                      .map(o => (
+                        <option
+                          key={o.id}
+                          value={o[f.optionValueKey || "id"]}
+                          style={{ background: C.surface, color: C.text }}
+                        >
+                          {o[f.optionLabelKey || "name"]}
+                        </option>
+                      ))}
                   </select>
                 ) : f.type === "boolean" ? (
                   <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", padding: "9px 0" }}>

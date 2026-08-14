@@ -107,6 +107,11 @@ export const ADMIN_NAV_GROUPS = [
       // line along with AffiliateCommissionsTab.jsx and its case in
       // AdminPanel.jsx to remove the feature.
       { id:"affiliate-commissions", label:"Affiliate Commissions", icon:"Percent" },
+      // Country + Casino + Tier commission rules — the layer above the
+      // per-affiliate plans in the tab directly above. Dashboard, rules
+      // (with tier/condition editors) and the ledger live behind one tab's
+      // view toggle, matching how Manage Poker / Teen Patti are organised.
+      { id:"commission-rules", label:"Commission Rules", icon:"Layers" },
       // AFFILIATE-WITHDRAWALS: new tab (local preview feature) — safe to
       // remove this line along with AffiliateWithdrawalsTab.jsx and its case
       // in AdminPanel.jsx to remove the feature.
@@ -118,6 +123,9 @@ export const ADMIN_NAV_GROUPS = [
     items: [
       { id:"events",     label:"Manage Events",     icon:"CalendarDays"   },
       { id:"poker",      label:"Manage Poker",       icon:"Spade"         },
+      // Teen Patti: events + registrations, managed through one tab with an
+      // in-tab view toggle — same shape as Manage Poker above.
+      { id:"teen-patti", label:"Teen Patti",         icon:"Club"          },
       { id:"promotions", label:"Manage Promotions",  icon:"Gift"          },
       { id:"locations",  label:"Manage Locations",   icon:"MapPin"        },
       { id:"landing",    label:"Landing Page",       icon:"LayoutTemplate"},

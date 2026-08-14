@@ -4,6 +4,7 @@ from authapp.views.location_views import (
     LocationListView,
     AdminLocationListCreateView,
     AdminLocationDetailView,
+    AdminCasinoCatalogView,
 )
 
 # Public — mounted at api/locations/
@@ -15,4 +16,7 @@ public_urlpatterns = [
 admin_urlpatterns = [
     path("locations/", AdminLocationListCreateView.as_view()),
     path("locations/<int:pk>/", AdminLocationDetailView.as_view()),
+    # Shared country+casino dropdown source for Back Office forms (Teen Patti
+    # events, commission rules) — see AdminCasinoCatalogView.
+    path("casino-catalog/", AdminCasinoCatalogView.as_view()),
 ]

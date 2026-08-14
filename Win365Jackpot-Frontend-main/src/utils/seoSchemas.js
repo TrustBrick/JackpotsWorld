@@ -36,8 +36,12 @@ const STATUS_MAP = {
 
 const publisher = { '@type': 'Organization', name: SITE_NAME, url: SITE_URL }
 
-/** Casino event / expo → schema.org Event. */
-export function eventSchema(event) {
+/** Casino event / expo → schema.org Event.
+ *
+ *  `basePath` exists because Teen Patti events share this exact schema shape
+ *  but live under a different detail route; it defaults to '/events' so every
+ *  existing caller is unaffected. */
+export function eventSchema(event, basePath = '/events') {
   if (!event) return null
   const place = compact({
     '@type': 'Place',
@@ -60,7 +64,7 @@ export function eventSchema(event) {
     eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
     location: Object.keys(place).length > 1 ? place : undefined,
     image: event.image ? absoluteImage(event.image) : undefined,
-    url: absoluteUrl(`/events/${event.id}`),
+    url: absoluteUrl(`${basePath}/${event.id}`),
     organizer: publisher,
   })
 }

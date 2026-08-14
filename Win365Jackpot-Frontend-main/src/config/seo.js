@@ -60,6 +60,12 @@ export const ROUTE_SEO = {
       'Upcoming poker tournaments with buy-ins, prize pools and seat availability at ' +
       'premier casinos across Asia and beyond. Register through JackpotsWorld.',
   },
+  '/teen-patti': {
+    title: `Teen Patti Events & Registration${TITLE_SUFFIX}`,
+    description:
+      'Live and upcoming Teen Patti events at partner casinos across Asia. ' +
+      'Entry fees, prize pools and seat availability — reserve your seat on JackpotsWorld.',
+  },
   '/affiliates': {
     title: `Casino Affiliate Program — Earn Commission${TITLE_SUFFIX}`,
     description:
@@ -114,7 +120,7 @@ export const NOINDEX_PREFIXES = [
 /** Detail routes resolve their own metadata after fetching, so the static
  *  table deliberately has no entry — these prefixes just suppress the
  *  "unknown route" fallback from claiming them first. */
-export const DYNAMIC_PREFIXES = ['/events/', '/promotions/', '/poker/']
+export const DYNAMIC_PREFIXES = ['/events/', '/promotions/', '/poker/', '/teen-patti/']
 
 export function isNoindexPath(pathname) {
   return NOINDEX_PREFIXES.some(p => pathname === p || pathname.startsWith(`${p}/`))

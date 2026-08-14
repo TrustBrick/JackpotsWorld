@@ -463,14 +463,21 @@ class AdminOfflineDepositsView(APIView):
                              main_balance=None, actor=actor, note=note)
 
                 # Losing Commission — re-evaluates the referrer's cumulative
-                # qualifying-loss commission, if any. No-ops entirely unless
-                # this player's referrer has been assigned a new-engine plan
-                # (see affiliate_commission_service module docstring); the
-                # legacy flat-rate flow has no loss-based commission, so
-                # there is no fallback call needed here.
+                # qualifying-loss commission, if any. Tries the Country+Casino
+                # rule engine first; falls through to the per-affiliate plan
+                # engine when no rule matches this player's country/casino
+                # (see commission_rule_models' module docstring for the full
+                # three-layer order). The legacy flat-rate flow has no
+                # loss-based commission, so there is no third fallback here.
                 try:
+                    from authapp.services import commission_engine_service
                     from authapp.services.affiliate_commission_service import evaluate_player_commission
-                    evaluate_player_commission(user)
+                    result = commission_engine_service.evaluate(
+                        user, commission_type="losing", casino_name=casino,
+                        country=country or None,
+                    )
+                    if not result.applied:
+                        evaluate_player_commission(user)
                 except Exception as e:
                     logger.warning("commission evaluation failed for LAC entry: %s", e)
                 ActivityLog.log(
@@ -671,14 +678,26 @@ class AdminOfflineDepositsView(APIView):
             # keeps earning under the original flat-rate flow, unchanged.
             if slip_number:
                 try:
+                    from authapp.services import commission_engine_service
                     from authapp.services.affiliate_commission_service import (
                         evaluate_player_commission, has_commission_assignment,
                     )
-                    if has_commission_assignment(user.referred_by):
-                        evaluate_player_commission(user, bet_amount=bet_amount, slip_number=slip_number)
-                    else:
-                        from authapp.services.affiliate_service import record_referral_commission
-                        record_referral_commission(user, bet_amount, source_ref=slip_number)
+                    # Three-layer dispatch, most specific first:
+                    #   1. Country+Casino+Tier rule (commission_engine_service)
+                    #   2. Per-affiliate plan       (evaluate_player_commission)
+                    #   3. Legacy flat rate         (record_referral_commission)
+                    # Each layer only runs when the one above it didn't match,
+                    # so affiliates with no rules keep earning exactly as before.
+                    result = commission_engine_service.evaluate(
+                        user, commission_type="rolling", base_amount=bet_amount,
+                        casino_name=casino, reference_id=slip_number,
+                    )
+                    if not result.applied:
+                        if has_commission_assignment(user.referred_by):
+                            evaluate_player_commission(user, bet_amount=bet_amount, slip_number=slip_number)
+                        else:
+                            from authapp.services.affiliate_service import record_referral_commission
+                            record_referral_commission(user, bet_amount, source_ref=slip_number)
                 except Exception as e:
                     logger.warning("referral commission failed for RP entry: %s", e)
 

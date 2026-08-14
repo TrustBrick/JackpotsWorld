@@ -23,6 +23,8 @@ const PromotionDetails = lazy(() => import('./pages/PromotionDetails'))
 const Affiliates       = lazy(() => import('./pages/Affiliates'))
 const Poker            = lazy(() => import('./pages/Poker'))
 const PokerDetails     = lazy(() => import('./pages/PokerDetails'))
+const TeenPatti        = lazy(() => import('./pages/TeenPatti'))
+const TeenPattiDetails = lazy(() => import('./pages/TeenPattiDetails'))
 const AuthPage         = lazy(() => import('./pages/AuthPage'))
 const AffiliatePanel   = lazy(() => import('./affiliate/AffiliatePanel'))
 const AffiliateRegister = lazy(() => import('./pages/AffiliateRegister'))
@@ -148,6 +150,8 @@ export default function App() {
         <Route path="/affiliate-register" element={<AffiliateRegister />} />
         <Route path="/poker"            element={<Poker />} />
         <Route path="/poker/:id"        element={<PokerDetails />} />
+        <Route path="/teen-patti"       element={<TeenPatti />} />
+        <Route path="/teen-patti/:id"   element={<TeenPattiDetails />} />
         <Route path="/sign-in"          element={<AuthPage tab="login" />} />
         <Route path="/sign-up"          element={<AuthPage tab="register" />} />
 
