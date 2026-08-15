@@ -309,3 +309,77 @@ class TeenPattiApiTests(APITestCase):
         self.client.patch(f"/api/admin-panel/teen-patti/{self.published.id}/", {"status": "cancelled"})
 
         self.assertTrue(self.user.notifications.filter(title="Teen Patti event cancelled").exists())
+
+
+class TeenPattiAdminPlayerIntelligenceTests(APITestCase):
+    """JACKPOTSWORLD spec Part 6/15: the Back Office registration list must
+    surface real lead-qualification signals from the player's *existing*
+    User record (country, VIP tier, verification, lifetime deposits,
+    referral source, cross-event activity) rather than only the event roster
+    — and must never create a second/duplicate player record to do it."""
+
+    def setUp(self):
+        self.admin = User.objects.create_superuser(email="tpadmin@example.com", password="pw12345!", name="Admin")
+        self.player = User.objects.create_user(
+            email="highvalue@example.com", password="pw12345!", name="High Value Player",
+            country="LK", phone="+94770000000", vip_level=3, is_verified=True,
+            total_deposited=Decimal("2500.00"), referral_code_used="AFF123",
+        )
+        self.player.last_login_city = "Colombo"
+        self.player.save(update_fields=["last_login_city"])
+        self.event = _make_event(name="Lead Signal Event")
+        self.client.force_authenticate(self.admin)
+
+    def test_registration_does_not_create_a_duplicate_user(self):
+        before = User.objects.count()
+
+        teenpatti_service.register_user(self.player, self.event.id)
+
+        self.assertEqual(User.objects.count(), before)
+        registration = TeenPattiRegistration.objects.get(event=self.event, user=self.player)
+        self.assertEqual(registration.user_id, self.player.id)
+
+    def test_admin_list_surfaces_lead_signals_from_the_existing_user_record(self):
+        teenpatti_service.register_user(self.player, self.event.id)
+
+        res = self.client.get("/api/admin-panel/teen-patti/registrations/")
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        row = res.data["results"][0] if "results" in res.data else res.data[0]
+        self.assertEqual(row["country"], "LK")
+        self.assertEqual(row["last_login_city"], "Colombo")
+        self.assertEqual(row["vip_level"], 3)
+        self.assertTrue(row["is_verified"])
+        self.assertEqual(Decimal(str(row["total_deposited"])), Decimal("2500.00"))
+        self.assertEqual(row["referral_source"], "AFF123")
+
+    def test_a_never_deposited_player_is_distinguishable_as_a_new_lead(self):
+        cold_lead = User.objects.create_user(
+            email="coldlead@example.com", password="pw12345!", name="Cold Lead",
+            total_deposited=Decimal("0"),
+        )
+        teenpatti_service.register_user(cold_lead, self.event.id)
+
+        res = self.client.get("/api/admin-panel/teen-patti/registrations/")
+
+        row = next(r for r in (res.data.get("results") or res.data) if r["email"] == "coldlead@example.com")
+        self.assertEqual(Decimal(str(row["total_deposited"])), Decimal("0"))
+
+    def test_player_event_count_reflects_total_registrations_not_just_this_event(self):
+        second_event = _make_event(name="Second Event", start_date=(timezone.now() + timedelta(days=14)).date())
+        teenpatti_service.register_user(self.player, self.event.id)
+        teenpatti_service.register_user(self.player, second_event.id)
+
+        res = self.client.get("/api/admin-panel/teen-patti/registrations/")
+
+        rows = res.data.get("results") or res.data
+        self.assertEqual(len(rows), 2)
+        for row in rows:
+            self.assertEqual(row["player_event_count"], 2)
+
+    def test_a_normal_user_cannot_read_the_admin_registration_list(self):
+        self.client.force_authenticate(self.player)
+
+        res = self.client.get("/api/admin-panel/teen-patti/registrations/")
+
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)

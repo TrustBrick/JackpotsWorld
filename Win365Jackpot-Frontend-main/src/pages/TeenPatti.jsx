@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
-import { AlertTriangle, RefreshCw, Spade, LogIn, UserPlus, Radio, CalendarRange } from 'lucide-react'
+import { AlertTriangle, RefreshCw, Spade, Radio, CalendarRange } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 import Navbar from '../components/Navbar'
 import PageScrollButtons from '../components/PageScrollButtons'
 import AuthModal from '../components/AuthModal'
 import TeenPattiHero from '../components/teenpatti/TeenPattiHero'
+import TeenPattiAcquisitionCTA from '../components/teenpatti/TeenPattiAcquisitionCTA'
 import TeenPattiCard from '../components/teenpatti/TeenPattiCard'
 import TeenPattiFilters from '../components/teenpatti/TeenPattiFilters'
 import RegistrationResultModal from '../components/teenpatti/RegistrationResultModal'
@@ -128,27 +129,16 @@ export default function TeenPatti() {
         />
 
         <section className="max-w-7xl mx-auto px-4 pb-24">
-          {!isLoggedIn && (
-            <div className="casino-card flex flex-col md:flex-row items-center justify-between gap-4 px-6 py-4 mb-8">
-              <p className="text-white/60 text-sm font-body text-center md:text-left">
-                {t('teenPatti.signInPrompt')}
-              </p>
-              <div className="flex gap-2 shrink-0">
-                <button
-                  onClick={() => setAuthOpen(true)}
-                  className="btn-outline-gold flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase"
-                >
-                  <LogIn size={13} /> Sign In
-                </button>
-                <button
-                  onClick={() => setAuthOpen(true)}
-                  className="btn-gold flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase"
-                >
-                  <UserPlus size={13} /> Sign Up
-                </button>
-              </div>
-            </div>
-          )}
+          <TeenPattiAcquisitionCTA
+            isLoggedIn={isLoggedIn}
+            liveCount={options.counts?.live || 0}
+            upcomingCount={options.counts?.upcoming || 0}
+            onPrimaryAction={() => setAuthOpen(true)}
+            onScrollToTables={() => {
+              const targetRef = (options.counts?.live || 0) > 0 ? liveRef : upcomingRef
+              scrollTo(targetRef)
+            }}
+          />
 
           <TeenPattiFilters
             options={options}

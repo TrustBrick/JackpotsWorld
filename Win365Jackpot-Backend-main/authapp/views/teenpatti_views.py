@@ -19,7 +19,7 @@ Back Office endpoints (api/admin-panel/teen-patti/…) — all IsAdminOrSuperAdm
 No commission or seat arithmetic happens here — every state change goes
 through services/teenpatti_service.py.
 """
-from django.db.models import Count, F, Q
+from django.db.models import Count, F, OuterRef, Q, Subquery
 from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -284,7 +284,18 @@ class AdminTeenPattiRegistrationListView(generics.ListAPIView):
     permission_classes = [IsAdminOrSuperAdmin]
 
     def get_queryset(self):
-        qs = TeenPattiRegistration.objects.select_related("user", "event")
+        # How many Teen Patti events this same player has registered for in
+        # total — a correlated subquery rather than Count("user__...") so it
+        # can't multiply the outer rows via a self-join back onto this same
+        # table (see JACKPOTSWORLD spec Part 6's "interest/activity" signal).
+        event_count_subquery = (
+            TeenPattiRegistration.objects.filter(user_id=OuterRef("user_id"))
+            .order_by().values("user_id").annotate(c=Count("id")).values("c")
+        )
+        qs = (
+            TeenPattiRegistration.objects.select_related("user", "event")
+            .annotate(player_event_count=Subquery(event_count_subquery))
+        )
         event_id = (self.request.query_params.get("event") or "").strip()
         if event_id.isdigit():
             qs = qs.filter(event_id=int(event_id))

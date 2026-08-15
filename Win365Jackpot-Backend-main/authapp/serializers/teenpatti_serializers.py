@@ -149,17 +149,46 @@ class TeenPattiRegistrationSerializer(serializers.ModelSerializer):
 
 
 class TeenPattiRegistrationAdminSerializer(serializers.ModelSerializer):
+    """The Back Office view of a registration. Beyond the seat itself, this
+    carries the lead-qualification signals JACKPOTSWORLD spec Part 6/15
+    calls for — country/city, VIP tier, verification, lifetime deposits and
+    the affiliate code they signed up under — all pulled from the player's
+    *existing* User record (nothing new is collected, nothing is
+    duplicated). total_deposited in particular is what turns "someone
+    registered for a Teen Patti event" into "a real, already-active
+    JackpotsWorld player" versus a cold lead worth following up with.
+    """
     user_name = serializers.CharField(source="user.name", read_only=True)
     user_uid = serializers.CharField(source="user.user_uid", read_only=True)
     email = serializers.EmailField(source="user.email", read_only=True)
     phone = serializers.CharField(source="user.phone", read_only=True)
+    country = serializers.CharField(source="user.country", read_only=True)
+    # No dedicated "home city" field exists on User — last_login_city is the
+    # closest real signal already collected, so it's surfaced honestly under
+    # that name rather than mislabeled as a home address.
+    last_login_city = serializers.CharField(source="user.last_login_city", read_only=True)
+    vip_level = serializers.IntegerField(source="user.vip_level", read_only=True)
+    is_verified = serializers.BooleanField(source="user.is_verified", read_only=True)
+    total_deposited = serializers.DecimalField(source="user.total_deposited", max_digits=14, decimal_places=2, read_only=True)
+    # The affiliate/referral code this player signed up under, if any — the
+    # closest real "source/campaign" signal this codebase has (there is no
+    # separate marketing-campaign concept to attach Teen Patti registrations
+    # to), and a genuinely actionable one: it tells the admin which affiliate
+    # relationship to credit or follow up through.
+    referral_source = serializers.CharField(source="user.referral_code_used", read_only=True)
     event_name = serializers.CharField(source="event.name", read_only=True)
     event_start_date = serializers.DateField(source="event.start_date", read_only=True)
+    # Annotated by the view (Subquery over this player's other registrations)
+    # — how many Teen Patti events this player has engaged with in total,
+    # the "interest/activity level" signal Part 6 asks for.
+    player_event_count = serializers.IntegerField(read_only=True, default=1)
 
     class Meta:
         model = TeenPattiRegistration
         fields = [
             "id", "confirmation_id", "user_name", "user_uid", "email", "phone",
+            "country", "last_login_city", "vip_level", "is_verified",
+            "total_deposited", "referral_source", "player_event_count",
             "event", "event_name", "event_start_date",
             "entry_fee_at_registration", "currency",
             "status", "admin_note", "cancelled_at", "created_at", "updated_at",
@@ -168,6 +197,8 @@ class TeenPattiRegistrationAdminSerializer(serializers.ModelSerializer):
         # holds it, and what they paid are historical facts.
         read_only_fields = [
             "id", "confirmation_id", "user_name", "user_uid", "email", "phone",
+            "country", "last_login_city", "vip_level", "is_verified",
+            "total_deposited", "referral_source", "player_event_count",
             "event", "event_name", "event_start_date",
             "entry_fee_at_registration", "currency", "cancelled_at",
             "created_at", "updated_at",

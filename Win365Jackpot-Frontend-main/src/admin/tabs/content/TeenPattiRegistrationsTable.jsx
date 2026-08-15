@@ -26,7 +26,55 @@ const STATUS_COLOR = {
  * Changing a status here re-runs the server's seat recount (see
  * AdminTeenPattiRegistrationUpdateView.perform_update), so moving someone to
  * Cancelled frees their seat immediately.
+ *
+ * Player Profile / Signal columns (JACKPOTSWORLD spec Part 6 & 15): this
+ * list is not only an event roster — it is how the Back Office identifies
+ * which Teen Patti registrants are worth following up with as potential
+ * players. "New Lead" (never deposited) vs a $ amount (already an active
+ * player), VIP tier, verification status, referral source, and how many
+ * Teen Patti events this same player has engaged with, all pulled straight
+ * from the player's existing User record.
  */
+function PlayerSignal({ item, C }) {
+  const deposited = Number(item.total_deposited || 0);
+  const isNewLead = deposited <= 0;
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center", maxWidth: 220 }}>
+      <span
+        title={isNewLead ? "Has never deposited on JackpotsWorld" : "Lifetime deposits"}
+        style={{
+          padding: "2px 7px", borderRadius: 20, fontSize: 10.5, fontWeight: 700,
+          color: isNewLead ? C.orange : C.green,
+          background: isNewLead ? `${C.orange}18` : `${C.green}18`,
+          border: `1px solid ${isNewLead ? C.orange : C.green}44`,
+          whiteSpace: "nowrap",
+        }}
+      >
+        {isNewLead ? "New Lead" : `${item.currency || "$"} ${deposited.toLocaleString()} deposited`}
+      </span>
+      {Number(item.vip_level) > 1 && (
+        <span title="VIP level" style={{ padding: "2px 7px", borderRadius: 20, fontSize: 10.5, fontWeight: 700, color: C.gold, background: `${C.gold}18`, border: `1px solid ${C.gold}44` }}>
+          VIP {item.vip_level}
+        </span>
+      )}
+      {item.is_verified && (
+        <span title="Identity verified" style={{ padding: "2px 7px", borderRadius: 20, fontSize: 10.5, fontWeight: 700, color: C.blue, background: `${C.blue}18`, border: `1px solid ${C.blue}44` }}>
+          ✓ Verified
+        </span>
+      )}
+      {Number(item.player_event_count) > 1 && (
+        <span title="Total Teen Patti events this player has registered for" style={{ padding: "2px 7px", borderRadius: 20, fontSize: 10.5, fontWeight: 700, color: C.muted, background: C.hoverBg, border: `1px solid ${C.border}` }}>
+          {item.player_event_count} events
+        </span>
+      )}
+      {item.referral_source && (
+        <span title="Signed up via affiliate/referral code" style={{ fontSize: 10, color: C.sub }}>
+          via {item.referral_source}
+        </span>
+      )}
+    </div>
+  );
+}
 export default function TeenPattiRegistrationsTable({ onToast }) {
   const { C } = useAdminTheme();
   const selectStyle = {
@@ -90,9 +138,9 @@ export default function TeenPattiRegistrationsTable({ onToast }) {
       </div>
 
       <Table
-        headers={["Confirmation", "User", "UID", "Event", "Event Date", "Email", "Phone", "Entry Fee", "Registered", "Status", "Note"]}
+        headers={["Confirmation", "User", "Country/City", "Event", "Event Date", "Email", "Phone", "Entry Fee", "Player Signal", "Registered", "Status", "Note"]}
         loading={loading}
-        colSpan={11}
+        colSpan={12}
         emptyText="No Teen Patti registrations yet"
       >
         {items.map(item => (
@@ -100,14 +148,22 @@ export default function TeenPattiRegistrationsTable({ onToast }) {
             <td style={{ padding: "11px 14px", fontSize: 12, fontFamily: "monospace", color: C.gold, whiteSpace: "nowrap" }}>
               {item.confirmation_id}
             </td>
-            <td style={{ padding: "11px 14px", fontSize: 12.5 }}>{item.user_name || "—"}</td>
-            <td style={{ padding: "11px 14px", fontSize: 12.5, fontFamily: "monospace" }}>{item.user_uid}</td>
+            <td style={{ padding: "11px 14px", fontSize: 12.5 }}>
+              {item.user_name || "—"}
+              <div style={{ fontSize: 10.5, color: C.sub, fontFamily: "monospace" }}>{item.user_uid}</div>
+            </td>
+            <td style={{ padding: "11px 14px", fontSize: 12.5, whiteSpace: "nowrap" }}>
+              {[item.country, item.last_login_city].filter(Boolean).join(" · ") || "—"}
+            </td>
             <td style={{ padding: "11px 14px", fontSize: 12.5 }}>{item.event_name}</td>
             <td style={{ padding: "11px 14px", fontSize: 12.5, whiteSpace: "nowrap" }}>{item.event_start_date}</td>
             <td style={{ padding: "11px 14px", fontSize: 12.5 }}>{item.email}</td>
             <td style={{ padding: "11px 14px", fontSize: 12.5 }}>{item.phone || "—"}</td>
             <td style={{ padding: "11px 14px", fontSize: 12.5, whiteSpace: "nowrap" }}>
               {item.currency} {Number(item.entry_fee_at_registration || 0).toLocaleString()}
+            </td>
+            <td style={{ padding: "11px 14px" }}>
+              <PlayerSignal item={item} C={C} />
             </td>
             <td style={{ padding: "11px 14px", fontSize: 12, whiteSpace: "nowrap", color: C.sub }}>
               {item.created_at ? new Date(item.created_at).toLocaleString() : "—"}
