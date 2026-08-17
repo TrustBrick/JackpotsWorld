@@ -6,9 +6,9 @@ class Promotion(models.Model):
     country      = models.CharField(max_length=100, db_index=True)
     country_code = models.CharField(max_length=8, blank=True)  # ISO-3166 alpha-2, used to render the flag
     casino_name  = models.CharField(max_length=150, blank=True)
-    casino_logo  = models.ImageField(upload_to="promotions/logos/", null=True, blank=True)
-    image        = models.ImageField(upload_to="promotions/", null=True, blank=True)
-    video        = models.FileField(upload_to="promotions/videos/", null=True, blank=True)
+    casino_logo  = models.ImageField(upload_to="promotions/logos/", max_length=255, null=True, blank=True)
+    image        = models.ImageField(upload_to="promotions/", max_length=255, null=True, blank=True)
+    video        = models.FileField(upload_to="promotions/videos/", max_length=255, null=True, blank=True)
     title        = models.CharField(max_length=200)
     description  = models.TextField(blank=True)
     validity_text  = models.CharField(max_length=150, blank=True)
@@ -38,7 +38,7 @@ class PromotionGalleryImage(models.Model):
     """Extra gallery images for a promotion's details page, beyond the main
     banner (`Promotion.image`). Any number per promotion."""
     promotion  = models.ForeignKey(Promotion, on_delete=models.CASCADE, related_name="gallery")
-    image      = models.ImageField(upload_to="promotions/gallery/")
+    image      = models.ImageField(upload_to="promotions/gallery/", max_length=255)
     order      = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 

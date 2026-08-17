@@ -103,8 +103,8 @@ class TeenPattiEvent(models.Model):
     current_participants = models.PositiveIntegerField(default=0)
 
     event_type = models.CharField(max_length=100, blank=True)
-    image = models.ImageField(upload_to="teenpatti/", null=True, blank=True)
-    banner = models.ImageField(upload_to="teenpatti/banners/", null=True, blank=True)
+    image = models.ImageField(upload_to="teenpatti/", max_length=255, null=True, blank=True)
+    banner = models.ImageField(upload_to="teenpatti/banners/", max_length=255, null=True, blank=True)
 
     status = models.CharField(max_length=20, choices=EVENT_STATUS_CHOICES, default="draft", db_index=True)
     is_featured = models.BooleanField(default=False, db_index=True)

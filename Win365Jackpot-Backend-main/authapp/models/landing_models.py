@@ -7,7 +7,7 @@ class LandingSettings(models.Model):
     fields — Hero badge/CTA copy, background video, and shared blurbs reused
     across a couple of sections."""
     hero_badge_text         = models.CharField(max_length=200, default="Asia's #1 Offline Casinos VIP's Platform")
-    hero_background_video   = models.FileField(upload_to="landing/", null=True, blank=True)
+    hero_background_video   = models.FileField(upload_to="landing/", max_length=255, null=True, blank=True)
     hero_cta_primary_label  = models.CharField(max_length=60, default="🎰 Register — FREE")
     hero_cta_secondary_label = models.CharField(max_length=60, default="Packages ✨")
     hero_tagline             = models.CharField(max_length=100, default="www.jackpotsworld.vip")
@@ -83,7 +83,7 @@ class GiftItem(models.Model):
     tier_color  = models.CharField(max_length=20, default="#D4AF37")
     name        = models.CharField(max_length=120)
     subtitle    = models.CharField(max_length=200, blank=True)
-    logo        = models.ImageField(upload_to="landing/gifts/", null=True, blank=True)
+    logo        = models.ImageField(upload_to="landing/gifts/", max_length=255, null=True, blank=True)
     value       = models.CharField(max_length=30, blank=True)
     description = models.TextField(blank=True)
     perks       = models.JSONField(default=list, blank=True)
@@ -155,7 +155,7 @@ class Testimonial(models.Model):
     amount_won   = models.CharField(max_length=40, blank=True)
     destination  = models.CharField(max_length=80, blank=True)
     accent_color = models.CharField(max_length=20, default="#D4AF37")
-    avatar       = models.ImageField(upload_to="landing/testimonials/", null=True, blank=True)
+    avatar       = models.ImageField(upload_to="landing/testimonials/", max_length=255, null=True, blank=True)
     text         = models.TextField(blank=True)
     is_active    = models.BooleanField(default=True, db_index=True)
     order        = models.PositiveIntegerField(default=0)
@@ -192,7 +192,7 @@ class DestinationMedia(models.Model):
     MEDIA_TYPE_CHOICES = [("image", "Image"), ("video", "Video")]
 
     destination = models.ForeignKey(Destination, on_delete=models.CASCADE, related_name="images")
-    media       = models.FileField(upload_to="landing/destinations/")
+    media       = models.FileField(upload_to="landing/destinations/", max_length=255)
     media_type  = models.CharField(max_length=10, choices=MEDIA_TYPE_CHOICES, default="image")
     label       = models.CharField(max_length=150, blank=True)
     order       = models.PositiveIntegerField(default=0)
@@ -206,7 +206,7 @@ class DestinationMedia(models.Model):
 
 
 class VipServiceImage(models.Model):
-    image      = models.ImageField(upload_to="landing/vip-services/")
+    image      = models.ImageField(upload_to="landing/vip-services/", max_length=255)
     label      = models.CharField(max_length=100, blank=True)
     category   = models.CharField(max_length=60, blank=True)
     is_active  = models.BooleanField(default=True, db_index=True)

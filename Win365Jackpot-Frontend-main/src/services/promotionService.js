@@ -23,3 +23,12 @@ export async function fetchPromotions(params = {}, { force = false } = {}) {
 export async function fetchPromotionDetail(id) {
   return apiGet(`/api/promotions/${id}/`)
 }
+
+// Call after an Admin Panel Promotions save/update/delete succeeds —
+// otherwise an uploaded/replaced banner/logo/video/gallery image sits behind
+// this module's own 60s TTL (independent of landingService's cache) for
+// every visitor, including the admin's own next view. Same pattern as
+// landingService.invalidateLandingCache.
+export function invalidatePromotionsCache() {
+  cache.clear()
+}

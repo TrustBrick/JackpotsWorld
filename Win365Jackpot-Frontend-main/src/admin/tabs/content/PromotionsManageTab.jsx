@@ -1,5 +1,6 @@
 import React from "react";
 import ManageContentTab from "./ManageContentTab";
+import { invalidatePromotionsCache } from "../../../services/promotionService";
 
 const FIELDS = [
   { name: "country",             label: "Country",           placeholder: "India" },
@@ -34,6 +35,7 @@ export default function PromotionsManageTab({ onToast }) {
       fields={FIELDS}
       columns={COLUMNS}
       onToast={onToast}
+      onSaved={invalidatePromotionsCache}
     />
   );
 }

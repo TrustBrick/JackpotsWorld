@@ -85,7 +85,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     date_of_birth         = models.DateField(null=True, blank=True)
     profile_last_updated  = models.DateTimeField(null=True, blank=True)
     profile_locked_until  = models.DateTimeField(null=True, blank=True)
-    avatar                = models.ImageField(upload_to="avatars/", null=True, blank=True)
+    avatar                = models.ImageField(upload_to="avatars/", max_length=255, null=True, blank=True)
     avatar_url            = models.URLField(blank=True, null=True)
 
     # ISO 639-1 code (e.g. "en", "hi"), or "zh-CN"/"zh-TW" for the two Chinese

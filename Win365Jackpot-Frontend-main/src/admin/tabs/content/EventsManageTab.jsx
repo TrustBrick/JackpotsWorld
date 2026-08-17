@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import ManageContentTab from "./ManageContentTab";
 import EventTicketsTable from "./EventTicketsTable";
 import { useAdminTheme } from "../../context/AdminThemeContext";
+import { invalidateEventsCache } from "../../../services/eventService";
 
 const FIELDS = [
   { name: "name",              label: "Event Name",       placeholder: "Riviera Grand Slam Weekend" },
@@ -63,6 +64,7 @@ export default function EventsManageTab({ onToast }) {
           fields={FIELDS}
           columns={COLUMNS}
           onToast={onToast}
+          onSaved={invalidateEventsCache}
         />
       ) : (
         <EventTicketsTable onToast={onToast} />

@@ -1,6 +1,8 @@
 from django.db import models
 from django.conf import settings
 
+from authapp.storage_backends import get_private_storage
+
 TICKET_STATUS_CHOICES = [
     ("open",        "Open"),
     ("in_progress", "In Progress"),
@@ -28,7 +30,9 @@ class SupportTicket(models.Model):
     )
     subject     = models.CharField(max_length=200)
     message     = models.TextField()
-    attachment  = models.FileField(upload_to="support/attachments/", null=True, blank=True)
+    # storage=get_private_storage: a user's own support submission, not
+    # marketing content — kept off the public bucket policy like KYC docs.
+    attachment  = models.FileField(upload_to="support/attachments/", max_length=255, storage=get_private_storage, null=True, blank=True)
     status      = models.CharField(max_length=15, choices=TICKET_STATUS_CHOICES, default="open", db_index=True)
     admin_reply = models.TextField(blank=True)
     created_at  = models.DateTimeField(auto_now_add=True)

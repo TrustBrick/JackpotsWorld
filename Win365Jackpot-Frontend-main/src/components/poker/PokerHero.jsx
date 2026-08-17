@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion, useReducedMotion } from 'framer-motion'
 import { Radio, CalendarRange, Spade } from 'lucide-react'
@@ -7,6 +7,7 @@ import VipBenefitStrip from '../shared/VipBenefitStrip'
 import CinematicMediaCard from '../shared/CinematicMediaCard'
 import HeroBackgroundVideo from '../shared/HeroBackgroundVideo'
 import { fetchSectionMedia } from '../../services/landingService'
+import { useAutoFetch } from '../../hooks/useAutoFetch'
 
 /**
  * PokerHero — Poker's own premium hero, matching the visual investment of
@@ -83,14 +84,14 @@ export default function PokerHero({ liveCount = 0, upcomingCount = 0, onViewLive
   const { t } = useTranslation()
   const reduceMotion = useReducedMotion()
 
-  const [media, setMedia] = useState([])
-  useEffect(() => {
-    let cancelled = false
-    fetchSectionMedia({ section: 'poker' })
-      .then(res => { if (!cancelled) setMedia(Array.isArray(res) ? res : []) })
-      .catch(() => {})
-    return () => { cancelled = true }
-  }, [])
+  // useAutoFetch (not a one-shot effect): re-polls every 60s so a visitor
+  // already sitting on this page picks up a Back Office media change
+  // without navigating away and back — the fetch itself is still served
+  // from landingService's cache except on this interval's forced refetch,
+  // so this doesn't add extra load beyond what every other landing section
+  // already does.
+  const { data } = useAutoFetch(fetchSectionMedia, { section: 'poker' })
+  const media = Array.isArray(data) ? data : []
   const bySlot = (slot) => media.find(m => m.slot === slot)
 
   return (

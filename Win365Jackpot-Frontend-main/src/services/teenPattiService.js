@@ -60,3 +60,11 @@ export async function cancelTeenPattiRegistration(id) {
     message: data.message || data.error || "Something went wrong.",
   }
 }
+
+// Call after an Admin Panel Teen Patti save/update/delete succeeds —
+// otherwise an uploaded/replaced event image/banner sits behind this
+// module's own 60s TTL for every visitor, including the admin's own next
+// view. Same pattern as landingService.invalidateLandingCache.
+export function invalidateTeenPattiCache() {
+  cache.clear()
+}

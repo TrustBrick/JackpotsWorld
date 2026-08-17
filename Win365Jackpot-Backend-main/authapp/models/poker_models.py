@@ -86,7 +86,7 @@ class PokerSource(models.Model):
 
 
 class PokerTournament(models.Model):
-    image       = models.ImageField(upload_to="poker/", null=True, blank=True)
+    image       = models.ImageField(upload_to="poker/", max_length=255, null=True, blank=True)
     name        = models.CharField(max_length=200)
     casino_name = models.CharField(max_length=150, blank=True)
     location    = models.CharField(max_length=150, blank=True)

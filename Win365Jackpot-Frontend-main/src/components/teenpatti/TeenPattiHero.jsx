@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion, useReducedMotion } from 'framer-motion'
 import { Radio, CalendarRange, Crown } from 'lucide-react'
@@ -7,6 +7,7 @@ import VipBenefitStrip from '../shared/VipBenefitStrip'
 import CinematicMediaCard from '../shared/CinematicMediaCard'
 import HeroBackgroundVideo from '../shared/HeroBackgroundVideo'
 import { fetchSectionMedia } from '../../services/landingService'
+import { useAutoFetch } from '../../hooks/useAutoFetch'
 
 /**
  * TeenPattiHero — the Part 18 hero. Built from the site's existing utility
@@ -113,14 +114,12 @@ export default function TeenPattiHero({ liveCount = 0, upcomingCount = 0, onView
   // Cinematic hero media (Part 6-8) — entirely Back Office controlled via
   // Manage Poker/Teen Patti → Hero Media. Absent slots simply render
   // nothing; there is no hardcoded fallback video/image.
-  const [media, setMedia] = useState([])
-  useEffect(() => {
-    let cancelled = false
-    fetchSectionMedia({ section: 'teen_patti' })
-      .then(res => { if (!cancelled) setMedia(Array.isArray(res) ? res : []) })
-      .catch(() => {})
-    return () => { cancelled = true }
-  }, [])
+  //
+  // useAutoFetch (not a one-shot effect): re-polls every 60s so a visitor
+  // already sitting on this page picks up a Back Office media change
+  // without navigating away and back — matches every other landing section.
+  const { data } = useAutoFetch(fetchSectionMedia, { section: 'teen_patti' })
+  const media = Array.isArray(data) ? data : []
   const bySlot = (slot) => media.find(m => m.slot === slot)
 
   return (
