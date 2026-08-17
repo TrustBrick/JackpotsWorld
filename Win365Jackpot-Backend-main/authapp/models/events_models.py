@@ -1,11 +1,35 @@
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 
 STATUS_CHOICES = [
     ("upcoming",  "Upcoming"),
     ("live",      "Live"),
     ("completed", "Completed"),
 ]
+
+
+def derive_status(event_date):
+    """Status implied by a start date alone.
+
+    The stored `status` column is set by hand in the Back Office and is never
+    revisited, so every event silently stays "upcoming"/"live" forever once
+    its date passes. This derives the value instead, at read time.
+
+    LIMITATION -- the model stores a single `event_date` with no end date, so
+    a multi-day festival can only be reported "live" on its opening day; from
+    day two it reads "completed" even though it is still running. Reporting
+    that correctly needs an end_date column (a schema change), so this is
+    knowingly an approximation for multi-day events.
+    """
+    if event_date is None:
+        return None
+    today = timezone.localdate()
+    if event_date > today:
+        return "upcoming"
+    if event_date == today:
+        return "live"
+    return "completed"
 
 
 class CasinoEvent(models.Model):
@@ -33,6 +57,12 @@ class CasinoEvent(models.Model):
     class Meta:
         ordering = ["-event_date", "-event_time"]
         indexes = [models.Index(fields=["is_active", "event_date"])]
+
+    # A property, not a field: nothing is stored, so this adds no column and
+    # needs no migration. `status` is left alone as the admin-editable value.
+    @property
+    def computed_status(self):
+        return derive_status(self.event_date)
 
     def __str__(self):
         return f"{self.name} ({self.country})"

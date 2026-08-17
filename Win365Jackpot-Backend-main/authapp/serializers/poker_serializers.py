@@ -7,12 +7,15 @@ class PokerTournamentSerializer(serializers.ModelSerializer):
     # boolean as False, bypassing the model's default=True.
     is_active = serializers.BooleanField(default=True, required=False)
 
+    # See CasinoEventSerializer: additive, read-only, `status` untouched.
+    computed_status = serializers.CharField(read_only=True)
+
     class Meta:
         model = PokerTournament
         fields = [
             "id", "image", "name", "casino_name", "location",
             "event_date", "event_time", "prize_pool", "buy_in",
-            "status", "description", "seats_available",
+            "status", "computed_status", "description", "seats_available",
             "is_active", "created_at", "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]

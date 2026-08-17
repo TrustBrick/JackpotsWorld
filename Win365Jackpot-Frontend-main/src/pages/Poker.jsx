@@ -25,7 +25,9 @@ export default function Poker() {
   const { data, loading, error, reload } = useAutoFetch(fetchPokerTournaments, EMPTY_PARAMS, { intervalMs: 60_000 })
   const tournaments = useMemo(() => {
     const list = data?.results || []
-    return [...list].sort((a, b) => (STATUS_ORDER[a.status] ?? 99) - (STATUS_ORDER[b.status] ?? 99))
+    // See Events.jsx -- prefer the date-derived status, fall back to stored.
+    const rank = (t) => STATUS_ORDER[t.computed_status ?? t.status] ?? 99
+    return [...list].sort((a, b) => rank(a) - rank(b))
   }, [data])
 
   const openAuth = (tab) => { setAuthTab(tab); setAuthOpen(true) }

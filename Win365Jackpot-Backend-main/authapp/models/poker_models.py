@@ -1,6 +1,10 @@
 from django.db import models
 from django.conf import settings
 
+# Same single-source rule as the casino events: see derive_status' docstring
+# for why this is read-time only and what it cannot know about multi-day runs.
+from authapp.models.events_models import derive_status
+
 STATUS_CHOICES = [
     ("upcoming",  "Upcoming"),
     ("live",      "Live"),
@@ -32,6 +36,11 @@ class PokerTournament(models.Model):
     class Meta:
         ordering = ["-event_date", "-event_time"]
         indexes = [models.Index(fields=["is_active", "event_date"])]
+
+    # Property, not a field -- no column, no migration. See CasinoEvent.
+    @property
+    def computed_status(self):
+        return derive_status(self.event_date)
 
     def __str__(self):
         return f"{self.name} ({self.casino_name})"

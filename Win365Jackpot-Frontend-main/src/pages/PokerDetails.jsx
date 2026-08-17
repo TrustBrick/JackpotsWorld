@@ -135,12 +135,17 @@ export default function PokerDetails() {
                 </div>
               )}
               <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 40%, rgba(10,10,12,0.9) 100%)' }} />
-              {tournament.status && (
-                <span className="absolute top-4 left-4 px-3 py-1 rounded-full text-[11px] font-bold tracking-widest uppercase"
-                  style={{ background: 'rgba(212,175,55,0.15)', border: '1px solid rgba(212,175,55,0.5)', color: '#D4AF37' }}>
-                  {STATUS_LABEL_KEYS[tournament.status] ? t(STATUS_LABEL_KEYS[tournament.status]) : tournament.status}
-                </span>
-              )}
+              {(tournament.computed_status ?? tournament.status) && (() => {
+                // Date-derived, so a finished tournament stops advertising
+                // itself as live. Falls back to the stored column.
+                const shown = tournament.computed_status ?? tournament.status
+                return (
+                  <span className="absolute top-4 left-4 px-3 py-1 rounded-full text-[11px] font-bold tracking-widest uppercase"
+                    style={{ background: 'rgba(212,175,55,0.15)', border: '1px solid rgba(212,175,55,0.5)', color: '#D4AF37' }}>
+                    {STATUS_LABEL_KEYS[shown] ? t(STATUS_LABEL_KEYS[shown]) : shown}
+                  </span>
+                )
+              })()}
             </div>
 
             <div className="p-6 md:p-8">
