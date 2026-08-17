@@ -285,9 +285,17 @@ class PremiumPartner(models.Model):
     flag_country_code = models.CharField(max_length=8, blank=True)
     description       = models.CharField(max_length=300, blank=True)
 
-    logo       = models.ImageField(upload_to="landing/partners/logos/", null=True, blank=True)
-    hero_image = models.ImageField(upload_to="landing/partners/", null=True, blank=True)
-    hero_video = models.FileField(upload_to="landing/partners/", null=True, blank=True)
+    # max_length=255: Django's FileField default (100) is too short for a
+    # real uploaded filename plus the upload_to prefix — confirmed live, an
+    # 86-character original filename plus "landing/partners/" (18 chars)
+    # already exceeds 100 on the very first upload, before any storage
+    # de-duplication suffix is even added. Storage.get_available_name()
+    # then raises SuspiciousFileOperation, an *unhandled* exception that
+    # surfaces to the frontend as an unparseable non-JSON 400 rather than a
+    # clean validation message.
+    logo       = models.ImageField(upload_to="landing/partners/logos/", max_length=255, null=True, blank=True)
+    hero_image = models.ImageField(upload_to="landing/partners/", max_length=255, null=True, blank=True)
+    hero_video = models.FileField(upload_to="landing/partners/", max_length=255, null=True, blank=True)
 
     partner_type        = models.CharField(
         max_length=20, choices=PARTNER_TYPE_CHOICES, default="top_premium", db_index=True,
@@ -352,8 +360,13 @@ class SectionMedia(models.Model):
     # would be fabricated.
     label = models.CharField(max_length=40, blank=True)
 
-    video = models.FileField(upload_to="landing/section_media/", null=True, blank=True)
-    poster_image = models.ImageField(upload_to="landing/section_media/posters/", null=True, blank=True)
+    # max_length=255 — see PremiumPartner's identical fields above for why
+    # Django's 100-char FileField default isn't enough for a real uploaded
+    # filename. Confirmed live with the exact failure this was meant to fix:
+    # an 86-character real filename against upload_to="landing/section_media/"
+    # (22 chars) is 108, already over 100 before any dedup suffix.
+    video = models.FileField(upload_to="landing/section_media/", max_length=255, null=True, blank=True)
+    poster_image = models.ImageField(upload_to="landing/section_media/posters/", max_length=255, null=True, blank=True)
 
     is_active = models.BooleanField(default=True, db_index=True)
 
