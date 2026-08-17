@@ -15,6 +15,8 @@ public_urlpatterns = [
     path("destinations/", v.DestinationListView.as_view()),
     # Hero showcase — independent of destinations above.
     path("premium-partners/", v.PremiumPartnerListView.as_view()),
+    # Cinematic hero media for Teen Patti / Poker — ?section=teen_patti|poker
+    path("section-media/", v.SectionMediaListView.as_view()),
     path("vip-service-images/", v.VipServiceImageListView.as_view()),
     path("tour-packages/", v.TourPackageListView.as_view()),
 ]
@@ -52,6 +54,11 @@ admin_urlpatterns = [
 
     path("premium-partners/", v.AdminPremiumPartnerListCreateView.as_view()),
     path("premium-partners/<int:pk>/", v.AdminPremiumPartnerDetailView.as_view()),
+
+    path("section-media/teen-patti/", v.TeenPattiMediaListCreateView.as_view()),
+    path("section-media/teen-patti/<int:pk>/", v.TeenPattiMediaDetailView.as_view()),
+    path("section-media/poker/", v.PokerMediaListCreateView.as_view()),
+    path("section-media/poker/<int:pk>/", v.PokerMediaDetailView.as_view()),
 
     path("destination-media/", v.AdminDestinationMediaListCreateView.as_view()),
     path("destination-media/<int:pk>/", v.AdminDestinationMediaDetailView.as_view()),

@@ -445,7 +445,7 @@
   "poker": {
     "eyebrow": "High Stakes, Live Action",
     "title": "Poker",
-    "subtitle": "Upcoming tournaments and live tables from our partner casinos — get your ticket or watch the schedule fill in real time.",
+    "subtitle": "Upcoming tournaments and **live tables** from our partner casinos — get your ticket or watch the schedule fill in real time.",
     "signInPrompt": "Sign in to get your ticket for tournaments and track your seated events.",
     "loadError": "Couldn't load tournaments right now. Please try again.",
     "noTournaments": "No tournaments scheduled right now. Check back soon.",
@@ -456,7 +456,9 @@
     "signInToGetTicket": "Sign in to get your ticket for this tournament.",
     "liveNow": "Live Now",
     "upcomingTournaments": "Upcoming Tournaments",
-    "completedTournaments": "Completed Tournaments"
+    "completedTournaments": "Completed Tournaments",
+    "viewLiveEvents": "View Live Events",
+    "exploreUpcoming": "Explore Upcoming"
   },
   "events": {
     "eyebrow": "Jackpots World Presents",
@@ -485,7 +487,7 @@
   "teenPatti": {
     "eyebrow": "The Ultimate Indian Card Experience",
     "title": "Teen Patti",
-    "subtitle": "Discover exclusive Teen Patti events at our partner casinos — reserve your seat before the table fills.",
+    "subtitle": "Discover **exclusive** Teen Patti events at our partner casinos — reserve your seat before the table fills.",
     "viewLiveEvents": "View Live Events",
     "exploreUpcoming": "Explore Upcoming",
     "signInPrompt": "Sign in to reserve your seat at Teen Patti events and track your registrations.",
@@ -520,7 +522,9 @@
     "endDate": "End Date",
     "time": "Time",
     "eventType": "Event Type",
-    "notAvailable": "Not available"
+    "notAvailable": "Not available",
+    "ctaGuestDescription": "Join a **premium community** of Teen Patti players competing at JackpotsWorld's partner casinos worldwide. **Real tables, real stakes, real prestige** — register now and claim your seat before it fills.",
+    "ctaSecureTrusted": "Secure & Trusted"
   },
   "filters": {
     "all": "All",
@@ -545,5 +549,12 @@
     "applyInstantly": "Filters apply instantly",
     "tournamentCount": "{{count}} tournaments",
     "eventCount": "{{count}} events"
+  },
+  "vipStrip": {
+    "flyFree": "Fly Free",
+    "stayFree": "Stay Free",
+    "earnCommission": "Earn Hourly Commission",
+    "tagline": "While Enjoying The Gaming",
+    "disclaimer": "Eligible players may enjoy exclusive travel, stay and earning benefits while enjoying the gaming experience. Terms and conditions apply."
   }
 }

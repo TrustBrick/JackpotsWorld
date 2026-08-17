@@ -4,6 +4,7 @@ import {
 } from "lucide-react";
 import ManageContentTab from "./ManageContentTab";
 import TeenPattiRegistrationsTable from "./TeenPattiRegistrationsTable";
+import TeenPattiMediaManageTab from "./TeenPattiMediaManageTab";
 import { Card, Spinner } from "../../components/SharedUI";
 import { adminFetch, API } from "../../helpers";
 import { useAdminTheme } from "../../context/AdminThemeContext";
@@ -69,6 +70,7 @@ const COLUMNS = [
 
 const VIEWS = [
   { id: "events", label: "Events" },
+  { id: "media", label: "Hero Media" },
   { id: "registrations", label: "Registrations" },
 ];
 
@@ -186,6 +188,8 @@ export default function TeenPattiManageTab({ onToast }) {
           onToast={onToast}
           onSaved={() => setRefreshKey(k => k + 1)}
         />
+      ) : view === "media" ? (
+        <TeenPattiMediaManageTab onToast={onToast} />
       ) : (
         <TeenPattiRegistrationsTable onToast={onToast} />
       )}

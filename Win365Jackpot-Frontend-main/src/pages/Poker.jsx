@@ -1,11 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { LogIn, UserPlus, AlertTriangle, RefreshCw, Spade, Radio, CalendarRange } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 import Navbar from '../components/Navbar'
-import PageHeader from '../components/shared/PageHeader'
 import PageScrollButtons from '../components/PageScrollButtons'
+import PokerHero from '../components/poker/PokerHero'
 import PokerCard from '../components/poker/PokerCard'
 import PokerFilters from '../components/poker/PokerFilters'
 import AuthModal from '../components/AuthModal'
@@ -37,6 +37,10 @@ export default function Poker() {
   const [filters, setFilters] = useState({ status: '' })
   const [options, setOptions] = useState({ countries: [], cities: [], series: [], game_types: [], counts: {} })
   const isLoggedIn = !!getToken('access')
+
+  const liveRef = useRef(null)
+  const upcomingRef = useRef(null)
+  const scrollTo = (ref) => ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
   const { data, loading, error, reload } = useAutoFetch(fetchPokerTournaments, filters, { intervalMs: 60_000 })
 
@@ -83,10 +87,11 @@ export default function Poker() {
       />
 
       <main>
-      <PageHeader
-        eyebrow={t('poker.eyebrow')}
-        title={t('poker.title')}
-        subtitle={t('poker.subtitle')}
+      <PokerHero
+        liveCount={options.counts?.live || 0}
+        upcomingCount={options.counts?.upcoming || 0}
+        onViewLive={() => { setFilters(f => ({ ...f, status: 'live' })); scrollTo(liveRef) }}
+        onViewUpcoming={() => { setFilters(f => ({ ...f, status: 'upcoming' })); scrollTo(upcomingRef) }}
       />
 
       {!isLoggedIn && (
@@ -136,28 +141,32 @@ export default function Poker() {
           </motion.div>
         ) : (
           <div className="flex flex-col gap-14">
-            {live.length > 0 && (
-              <div>
-                <SectionHeading icon={Radio} title={t('common.statusLive')} count={live.length} accent="#ff3366" />
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {live.map(item => <PokerCard key={item.id} tournament={item} />)}
-                </div>
-              </div>
-            )}
+            <div ref={liveRef}>
+              {live.length > 0 && (
+                <>
+                  <SectionHeading icon={Radio} title={t('common.statusLive')} count={live.length} accent="#ff3366" />
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {live.map(item => <PokerCard key={item.id} tournament={item} />)}
+                  </div>
+                </>
+              )}
+            </div>
 
-            {upcoming.length > 0 && (
-              <div>
-                <SectionHeading
-                  icon={CalendarRange}
-                  title={t('common.statusUpcoming')}
-                  count={upcoming.length}
-                  accent="#D4AF37"
-                />
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {upcoming.map(item => <PokerCard key={item.id} tournament={item} />)}
-                </div>
-              </div>
-            )}
+            <div ref={upcomingRef}>
+              {upcoming.length > 0 && (
+                <>
+                  <SectionHeading
+                    icon={CalendarRange}
+                    title={t('common.statusUpcoming')}
+                    count={upcoming.length}
+                    accent="#D4AF37"
+                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {upcoming.map(item => <PokerCard key={item.id} tournament={item} />)}
+                  </div>
+                </>
+              )}
+            </div>
 
             {completed.length > 0 && (
               <div>

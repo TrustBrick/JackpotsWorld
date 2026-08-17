@@ -436,7 +436,7 @@
   "poker": {
     "eyebrow": "高額籌碼，即時精彩",
     "title": "撲克",
-    "subtitle": "來自合作賭場的即將舉行錦標賽與直播牌桌 — 立即取得門票，或即時查看賽程更新。",
+    "subtitle": "來自合作賭場的即將舉行錦標賽與**直播牌桌** — 立即取得門票，或即時查看賽程更新。",
     "signInPrompt": "登入以取得錦標賽門票，並追蹤您已報名的賽事。",
     "loadError": "目前無法載入錦標賽資訊，請稍後再試。",
     "noTournaments": "目前尚無排定的錦標賽，請稍後再查看。",
@@ -447,7 +447,9 @@
     "signInToGetTicket": "登入以取得此錦標賽的門票。",
     "liveNow": "正在直播",
     "upcomingTournaments": "即將開始的錦標賽",
-    "completedTournaments": "已結束的錦標賽"
+    "completedTournaments": "已結束的錦標賽",
+    "viewLiveEvents": "查看直播賽事",
+    "exploreUpcoming": "瀏覽即將開始"
   },
   "events": {
     "eyebrow": "Jackpots World 呈現",
@@ -476,7 +478,7 @@
   "teenPatti": {
     "eyebrow": "極致印度紙牌體驗",
     "title": "Teen Patti",
-    "subtitle": "探索合作賭場的專屬 Teen Patti 賽事 — 在牌桌坐滿前預留您的席位。",
+    "subtitle": "探索合作賭場的**專屬** Teen Patti 賽事 — 在牌桌坐滿前預留您的席位。",
     "viewLiveEvents": "查看直播賽事",
     "exploreUpcoming": "瀏覽即將開始",
     "signInPrompt": "登入以預留 Teen Patti 賽事席位並追蹤您的報名紀錄。",
@@ -511,7 +513,9 @@
     "endDate": "結束日期",
     "time": "時間",
     "eventType": "賽事類型",
-    "notAvailable": "暫無"
+    "notAvailable": "暫無",
+    "ctaGuestDescription": "加入在 JackpotsWorld 全球合作賭場競技的 Teen Patti 玩家**尊貴社群**。**真實牌桌、真實籌碼、真實榮耀** — 立即註冊，在座位坐滿前鎖定您的席位。",
+    "ctaSecureTrusted": "安全可信"
   },
   "filters": {
     "all": "全部",
@@ -536,5 +540,12 @@
     "applyInstantly": "篩選條件即時生效",
     "tournamentCount": "{{count}} 場錦標賽",
     "eventCount": "{{count}} 場賽事"
+  },
+  "vipStrip": {
+    "flyFree": "免費機票",
+    "stayFree": "免費住宿",
+    "earnCommission": "賺取每小時佣金",
+    "tagline": "盡享博彩樂趣的同時",
+    "disclaimer": "符合資格的玩家在享受博彩體驗的同時，可享有專屬旅行、住宿及收益優惠。詳情以條款及細則為準。"
   }
 }

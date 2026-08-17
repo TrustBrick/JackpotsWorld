@@ -436,7 +436,7 @@
   "poker": {
     "eyebrow": "Mises Fortes, Action en Direct",
     "title": "Poker",
-    "subtitle": "Tournois à venir et tables en direct de nos casinos partenaires — obtenez votre billet ou suivez le programme se remplir en temps réel.",
+    "subtitle": "Tournois à venir et **tables en direct** de nos casinos partenaires — obtenez votre billet ou suivez le programme se remplir en temps réel.",
     "signInPrompt": "Connectez-vous pour obtenir votre billet pour les tournois et suivre vos événements inscrits.",
     "loadError": "Impossible de charger les tournois pour le moment. Veuillez réessayer.",
     "noTournaments": "Aucun tournoi prévu pour le moment. Revenez bientôt.",
@@ -447,7 +447,9 @@
     "signInToGetTicket": "Connectez-vous pour obtenir votre billet pour ce tournoi.",
     "liveNow": "En direct",
     "upcomingTournaments": "Tournois à venir",
-    "completedTournaments": "Tournois terminés"
+    "completedTournaments": "Tournois terminés",
+    "viewLiveEvents": "Voir les événements en direct",
+    "exploreUpcoming": "Explorer les prochains"
   },
   "events": {
     "eyebrow": "Jackpots World Présente",
@@ -476,7 +478,7 @@
   "teenPatti": {
     "eyebrow": "L'expérience ultime des cartes indiennes",
     "title": "Teen Patti",
-    "subtitle": "Découvrez des événements Teen Patti exclusifs dans nos casinos partenaires — réservez votre place avant que la table ne soit complète.",
+    "subtitle": "Découvrez des événements Teen Patti **exclusifs** dans nos casinos partenaires — réservez votre place avant que la table ne soit complète.",
     "viewLiveEvents": "Voir les événements en direct",
     "exploreUpcoming": "Explorer les prochains",
     "signInPrompt": "Connectez-vous pour réserver votre place aux événements Teen Patti et suivre vos inscriptions.",
@@ -511,7 +513,9 @@
     "endDate": "Date de fin",
     "time": "Heure",
     "eventType": "Type d'événement",
-    "notAvailable": "Non disponible"
+    "notAvailable": "Non disponible",
+    "ctaGuestDescription": "Rejoignez une **communauté premium** de joueurs de Teen Patti qui s'affrontent dans les casinos partenaires de JackpotsWorld à travers le monde. **Vraies tables, vraies mises, vrai prestige** — inscrivez-vous maintenant et réservez votre place avant qu'elle ne soit plus disponible.",
+    "ctaSecureTrusted": "Sûr et Fiable"
   },
   "filters": {
     "all": "Tous",
@@ -536,5 +540,12 @@
     "applyInstantly": "Les filtres s'appliquent instantanément",
     "tournamentCount": "{{count}} tournois",
     "eventCount": "{{count}} événements"
+  },
+  "vipStrip": {
+    "flyFree": "Vol Gratuit",
+    "stayFree": "Séjour Gratuit",
+    "earnCommission": "Gagnez une Commission Horaire",
+    "tagline": "Tout en Profitant du Jeu",
+    "disclaimer": "Les joueurs éligibles peuvent profiter d'avantages exclusifs de voyage, de séjour et de gains tout en profitant de l'expérience de jeu. Conditions générales applicables."
   }
 }
