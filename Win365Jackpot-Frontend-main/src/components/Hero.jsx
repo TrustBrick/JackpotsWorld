@@ -7,7 +7,7 @@ import { useAutoFetch } from '../hooks/useAutoFetch'
 import { fetchLocations } from '../services/locationService'
 import { fetchHeroStats, fetchLandingSettings } from '../services/landingService'
 import { flagFromCountryCode, flagIconUrl } from '../utils/countryFlags'
-import SriLankaHeroMedia from './SriLankaHeroMedia'
+import PremiumPartnerHeroMedia from './PremiumPartnerHeroMedia'
 
 // ─── Hero intro timing ─────────────────────────────────────────────────────
 // How long the oversized stacked wordmark holds before collapsing to the
@@ -745,12 +745,14 @@ useEffect(() => {
         </motion.p>
       </div>
 
-      {/* Sri Lanka premium-partner media — the hero's major visual element,
+      {/* Top Premium Partners media — the hero's major visual element,
           not a small card, so it breaks out of the 660px text column into
           its own much wider band (same technique the ticker below uses).
           Occupies the vertical space the wordmark gives back when it
           collapses. Mounted only once the intro is done, so none of its
-          media is fetched or decoded while the intro is still playing. */}
+          media is fetched or decoded while the intro is still playing.
+          Renders nothing when no partner is featured, and the wrapper
+          collapses with it. */}
       {compact && (
         <div style={{
           position:'relative', zIndex:10, width:'100%',
@@ -758,7 +760,7 @@ useEffect(() => {
           paddingLeft:'clamp(16px,5vw,24px)', paddingRight:'clamp(16px,5vw,24px)',
         }}>
           <div style={{ width:'min(94vw, 1220px)' }}>
-            <SriLankaHeroMedia />
+            <PremiumPartnerHeroMedia />
           </div>
         </div>
       )}

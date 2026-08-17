@@ -36,8 +36,12 @@ const STATUS_MAP = {
 
 const publisher = { '@type': 'Organization', name: SITE_NAME, url: SITE_URL }
 
-/** Casino event / expo → schema.org Event. */
-export function eventSchema(event) {
+/** Casino event / expo → schema.org Event.
+ *
+ *  `basePath` exists because Teen Patti events share this exact schema shape
+ *  but live under a different detail route; it defaults to '/events' so every
+ *  existing caller is unaffected. */
+export function eventSchema(event, basePath = '/events') {
   if (!event) return null
   const place = compact({
     '@type': 'Place',
@@ -60,7 +64,7 @@ export function eventSchema(event) {
     eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
     location: Object.keys(place).length > 1 ? place : undefined,
     image: event.image ? absoluteImage(event.image) : undefined,
-    url: absoluteUrl(`/events/${event.id}`),
+    url: absoluteUrl(`${basePath}/${event.id}`),
     organizer: publisher,
   })
 }
@@ -72,38 +76,6 @@ export function eventSchema(event) {
  *  Place for one is misrepresentation Google validates against. */
 function isOnlineEvent(location) {
   return /^\s*online\b/i.test(String(location || ''))
-}
-
-const CURRENCY_SYMBOLS = { '$': 'USD', '€': 'EUR', '£': 'GBP' }
-
-// A bare symbol followed by a figure. The (?<![A-Za-z]) guard is what keeps
-// "HK$100,000" out: a prefixed symbol names a different currency from the
-// plain one, and treating them alike is how HKD gets published as USD.
-const MONEY_RE = /(?<![A-Za-z])([$€£])\s?([\d,]+(?:\.\d+)?)/g
-
-/**
- * ISO code for `buyIn`, or undefined when it cannot be established.
- *
- * There is no currency column, so the tournament name is the only evidence.
- * A symbol is trusted only when it is attached to a figure equal to buyIn —
- * which rules out both ways a name misleads: a headline guarantee rather than
- * a buy-in ("PHP 25,000,000 Guaranteed" against buyIn 550), and a buy-in
- * quoted in one currency but stored converted into another ("HK$100,000"
- * against buyIn 12800, a USD figure).
- *
- * Returning undefined is a real answer, not a failure: the caller omits the
- * price rather than denominating it in a currency nobody verified.
- */
-export function buyInCurrency(name, buyIn) {
-  const target = Number(buyIn)
-  if (!Number.isFinite(target)) return undefined
-
-  const hits = new Set()
-  for (const [, sym, amount] of String(name || '').matchAll(MONEY_RE)) {
-    if (Number(amount.replace(/,/g, '')) === target) hits.add(CURRENCY_SYMBOLS[sym])
-  }
-  // Exactly one currency may claim the figure; anything else is ambiguous.
-  return hits.size === 1 ? [...hits][0] : undefined
 }
 
 /** Poker tournament → schema.org Event, with the buy-in as its Offer. */
@@ -123,10 +95,10 @@ export function pokerSchema(tournament) {
 
   const buyIn = Number(tournament.buy_in)
   // price and priceCurrency travel together: schema.org has no way to state
-  // an amount without saying what it is denominated in, so an underivable
-  // currency means the figure is withheld rather than guessed at.
-  const currency = buyInCurrency(tournament.name, buyIn)
-  const priced = Number.isFinite(buyIn) && buyIn > 0 && currency !== undefined
+  // an amount without saying what it is denominated in, so a blank currency
+  // means the figure is withheld rather than denominated in a guess.
+  const currency = String(tournament.currency || '').trim().toUpperCase()
+  const priced = Number.isFinite(buyIn) && buyIn > 0 && currency !== ''
 
   // NULL seats mean "unknown", which is not the same as zero. Omit the key
   // instead, so an open tournament is never advertised as sold out.

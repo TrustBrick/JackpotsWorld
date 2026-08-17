@@ -69,6 +69,20 @@ function PokerCard({ tournament }) {
           )}
           {tournament.status && (STATUS_LABEL_KEYS[tournament.status] ? t(STATUS_LABEL_KEYS[tournament.status]) : tournament.status)}
         </span>
+
+        {/* Series / game type — only rendered when the source actually
+            supplied them, never placeholder text (Part 6). */}
+        {tournament.series && (
+          <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase"
+            style={{ background: 'rgba(212,175,55,0.16)', border: '1px solid rgba(212,175,55,0.5)', color: '#D4AF37' }}>
+            {tournament.series}
+          </span>
+        )}
+        {tournament.game_type && (
+          <span className="absolute bottom-3 left-3 text-[10px] font-body tracking-wider uppercase text-white/60">
+            {tournament.game_type}
+          </span>
+        )}
       </div>
 
       <div className="flex flex-col flex-1 p-5 gap-3">

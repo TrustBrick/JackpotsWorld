@@ -54,7 +54,31 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from authapp.models.events_models import CasinoEvent
-from authapp.models.poker_models import PokerTournament
+from authapp.models.poker_models import PokerEventChangeLog, PokerTournament
+
+# Poker rows carry an audit trail that the Back Office "Change History" view
+# reads; every admin edit writes one. A correction that skipped it would be
+# the single largest change this table has had and the only one invisible
+# there. CasinoEvent has no equivalent model, so events are not logged.
+CHANGE_LOG_ACTION = "data_correction"
+CHANGE_LOG_NOTE = (
+    "Factual correction verified against the official organiser's published "
+    "schedule. Applied by the apply_event_data_corrections one-off command."
+)
+
+
+def _jsonable(value):
+    """JSON-safe rendering of a field value.
+
+    changed_fields is a JSONField and date/Decimal are not serialisable, so
+    every value is stored as the string a reader would recognise rather than
+    risking a TypeError at write time.
+    """
+    if value is None or isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float, str)):
+        return value
+    return str(value)
 
 # Deliberately different per direction: the confirmation is worthless if it
 # can be typed from muscle memory without reading which way the run is going.
@@ -139,6 +163,13 @@ CORRECTIONS = {
             "event_date": (datetime.date(2026, 10, 20), datetime.date(2026, 3, 31)),
             "casino_name": ("King's Casino Rozvadov", "King's Casino Prague"),
             "location": ("Rozvadov, Czech Republic", "Prague, Czech Republic"),
+            # 0058 backfills city from `location`, so correcting the location
+            # without this would leave the filterable column reading Rozvadov.
+            "city": ("Rozvadov", "Prague"),
+            # 0057 stamps every existing row "USD"; this buy-in is in euros,
+            # and the JSON-LD now takes the currency from this column rather
+            # than reading it out of the name.
+            "currency": ("USD", "EUR"),
             "status": ("upcoming", "completed"),
         },
         3: {
@@ -146,6 +177,7 @@ CORRECTIONS = {
         },
         4: {
             "event_date": (datetime.date(2026, 8, 24), datetime.date(2026, 8, 22)),
+            "currency": ("USD", "EUR"),
         },
         5: {
             "is_active": (True, False),
@@ -369,11 +401,17 @@ class Command(BaseCommand):
         # columns named -- update_fields is what keeps a save() from writing
         # columns this command was never authorised to touch.
         by_row = {}
-        for label, pk, field, _current, new, obj in pending:
-            entry = by_row.setdefault((label, pk), {"obj": obj, "fields": {}})
+        for label, pk, field, current, new, obj in pending:
+            entry = by_row.setdefault(
+                (label, pk), {"obj": obj, "fields": {}, "changed": {}}
+            )
             entry["fields"][field] = new
+            # {field: [old, new]} -- the shape PokerEventChangeLog already
+            # stores for admin edits, so Change History renders them alike.
+            entry["changed"][field] = [_jsonable(current), _jsonable(new)]
 
         written_fields = 0
+        logged_rows = 0
         self.stdout.write("")
         self.stdout.write("Reverting" if revert else "Applying")
 
@@ -387,6 +425,22 @@ class Command(BaseCommand):
                 self.stdout.write(
                     f"    {label} id={pk}: {', '.join(sorted(entry['fields']))}"
                 )
+
+                # Poker rows only: CasinoEvent has no change-history model.
+                # from_status/to_status stay blank because this command never
+                # moves review_status -- these are edits, not transitions.
+                if isinstance(obj, PokerTournament):
+                    PokerEventChangeLog.objects.create(
+                        tournament=obj,
+                        action=CHANGE_LOG_ACTION,
+                        changed_fields=entry["changed"],
+                        note=CHANGE_LOG_NOTE,
+                        actor=None,
+                    )
+                    logged_rows += 1
+                    self.stdout.write(
+                        f"        + change log ({len(entry['changed'])} field(s))"
+                    )
 
             expected_fields = len(pending)
             if written_fields != expected_fields:
@@ -417,6 +471,10 @@ class Command(BaseCommand):
         self._ok(
             f"{'Reverted' if revert else 'Applied'} {written_fields} field "
             f"change(s) across {len(by_row)} row(s). Committed."
+        )
+        self._ok(
+            f"Wrote {logged_rows} PokerEventChangeLog row(s) "
+            f"(action={CHANGE_LOG_ACTION!r})."
         )
 
     # -- control -----------------------------------------------------------

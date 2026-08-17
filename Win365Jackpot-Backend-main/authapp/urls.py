@@ -1,7 +1,7 @@
 # authapp/urls.py
 from django.urls import path, include
 
-from authapp.url_patterns import events_urls, poker_urls, promotion_urls, location_urls, affiliate_urls, affiliate_wallet_urls, wallet_request_urls, admin_gift_urls, support_urls, spin_urls, chat_urls, landing_urls, wheel_urls, live_chat_urls
+from authapp.url_patterns import events_urls, poker_urls, promotion_urls, location_urls, affiliate_urls, affiliate_wallet_urls, wallet_request_urls, admin_gift_urls, support_urls, spin_urls, chat_urls, landing_urls, wheel_urls, live_chat_urls, teenpatti_urls, commission_rule_urls
 
 urlpatterns = [
     path("", include("authapp.url_patterns.auth_urls")),
@@ -26,9 +26,18 @@ urlpatterns = [
     path("admin-panel/", include(location_urls.admin_urlpatterns)),
     path("admin-panel/", include(landing_urls.admin_urlpatterns)),
 
+    # ── Teen Patti (public discovery + registration, admin-managed CRUD) ──────
+    path("", include(teenpatti_urls.public_urlpatterns)),
+    path("admin-panel/", include(teenpatti_urls.admin_urlpatterns)),
+
     # ── Affiliate role (separate login + dashboard) ────────────────────────────
     path("", include(affiliate_urls.public_urlpatterns)),
     path("admin-panel/", include(affiliate_urls.admin_urlpatterns)),
+
+    # ── Country+Casino+Tier commission rules (layered on top of the existing
+    #    CommissionPlan engine — see commission_rule_models' docstring) ───────
+    path("", include(commission_rule_urls.public_urlpatterns)),
+    path("admin-panel/", include(commission_rule_urls.admin_urlpatterns)),
 
     # ── Affiliate Wallet & Withdrawals (AFFILIATE-WITHDRAWALS — safe to
     #    delete this block + affiliate_wallet_urls.py to remove the feature) ──

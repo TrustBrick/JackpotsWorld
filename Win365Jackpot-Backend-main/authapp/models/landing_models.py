@@ -250,3 +250,69 @@ class TourPackage(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class PremiumPartner(models.Model):
+    """A hand-picked partner shown in the landing hero's media band.
+
+    Deliberately standalone: no ForeignKey to Destination and no shared
+    media table. The hero showcase, the Casino Destinations section and the
+    location ticker are three independent systems, so editing a destination
+    can never change what the hero shows, and featuring a partner here can
+    never create or alter a destination.
+
+    Media lives on the partner itself (one image and/or one video) rather
+    than in a child table — the hero shows a single frame per partner, so a
+    gallery would be state the UI has no way to express.
+    """
+
+    PARTNER_TYPE_CHOICES = [
+        ("top_premium", "Top Premium Partner"),
+        ("premium", "Premium Partner"),
+        ("standard", "Standard Partner"),
+    ]
+
+    #: Only this type is eligible for the hero (see PremiumPartnerListView).
+    HERO_PARTNER_TYPE = "top_premium"
+
+    name              = models.CharField(max_length=150)
+    country           = models.CharField(max_length=100, blank=True)
+    city              = models.CharField(max_length=100, blank=True)
+    # ISO-2, used for the caption flag. Same convention as Destination's own
+    # flag_country_code field, but stored here so the hero never has to read
+    # a destination row to render itself.
+    flag_country_code = models.CharField(max_length=8, blank=True)
+    description       = models.CharField(max_length=300, blank=True)
+
+    logo       = models.ImageField(upload_to="landing/partners/logos/", null=True, blank=True)
+    hero_image = models.ImageField(upload_to="landing/partners/", null=True, blank=True)
+    hero_video = models.FileField(upload_to="landing/partners/", null=True, blank=True)
+
+    partner_type        = models.CharField(
+        max_length=20, choices=PARTNER_TYPE_CHOICES, default="top_premium", db_index=True,
+    )
+    is_featured_in_hero = models.BooleanField(default=True, db_index=True)
+    is_active           = models.BooleanField(default=True, db_index=True)
+    order               = models.PositiveIntegerField(default=0)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["order", "id"]
+        indexes = [
+            models.Index(fields=["is_active", "is_featured_in_hero", "partner_type", "order"]),
+        ]
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def media_type(self):
+        """What the hero should render for this partner. A video wins when
+        both are present — the image then serves as its poster."""
+        if self.hero_video:
+            return "video"
+        if self.hero_image:
+            return "image"
+        return "none"

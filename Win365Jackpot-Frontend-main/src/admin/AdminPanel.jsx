@@ -8,6 +8,8 @@ import {
   ArrowDownCircle, ArrowUpCircle, Sparkles, // WALLET-REQUESTS / GIFTS-REWARDS
   MessageCircle, // LIVE-CHAT
   Percent, ChevronDown, // AFFILIATE-APPROVAL: sidebar groups + Commission Engine icon
+  Club, // Teen Patti
+  Layers, // Commission Rules
   Menu, X, // mobile off-canvas drawer controls
 } from "lucide-react";
 
@@ -24,6 +26,8 @@ import LogsTab           from "./tabs/LogsTab";
 import StaffTab          from "./tabs/StaffTab";
 import EventsManageTab      from "./tabs/content/EventsManageTab";
 import PokerManageTab       from "./tabs/content/PokerManageTab";
+import TeenPattiManageTab   from "./tabs/content/TeenPattiManageTab";
+import CommissionRulesTab   from "./tabs/CommissionRulesTab";
 import PromotionsManageTab  from "./tabs/content/PromotionsManageTab";
 import LocationsManageTab   from "./tabs/content/LocationsManageTab";
 import LandingManageTab     from "./tabs/content/LandingManageTab";
@@ -56,6 +60,8 @@ const ICON_MAP = {
   ArrowDownCircle, ArrowUpCircle, Sparkles, // WALLET-REQUESTS / GIFTS-REWARDS
   MessageCircle, // LIVE-CHAT
   Percent, // Affiliate Commissions — was referenced but never mapped/imported before this change
+  Club, // Teen Patti
+  Layers, // Commission Rules
 };
 
 // AFFILIATE-APPROVAL: sessionStorage keys for sidebar state that should
@@ -385,12 +391,14 @@ function AdminPanelInner() {
       case "kyc":       return <KycTab            {...props} />;
       case "events":    return <EventsManageTab     {...props} />;
       case "poker":     return <PokerManageTab       {...props} />;
+      case "teen-patti":return <TeenPattiManageTab   {...props} />;
       case "promotions":return <PromotionsManageTab  {...props} />;
       case "locations": return <LocationsManageTab   {...props} />;
       case "landing":   return <LandingManageTab     {...props} />;
       case "affiliates":return <AffiliatesTab        {...props} />;
       case "affiliate-withdrawals": return <AffiliateWithdrawalsTab {...props} />; // AFFILIATE-WITHDRAWALS
       case "affiliate-commissions": return <AffiliateCommissionsTab {...props} />; // Commission Engine
+      case "commission-rules": return <CommissionRulesTab {...props} />; // Country+Casino+Tier rules
       // MULTILINGUAL-CHAT: 2 new cases
       case "support-tickets":  return <SupportTicketsTab  {...props} />;
       case "support-settings": return <SupportSettingsTab {...props} />;

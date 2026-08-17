@@ -13,6 +13,8 @@ public_urlpatterns = [
     path("vip-tiers/", v.VipTierListView.as_view()),
     path("testimonials/", v.TestimonialListView.as_view()),
     path("destinations/", v.DestinationListView.as_view()),
+    # Hero showcase — independent of destinations above.
+    path("premium-partners/", v.PremiumPartnerListView.as_view()),
     path("vip-service-images/", v.VipServiceImageListView.as_view()),
     path("tour-packages/", v.TourPackageListView.as_view()),
 ]
@@ -47,6 +49,9 @@ admin_urlpatterns = [
 
     path("destinations/", v.AdminDestinationListCreateView.as_view()),
     path("destinations/<int:pk>/", v.AdminDestinationDetailView.as_view()),
+
+    path("premium-partners/", v.AdminPremiumPartnerListCreateView.as_view()),
+    path("premium-partners/<int:pk>/", v.AdminPremiumPartnerDetailView.as_view()),
 
     path("destination-media/", v.AdminDestinationMediaListCreateView.as_view()),
     path("destination-media/<int:pk>/", v.AdminDestinationMediaDetailView.as_view()),

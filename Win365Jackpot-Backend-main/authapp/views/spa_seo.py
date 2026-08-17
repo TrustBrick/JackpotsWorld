@@ -224,50 +224,6 @@ def event_schema(event):
     })
 
 
-_CURRENCY_SYMBOLS = {'$': 'USD', '€': 'EUR', '£': 'GBP'}
-
-# A bare symbol followed by a figure. The (?<![A-Za-z]) guard is what keeps
-# "HK$100,000" out: a prefixed symbol names a different currency from the
-# plain one, and treating them alike is how HKD gets published as USD.
-_MONEY_RE = re.compile(r'(?<![A-Za-z])([$€£])\s?([\d,]+(?:\.\d+)?)')
-
-
-def buyin_currency(name, buy_in):
-    """ISO code for `buy_in`, or None when it cannot be established.
-
-    There is no currency column, so the tournament name is the only evidence.
-    A symbol is trusted only when it is attached to a figure equal to buy_in
-    -- which rules out both ways a name misleads: a headline guarantee rather
-    than a buy-in ("PHP 25,000,000 Guaranteed" against buy_in 550), and a
-    buy-in quoted in one currency but stored converted into another
-    ("HK$100,000" against buy_in 12800, a USD figure).
-
-    Returning None is a real answer, not a failure: the caller omits the
-    price rather than denominating it in a currency nobody verified.
-    """
-    if buy_in is None:
-        return None
-    try:
-        target = float(buy_in)
-    except (TypeError, ValueError):
-        return None
-
-    hits = {
-        _CURRENCY_SYMBOLS[sym]
-        for sym, amount in _MONEY_RE.findall(str(name or ''))
-        if _safe_float(amount.replace(',', '')) == target
-    }
-    # Exactly one currency may claim the figure; anything else is ambiguous.
-    return hits.pop() if len(hits) == 1 else None
-
-
-def _safe_float(text):
-    try:
-        return float(text)
-    except (TypeError, ValueError):
-        return None
-
-
 def _is_online_event(location):
     """Mirror of isOnlineEvent(). schema.org treats online and physical events
     as different shapes, not a cosmetic difference: claiming a Place for an
@@ -293,10 +249,10 @@ def poker_schema(tournament):
 
     buy_in = _number(tournament.buy_in)
     # price and priceCurrency travel together: schema.org has no way to state
-    # an amount without saying what it is denominated in, so an underivable
-    # currency means the figure is withheld rather than guessed at.
-    currency = buyin_currency(tournament.name, buy_in)
-    priced = buy_in is not None and buy_in > 0 and currency is not None
+    # an amount without saying what it is denominated in, so a blank currency
+    # means the figure is withheld rather than denominated in a guess.
+    currency = (tournament.currency or '').strip().upper()
+    priced = buy_in is not None and buy_in > 0 and bool(currency)
 
     # NULL seats mean "unknown", which is not the same as zero. Omit the key
     # instead, so an open tournament is never advertised as sold out.

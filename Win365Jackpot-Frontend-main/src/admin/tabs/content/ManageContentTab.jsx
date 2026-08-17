@@ -43,6 +43,11 @@ export default function ManageContentTab({ resourceLabel, apiPath, fields, colum
   const [editingId, setEditingId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [files, setFiles] = useState({});
+  // Whether this save is carrying a file, which is what makes it slow enough
+  // to be worth labelling differently while it runs.
+  const hasPendingUpload = Object.values(files).some(
+    v => v && (Array.isArray(v) ? v.length > 0 : true)
+  );
   const [asyncOptions, setAsyncOptions] = useState({});
   // Pagination — the backend already paginates list responses (DRF
   // PageNumberPagination, PAGE_SIZE=20); without tracking `total`/`page`
@@ -61,12 +66,16 @@ export default function ManageContentTab({ resourceLabel, apiPath, fields, colum
   // Fields of type "asyncSelect" fetch their own dropdown options from a
   // separate admin-panel list endpoint (e.g. picking a specific Poker
   // Tournament / Casino Event to link a reward to) — fetched once per field.
+  //
+  // `optionsKey` picks a list other than `results` out of the response, for
+  // endpoints that return several (the casino catalog returns both countries
+  // and casinos in one payload). Defaults to the previous behaviour.
   useEffect(() => {
     fields.filter(f => f.type === "asyncSelect").forEach(f => {
       adminFetch(`${API}${f.optionsUrl}`)
         .then(r => r?.json())
         .then(j => {
-          const list = Array.isArray(j) ? j : (j?.results || []);
+          const list = Array.isArray(j) ? j : (j?.[f.optionsKey || "results"] || []);
           setAsyncOptions(prev => ({ ...prev, [f.name]: list }));
         })
         .catch(() => {});
@@ -267,13 +276,42 @@ export default function ManageContentTab({ resourceLabel, apiPath, fields, colum
                 ) : f.type === "asyncSelect" ? (
                   <select
                     value={form[f.name] ?? ""}
-                    onChange={e => setForm(prev => ({ ...prev, [f.name]: e.target.value }))}
+                    onChange={e => {
+                      const next = e.target.value;
+                      setForm(prev => {
+                        const updated = { ...prev, [f.name]: next };
+                        // Clear any field that filters off this one, so a
+                        // stale child selection (a casino in the country the
+                        // admin just switched away from) can't be submitted.
+                        fields.forEach(other => {
+                          if (other.dependsOn?.field === f.name) updated[other.name] = "";
+                        });
+                        return updated;
+                      });
+                    }}
                     style={inputStyle}
                   >
                     <option value="" style={{ background: C.surface, color: C.text }}>{f.placeholder || "— None —"}</option>
-                    {(asyncOptions[f.name] || []).map(o => (
-                      <option key={o.id} value={o.id} style={{ background: C.surface, color: C.text }}>{o[f.optionLabelKey || "name"]}</option>
-                    ))}
+                    {(asyncOptions[f.name] || [])
+                      // `dependsOn` narrows this dropdown to the options whose
+                      // `optionKey` matches another field's current value —
+                      // e.g. only casinos in the selected country. Fields
+                      // without it are unfiltered, as before.
+                      .filter(o => {
+                        if (!f.dependsOn) return true;
+                        const parent = form[f.dependsOn.field];
+                        if (!parent) return true;
+                        return String(o[f.dependsOn.optionKey] ?? "") === String(parent);
+                      })
+                      .map(o => (
+                        <option
+                          key={o.id}
+                          value={o[f.optionValueKey || "id"]}
+                          style={{ background: C.surface, color: C.text }}
+                        >
+                          {o[f.optionLabelKey || "name"]}
+                        </option>
+                      ))}
                   </select>
                 ) : f.type === "boolean" ? (
                   <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", padding: "9px 0" }}>
@@ -293,9 +331,36 @@ export default function ManageContentTab({ resourceLabel, apiPath, fields, colum
                       onChange={e => setFiles(prev => ({ ...prev, [f.name]: e.target.files?.[0] || null }))}
                       style={{ ...inputStyle, padding: "6px 8px" }}
                     />
-                    {!files[f.name] && typeof form[f.name] === "string" && form[f.name] && (
+                    {files[f.name] && (
                       <div style={{ fontSize: 10, color: C.muted, marginTop: 4 }}>
-                        Current: <a href={form[f.name]} target="_blank" rel="noreferrer" style={{ color: C.gold }}>view file</a>
+                        Selected: {files[f.name].name}{" "}
+                        ({(files[f.name].size / (1024 * 1024)).toFixed(1)}MB) — not uploaded until you save.
+                      </div>
+                    )}
+                    {/* Preview of what is actually stored on the server, so an
+                        admin can confirm a past upload really landed rather
+                        than trusting the filename. Extension-sniffed because
+                        the value here is just the saved media URL. */}
+                    {!files[f.name] && typeof form[f.name] === "string" && form[f.name] && (
+                      <div style={{ marginTop: 6 }}>
+                        {/\.(mp4|webm|mov)(\?|$)/i.test(form[f.name]) ? (
+                          <video
+                            src={form[f.name]}
+                            controls
+                            muted
+                            preload="metadata"
+                            style={{ width: 200, maxWidth: "100%", borderRadius: 8, border: `1px solid ${C.border}`, display: "block", background: "#000" }}
+                          />
+                        ) : (
+                          <img
+                            src={form[f.name]}
+                            alt=""
+                            style={{ width: 120, height: 68, objectFit: "cover", borderRadius: 8, border: `1px solid ${C.border}`, display: "block" }}
+                          />
+                        )}
+                        <a href={form[f.name]} target="_blank" rel="noreferrer" style={{ color: C.gold, fontSize: 10 }}>
+                          open current file
+                        </a>
                       </div>
                     )}
                   </div>
@@ -349,7 +414,12 @@ export default function ManageContentTab({ resourceLabel, apiPath, fields, colum
             ))}
           </div>
           <Btn onClick={submit} disabled={submitting} style={{ marginTop: 16, width: "100%", justifyContent: "center" }}>
-            {submitting ? <><Spinner /> Saving…</> : editingId ? "Save Changes" : `Create ${resourceLabel}`}
+            {submitting
+              // A video upload can run for a while on a slow link; say
+              // "Uploading" rather than "Saving" so a long wait reads as
+              // progress rather than a hang.
+              ? <><Spinner /> {hasPendingUpload ? "Uploading…" : "Saving…"}</>
+              : editingId ? "Save Changes" : `Create ${resourceLabel}`}
           </Btn>
         </Card>
       )}

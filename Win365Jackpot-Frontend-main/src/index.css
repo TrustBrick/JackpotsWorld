@@ -12,6 +12,43 @@ html, body, #root {
 }
 img, video, svg, picture { max-width: 100%; height: auto; }
 
+/* ── Native <select>/<option> visibility fix ───────────────────────────────
+   Root cause, confirmed live via computed styles: dozens of components
+   across the public site, Back Office and Affiliate Panel style their
+   <option> elements with a translucent "surface" tint (e.g.
+   rgba(255,255,255,0.03)) meant for layering on top of this app's own dark
+   page background. That works for ordinary DOM elements, which composite
+   against the page behind them — but an *open* native <select> popup is
+   painted by the browser/OS on its own layer with no page behind it, so a
+   3%-opacity fill renders as the browser's plain default canvas (usually
+   white) showing straight through. Combined with Tailwind Preflight's
+   `option { color: inherit }` pulling in this app's white/gold text, the
+   result is white text on a near-white popup — invisible, matching the
+   reported bug exactly (verified with getComputedStyle in a live session
+   before this rule existed: background rgba(255,255,255,0.03), color
+   rgb(255,255,255), color-scheme "normal").
+   `!important` is used deliberately and narrowly here: an inline `style`
+   attribute (which is how ~30 components currently set this, all with the
+   same translucent-tint mistake) can only be overridden from a stylesheet
+   with `!important` — there is no other way to correct it platform-wide
+   without editing every one of those components individually. This rule
+   touches exactly one property pair on exactly one element, so it can only
+   ever fix contrast, never mask or override anything else. */
+select {
+  color-scheme: dark;
+}
+:root[data-theme="light"] select {
+  color-scheme: light;
+}
+select option {
+  background-color: var(--w365-card, #1A0015) !important;
+  color: var(--w365-text, #f5f0e8) !important;
+}
+select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 /* ── Public-site theme tokens (Landing / Navbar / Footer / Events / ─────
    Promotions / Poker / Affiliates). Prefixed w365- to avoid any collision
    with the Super Admin panel's own scoped --bg/--text/--muted variables. */

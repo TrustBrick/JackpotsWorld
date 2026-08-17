@@ -7,12 +7,14 @@ from authapp.models.landing_models import (
     LandingSettings, HeroStat, WhyChooseUsFeature, TrustBadge,
     GiftItem, GiftStep, VipTier, VipTierBenefit, Testimonial,
     Destination, DestinationMedia, VipServiceImage, TourPackage,
+    PremiumPartner,
 )
 from authapp.serializers.landing_serializers import (
     LandingSettingsSerializer, HeroStatSerializer, WhyChooseUsFeatureSerializer,
     TrustBadgeSerializer, GiftItemSerializer, GiftStepSerializer,
     VipTierSerializer, VipTierBenefitSerializer, TestimonialSerializer,
     DestinationSerializer, DestinationMediaSerializer, VipServiceImageSerializer,
+    PremiumPartnerSerializer,
     TourPackageSerializer,
 )
 from authapp.permissions.super_admin_permissions import IsAdminOrSuperAdmin
@@ -94,6 +96,31 @@ class DestinationListView(APIView):
         return Response(DestinationSerializer(qs, many=True, context={"request": request}).data)
 
 
+class PremiumPartnerListView(APIView):
+    """GET /api/premium-partners/ — the hero showcase's only data source.
+
+    Eligibility is decided here, not on the client: a partner reaches the
+    hero only when it is active, explicitly featured, and typed as a top
+    premium partner. Un-featuring one therefore removes it from the API
+    response outright rather than relying on the frontend to filter
+    correctly.
+
+    Reads nothing from Destination — the hero and the destinations section
+    are independent by construction.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        qs = PremiumPartner.objects.filter(
+            is_active=True,
+            is_featured_in_hero=True,
+            partner_type=PremiumPartner.HERO_PARTNER_TYPE,
+        )
+        return Response(
+            PremiumPartnerSerializer(qs, many=True, context={"request": request}).data
+        )
+
+
 class VipServiceImageListView(APIView):
     permission_classes = [AllowAny]
 
@@ -167,3 +194,4 @@ AdminDestinationListCreateView, AdminDestinationDetailView = _admin_crud_views(D
 AdminDestinationMediaListCreateView, AdminDestinationMediaDetailView = _admin_crud_views(DestinationMedia, DestinationMediaSerializer)
 AdminVipServiceImageListCreateView, AdminVipServiceImageDetailView = _admin_crud_views(VipServiceImage, VipServiceImageSerializer)
 AdminTourPackageListCreateView, AdminTourPackageDetailView = _admin_crud_views(TourPackage, TourPackageSerializer)
+AdminPremiumPartnerListCreateView, AdminPremiumPartnerDetailView = _admin_crud_views(PremiumPartner, PremiumPartnerSerializer)

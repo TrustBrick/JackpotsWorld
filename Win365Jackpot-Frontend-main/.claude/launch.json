@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 5173
+    },
+    {
+      "name": "backend",
+      "runtimeExecutable": "../Win365Jackpot-Backend-main/venv/Scripts/python.exe",
+      "runtimeArgs": ["../Win365Jackpot-Backend-main/manage.py", "runserver", "127.0.0.1:8000"],
+      "port": 8000
     }
   ]
 }

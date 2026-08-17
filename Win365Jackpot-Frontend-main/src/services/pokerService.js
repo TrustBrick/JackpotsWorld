@@ -22,6 +22,12 @@ export async function fetchPokerDetail(id) {
   return apiGet(`/api/poker/${id}/`)
 }
 
+/** Distinct countries/cities/series/game types that actually have published
+ *  events, for the filter bar. */
+export async function fetchPokerFilters() {
+  return apiGet("/api/poker/filters/")
+}
+
 export async function registerForTournament(id) {
   const { ok, status, data } = await apiPostAuthed(`/api/poker/${id}/register/`, {})
   return { ok, status, message: data.message || data.error || "Something went wrong." }

@@ -79,7 +79,12 @@ def apply_wheel_reward(*, user, reward_type, value, label, actor, note,
     value = Decimal(str(value))
 
     if reward_type in ("cash_bonus", "cashback"):
-        credit_main_wallet(user, "C", value, "CBG", note, actor)
+        # Business rule: EVERY Spin Wheel reward (Signup Wheel and Bonus
+        # Wheel alike) is non-cash, regardless of its dollar label — a "$500"
+        # tier is $500 of non-cash credit, never withdrawable cash. Must
+        # never become "C"/"CBG" (real cash), which is what actually
+        # withdraws.
+        credit_main_wallet(user, "NC", value, "CBGNC", note, actor)
 
     elif reward_type == "rolling_points":
         from authapp.views.admin_offline_deposit_views import _write_rp_txn

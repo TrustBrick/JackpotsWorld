@@ -77,3 +77,25 @@ export async function apiPostAuthed(path, body) {
   const data = await res.json().catch(() => ({}))
   return { ok: res.ok, status: res.status, data }
 }
+
+// Same envelope as apiPostAuthed, for the two verbs Teen Patti registration
+// needs beyond POST: an authed read (the signed-in user's own registrations)
+// and a DELETE (releasing a seat).
+export async function apiGetAuthed(path, params = {}) {
+  const token = getToken("access")
+  const res = await fetch(`${API_BASE}${path}${buildQuery(params)}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  const data = await res.json().catch(() => ({}))
+  return { ok: res.ok, status: res.status, data }
+}
+
+export async function apiDeleteAuthed(path) {
+  const token = getToken("access")
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "DELETE",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  const data = await res.json().catch(() => ({}))
+  return { ok: res.ok, status: res.status, data }
+}

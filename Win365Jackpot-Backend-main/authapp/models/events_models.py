@@ -9,27 +9,28 @@ STATUS_CHOICES = [
 ]
 
 
-def derive_status(event_date):
-    """Status implied by a start date alone.
+def derive_status(event_date, end_date=None):
+    """Status implied by the event's own dates.
 
     The stored `status` column is set by hand in the Back Office and is never
     revisited, so every event silently stays "upcoming"/"live" forever once
     its date passes. This derives the value instead, at read time.
 
-    LIMITATION -- the model stores a single `event_date` with no end date, so
-    a multi-day festival can only be reported "live" on its opening day; from
-    day two it reads "completed" even though it is still running. Reporting
-    that correctly needs an end_date column (a schema change), so this is
-    knowingly an approximation for multi-day events.
+    `end_date` is optional because only PokerTournament has one. Given it, a
+    multi-day festival reads "live" for its whole run. Without it -- every
+    CasinoEvent, and any tournament whose end_date has not been filled in --
+    only the opening day can be called live, which is the honest limit of what
+    a single date can say rather than a guess at a duration.
     """
     if event_date is None:
         return None
     today = timezone.localdate()
     if event_date > today:
         return "upcoming"
-    if event_date == today:
-        return "live"
-    return "completed"
+    # Started on or before today.
+    if end_date is not None:
+        return "live" if today <= end_date else "completed"
+    return "live" if event_date == today else "completed"
 
 
 class CasinoEvent(models.Model):
