@@ -44,6 +44,10 @@ export const fetchDestinations      = cached("/api/destinations/")
 // Hero showcase. Deliberately its own endpoint rather than a slice of
 // fetchDestinations — the hero and the destinations section share no data.
 export const fetchPremiumPartners   = cached("/api/premium-partners/")
+// Cinematic hero media (side cards + background watermark) for Teen Patti /
+// Poker. Call as fetchSectionMedia({ section: "teen_patti" }) — the section
+// param is part of the cache key, so the two pages' fetches never collide.
+export const fetchSectionMedia      = cached("/api/section-media/")
 export const fetchVipServiceImages  = cached("/api/vip-service-images/")
 export const fetchTourPackages      = cached("/api/tour-packages/")
 

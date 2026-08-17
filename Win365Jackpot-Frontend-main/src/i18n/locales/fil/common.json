@@ -436,7 +436,7 @@
   "poker": {
     "eyebrow": "Mataas na Taya, Live na Aksyon",
     "title": "Poker",
-    "subtitle": "Mga paparating na tournament at live na mesa mula sa aming mga partner casino — kumuha ng iyong ticket o panoorin ang iskedyul habang napupuno ito nang real-time.",
+    "subtitle": "Mga paparating na tournament at **live na mesa** mula sa aming mga partner casino — kumuha ng iyong ticket o panoorin ang iskedyul habang napupuno ito nang real-time.",
     "signInPrompt": "Mag-sign in para makakuha ng ticket para sa mga tournament at masubaybayan ang mga event na naka-book ka na.",
     "loadError": "Hindi ma-load ang mga tournament sa ngayon. Pakisubukang muli.",
     "noTournaments": "Wala pang naka-iskedyul na tournament sa ngayon. Bumalik-balik ulit.",
@@ -447,7 +447,9 @@
     "signInToGetTicket": "Mag-sign in para makakuha ng ticket para sa tournament na ito.",
     "liveNow": "Live Ngayon",
     "upcomingTournaments": "Paparating na Torneo",
-    "completedTournaments": "Tapos na Torneo"
+    "completedTournaments": "Tapos na Torneo",
+    "viewLiveEvents": "Tingnan ang Live Events",
+    "exploreUpcoming": "Tingnan ang Paparating"
   },
   "events": {
     "eyebrow": "Ipinakikilala ng Jackpots World",
@@ -476,7 +478,7 @@
   "teenPatti": {
     "eyebrow": "Ang Pinakamahusay na Indian Card Experience",
     "title": "Teen Patti",
-    "subtitle": "Tuklasin ang eksklusibong Teen Patti events sa aming partner casinos — mag-reserve ng upuan bago mapuno ang mesa.",
+    "subtitle": "Tuklasin ang **eksklusibong** Teen Patti events sa aming partner casinos — mag-reserve ng upuan bago mapuno ang mesa.",
     "viewLiveEvents": "Tingnan ang Live Events",
     "exploreUpcoming": "Tingnan ang Paparating",
     "signInPrompt": "Mag-sign in para mag-reserve ng upuan sa Teen Patti events at subaybayan ang iyong mga rehistro.",
@@ -511,7 +513,9 @@
     "endDate": "Petsa ng Pagtatapos",
     "time": "Oras",
     "eventType": "Uri ng Event",
-    "notAvailable": "Walang datos"
+    "notAvailable": "Walang datos",
+    "ctaGuestDescription": "Sumali sa isang **premium na komunidad** ng mga Teen Patti players na naglalaro sa mga partner casino ng JackpotsWorld sa buong mundo. **Tunay na mesa, tunay na taya, tunay na prestihiyo** — magrehistro na ngayon at siguruhin ang iyong upuan bago ito mapuno.",
+    "ctaSecureTrusted": "Ligtas at Mapagkakatiwalaan"
   },
   "filters": {
     "all": "Lahat",
@@ -536,5 +540,12 @@
     "applyInstantly": "Agad na naaaplay ang mga filter",
     "tournamentCount": "{{count}} na torneo",
     "eventCount": "{{count}} na event"
+  },
+  "vipStrip": {
+    "flyFree": "Libreng Paglipad",
+    "stayFree": "Libreng Tuluyan",
+    "earnCommission": "Kumita ng Oras-oras na Komisyon",
+    "tagline": "Habang Nasisiyahan sa Gaming",
+    "disclaimer": "Ang mga karapat-dapat na manlalaro ay maaaring makatamasa ng eksklusibong benepisyo sa paglalakbay, tuluyan, at kita habang nasisiyahan sa karanasan sa gaming. May mga tuntunin at kundisyon."
   }
 }

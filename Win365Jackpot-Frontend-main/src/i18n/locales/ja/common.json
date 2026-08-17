@@ -436,7 +436,7 @@
   "poker": {
     "eyebrow": "ハイステークス、ライブアクション",
     "title": "ポーカー",
-    "subtitle": "提携カジノの開催予定トーナメントとライブテーブル情報 — チケットを取得するか、スケジュールの埋まり具合をリアルタイムでご覧ください。",
+    "subtitle": "提携カジノの開催予定トーナメントと**ライブテーブル**情報 — チケットを取得するか、スケジュールの埋まり具合をリアルタイムでご覧ください。",
     "signInPrompt": "サインインしてトーナメントのチケットを取得し、参加予定のイベントを管理しましょう。",
     "loadError": "現在トーナメントを読み込めません。もう一度お試しください。",
     "noTournaments": "現在予定されているトーナメントはありません。またのちほどご確認ください。",
@@ -447,7 +447,9 @@
     "signInToGetTicket": "サインインしてこのトーナメントのチケットを取得してください。",
     "liveNow": "ライブ配信中",
     "upcomingTournaments": "開催予定トーナメント",
-    "completedTournaments": "終了したトーナメント"
+    "completedTournaments": "終了したトーナメント",
+    "viewLiveEvents": "ライブイベントを見る",
+    "exploreUpcoming": "開催予定を見る"
   },
   "events": {
     "eyebrow": "Jackpots World プレゼンツ",
@@ -476,7 +478,7 @@
   "teenPatti": {
     "eyebrow": "究極のインドカード体験",
     "title": "ティーンパティ",
-    "subtitle": "提携カジノの限定ティーンパティイベントをチェック — テーブルが埋まる前に席を確保しましょう。",
+    "subtitle": "提携カジノの**限定**ティーンパティイベントをチェック — テーブルが埋まる前に席を確保しましょう。",
     "viewLiveEvents": "ライブイベントを見る",
     "exploreUpcoming": "開催予定を見る",
     "signInPrompt": "ティーンパティイベントの席を予約し、登録状況を確認するにはサインインしてください。",
@@ -511,7 +513,9 @@
     "endDate": "終了日",
     "time": "時間",
     "eventType": "イベント種別",
-    "notAvailable": "情報なし"
+    "notAvailable": "情報なし",
+    "ctaGuestDescription": "世界中のJackpotsWorld提携カジノで競い合うティーンパティプレイヤーの**プレミアムコミュニティ**にご参加ください。**本物のテーブル、本物の賭け金、本物の威信** — 今すぐ登録して、席が埋まる前に確保しましょう。",
+    "ctaSecureTrusted": "安全・信頼"
   },
   "filters": {
     "all": "すべて",
@@ -536,5 +540,12 @@
     "applyInstantly": "フィルターは即座に適用されます",
     "tournamentCount": "{{count}} 件のトーナメント",
     "eventCount": "{{count}} 件のイベント"
+  },
+  "vipStrip": {
+    "flyFree": "無料フライト",
+    "stayFree": "無料宿泊",
+    "earnCommission": "時間制コミッションを獲得",
+    "tagline": "ゲームを楽しみながら",
+    "disclaimer": "対象プレイヤーはゲーム体験を楽しみながら、特別な旅行・宿泊・収益特典を受けられる場合があります。利用規約が適用されます。"
   }
 }

@@ -436,7 +436,7 @@
   "poker": {
     "eyebrow": "Cược Lớn, Hành Động Trực Tiếp",
     "title": "Poker",
-    "subtitle": "Các giải đấu sắp tới và bàn chơi trực tiếp từ các sòng bạc đối tác của chúng tôi — nhận vé của bạn hoặc theo dõi lịch trình lấp đầy theo thời gian thực.",
+    "subtitle": "Các giải đấu sắp tới và **bàn chơi trực tiếp** từ các sòng bạc đối tác của chúng tôi — nhận vé của bạn hoặc theo dõi lịch trình lấp đầy theo thời gian thực.",
     "signInPrompt": "Đăng nhập để nhận vé tham gia giải đấu và theo dõi các sự kiện bạn đã đăng ký.",
     "loadError": "Không thể tải giải đấu lúc này. Vui lòng thử lại.",
     "noTournaments": "Hiện không có giải đấu nào được lên lịch. Vui lòng quay lại sau.",
@@ -447,7 +447,9 @@
     "signInToGetTicket": "Đăng nhập để nhận vé cho giải đấu này.",
     "liveNow": "Đang trực tiếp",
     "upcomingTournaments": "Giải đấu sắp diễn ra",
-    "completedTournaments": "Giải đấu đã kết thúc"
+    "completedTournaments": "Giải đấu đã kết thúc",
+    "viewLiveEvents": "Xem sự kiện trực tiếp",
+    "exploreUpcoming": "Khám phá sắp diễn ra"
   },
   "events": {
     "eyebrow": "Jackpots World Giới Thiệu",
@@ -476,7 +478,7 @@
   "teenPatti": {
     "eyebrow": "Trải nghiệm bài Ấn Độ đỉnh cao",
     "title": "Teen Patti",
-    "subtitle": "Khám phá các sự kiện Teen Patti độc quyền tại casino đối tác — đặt chỗ trước khi bàn kín.",
+    "subtitle": "Khám phá các sự kiện Teen Patti **độc quyền** tại casino đối tác — đặt chỗ trước khi bàn kín.",
     "viewLiveEvents": "Xem sự kiện trực tiếp",
     "exploreUpcoming": "Khám phá sắp diễn ra",
     "signInPrompt": "Đăng nhập để đặt chỗ tại các sự kiện Teen Patti và theo dõi đăng ký của bạn.",
@@ -511,7 +513,9 @@
     "endDate": "Ngày kết thúc",
     "time": "Thời gian",
     "eventType": "Loại sự kiện",
-    "notAvailable": "Không có"
+    "notAvailable": "Không có",
+    "ctaGuestDescription": "Tham gia **cộng đồng cao cấp** gồm những người chơi Teen Patti thi đấu tại các sòng bạc đối tác của JackpotsWorld trên toàn thế giới. **Bàn chơi thật, cược thật, danh tiếng thật** — đăng ký ngay và giữ chỗ trước khi hết chỗ.",
+    "ctaSecureTrusted": "An Toàn & Đáng Tin Cậy"
   },
   "filters": {
     "all": "Tất cả",
@@ -536,5 +540,12 @@
     "applyInstantly": "Bộ lọc áp dụng ngay",
     "tournamentCount": "{{count}} giải đấu",
     "eventCount": "{{count}} sự kiện"
+  },
+  "vipStrip": {
+    "flyFree": "Bay Miễn Phí",
+    "stayFree": "Lưu Trú Miễn Phí",
+    "earnCommission": "Kiếm Hoa Hồng Theo Giờ",
+    "tagline": "Trong Khi Tận Hưởng Trò Chơi",
+    "disclaimer": "Người chơi đủ điều kiện có thể được hưởng các ưu đãi độc quyền về du lịch, lưu trú và thu nhập trong khi tận hưởng trải nghiệm chơi game. Điều khoản và điều kiện được áp dụng."
   }
 }

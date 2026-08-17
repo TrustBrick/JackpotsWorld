@@ -5,6 +5,7 @@ import PokerRegistrationsTable from "./PokerRegistrationsTable";
 import PokerReviewTable from "./PokerReviewTable";
 import PokerSourcesTable from "./PokerSourcesTable";
 import PokerSyncLogsTable from "./PokerSyncLogsTable";
+import PokerMediaManageTab from "./PokerMediaManageTab";
 import { adminFetch, API } from "../../helpers";
 import { useAdminTheme } from "../../context/AdminThemeContext";
 
@@ -61,6 +62,7 @@ const VIEWS = [
   { id: "sources", label: "Sources" },
   { id: "sync-logs", label: "Sync Logs" },
   { id: "history", label: "Change History" },
+  { id: "media", label: "Hero Media" },
   { id: "registrations", label: "Registrations" },
 ];
 
@@ -200,6 +202,7 @@ export default function PokerManageTab({ onToast }) {
       {view === "sources" && <PokerSourcesTable onToast={onToast} onChanged={loadStats} />}
       {view === "sync-logs" && <PokerSyncLogsTable />}
       {view === "history" && <ChangeHistoryTable />}
+      {view === "media" && <PokerMediaManageTab onToast={onToast} />}
       {view === "registrations" && <PokerRegistrationsTable onToast={onToast} />}
     </div>
   );

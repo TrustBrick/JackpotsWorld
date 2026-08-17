@@ -7,14 +7,14 @@ from authapp.models.landing_models import (
     LandingSettings, HeroStat, WhyChooseUsFeature, TrustBadge,
     GiftItem, GiftStep, VipTier, VipTierBenefit, Testimonial,
     Destination, DestinationMedia, VipServiceImage, TourPackage,
-    PremiumPartner,
+    PremiumPartner, SectionMedia,
 )
 from authapp.serializers.landing_serializers import (
     LandingSettingsSerializer, HeroStatSerializer, WhyChooseUsFeatureSerializer,
     TrustBadgeSerializer, GiftItemSerializer, GiftStepSerializer,
     VipTierSerializer, VipTierBenefitSerializer, TestimonialSerializer,
     DestinationSerializer, DestinationMediaSerializer, VipServiceImageSerializer,
-    PremiumPartnerSerializer,
+    PremiumPartnerSerializer, SectionMediaSerializer,
     TourPackageSerializer,
 )
 from authapp.permissions.super_admin_permissions import IsAdminOrSuperAdmin
@@ -121,6 +121,22 @@ class PremiumPartnerListView(APIView):
         )
 
 
+class SectionMediaListView(APIView):
+    """GET /api/section-media/?section=teen_patti|poker — the cinematic side
+    cards and background watermark for one page's hero. Returns only active
+    rows; a slot with nothing configured is simply absent from the response,
+    and the frontend renders nothing for it rather than a placeholder.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        section = (request.query_params.get("section") or "").strip()
+        if section not in dict(SectionMedia.SECTION_CHOICES):
+            return Response([])
+        qs = SectionMedia.objects.filter(section=section, is_active=True)
+        return Response(SectionMediaSerializer(qs, many=True, context={"request": request}).data)
+
+
 class VipServiceImageListView(APIView):
     permission_classes = [AllowAny]
 
@@ -195,3 +211,52 @@ AdminDestinationMediaListCreateView, AdminDestinationMediaDetailView = _admin_cr
 AdminVipServiceImageListCreateView, AdminVipServiceImageDetailView = _admin_crud_views(VipServiceImage, VipServiceImageSerializer)
 AdminTourPackageListCreateView, AdminTourPackageDetailView = _admin_crud_views(TourPackage, TourPackageSerializer)
 AdminPremiumPartnerListCreateView, AdminPremiumPartnerDetailView = _admin_crud_views(PremiumPartner, PremiumPartnerSerializer)
+
+
+class _SectionMediaAdminListCreateBase(generics.ListCreateAPIView):
+    serializer_class = SectionMediaSerializer
+    permission_classes = [IsAdminOrSuperAdmin]
+    section = None  # set by subclass
+
+    def get_queryset(self):
+        return SectionMedia.objects.filter(section=self.section)
+
+    def perform_create(self, serializer):
+        if SectionMedia.objects.filter(section=self.section, slot=serializer.validated_data.get("slot")).exists():
+            from rest_framework.exceptions import ValidationError
+            # Wrapped in a list explicitly: a bare string here does not get
+            # auto-normalized into a one-item list the way a serializer-level
+            # validate() error does, so res.data["slot"][0] would otherwise
+            # index into the string's first character instead of the message.
+            raise ValidationError({"slot": ["This slot already has media — edit or delete the existing entry instead of creating a new one."]})
+        serializer.save(section=self.section, updated_by=self.request.user)
+
+
+class _SectionMediaAdminDetailBase(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = SectionMediaSerializer
+    permission_classes = [IsAdminOrSuperAdmin]
+    section = None  # set by subclass
+
+    def get_queryset(self):
+        # Scoped to this section, so the Teen Patti tab can never edit or
+        # delete a Poker row (or vice versa) even by guessing an id.
+        return SectionMedia.objects.filter(section=self.section)
+
+    def perform_update(self, serializer):
+        serializer.save(section=self.section, updated_by=self.request.user)
+
+
+class TeenPattiMediaListCreateView(_SectionMediaAdminListCreateBase):
+    section = "teen_patti"
+
+
+class TeenPattiMediaDetailView(_SectionMediaAdminDetailBase):
+    section = "teen_patti"
+
+
+class PokerMediaListCreateView(_SectionMediaAdminListCreateBase):
+    section = "poker"
+
+
+class PokerMediaDetailView(_SectionMediaAdminDetailBase):
+    section = "poker"

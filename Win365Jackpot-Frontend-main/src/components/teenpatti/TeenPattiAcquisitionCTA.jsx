@@ -1,7 +1,9 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
-import { Crown, ArrowRight, Users, Sparkles } from 'lucide-react'
+import { Crown, ArrowRight, Users, Sparkles, ShieldCheck } from 'lucide-react'
 import { getUser } from '../../services/authStorage'
+import HighlightedText from '../shared/HighlightedText'
 
 /**
  * TeenPattiAcquisitionCTA — the player-acquisition centerpiece of the Teen
@@ -24,6 +26,7 @@ import { getUser } from '../../services/authStorage'
 export default function TeenPattiAcquisitionCTA({
   isLoggedIn, liveCount = 0, upcomingCount = 0, onPrimaryAction, onScrollToTables,
 }) {
+  const { t } = useTranslation()
   const firstName = isLoggedIn ? (getUser('user')?.name || '').split(' ')[0] : ''
   const hasLiveTables = liveCount > 0
 
@@ -67,20 +70,23 @@ export default function TeenPattiAcquisitionCTA({
             )}
           </h2>
 
-          <p className="text-white/55 font-body text-sm md:text-base leading-relaxed">
+          <div className="font-body text-sm md:text-base leading-relaxed text-white/90">
             {isLoggedIn ? (
-              hasLiveTables
-                ? `${liveCount} premium Teen Patti table${liveCount === 1 ? ' is' : 's are'} live right now. Reserve your seat before it fills.`
-                : 'New premium Teen Patti events are added regularly — be first in line when the next table opens.'
+              <p>
+                {hasLiveTables
+                  ? `${liveCount} premium Teen Patti table${liveCount === 1 ? ' is' : 's are'} live right now. Reserve your seat before it fills.`
+                  : 'New premium Teen Patti events are added regularly — be first in line when the next table opens.'}
+              </p>
             ) : (
-              'Join a premium community of Teen Patti players competing at JackpotsWorld\'s partner casinos worldwide. Real tables, real stakes, real prestige — register now and claim your seat before it fills.'
+              <HighlightedText as="p" text={t('teenPatti.ctaGuestDescription')} />
             )}
-          </p>
+          </div>
 
           {!isLoggedIn && (
             <div className="flex items-center justify-center md:justify-start gap-5 mt-5 text-[11px] font-body text-white/40">
               <span className="flex items-center gap-1.5"><Users size={13} className="text-gold" /> Exclusive Access</span>
               <span className="flex items-center gap-1.5"><Sparkles size={13} className="text-gold" /> VIP Community</span>
+              <span className="flex items-center gap-1.5"><ShieldCheck size={13} className="text-gold" /> {t('teenPatti.ctaSecureTrusted')}</span>
             </div>
           )}
         </div>

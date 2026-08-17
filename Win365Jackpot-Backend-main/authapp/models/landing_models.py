@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 
@@ -314,5 +315,65 @@ class PremiumPartner(models.Model):
         if self.hero_video:
             return "video"
         if self.hero_image:
+            return "image"
+        return "none"
+
+
+class SectionMedia(models.Model):
+    """Cinematic hero media for the Teen Patti and Poker pages — the two side
+    video/image cards and the low-opacity background watermark layer.
+
+    Same shape as PremiumPartner (Back Office managed, image+video sharing
+    the same upload validators) but scoped to a fixed visual slot rather
+    than being an ordered, admin-curated list: each page has exactly three
+    slots to fill, not a growing collection. Kept as its own model rather
+    than extending PremiumPartner — that model is a specific business
+    concept (a showcased partner casino) and conflating it with decorative
+    page media would blur two unrelated things.
+
+    `section` keeps Teen Patti and Poker media hard-separated at the model
+    level: the two Back Office admin views (see views/landing_views.py)
+    each hardcode which section they serve and force it on every write, so
+    a row can never move between sections through the API.
+    """
+
+    SECTION_CHOICES = [("teen_patti", "Teen Patti"), ("poker", "Poker")]
+    SLOT_CHOICES = [
+        ("side_left", "Side Card — Left"),
+        ("side_right", "Side Card — Right"),
+        ("background", "Background Watermark"),
+    ]
+
+    section = models.CharField(max_length=20, choices=SECTION_CHOICES, db_index=True)
+    slot = models.CharField(max_length=20, choices=SLOT_CHOICES, db_index=True)
+    # Small badge shown on side cards — "FEATURED", "CASINO EXPERIENCE", or
+    # left blank. Deliberately never a live-viewer count or "LIVE" claim:
+    # this app has no real live-viewership data source, so any such number
+    # would be fabricated.
+    label = models.CharField(max_length=40, blank=True)
+
+    video = models.FileField(upload_to="landing/section_media/", null=True, blank=True)
+    poster_image = models.ImageField(upload_to="landing/section_media/posters/", null=True, blank=True)
+
+    is_active = models.BooleanField(default=True, db_index=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+",
+    )
+
+    class Meta:
+        unique_together = ("section", "slot")
+        ordering = ["section", "slot"]
+
+    def __str__(self):
+        return f"{self.get_section_display()} — {self.get_slot_display()}"
+
+    @property
+    def media_type(self):
+        if self.video:
+            return "video"
+        if self.poster_image:
             return "image"
         return "none"

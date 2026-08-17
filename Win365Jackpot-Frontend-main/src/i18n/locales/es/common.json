@@ -436,7 +436,7 @@
   "poker": {
     "eyebrow": "Altas Apuestas, Acción en Vivo",
     "title": "Póker",
-    "subtitle": "Próximos torneos y mesas en vivo de nuestros casinos asociados — obtén tu ticket o sigue cómo se llena el calendario en tiempo real.",
+    "subtitle": "Próximos torneos y **mesas en vivo** de nuestros casinos asociados — obtén tu ticket o sigue cómo se llena el calendario en tiempo real.",
     "signInPrompt": "Inicia sesión para obtener tu ticket para los torneos y seguir tus eventos inscritos.",
     "loadError": "No se pudieron cargar los torneos en este momento. Inténtalo de nuevo.",
     "noTournaments": "No hay torneos programados por ahora. Vuelve pronto.",
@@ -447,7 +447,9 @@
     "signInToGetTicket": "Inicia sesión para obtener tu ticket para este torneo.",
     "liveNow": "En vivo ahora",
     "upcomingTournaments": "Próximos torneos",
-    "completedTournaments": "Torneos finalizados"
+    "completedTournaments": "Torneos finalizados",
+    "viewLiveEvents": "Ver eventos en vivo",
+    "exploreUpcoming": "Explorar próximos"
   },
   "events": {
     "eyebrow": "Jackpots World Presenta",
@@ -476,7 +478,7 @@
   "teenPatti": {
     "eyebrow": "La máxima experiencia india de cartas",
     "title": "Teen Patti",
-    "subtitle": "Descubre eventos exclusivos de Teen Patti en nuestros casinos asociados: reserva tu asiento antes de que se llene la mesa.",
+    "subtitle": "Descubre eventos **exclusivos** de Teen Patti en nuestros casinos asociados: reserva tu asiento antes de que se llene la mesa.",
     "viewLiveEvents": "Ver eventos en vivo",
     "exploreUpcoming": "Explorar próximos",
     "signInPrompt": "Inicia sesión para reservar tu asiento en eventos de Teen Patti y seguir tus inscripciones.",
@@ -511,7 +513,9 @@
     "endDate": "Fecha de fin",
     "time": "Hora",
     "eventType": "Tipo de evento",
-    "notAvailable": "No disponible"
+    "notAvailable": "No disponible",
+    "ctaGuestDescription": "Únete a una **comunidad premium** de jugadores de Teen Patti que compiten en los casinos asociados de JackpotsWorld en todo el mundo. **Mesas reales, apuestas reales, prestigio real** — regístrate ahora y reserva tu asiento antes de que se llene.",
+    "ctaSecureTrusted": "Seguro y Confiable"
   },
   "filters": {
     "all": "Todos",
@@ -536,5 +540,12 @@
     "applyInstantly": "Los filtros se aplican al instante",
     "tournamentCount": "{{count}} torneos",
     "eventCount": "{{count}} eventos"
+  },
+  "vipStrip": {
+    "flyFree": "Vuelo Gratis",
+    "stayFree": "Estancia Gratis",
+    "earnCommission": "Gana Comisión por Hora",
+    "tagline": "Mientras Disfrutas del Juego",
+    "disclaimer": "Los jugadores elegibles pueden disfrutar de beneficios exclusivos de viaje, estancia y ganancias mientras disfrutan de la experiencia de juego. Aplican términos y condiciones."
   }
 }

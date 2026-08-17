@@ -3,7 +3,7 @@ from authapp.models.landing_models import (
     LandingSettings, HeroStat, WhyChooseUsFeature, TrustBadge,
     GiftItem, GiftStep, VipTier, VipTierBenefit, Testimonial,
     Destination, DestinationMedia, VipServiceImage, TourPackage,
-    PremiumPartner,
+    PremiumPartner, SectionMedia,
 )
 from authapp.utils.file_validation import validate_uploaded_image, validate_uploaded_video
 
@@ -222,5 +222,42 @@ class PremiumPartnerSerializer(serializers.ModelSerializer):
         if featured and not resolved("hero_image") and not resolved("hero_video"):
             raise serializers.ValidationError({
                 "hero_image": "A partner featured in the hero needs an image or a video.",
+            })
+        return attrs
+
+
+class SectionMediaSerializer(serializers.ModelSerializer):
+    """`section` is read-only here: the two admin views (TeenPattiMedia*/
+    PokerMedia*) each hardcode which section they serve and inject it on
+    every write (see views/landing_views.py), so it's never taken from the
+    client — the Back Office form doesn't even offer it as a field."""
+    is_active = serializers.BooleanField(default=True, required=False)
+    section = serializers.CharField(read_only=True)
+    media_type = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = SectionMedia
+        fields = [
+            "id", "section", "slot", "label", "video", "poster_image",
+            "media_type", "is_active", "created_at", "updated_at",
+        ]
+        read_only_fields = ["id", "section", "media_type", "created_at", "updated_at"]
+
+    def validate_video(self, value):
+        return validate_uploaded_video(value)
+
+    def validate_poster_image(self, value):
+        return validate_uploaded_image(value)
+
+    def validate(self, attrs):
+        instance = self.instance
+
+        def resolved(field):
+            return attrs[field] if field in attrs else getattr(instance, field, None)
+
+        is_active = attrs.get("is_active", getattr(instance, "is_active", True))
+        if is_active and not resolved("video") and not resolved("poster_image"):
+            raise serializers.ValidationError({
+                "video": "An active slot needs a video or a poster image.",
             })
         return attrs

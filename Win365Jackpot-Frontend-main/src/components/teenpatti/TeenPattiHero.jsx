@@ -1,7 +1,12 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion, useReducedMotion } from 'framer-motion'
 import { Radio, CalendarRange, Crown } from 'lucide-react'
+import HighlightedText from '../shared/HighlightedText'
+import VipBenefitStrip from '../shared/VipBenefitStrip'
+import CinematicMediaCard from '../shared/CinematicMediaCard'
+import HeroBackgroundVideo from '../shared/HeroBackgroundVideo'
+import { fetchSectionMedia } from '../../services/landingService'
 
 /**
  * TeenPattiHero — the Part 18 hero. Built from the site's existing utility
@@ -105,8 +110,23 @@ export default function TeenPattiHero({ liveCount = 0, upcomingCount = 0, onView
   const { t } = useTranslation()
   const reduceMotion = useReducedMotion()
 
+  // Cinematic hero media (Part 6-8) — entirely Back Office controlled via
+  // Manage Poker/Teen Patti → Hero Media. Absent slots simply render
+  // nothing; there is no hardcoded fallback video/image.
+  const [media, setMedia] = useState([])
+  useEffect(() => {
+    let cancelled = false
+    fetchSectionMedia({ section: 'teen_patti' })
+      .then(res => { if (!cancelled) setMedia(Array.isArray(res) ? res : []) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
+  const bySlot = (slot) => media.find(m => m.slot === slot)
+
   return (
     <section className="relative pt-32 pb-20 px-4 dice-pattern overflow-hidden">
+      <HeroBackgroundVideo item={bySlot('background')} />
+
       {/* Framing hairlines — turns the whole hero into a premium display
           panel rather than an open page section. */}
       <div className="absolute inset-x-0 top-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.5), transparent)' }} aria-hidden="true" />
@@ -155,7 +175,19 @@ export default function TeenPattiHero({ liveCount = 0, upcomingCount = 0, onView
         </motion.span>
       ))}
 
-      <div className="max-w-5xl mx-auto text-center relative z-10">
+      {/* Cinematic side cards flank the content on large screens (order-1 and
+          order-3 either side of the order-2 content) and stack full-width
+          beneath it on mobile (order-2 / order-3, matching the Part 12
+          hierarchy: content, then VIP strip, then featured visual) — one
+          grid, no duplicated DOM nodes per breakpoint, so a video is never
+          fetched or decoded twice. */}
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)_240px] gap-6 lg:gap-8 items-stretch max-w-[1400px] mx-auto">
+        <CinematicMediaCard
+          item={bySlot('side_left')} align="left"
+          className="order-2 lg:order-1 h-48 sm:h-64 lg:h-auto lg:min-h-[380px]"
+        />
+
+        <div className="order-1 lg:order-2 max-w-3xl mx-auto text-center w-full">
         <CardFan reduceMotion={reduceMotion} />
 
         <motion.div
@@ -183,14 +215,14 @@ export default function TeenPattiHero({ liveCount = 0, upcomingCount = 0, onView
           {t('teenPatti.title')}
         </motion.h1>
 
-        <motion.p
+        <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.46 }}
-          className="text-theme-muted font-body text-sm md:text-lg leading-relaxed max-w-2xl mx-auto"
+          className="font-body text-sm md:text-lg leading-relaxed max-w-2xl mx-auto text-white/90"
         >
-          {t('teenPatti.subtitle')}
-        </motion.p>
+          <HighlightedText as="p" text={t('teenPatti.subtitle')} />
+        </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 14 }}
@@ -233,6 +265,10 @@ export default function TeenPattiHero({ liveCount = 0, upcomingCount = 0, onView
           </motion.button>
         </motion.div>
 
+        <div className="flex justify-center mt-9">
+          <VipBenefitStrip />
+        </div>
+
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -243,6 +279,12 @@ export default function TeenPattiHero({ liveCount = 0, upcomingCount = 0, onView
           <span className="w-1.5 h-1.5 rotate-45 bg-gold/60" />
           <span className="section-divider w-16 md:w-28" />
         </motion.div>
+        </div>
+
+        <CinematicMediaCard
+          item={bySlot('side_right')} align="right"
+          className="order-3 h-48 sm:h-64 lg:h-auto lg:min-h-[380px]"
+        />
       </div>
     </section>
   )

@@ -436,7 +436,7 @@
   "poker": {
     "eyebrow": "하이 스테이크, 라이브 액션",
     "title": "포커",
-    "subtitle": "파트너 카지노의 예정된 토너먼트와 라이브 테이블 — 티켓을 받거나 실시간으로 채워지는 일정을 확인하세요.",
+    "subtitle": "파트너 카지노의 예정된 토너먼트와 **라이브 테이블** — 티켓을 받거나 실시간으로 채워지는 일정을 확인하세요.",
     "signInPrompt": "로그인하여 토너먼트 티켓을 받고 참가 중인 이벤트를 추적하세요.",
     "loadError": "현재 토너먼트를 불러올 수 없습니다. 다시 시도해 주세요.",
     "noTournaments": "현재 예정된 토너먼트가 없습니다. 곧 다시 확인해 주세요.",
@@ -447,7 +447,9 @@
     "signInToGetTicket": "로그인하여 이 토너먼트의 티켓을 받으세요.",
     "liveNow": "지금 라이브",
     "upcomingTournaments": "예정된 토너먼트",
-    "completedTournaments": "종료된 토너먼트"
+    "completedTournaments": "종료된 토너먼트",
+    "viewLiveEvents": "라이브 이벤트 보기",
+    "exploreUpcoming": "예정 이벤트 보기"
   },
   "events": {
     "eyebrow": "Jackpots World 제공",
@@ -476,7 +478,7 @@
   "teenPatti": {
     "eyebrow": "궁극의 인도 카드 경험",
     "title": "틴 패티",
-    "subtitle": "제휴 카지노의 독점 틴 패티 이벤트를 만나보세요 — 테이블이 가득 차기 전에 좌석을 예약하세요.",
+    "subtitle": "제휴 카지노의 **독점** 틴 패티 이벤트를 만나보세요 — 테이블이 가득 차기 전에 좌석을 예약하세요.",
     "viewLiveEvents": "라이브 이벤트 보기",
     "exploreUpcoming": "예정 이벤트 보기",
     "signInPrompt": "틴 패티 이벤트 좌석을 예약하고 등록 내역을 확인하려면 로그인하세요.",
@@ -511,7 +513,9 @@
     "endDate": "종료일",
     "time": "시간",
     "eventType": "이벤트 유형",
-    "notAvailable": "정보 없음"
+    "notAvailable": "정보 없음",
+    "ctaGuestDescription": "전 세계 JackpotsWorld 제휴 카지노에서 경쟁하는 틴 패티 플레이어들의 **프리미엄 커뮤니티**에 참여하세요. **진짜 테이블, 진짜 베팅, 진짜 명성** — 지금 등록하고 자리가 차기 전에 좌석을 확보하세요.",
+    "ctaSecureTrusted": "안전 및 신뢰"
   },
   "filters": {
     "all": "전체",
@@ -536,5 +540,12 @@
     "applyInstantly": "필터는 즉시 적용됩니다",
     "tournamentCount": "토너먼트 {{count}}개",
     "eventCount": "이벤트 {{count}}개"
+  },
+  "vipStrip": {
+    "flyFree": "무료 항공권",
+    "stayFree": "무료 숙박",
+    "earnCommission": "시간당 커미션 획득",
+    "tagline": "게임을 즐기면서",
+    "disclaimer": "자격을 갖춘 플레이어는 게임 경험을 즐기면서 특별한 여행, 숙박 및 수익 혜택을 누릴 수 있습니다. 이용약관이 적용됩니다."
   }
 }
