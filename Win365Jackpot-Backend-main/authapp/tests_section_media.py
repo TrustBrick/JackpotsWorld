@@ -28,6 +28,10 @@ def make_image(name="poster.png"):
     return SimpleUploadedFile(name, buf.read(), content_type="image/png")
 
 
+def make_video(name="clip.mp4", content_type="video/mp4", size_bytes=2048):
+    return SimpleUploadedFile(name, b"\x00" * size_bytes, content_type=content_type)
+
+
 def make_row(section, slot="side_left", **overrides):
     defaults = {"is_active": True, "poster_image": make_image()}
     defaults.update(overrides)
@@ -150,6 +154,56 @@ class SectionMediaAdminSeparationTests(APITestCase):
         res = self.client.post(TP_ADMIN_URL, {"slot": "background", "poster_image": make_image()}, format="multipart")
 
         self.assertEqual(res.status_code, status.HTTP_201_CREATED, res.data)
+
+
+class SectionMediaVideoContentTypeLeniencyTests(APITestCase):
+    """A real .mp4 selected through a native file picker was rejected in
+    production use with "Unsupported file content type." — the browser
+    reported application/octet-stream (its generic fallback for a file it
+    can't confidently MIME-sniff, common for videos from third-party
+    download tools) instead of a specific video/* value. Extension is the
+    reliable gate for video uploads (see file_validation.py's own
+    docstring on why no structural decode is possible here); a generic/
+    unrecognized content-type must not override a correct extension, but a
+    content-type that names a genuinely different format still should."""
+
+    def setUp(self):
+        self.admin = User.objects.create_superuser(email="mediaadmin2@example.com", password="pw12345!")
+        self.client.force_authenticate(self.admin)
+
+    def test_application_octet_stream_is_accepted_for_a_correctly_extensioned_video(self):
+        res = self.client.post(TP_ADMIN_URL, {
+            "slot": "side_left",
+            "video": make_video("real-download.mp4", content_type="application/octet-stream"),
+        }, format="multipart")
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED, res.data)
+
+    def test_a_missing_content_type_is_still_accepted(self):
+        res = self.client.post(TP_ADMIN_URL, {
+            "slot": "side_right",
+            "video": make_video("no-type.mp4", content_type=""),
+        }, format="multipart")
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED, res.data)
+
+    def test_a_content_type_naming_a_different_real_format_is_still_rejected(self):
+        res = self.client.post(TP_ADMIN_URL, {
+            "slot": "background",
+            "video": make_video("mislabeled.mp4", content_type="image/png"),
+        }, format="multipart")
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("content type", str(res.data["video"][0]).lower())
+
+    def test_the_extension_check_still_runs_regardless_of_content_type(self):
+        res = self.client.post(TP_ADMIN_URL, {
+            "slot": "side_left",
+            "video": make_video("clip.exe", content_type="application/octet-stream"),
+        }, format="multipart")
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("mp4", str(res.data["video"][0]).lower())
 
 
 class SectionMediaAuthTests(APITestCase):
