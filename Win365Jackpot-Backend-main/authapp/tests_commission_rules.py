@@ -22,6 +22,16 @@ from authapp.models.user_model import User
 from authapp.services import commission_engine_service, commission_rule_service
 
 
+# Two representations of the same country, deliberately kept apart because the
+# schema keeps them apart: CommissionRule.country and Casino.country hold the
+# name, User.country is a 2-char ISO-3166 alpha-2 column. The engine matches
+# rules on the name, so the name is what a caller has to supply -- which is
+# exactly what the admin deposit views pass. Writing a name into User.country
+# would not fit the column, and matching on the code would find no rule.
+SRI_LANKA, SRI_LANKA_ISO = "Sri Lanka", "LK"
+INDIA, INDIA_ISO = "India", "IN"
+
+
 def _rule(**overrides):
     defaults = {
         "name": "Rule", "commission_type": "rolling",
@@ -159,7 +169,7 @@ class CommissionCalculationTests(APITestCase):
         AffiliateProfile.objects.create(user=self.affiliate, is_active=True)
         self.player = User.objects.create_user(
             email="p1@example.com", password="pw12345!", name="P1",
-            referred_by=self.affiliate, country="Sri Lanka",
+            referred_by=self.affiliate, country="LK",
         )
         self.casino, _ = Casino.objects.get_or_create(
             country="Sri Lanka", name="Bellagio Casino", defaults={"is_active": True},
@@ -171,6 +181,7 @@ class CommissionCalculationTests(APITestCase):
         result = commission_engine_service.evaluate(
             self.player, commission_type="rolling", base_amount=Decimal("1000"),
             casino_name="Bellagio Casino", reference_id="SLIP-1",
+            country=SRI_LANKA,
         )
 
         self.assertTrue(result.applied)
@@ -190,6 +201,7 @@ class CommissionCalculationTests(APITestCase):
         result = commission_engine_service.evaluate(
             self.player, commission_type="rolling", base_amount=Decimal("999999"),
             casino_name="Bellagio Casino", reference_id="SLIP-FIXED",
+            country=SRI_LANKA,
         )
 
         self.assertEqual(result.entry.commission_amount, Decimal("50.00"))
@@ -200,6 +212,7 @@ class CommissionCalculationTests(APITestCase):
         result = commission_engine_service.evaluate(
             self.player, commission_type="rolling", base_amount=Decimal("1000"),
             casino_name="Bellagio Casino", reference_id="SLIP-CAP",
+            country=SRI_LANKA,
         )
 
         self.assertEqual(result.entry.commission_amount, Decimal("120.00"))
@@ -212,6 +225,7 @@ class CommissionCalculationTests(APITestCase):
         result = commission_engine_service.evaluate(
             self.player, commission_type="rolling", base_amount=Decimal("500"),
             casino_name="Bellagio Casino", reference_id="SLIP-MIN",
+            country=SRI_LANKA,
         )
 
         self.assertEqual(result.entry.status, "qualifying")
@@ -229,6 +243,7 @@ class CommissionCalculationTests(APITestCase):
         result = commission_engine_service.evaluate(
             self.player, commission_type="rolling", base_amount=Decimal("1000"),
             casino_name="Bellagio Casino", reference_id="SLIP-COND",
+            country=SRI_LANKA,
         )
 
         self.assertEqual(result.entry.status, "qualifying")
@@ -247,6 +262,7 @@ class CommissionCalculationTests(APITestCase):
         result = commission_engine_service.evaluate(
             self.player, commission_type="rolling", base_amount=Decimal("1000"),
             casino_name="Bellagio Casino", reference_id="SLIP-OK",
+            country=SRI_LANKA,
         )
 
         self.assertEqual(result.entry.status, "qualified")
@@ -268,6 +284,7 @@ class CommissionCalculationTests(APITestCase):
         result = commission_engine_service.evaluate(
             self.player, commission_type="rolling", base_amount=Decimal("1000"),
             casino_name="Bellagio Casino", reference_id="SLIP-T1",
+            country=SRI_LANKA,
         )
         self.assertEqual(result.entry.tier_name, "Tier 1")
         self.assertEqual(result.entry.commission_amount, Decimal("50.00"))
@@ -276,11 +293,12 @@ class CommissionCalculationTests(APITestCase):
         for i in range(11):
             User.objects.create_user(
                 email=f"extra{i}@example.com", password="pw12345!",
-                referred_by=self.affiliate, country="Sri Lanka",
+                referred_by=self.affiliate, country="LK",
             )
         result = commission_engine_service.evaluate(
             self.player, commission_type="rolling", base_amount=Decimal("1000"),
             casino_name="Bellagio Casino", reference_id="SLIP-T2",
+            country=SRI_LANKA,
         )
         self.assertEqual(result.entry.tier_name, "Tier 2")
         self.assertEqual(result.entry.commission_amount, Decimal("80.00"))
@@ -295,6 +313,7 @@ class CommissionCalculationTests(APITestCase):
         result = commission_engine_service.evaluate(
             self.player, commission_type="rolling", base_amount=Decimal("1000"),
             casino_name="Bellagio Casino", reference_id="SLIP-TOP",
+            country=SRI_LANKA,
         )
 
         self.assertEqual(result.entry.tier_name, "Top")
@@ -305,6 +324,7 @@ class CommissionCalculationTests(APITestCase):
         kwargs = dict(
             commission_type="rolling", base_amount=Decimal("1000"),
             casino_name="Bellagio Casino", reference_id="SLIP-DUP",
+            country=SRI_LANKA,
         )
 
         commission_engine_service.evaluate(self.player, **kwargs)
@@ -317,6 +337,7 @@ class CommissionCalculationTests(APITestCase):
         result = commission_engine_service.evaluate(
             self.player, commission_type="rolling", base_amount=Decimal("1000"),
             casino_name="Bellagio Casino", reference_id="SLIP-NONE",
+            country=SRI_LANKA,
         )
 
         self.assertFalse(result.applied)
@@ -330,7 +351,7 @@ class CommissionCalculationTests(APITestCase):
         AffiliateProfile.objects.create(user=other_affiliate, is_active=True)
         other_player = User.objects.create_user(
             email="p2@example.com", password="pw12345!",
-            referred_by=other_affiliate, country="Sri Lanka",
+            referred_by=other_affiliate, country="LK",
         )
 
         _rule(name="A gets 10", affiliate=self.affiliate, casino=self.casino,
@@ -341,10 +362,12 @@ class CommissionCalculationTests(APITestCase):
         a = commission_engine_service.evaluate(
             self.player, commission_type="rolling", base_amount=Decimal("1000"),
             casino_name="Bellagio Casino", reference_id="SLIP-A",
+            country=SRI_LANKA,
         )
         b = commission_engine_service.evaluate(
             other_player, commission_type="rolling", base_amount=Decimal("1000"),
             casino_name="Bellagio Casino", reference_id="SLIP-B",
+            country=SRI_LANKA,
         )
 
         self.assertEqual(a.entry.commission_amount, Decimal("100.00"))
@@ -353,7 +376,7 @@ class CommissionCalculationTests(APITestCase):
     def test_same_affiliate_earns_different_rates_in_different_countries(self):
         india_player = User.objects.create_user(
             email="p-in@example.com", password="pw12345!",
-            referred_by=self.affiliate, country="India",
+            referred_by=self.affiliate, country="IN",
         )
         Casino.objects.get_or_create(country="India", name="Deltin Royale", defaults={"is_active": True})
 
@@ -363,10 +386,12 @@ class CommissionCalculationTests(APITestCase):
         sl = commission_engine_service.evaluate(
             self.player, commission_type="rolling", base_amount=Decimal("1000"),
             casino_name="Bellagio Casino", reference_id="SLIP-SL",
+            country=SRI_LANKA,
         )
         india = commission_engine_service.evaluate(
             india_player, commission_type="rolling", base_amount=Decimal("1000"),
             casino_name="Deltin Royale", reference_id="SLIP-IN",
+            country=INDIA,
         )
 
         self.assertEqual(sl.entry.commission_amount, Decimal("100.00"))
@@ -377,6 +402,7 @@ class CommissionCalculationTests(APITestCase):
         first = commission_engine_service.evaluate(
             self.player, commission_type="rolling", base_amount=Decimal("1000"),
             casino_name="Bellagio Casino", reference_id="SLIP-BEFORE",
+            country=SRI_LANKA,
         )
 
         rule.rate = Decimal("20")
@@ -385,6 +411,7 @@ class CommissionCalculationTests(APITestCase):
         second = commission_engine_service.evaluate(
             self.player, commission_type="rolling", base_amount=Decimal("1000"),
             casino_name="Bellagio Casino", reference_id="SLIP-AFTER",
+            country=SRI_LANKA,
         )
 
         first.entry.refresh_from_db()
@@ -397,6 +424,7 @@ class CommissionCalculationTests(APITestCase):
         result = commission_engine_service.evaluate(
             self.player, commission_type="rolling", base_amount=Decimal("1000"),
             casino_name="Bellagio Casino", reference_id="SLIP-KEEP",
+            country=SRI_LANKA,
         )
         entry_id = result.entry.id
 
@@ -412,6 +440,7 @@ class CommissionCalculationTests(APITestCase):
         result = commission_engine_service.evaluate(
             self.player, commission_type="rolling", base_amount=Decimal("1000"),
             casino_name="Bellagio Casino", reference_id="SLIP-TRACE",
+            country=SRI_LANKA,
         )
 
         trace = result.entry.calculation_trace
@@ -427,13 +456,14 @@ class CommissionLayeringTests(APITestCase):
         AffiliateProfile.objects.create(user=self.affiliate, is_active=True, commission_rate=Decimal("10"))
         self.player = User.objects.create_user(
             email="legacy-p@example.com", password="pw12345!",
-            referred_by=self.affiliate, country="Sri Lanka",
+            referred_by=self.affiliate, country="LK",
         )
 
     def test_affiliate_with_no_rules_is_untouched_by_the_engine(self):
         result = commission_engine_service.evaluate(
             self.player, commission_type="rolling", base_amount=Decimal("1000"),
             casino_name="Bellagio Casino", reference_id="SLIP-LEGACY",
+            country=SRI_LANKA,
         )
 
         self.assertFalse(result.applied)
@@ -443,7 +473,7 @@ class CommissionLayeringTests(APITestCase):
         self.assertEqual(self.affiliate.affiliate_profile.total_earned, Decimal("0"))
 
     def test_player_without_a_referrer_is_a_no_op(self):
-        orphan = User.objects.create_user(email="orphan@example.com", password="pw12345!", country="Sri Lanka")
+        orphan = User.objects.create_user(email="orphan@example.com", password="pw12345!", country="LK")
         _rule(name="global", rate=Decimal("10"))
 
         result = commission_engine_service.evaluate(
@@ -452,6 +482,121 @@ class CommissionLayeringTests(APITestCase):
 
         self.assertFalse(result.applied)
         self.assertEqual(result.reason, "Player has no referring affiliate.")
+
+
+class CommissionCountryResolutionTests(APITestCase):
+    """The country a rule is matched on comes from the caller, not the player.
+
+    admin_offline_deposit_views records a country against every cash and
+    rolling entry and hands it to the engine. The rolling branch used to omit
+    it, leaving evaluate() to fall back to User.country -- an ISO-3166 alpha-2
+    code, against CommissionRule.country's name. "LK" never equals
+    "Sri Lanka", so every country-scoped rule silently failed to match and the
+    payout fell through to the older per-affiliate plan. These tests pin the
+    contract that fix depends on: the name matches, the code does not, and the
+    scopes that never involved a country are unaffected either way.
+    """
+
+    def setUp(self):
+        self.affiliate = User.objects.create_user(email="cr@example.com", password="pw12345!", name="CR")
+        AffiliateProfile.objects.create(user=self.affiliate, is_active=True)
+        self.player = User.objects.create_user(
+            email="cr-p@example.com", password="pw12345!", name="CRP",
+            referred_by=self.affiliate, country=SRI_LANKA_ISO,
+        )
+        self.casino, _ = Casino.objects.get_or_create(
+            country=SRI_LANKA, name="Bellagio Casino", defaults={"is_active": True},
+        )
+
+    def _rolling(self, reference_id, **kwargs):
+        """The rolling call exactly as admin_offline_deposit_views now makes
+        it -- country included."""
+        return commission_engine_service.evaluate(
+            self.player, commission_type="rolling", base_amount=Decimal("1000"),
+            casino_name="Bellagio Casino", reference_id=reference_id, **kwargs,
+        )
+
+    def test_country_scoped_rule_matches_when_the_caller_supplies_the_name(self):
+        rule = _rule(name="SL 10", country=SRI_LANKA, rate=Decimal("10"))
+
+        result = self._rolling("SLIP-CR-1", country=SRI_LANKA)
+
+        self.assertTrue(result.applied, result.reason)
+        self.assertEqual(result.entry.rule, rule)
+        self.assertEqual(result.entry.commission_amount, Decimal("100.00"))
+        self.assertEqual(result.entry.country, SRI_LANKA)
+
+    def test_country_and_casino_scoped_rule_matches(self):
+        _rule(name="SL only", country=SRI_LANKA, rate=Decimal("10"))
+        specific = _rule(
+            name="SL + Bellagio", country=SRI_LANKA, casino=self.casino, rate=Decimal("15"),
+        )
+
+        result = self._rolling("SLIP-CR-2", country=SRI_LANKA)
+
+        self.assertTrue(result.applied, result.reason)
+        # casino+country (specificity 3) outranks country alone (1).
+        self.assertEqual(result.entry.rule, specific)
+        self.assertEqual(result.entry.commission_amount, Decimal("150.00"))
+
+    def test_a_rule_for_another_country_never_matches(self):
+        _rule(name="IN 7", country=INDIA, rate=Decimal("7"))
+
+        result = self._rolling("SLIP-CR-3", country=SRI_LANKA)
+
+        self.assertFalse(result.applied)
+        self.assertEqual(result.reason, "No matching commission rule.")
+        self.assertEqual(CommissionLedgerEntry.objects.count(), 0)
+
+    def test_iso_code_from_the_player_record_matches_nothing(self):
+        """The bug itself, pinned so it cannot come back.
+
+        Passing the player's own country -- an ISO code -- is what the rolling
+        branch effectively did by omitting the argument. It must not match a
+        rule stored under the country's name.
+        """
+        _rule(name="SL 10", country=SRI_LANKA, rate=Decimal("10"))
+
+        by_code = self._rolling("SLIP-CR-4", country=self.player.country)
+        self.assertEqual(self.player.country, SRI_LANKA_ISO)
+        self.assertFalse(by_code.applied)
+
+        # Same rule, same player, same casino -- only the representation differs.
+        by_name = self._rolling("SLIP-CR-5", country=SRI_LANKA)
+        self.assertTrue(by_name.applied, by_name.reason)
+
+    def test_omitting_country_falls_back_to_the_player_and_still_misses(self):
+        """Regression guard for the call site: a caller that forgets `country`
+        gets the old broken behaviour, which is why the argument is passed
+        explicitly rather than left to the fallback."""
+        _rule(name="SL 10", country=SRI_LANKA, rate=Decimal("10"))
+
+        result = self._rolling("SLIP-CR-6")
+
+        self.assertFalse(result.applied)
+
+    def test_scopes_without_a_country_are_unaffected(self):
+        """Global, affiliate-only and casino-only rules never involved a
+        country, so they matched before the fix and must still match now --
+        with or without a country in the context."""
+        for reference_id, kwargs in (("SLIP-CR-7", {"country": SRI_LANKA}), ("SLIP-CR-8", {})):
+            with self.subTest(reference_id=reference_id):
+                CommissionLedgerEntry.objects.all().delete()
+                CommissionRule.objects.all().delete()
+                _rule(name="global", rate=Decimal("5"))
+
+                result = self._rolling(reference_id, **kwargs)
+
+                self.assertTrue(result.applied, result.reason)
+                self.assertEqual(result.entry.commission_amount, Decimal("50.00"))
+
+    def test_affiliate_scoped_rule_still_matches_without_a_country(self):
+        rule = _rule(name="aff only", affiliate=self.affiliate, rate=Decimal("8"))
+
+        result = self._rolling("SLIP-CR-9")
+
+        self.assertTrue(result.applied, result.reason)
+        self.assertEqual(result.entry.rule, rule)
 
 
 class CommissionApiSecurityTests(APITestCase):
