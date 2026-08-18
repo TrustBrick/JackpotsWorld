@@ -152,18 +152,18 @@ const FloatingCard = memo(({ suit, val, pos, delay, red }) => (
 // column for these without overlapping the winner feed / hero title / CTAs).
 //
 // Cache-busted with ?v=2 — this file is served with a 1-year Cache-Control
-// (see public/images/logos/), so updating the image bytes at the same URL
+// (see public/assets/images/logos/), so updating the image bytes at the same URL
 // doesn't reach browsers that already cached the old one. Bump the version
 // again any time this specific asset's content changes.
 const rolexItems = [
-  { logo:'/images/logos/rolex.png?v=2', label:'ROLEX', pos:{right:'19%',top:'14%'}, delay:3.5, color:'#D4AF37' },
-  { logo:'/images/logos/rolex.png?v=2', label:'ROLEX', pos:{left:'1%',  top:'16%'}, delay:2.8, color:'#D4AF37' },
+  { logo:'/assets/images/logos/rolex.png?v=2', label:'ROLEX', pos:{right:'19%',top:'14%'}, delay:3.5, color:'#D4AF37' },
+  { logo:'/assets/images/logos/rolex.png?v=2', label:'ROLEX', pos:{left:'1%',  top:'16%'}, delay:2.8, color:'#D4AF37' },
 ]
 
 const luxuryItems = [
-  { logo:'/images/logos/benz.png',  label:'BENZ',  pos:{left:'9%',  top:'36%'}, delay:0.5, color:'#C8C8C8' },
-  { logo:'/images/logos/bmw.png',   label:'BMW',   pos:{right:'14%',top:'30%'}, delay:2.0, color:'#4FC3F7' },
-  { logo:'/images/logos/apple.png', label:'APPLE', pos:{left:'11%', top:'62%'}, delay:1.2, color:'#E8E8E8' },
+  { logo:'/assets/images/logos/benz.png',  label:'BENZ',  pos:{left:'9%',  top:'36%'}, delay:0.5, color:'#C8C8C8' },
+  { logo:'/assets/images/logos/bmw.png',   label:'BMW',   pos:{right:'14%',top:'30%'}, delay:2.0, color:'#4FC3F7' },
+  { logo:'/assets/images/logos/apple.png', label:'APPLE', pos:{left:'11%', top:'62%'}, delay:1.2, color:'#E8E8E8' },
   { Icon: Gem,                       label:'VIP',   pos:{right:'3%', top:'60%'}, delay:4.2, color:'#B47FFF' },
 ]
 
@@ -476,7 +476,7 @@ useEffect(() => {
           objectFit:'cover', zIndex:0, pointerEvents:'none',
         }}
       >
-        <source src={settings?.hero_background_video || "/videos/hero-background.mp4"} type="video/mp4" />
+        <source src={settings?.hero_background_video || "/assets/videos/hero-background.mp4"} type="video/mp4" />
       </video>
 
       {/* Color-grading overlay — keeps the video in the site's dark magenta/gold
@@ -552,7 +552,7 @@ useEffect(() => {
         }}
       >
         {/* <img
-          src="/images/casino-girl.png"
+          src="/assets/images/casino-girl.png"
           alt="Casino Girl"
           style={{
             height:'100%', width:'auto',

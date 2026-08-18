@@ -31,7 +31,7 @@ import os
 
 from django.conf import settings
 from django.core.files import File
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 
 PRIVATE_PREFIXES = ("kyc/", "support/attachments/")
 
@@ -41,10 +41,25 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("--dry-run", action="store_true")
+        parser.add_argument(
+            "--require-s3", action="store_true",
+            help=(
+                "Exit non-zero instead of no-opping when AWS_STORAGE_BUCKET_NAME is unset. "
+                "Used by the postdeploy hook so it can tell 'migration finished' apart from "
+                "'S3 isn't configured yet' — see the hook for why that distinction matters."
+            ),
+        )
 
     def handle(self, *args, **options):
         if not getattr(settings, "AWS_STORAGE_BUCKET_NAME", ""):
-            self.stdout.write(self.style.NOTICE("AWS_STORAGE_BUCKET_NAME is not set — nothing to migrate to. Exiting."))
+            msg = "AWS_STORAGE_BUCKET_NAME is not set — nothing to migrate to."
+            if options["require_s3"]:
+                # Deliberately an error: the caller asked to be told, because
+                # treating this as success is what previously let a deploy
+                # mark the one-time migration "done" before S3 even existed,
+                # permanently skipping the real backfill later.
+                raise CommandError(msg)
+            self.stdout.write(self.style.NOTICE(f"{msg} Exiting."))
             return
 
         from authapp.storage_backends import PublicMediaStorage, PrivateMediaStorage

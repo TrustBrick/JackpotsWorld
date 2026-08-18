@@ -37,7 +37,7 @@ export default function LandingPage() {
           // 720px wide at 6-15% opacity (--w365-watermark-opacity), where the
           // upscale is imperceptible, and it keeps the landing page from
           // pulling ~2.9 MB for a decorative background.
-          backgroundImage: 'url(/images/jackpotsworld-logo-512.png)',
+          backgroundImage: 'url(/assets/images/jackpotsworld-logo-512.png)',
           backgroundSize: 'contain',
           backgroundRepeat: 'no-repeat',
           backgroundPosition: 'center',

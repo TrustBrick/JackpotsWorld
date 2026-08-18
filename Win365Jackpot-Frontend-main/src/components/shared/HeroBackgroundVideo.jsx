@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useReducedMotion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 
@@ -10,8 +10,22 @@ import { useInView } from 'react-intersection-observer'
  * buttons stacked on top of it.
  *
  * `item` is the "background" slot row from GET /api/section-media/ (or
- * null/undefined) — renders nothing when absent, so a hero with no
- * background configured keeps its plain existing backdrop unchanged.
+ * null/undefined) — the Back Office-managed override.
+ *
+ * `fallbackVideo` is a build-time asset shipped in the deploy bundle, used
+ * when no row is configured *or* when the configured file fails to load.
+ * That second case is not hypothetical: uploaded media lives in shared
+ * storage that a given request may not find (a half-migrated key, a bucket
+ * permission change), and before this existed such a failure left the hero
+ * with no watermark at all. Each page passes its OWN fallback — Poker and
+ * Teen Patti must never share a watermark asset (spec Part 12), which is
+ * why this is a required prop per call site rather than a default baked in
+ * here.
+ *
+ * Sources are tried in order (configured → fallback) and the list is
+ * consumed at most once end-to-end: `srcIndex` only ever advances, so a
+ * broken source can never put the element into a retry loop.
+ *
  * `prefers-reduced-motion` visitors get the static poster (if any) instead
  * of an autoplaying loop; with neither a poster nor motion allowed, nothing
  * renders.
@@ -19,9 +33,8 @@ import { useInView } from 'react-intersection-observer'
 
 const VISIBILITY_THRESHOLD = 0.1
 
-export default function HeroBackgroundVideo({ item }) {
+export default function HeroBackgroundVideo({ item, fallbackVideo, fallbackPoster }) {
   const reduceMotion = useReducedMotion()
-  const [videoFailed, setVideoFailed] = useState(false)
   const [documentVisible, setDocumentVisible] = useState(
     () => (typeof document === 'undefined' ? true : document.visibilityState !== 'hidden')
   )
@@ -29,18 +42,43 @@ export default function HeroBackgroundVideo({ item }) {
   const videoRef = useRef(null)
   const pendingPlayRef = useRef(null)
 
+  // Configured video first, bundled fallback second. An `item` that is an
+  // image-only row contributes no video source, so it falls straight
+  // through to the fallback rather than rendering an empty <video>.
+  const sources = useMemo(() => {
+    const list = []
+    if (item?.media_type === 'video' && item?.video) list.push(item.video)
+    if (fallbackVideo) list.push(fallbackVideo)
+    return list
+  }, [item?.media_type, item?.video, fallbackVideo])
+
+  const sourcesKey = sources.join('|')
+  const [srcIndex, setSrcIndex] = useState(0)
+  // Reset only when the actual source list changes (e.g. Back Office upload
+  // picked up by the hero's 60s re-poll), not on every render.
+  useEffect(() => { setSrcIndex(0) }, [sourcesKey])
+
+  const currentSrc = sources[srcIndex]
+  const posterSrc = item?.poster_image || fallbackPoster || undefined
+
   useEffect(() => {
     const onVisibility = () => setDocumentVisible(document.visibilityState !== 'hidden')
     document.addEventListener('visibilitychange', onVisibility)
     return () => document.removeEventListener('visibilitychange', onVisibility)
   }, [])
 
-  const useVideo = item?.media_type === 'video' && !videoFailed && !reduceMotion
-  const active = inView && documentVisible && useVideo
+  const showVideo = Boolean(currentSrc) && !reduceMotion
+  const active = inView && documentVisible && showVideo
 
   const play = useCallback(async () => {
     const v = videoRef.current
     if (!v || !v.paused) return
+    // Set imperatively as well as via the attribute: autoplay policies key
+    // off the *property*, and a muted video that reaches play() unmuted is
+    // rejected outright — which is indistinguishable from a decode failure
+    // at this opacity, i.e. a silently missing watermark.
+    v.muted = true
+    v.defaultMuted = true
     try { pendingPlayRef.current = v.play(); await pendingPlayRef.current }
     catch { /* stays on the poster/first frame — fine at this opacity */ }
     finally { pendingPlayRef.current = null }
@@ -56,11 +94,13 @@ export default function HeroBackgroundVideo({ item }) {
   useEffect(() => { if (active) play(); else pause() }, [active, play, pause])
   useEffect(() => () => { const v = videoRef.current; if (v && !v.paused) v.pause() }, [])
 
-  if (!item) return null
-  const posterSrc = item.poster_image || undefined
-  const showVideo = useVideo && item.video
+  // Advances to the next source; when the list is exhausted this lands on
+  // undefined and the component falls back to the poster (or renders
+  // nothing), so onError can never fire in a loop.
+  const handleError = useCallback(() => setSrcIndex(i => i + 1), [])
+
   // Neither a playable video nor a poster (e.g. reduced-motion with only a
-  // video configured) — nothing safe to render.
+  // video configured, or every source exhausted) — nothing safe to render.
   if (!showVideo && !posterSrc) return null
 
   return (
@@ -74,14 +114,17 @@ export default function HeroBackgroundVideo({ item }) {
     >
       {showVideo ? (
         <video
+          // Keyed by source so switching to the fallback remounts the
+          // element rather than leaving the failed media state attached.
+          key={currentSrc}
           ref={videoRef}
-          src={item.video}
+          src={currentSrc}
           poster={posterSrc}
           muted
           loop
           playsInline
           preload="metadata"
-          onError={() => setVideoFailed(true)}
+          onError={handleError}
           style={{
             width: '100%', height: '100%', objectFit: 'cover', display: 'block',
             opacity: 0.16, filter: 'brightness(0.55) saturate(0.85)',

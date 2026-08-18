@@ -10,7 +10,7 @@ import { fetchGiftItems, fetchGiftSteps } from '../services/landingService'
 // have an uploaded logo yet (see FALLBACK_GIFT_LOGO_BY_NAME below).
 //
 // Cache-busted with ?v=2 — this file is served with a 1-year Cache-Control
-// (see public/images/logos/), so updating the image bytes at the same URL
+// (see public/assets/images/logos/), so updating the image bytes at the same URL
 // doesn't reach browsers that already cached the old one. Bump the version
 // again any time this specific asset's content changes.
 const FALLBACK_GIFTS = [
@@ -20,7 +20,7 @@ const FALLBACK_GIFTS = [
     tierColor: '#D4AF37',
     name:      'Rolex Submariner',
     subtitle:  'Swiss Precision · Timeless Prestige',
-    logoSrc:   '/images/logos/rolex.png?v=2',
+    logoSrc:   '/assets/images/logos/rolex.png?v=2',
     logoAlt:   'Rolex',
     value:     '$15K+',
     description: 'The icon of icons. A genuine Rolex Submariner — waterproof to 300m, Oystersteel bracelet, Cerachrom bezel. Worn by champions.',
@@ -34,7 +34,7 @@ const FALLBACK_GIFTS = [
     tierColor: '#4FC3F7',
     name:      'BMW M3 Competition',
     subtitle:  '510 HP · Twin-Turbo · The Ultimate Machine',
-    logoSrc:   '/images/logos/bmw.png',
+    logoSrc:   '/assets/images/logos/bmw.png',
     logoAlt:   'BMW',
     value:     '$120K+',
     description: 'Pure M. The BMW M3 Competition — 510 horsepower, 0–100 in 3.9 seconds. Win it, drive it, live it.',
@@ -48,7 +48,7 @@ const FALLBACK_GIFTS = [
     tierColor: '#C0C0C0',
     name:      'Mercedes-Benz GLE',
     subtitle:  'AMG Line · 9G-Tronic · Pure Luxury',
-    logoSrc:   '/images/logos/benz.png',
+    logoSrc:   '/assets/images/logos/benz.png',
     logoAlt:   'Mercedes-Benz',
     value:     '$95K+',
     description: 'The three-pointed star. A Mercedes-Benz GLE AMG Line — commanding presence, whisper-quiet cabin, cutting-edge tech.',
@@ -62,7 +62,7 @@ const FALLBACK_GIFTS = [
     tierColor: '#A8A8A8',
     name:      'Apple Ultra Bundle',
     subtitle:  'iPhone 16 Pro Max · MacBook Pro · Vision Pro',
-    logoSrc:   '/images/logos/apple.png',
+    logoSrc:   '/assets/images/logos/apple.png',
     logoAlt:   'Apple',
     value:     '$6K+',
     description: 'The complete Apple ecosystem. iPhone 16 Pro Max, MacBook Pro M4, Apple Watch Ultra 2, and the future — Vision Pro.',

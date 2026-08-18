@@ -7,6 +7,7 @@ import VipBenefitStrip from '../shared/VipBenefitStrip'
 import CinematicMediaCard from '../shared/CinematicMediaCard'
 import HeroBackgroundVideo from '../shared/HeroBackgroundVideo'
 import { fetchSectionMedia } from '../../services/landingService'
+import { HERO_WATERMARKS } from '../../config/heroWatermarks'
 import { useAutoFetch } from '../../hooks/useAutoFetch'
 
 /**
@@ -124,7 +125,11 @@ export default function TeenPattiHero({ liveCount = 0, upcomingCount = 0, onView
 
   return (
     <section className="relative pt-32 pb-20 px-4 dice-pattern overflow-hidden">
-      <HeroBackgroundVideo item={bySlot('background')} />
+      <HeroBackgroundVideo
+        item={bySlot('background')}
+        fallbackVideo={HERO_WATERMARKS.teen_patti.video}
+        fallbackPoster={HERO_WATERMARKS.teen_patti.poster}
+      />
 
       {/* Framing hairlines — turns the whole hero into a premium display
           panel rather than an open page section. */}

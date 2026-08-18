@@ -13,9 +13,9 @@ const VISITORS_PAGE_SIZE = 20;
 // asset pipeline needed for this pass. Swap for real per-campaign banners
 // once a marketing-asset backend exists.
 const BANNERS = [
-  { label: "Square Banner", src: "/images/deltinroyal-india.jpg" },
-  { label: "Wide Banner", src: "/images/wynn-macau.jpg" },
-  { label: "Story Banner", src: "/images/cod-macau.jpg" },
+  { label: "Square Banner", src: "/assets/images/deltinroyal-india.jpg" },
+  { label: "Wide Banner", src: "/assets/images/wynn-macau.jpg" },
+  { label: "Story Banner", src: "/assets/images/cod-macau.jpg" },
 ];
 
 const STATUS_META = {

@@ -7,6 +7,7 @@ import VipBenefitStrip from '../shared/VipBenefitStrip'
 import CinematicMediaCard from '../shared/CinematicMediaCard'
 import HeroBackgroundVideo from '../shared/HeroBackgroundVideo'
 import { fetchSectionMedia } from '../../services/landingService'
+import { HERO_WATERMARKS } from '../../config/heroWatermarks'
 import { useAutoFetch } from '../../hooks/useAutoFetch'
 
 /**
@@ -96,7 +97,11 @@ export default function PokerHero({ liveCount = 0, upcomingCount = 0, onViewLive
 
   return (
     <section className="relative pt-32 pb-20 px-4 dice-pattern overflow-hidden">
-      <HeroBackgroundVideo item={bySlot('background')} />
+      <HeroBackgroundVideo
+        item={bySlot('background')}
+        fallbackVideo={HERO_WATERMARKS.poker.video}
+        fallbackPoster={HERO_WATERMARKS.poker.poster}
+      />
 
       <div className="absolute inset-x-0 top-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.5), transparent)' }} aria-hidden="true" />
       <div className="absolute inset-x-0 bottom-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.35), transparent)' }} aria-hidden="true" />

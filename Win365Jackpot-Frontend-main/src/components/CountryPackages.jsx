@@ -18,8 +18,8 @@ import {
 } from "lucide-react";
 
 /* ─────────────────────────────────────────────
-   IMAGE NAMING GUIDE  →  /public/images/
-   VIP SERVICES IMAGES → /public/images/vip/
+   IMAGE NAMING GUIDE  →  /public/assets/images/
+   VIP SERVICES IMAGES → /public/assets/images/vip/
    Recommended: 1400x800px, landscape, <300KB
 ───────────────────────────────────────────── */
 
@@ -49,10 +49,10 @@ const FALLBACK_COUNTRIES = [
     flag: '🇻🇳', name: 'Vietnam', tagline: 'Paradise of the Orient',
     color: '#D32F2F', glow: 'rgba(211,47,47,0.3)',
     images: [
-      { src: '/images/corona-vietnam.jpg',  label: 'Casino Corona, Phu Quoc' },
-      { src: '/images/grand-vietnam.png',   label: 'Grand Casino, Ho Tram' },
-      { src: '/images/crown-vietnam.jpeg',  label: 'Crown Casino, Danang' },
-      { src: '/videos/vietnam.mp4',         label: 'Vietnam Experience', type: 'video' },
+      { src: '/assets/images/corona-vietnam.jpg',  label: 'Casino Corona, Phu Quoc' },
+      { src: '/assets/images/grand-vietnam.png',   label: 'Grand Casino, Ho Tram' },
+      { src: '/assets/images/crown-vietnam.jpeg',  label: 'Crown Casino, Danang' },
+      { src: '/assets/videos/vietnam.mp4',         label: 'Vietnam Experience', type: 'video' },
     ],
     casinos: 'Crown Casino - Danang, Casino Corona - Phu Quoc, Grand casino - Ho Tram',
     bestFor: "Slots, Baccarat, Hold'em Poker",
@@ -61,10 +61,10 @@ const FALLBACK_COUNTRIES = [
     flag: '🇲🇴', name: 'Macau', tagline: 'Vegas of the East',
     color: '#1565C0', glow: 'rgba(21,101,192,0.3)',
     images: [
-      { src: '/images/cod-macau.jpg',       label: 'COD' },
-      { src: '/images/wynn-macau.jpg',      label: 'Wynn' },
-      { src: '/images/venitian-macau.jpg',  label: 'Venetian' },
-      { src: '/images/lisbo-macau.jpg',     label: 'Lisboa Grand' },
+      { src: '/assets/images/cod-macau.jpg',       label: 'COD' },
+      { src: '/assets/images/wynn-macau.jpg',      label: 'Wynn' },
+      { src: '/assets/images/venitian-macau.jpg',  label: 'Venetian' },
+      { src: '/assets/images/lisbo-macau.jpg',     label: 'Lisboa Grand' },
     ],
     casinos: 'Venetian, Lisboa Grand, COD, Wynn',
     bestFor: 'High Stakes Baccarat, VIP Rooms',
@@ -73,11 +73,11 @@ const FALLBACK_COUNTRIES = [
     flag: '🇮🇳', name: 'India', tagline: 'Goa – Where Luck Meets Paradise',
     color: '#FF6F00', glow: 'rgba(255,111,0,0.3)',
     images: [
-      { src: '/images/bigdaddy-india.png',     label: 'Big Daddy Casino' },
-      { src: '/images/deltinjaqk-india.jpg',    label: 'Deltin Jaqk' },
-      { src: '/images/deltinroyal-india.jpg',   label: 'Deltin Royal' },
-      { src: '/images/majesticpride-india.jpg', label: 'Majestic Pride' },
-      { src: '/images/casinopride-india.jpg',  label: 'Casino Pride' },
+      { src: '/assets/images/bigdaddy-india.png',     label: 'Big Daddy Casino' },
+      { src: '/assets/images/deltinjaqk-india.jpg',    label: 'Deltin Jaqk' },
+      { src: '/assets/images/deltinroyal-india.jpg',   label: 'Deltin Royal' },
+      { src: '/assets/images/majesticpride-india.jpg', label: 'Majestic Pride' },
+      { src: '/assets/images/casinopride-india.jpg',  label: 'Casino Pride' },
     ],
     casinos: 'Big Daddy Casino, Casino Pride, Deltin Jaqk, Deltin Royal, Majestic Pride',
     bestFor: 'Poker, Roulette, Live Dealer Games',
@@ -86,12 +86,12 @@ const FALLBACK_COUNTRIES = [
     flag: '🇱🇰', name: 'Sri Lanka', tagline: 'Jewel of the Indian Ocean',
     color: '#7B1FA2', glow: 'rgba(123,31,162,0.3)',
     images: [
-      { src: '/images/majesticpride-srilanka.jpg', label: 'Majestic Pride' },
-      { src: '/images/ballys-srilanka.jpg',        label: "Bally's" },
-      { src: '/images/ballagio-srilanka.jpeg',     label: 'Ballagio' },
-      { src: '/images/ballagio-lobby-srilanka.jpeg', label: 'Ballagio Lobby' },
-      { src: '/images/marina-srilanka.jpg',        label: 'Marina' },
-      { src: '/images/cod-srilanka.jpg',           label: 'City of Dreams' },
+      { src: '/assets/images/majesticpride-srilanka.jpg', label: 'Majestic Pride' },
+      { src: '/assets/images/ballys-srilanka.jpg',        label: "Bally's" },
+      { src: '/assets/images/ballagio-srilanka.jpeg',     label: 'Ballagio' },
+      { src: '/assets/images/ballagio-lobby-srilanka.jpeg', label: 'Ballagio Lobby' },
+      { src: '/assets/images/marina-srilanka.jpg',        label: 'Marina' },
+      { src: '/assets/images/cod-srilanka.jpg',           label: 'City of Dreams' },
     ],
     casinos: "Bally's Casino, Marina Casino, Bellagio Casino, Majestic Pride, City of Dreams",
     bestFor: 'Blackjack, Slots, Live Poker',
@@ -100,8 +100,8 @@ const FALLBACK_COUNTRIES = [
     flag: '🇵🇭', name: 'Philippines', tagline: 'Entertainment City Manila',
     color: '#00838F', glow: 'rgba(0,131,143,0.3)',
     images: [
-      { src: '/images/Solaire-ph.jpg', label: 'Solaire Resort Casino' },
-      { src: '/images/cod-ph.jpg',     label: 'City of Dreams Manila' },
+      { src: '/assets/images/Solaire-ph.jpg', label: 'Solaire Resort Casino' },
+      { src: '/assets/images/cod-ph.jpg',     label: 'City of Dreams Manila' },
     ],
     casinos: 'Solaire Resort Casino, City of Dreams - Manila',
     bestFor: 'Baccarat, Roulette, Sports Betting',
@@ -112,19 +112,19 @@ const FALLBACK_COUNTRY_IMAGE_SRC_BY_LABEL = new Map(
 )
 
 const FALLBACK_VIP_SERVICES = [
-  { src: '/images/vip/massage-1.jpg',   label: 'Classic Massage',     category: 'Wellness' },
-  { src: '/images/vip/massage-2.png',   label: 'Luxury Spa',          category: 'Wellness' },
-  { src: '/images/vip/bar-1.jpg',       label: 'Premium Bar Counter',  category: 'Bar & Drinks' },
-  { src: '/images/vip/bar-2.jpg',       label: 'Exclusive Cellar',     category: 'Bar & Drinks' },
-  { src: '/images/vip/dance-1.jpg',     label: 'Live Dance Show',      category: 'Entertainment' },
-  { src: '/images/vip/dance-2.jpg',     label: 'VIP Stage & Lounge',   category: 'Entertainment' },
-  { src: '/images/vip/lounge-1.jpg',    label: 'VIP Lounge Access',    category: 'VIP Lounge' },
-  { src: '/images/vip/lounge-2.jpg',    label: 'Private Suite Lounge', category: 'VIP Lounge' },
-  { src: '/images/vip/vip-room-1.jpg',  label: 'Exclusive VIP Room',   category: 'VIP Rooms' },
-  { src: '/images/vip/vip-room-2.avif', label: 'High Roller Room',     category: 'VIP Rooms' },
-  { src: '/images/vip/private-jet.png', label: 'Private Jet',     category: 'Luxury Travel' },
-  { src: '/images/vip/luxury-cruise.jpg', label: 'Luxury Cruises',     category: 'Luxury Travel' },
-  { src: '/images/vip/private-boat.jpg', label: 'Private Boats',     category: 'Luxury Travel' },
+  { src: '/assets/images/vip/massage-1.jpg',   label: 'Classic Massage',     category: 'Wellness' },
+  { src: '/assets/images/vip/massage-2.png',   label: 'Luxury Spa',          category: 'Wellness' },
+  { src: '/assets/images/vip/bar-1.jpg',       label: 'Premium Bar Counter',  category: 'Bar & Drinks' },
+  { src: '/assets/images/vip/bar-2.jpg',       label: 'Exclusive Cellar',     category: 'Bar & Drinks' },
+  { src: '/assets/images/vip/dance-1.jpg',     label: 'Live Dance Show',      category: 'Entertainment' },
+  { src: '/assets/images/vip/dance-2.jpg',     label: 'VIP Stage & Lounge',   category: 'Entertainment' },
+  { src: '/assets/images/vip/lounge-1.jpg',    label: 'VIP Lounge Access',    category: 'VIP Lounge' },
+  { src: '/assets/images/vip/lounge-2.jpg',    label: 'Private Suite Lounge', category: 'VIP Lounge' },
+  { src: '/assets/images/vip/vip-room-1.jpg',  label: 'Exclusive VIP Room',   category: 'VIP Rooms' },
+  { src: '/assets/images/vip/vip-room-2.avif', label: 'High Roller Room',     category: 'VIP Rooms' },
+  { src: '/assets/images/vip/private-jet.png', label: 'Private Jet',     category: 'Luxury Travel' },
+  { src: '/assets/images/vip/luxury-cruise.jpg', label: 'Luxury Cruises',     category: 'Luxury Travel' },
+  { src: '/assets/images/vip/private-boat.jpg', label: 'Private Boats',     category: 'Luxury Travel' },
 ]
 const FALLBACK_VIP_SERVICE_SRC_BY_LABEL = new Map(FALLBACK_VIP_SERVICES.map(v => [v.label, v.src]))
 
@@ -416,9 +416,9 @@ function VIPServicesGallery() {
   </div>
   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%,280px),1fr))', gap: 12, justifyContent: 'center', maxWidth: 920, margin: '0 auto' }}>
     {[
-      { src: '/videos/vip-lounge.mp4',   label: 'VIP Lounge Experience' },
-      { src: '/videos/casino-floor.mp4', label: 'Casino Floor Nights' },
-      { src: '/videos/spa-retreat.mp4',  label: 'Luxury Spa Retreat' },
+      { src: '/assets/videos/vip-lounge.mp4',   label: 'VIP Lounge Experience' },
+      { src: '/assets/videos/casino-floor.mp4', label: 'Casino Floor Nights' },
+      { src: '/assets/videos/spa-retreat.mp4',  label: 'Luxury Spa Retreat' },
     ].map((v, i) => (
       <div key={i} style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(212,175,55,0.15)', background: 'rgba(255,255,255,0.03)', position: 'relative', aspectRatio: '16/9' }}>
         <video src={v.src} autoPlay muted loop playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
@@ -443,12 +443,12 @@ function VIPServicesGallery() {
   )
 }
 const CRUISE_IMAGES = [
-  // { src: '/images/vip/luxury-cruise.jpg', label: 'Luxury Cruise Ship'      },
-  // { src: '/images/vip/private-boat.jpg',  label: 'Private Deck Experience' },
-  // { src: '/images/cruise-casino.jpg',     label: 'Onboard Casino Floor'    },
-  { src: '/images/vip/msc-cruise.jpg',      label: ' '        },
-  { src: '/images/vip/star-cruises.jpg',     label: ' '      },
-  // { src: '/images/cruise-pool.jpg',       label: 'Sky Deck & Pool'         },
+  // { src: '/assets/images/vip/luxury-cruise.jpg', label: 'Luxury Cruise Ship'      },
+  // { src: '/assets/images/vip/private-boat.jpg',  label: 'Private Deck Experience' },
+  // { src: '/assets/images/cruise-casino.jpg',     label: 'Onboard Casino Floor'    },
+  { src: '/assets/images/vip/msc-cruise.jpg',      label: ' '        },
+  { src: '/assets/images/vip/star-cruises.jpg',     label: ' '      },
+  // { src: '/assets/images/cruise-pool.jpg',       label: 'Sky Deck & Pool'         },
 ]
 
 function CruiseCarousel() {

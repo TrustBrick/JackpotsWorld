@@ -87,7 +87,7 @@ export default function WheelDisplay({
 
       {/* Pointer */}
       <img
-        src="/images/wheel/pointer.png" alt="" aria-hidden="true"
+        src="/assets/images/wheel/pointer.png" alt="" aria-hidden="true"
         style={{
           position: "absolute", top: -POINTER_HEIGHT * 0.28, left: "50%",
           transform: "translateX(-50%)", width: POINTER_WIDTH, height: POINTER_HEIGHT,
@@ -98,7 +98,7 @@ export default function WheelDisplay({
 
       {/* Metallic gold ring chrome — static, does not rotate */}
       <img
-        src="/images/wheel/ring.png" alt="" aria-hidden="true"
+        src="/assets/images/wheel/ring.png" alt="" aria-hidden="true"
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%", zIndex: 1, pointerEvents: "none" }}
       />
 
@@ -223,7 +223,7 @@ export default function WheelDisplay({
           position: "absolute", inset: 0, margin: "auto",
           width: BUTTON_SIZE, height: BUTTON_SIZE, borderRadius: "50%", zIndex: 5,
           padding: 0, border: "none", cursor: canSpin ? "pointer" : "not-allowed",
-          background: `url(/images/wheel/hub.png) center/cover`,
+          background: `url(/assets/images/wheel/hub.png) center/cover`,
           filter: canSpin ? "none" : "grayscale(0.7) brightness(0.6)",
           display: "flex", alignItems: "center", justifyContent: "center",
           boxShadow: canSpin ? `0 0 28px rgba(240,185,11,0.7)` : "none",

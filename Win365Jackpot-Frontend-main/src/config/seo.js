@@ -21,7 +21,7 @@ export const TITLE_SUFFIX = ` | ${SITE_NAME}`
 // for a purpose-built 1200x630 share card when one exists — social previews
 // crop a square icon badly, and og:image is the single highest-impact asset
 // for click-through on shared links.
-export const DEFAULT_OG_IMAGE = `${SITE_URL}/web-app-manifest-512x512.png`
+export const DEFAULT_OG_IMAGE = `${SITE_URL}/assets/icons/web-app-manifest-512x512.png`
 
 export const DEFAULT_TITLE = "JackpotsWorld — Asia's #1 Offline Casino VIP Platform"
 export const DEFAULT_DESCRIPTION =

@@ -3,7 +3,7 @@
 // else in this app) instead of pre-rendered raster icons — they stay crisp
 // at any wheel size and recolor for free via CSS `color`, so only the ring/
 // hub/pointer (which need real material/lighting rendering CSS can't match)
-// are pre-rendered PNGs — see public/images/wheel/.
+// are pre-rendered PNGs — see public/assets/images/wheel/.
 import {
   DollarSign, Percent, TrendingUp, Crown, Gift, Package, Building2, CalendarDays,
   Ticket, Plane, Tag, RotateCw, RotateCcw, HelpCircle,

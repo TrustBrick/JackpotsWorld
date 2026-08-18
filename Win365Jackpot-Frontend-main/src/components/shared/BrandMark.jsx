@@ -5,19 +5,19 @@ import React from 'react'
 // is the "Jackpots / World" *text* lockup — most headers show both.
 //
 // Why this component exists: every instance used to point straight at
-// /images/jackpotsworld_watermark.png, which is a *fully opaque* RGB image —
+// /assets/images/jackpotsworld_watermark.png, which is a *fully opaque* RGB image —
 // the emblem baked onto a solid black square with no alpha channel at all.
 // `object-fit: contain` cannot help there, so the mark rendered as a black
 // box on every surface. The asset below is the same artwork re-cut with a
-// real alpha channel (see public/images/jackpotsworld-logo.png).
+// real alpha channel (see public/assets/images/jackpotsworld-logo.png).
 //
 // The 256px copy is the default because the full-resolution original is a
 // ~2.9 MB 1254px image that was being downloaded to paint a 28x28 navbar
 // icon. Pass `full` only where the art is genuinely displayed large (the
 // landing-page watermark).
 
-export const BRAND_MARK_SRC = '/images/jackpotsworld-logo-256.png'
-export const BRAND_MARK_SRC_FULL = '/images/jackpotsworld-logo.png'
+export const BRAND_MARK_SRC = '/assets/images/jackpotsworld-logo-256.png'
+export const BRAND_MARK_SRC_FULL = '/assets/images/jackpotsworld-logo.png'
 
 export default function BrandMark({
   size = 40,
