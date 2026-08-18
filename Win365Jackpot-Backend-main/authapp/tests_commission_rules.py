@@ -333,6 +333,41 @@ class CommissionCalculationTests(APITestCase):
         self.assertEqual(CommissionLedgerEntry.objects.filter(reference_id="SLIP-DUP").count(), 1)
         self.assertEqual(ReferralCommission.objects.count(), 1)
 
+    def test_a_repeated_bet_slip_reports_applied_so_the_caller_does_not_fall_through(self):
+        """The second attempt is a no-op, but it must not look like "no rule
+        matched" -- that is the signal the caller uses to pay via the older
+        per-affiliate plan, which would reintroduce the double payment by
+        another route."""
+        _rule(name="10pct", country="Sri Lanka", rate=Decimal("10"))
+        kwargs = dict(
+            commission_type="rolling", base_amount=Decimal("1000"),
+            casino_name="Bellagio Casino", reference_id="SLIP-REPEAT",
+            country=SRI_LANKA,
+        )
+
+        commission_engine_service.evaluate(self.player, **kwargs)
+        second = commission_engine_service.evaluate(self.player, **kwargs)
+
+        self.assertTrue(second.applied)
+        self.assertEqual(second.reason, "Already processed.")
+
+    def test_entries_without_a_reference_are_exempt_from_the_uniqueness_rule(self):
+        """Losing/deposit commissions carry no bet slip. They store NULL, not
+        "", precisely so any number of them can coexist -- if they collided,
+        the constraint would block legitimate repeat payouts."""
+        _rule(name="10pct", country="Sri Lanka", rate=Decimal("10"), commission_type="losing")
+
+        for _ in range(3):
+            commission_engine_service.evaluate(
+                self.player, commission_type="losing", base_amount=Decimal("1000"),
+                casino_name="Bellagio Casino", country=SRI_LANKA,
+            )
+
+        entries = CommissionLedgerEntry.objects.filter(commission_type="losing")
+        self.assertEqual(entries.count(), 3)
+        # NULL, not "" -- the blank string would collide on the second row.
+        self.assertEqual(entries.filter(reference_id__isnull=True).count(), 3)
+
     def test_no_matching_rule_reports_not_applied_so_the_caller_falls_through(self):
         result = commission_engine_service.evaluate(
             self.player, commission_type="rolling", base_amount=Decimal("1000"),

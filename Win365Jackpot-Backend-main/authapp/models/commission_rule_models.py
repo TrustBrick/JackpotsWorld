@@ -334,7 +334,13 @@ class CommissionLedgerEntry(models.Model):
     )
     # Bet-slip number / transaction ref that triggered this calculation. Used
     # for idempotency on the rolling branch.
-    reference_id = models.CharField(max_length=100, blank=True, db_index=True)
+    #
+    # NULL, never "", when there is no reference. The uniqueness below is
+    # enforced unconditionally, and every backend treats NULLs in a unique
+    # index as distinct from one another -- so the deposit/losing entries,
+    # which have no bet slip, stay exempt without needing a partial index
+    # that MySQL cannot build. Blank strings would all collide instead.
+    reference_id = models.CharField(max_length=100, null=True, blank=True, db_index=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     qualified_at = models.DateTimeField(null=True, blank=True)
@@ -358,11 +364,24 @@ class CommissionLedgerEntry(models.Model):
         ]
         constraints = [
             # Idempotency for the rolling branch: one entry per bet slip per
-            # affiliate/player. Partial-unique via condition so the many rows
-            # with a blank reference_id (deposit/losing entries) are exempt.
+            # affiliate/player.
+            #
+            # This deliberately carries no condition=. It used to be
+            # condition=~Q(reference_id="") to exempt the deposit/losing rows
+            # that have no bet slip, but a conditional UniqueConstraint
+            # compiles to a partial index, which MySQL does not support --
+            # Django's schema editor returns None for the SQL and the
+            # constraint is silently never created (models.W036). The
+            # IntegrityError that _persist() catches for idempotency
+            # therefore never fired, and nothing stopped the same bet slip
+            # being paid twice.
+            #
+            # Exemption now comes from reference_id being NULL rather than
+            # "" on those rows (see the field above), which every backend
+            # already treats as distinct in a unique index. Same intent,
+            # actually enforced.
             models.UniqueConstraint(
                 fields=["affiliate", "referred_player", "commission_type", "reference_id"],
-                condition=~models.Q(reference_id=""),
                 name="uniq_commission_ledger_reference",
             ),
         ]
