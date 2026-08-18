@@ -242,15 +242,34 @@ AWS_S3_OBJECT_PARAMETERS = {
     'CacheControl': 'max-age=86400',
 }
 
+# staticfiles is deliberately plain StaticFilesStorage, NOT whitenoise's
+# CompressedManifestStaticFilesStorage, because plain storage is what this
+# app has actually been running all along: the legacy STATICFILES_STORAGE
+# setting that used to name the manifest backend was removed in Django 5.1
+# (this project is on 5.2), so Django silently ignored it and fell back to
+# the default non-manifest storage. Naming the manifest backend here would
+# not be "keeping" the old config — it would switch manifest hashing on for
+# the very first time. That was tried and immediately broke production: with
+# manifest storage active, every {% static %} lookup must resolve through
+# staticfiles.json or it raises ValueError, and Django's own admin templates
+# 500'd on `Missing staticfiles manifest entry for 'admin/css/base.css'` —
+# which also failed the load balancer's /admin/login/ health check and marked
+# the whole environment unhealthy. Whitenoise still serves these files fine
+# via its middleware; it just serves them unhashed, exactly as before.
+#
+# Only the 'default' (media) entry differs by environment — that's the actual
+# S3 switch this block exists for.
+_STATICFILES_BACKEND = {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'}
+
 if AWS_STORAGE_BUCKET_NAME:
     STORAGES = {
         'default': {'BACKEND': 'authapp.storage_backends.PublicMediaStorage'},
-        'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage'},
+        'staticfiles': _STATICFILES_BACKEND,
     }
 else:
     STORAGES = {
         'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
-        'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage'},
+        'staticfiles': _STATICFILES_BACKEND,
     }
 
 # Passenger imports this module once per worker process — make sure every
