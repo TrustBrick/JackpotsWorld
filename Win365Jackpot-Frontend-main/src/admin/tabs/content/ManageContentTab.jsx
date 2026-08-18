@@ -23,11 +23,14 @@ function emptyForm(fields) {
  * don't each need their own bespoke table+form implementation.
  *
  * `onSaved` — optional, called after every successful create/update/toggle/
- * delete. The Landing Page sub-tabs (GiftItemsManageTab.jsx etc.) pass
- * invalidateLandingCache here, since their apiPath also backs a cached
- * public-site fetcher (src/services/landingService.js) that would otherwise
- * keep serving pre-edit content for up to its 60s TTL. Callers that don't
- * back a public cache (Events/Poker/Promotions/Locations) simply omit it.
+ * delete. Every caller whose apiPath backs a cached public-site fetcher
+ * passes its matching invalidate*Cache here — invalidateLandingCache for the
+ * Landing Page sub-tabs (GiftItemsManageTab.jsx etc., src/services/
+ * landingService.js), invalidateEventsCache/invalidatePokerCache/
+ * invalidatePromotionsCache/invalidateTeenPattiCache for their own same-
+ * named services — since each of those caches would otherwise keep serving
+ * pre-edit content for up to its own 60s TTL. Omit only for a tab whose
+ * apiPath doesn't back a public fetch at all (e.g. Locations).
  */
 export default function ManageContentTab({ resourceLabel, apiPath, fields, columns, onToast, onSaved }) {
   const { C } = useAdminTheme();

@@ -6,6 +6,7 @@ from django.conf import settings
 from django.http import JsonResponse, FileResponse, Http404, HttpResponse
 from django.views.static import serve as serve_static
 from authapp.url_patterns.gift_level_urls import admin_urlpatterns, user_urlpatterns
+from authapp.views.media_serve_views import serve_media
 from authapp.views.seo_views import sitemap_xml
 from authapp.views.spa_seo import render_spa_html
 
@@ -79,16 +80,21 @@ urlpatterns = [
 
 ] + [
     # Serves user-uploaded media (avatars, KYC docs, promo/event images, ...)
-    # from MEDIA_ROOT. Django's django.conf.urls.static.static() helper only
-    # registers this route when settings.DEBUG is True — in production
-    # (DEBUG=False, as it should be) it silently returns an empty pattern
-    # list, so every /media/... request 404s. There's no separate Nginx/
-    # Apache vhost or CDN serving this app (Whitenoise only covers
-    # STATIC_ROOT and the frontend dist/, see settings.py), so this route
-    # must be registered unconditionally, not gated on DEBUG.
+    # from MEDIA_ROOT whenever storage is local disk (S3 unconfigured — see
+    # settings.py's "AWS S3" section). Once S3 is active, FieldFile.url
+    # points straight at S3 and this route is never hit for that file, but
+    # it stays registered unconditionally (not gated on DEBUG, unlike
+    # django.conf.urls.static.static()) since local dev, the cPanel deploy
+    # target, and any environment before S3 is configured all still need it.
+    #
+    # serve_media (authapp/views/media_serve_views.py), not Django's own
+    # django.views.static.serve — that view is explicitly documented as
+    # dev-only and, confirmed from its source, never handles a Range
+    # request, which is a direct cause of video playback stopping partway
+    # or failing to resume. See that module's docstring for the full case.
     re_path(
         r'^%s(?P<path>.*)$' % settings.MEDIA_URL.lstrip('/'),
-        serve_static,
+        serve_media,
         {'document_root': settings.MEDIA_ROOT},
     ),
 ] + [

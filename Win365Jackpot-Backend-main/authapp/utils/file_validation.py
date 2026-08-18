@@ -80,8 +80,19 @@ def validate_uploaded_video(file_obj):
             f"Unsupported file type. Allowed: {', '.join(sorted(ALLOWED_VIDEO_EXTENSIONS))}."
         )
 
-    content_type = getattr(file_obj, "content_type", "") or ""
-    if content_type and content_type.lower() not in ALLOWED_VIDEO_CONTENT_TYPES:
+    # Browsers routinely report a video's content-type as the generic
+    # "application/octet-stream" fallback rather than a specific video/*
+    # value, especially for files that arrived via a third-party download
+    # tool with stripped/unusual metadata — confirmed live: a real .mp4
+    # selected through a native file picker was rejected here even though
+    # the extension and the file itself were perfectly valid. Extension is
+    # already the primary, reliable gate for video (there is no structural
+    # decode check possible — see this function's own docstring above), so
+    # a generic/unrecognized content-type is treated the same as a missing
+    # one and accepted; only a content-type that specifically names a
+    # *different* format (e.g. "image/png") is still rejected.
+    content_type = (getattr(file_obj, "content_type", "") or "").lower()
+    if content_type and content_type != "application/octet-stream" and content_type not in ALLOWED_VIDEO_CONTENT_TYPES:
         raise serializers.ValidationError("Unsupported file content type.")
 
     if file_obj.size > MAX_VIDEO_SIZE_BYTES:

@@ -8,6 +8,7 @@ import PokerSyncLogsTable from "./PokerSyncLogsTable";
 import PokerMediaManageTab from "./PokerMediaManageTab";
 import { adminFetch, API } from "../../helpers";
 import { useAdminTheme } from "../../context/AdminThemeContext";
+import { invalidatePokerCache } from "../../../services/pokerService";
 
 const CASINO_CATALOG_URL = "/api/admin-panel/casino-catalog/";
 
@@ -129,6 +130,14 @@ export default function PokerManageTab({ onToast }) {
 
   useEffect(() => { loadStats(); }, [loadStats]);
 
+  // Drops the public /api/poker/ cache (pokerService.js's own, independent
+  // of loadStats' admin-dashboard-stats fetch) so a Tournament Image upload
+  // shows up without a 60s wait, same as every landingService-backed tab.
+  const handleSaved = useCallback(() => {
+    invalidatePokerCache();
+    loadStats();
+  }, [loadStats]);
+
   const pending = stats?.pending_review || 0;
   const duplicates = stats?.duplicate || 0;
   const failing = stats?.sources_failing || 0;
@@ -193,7 +202,7 @@ export default function PokerManageTab({ onToast }) {
           fields={FIELDS}
           columns={COLUMNS}
           onToast={onToast}
-          onSaved={loadStats}
+          onSaved={handleSaved}
         />
       )}
       {view === "review" && (

@@ -197,14 +197,89 @@ MEDIA_URL   = '/media/'
 # outside /var/app/current (see .platform/hooks/postdeploy) because that
 # whole directory is replaced on every deploy — anything saved under
 # BASE_DIR/media would silently vanish on the next deploy otherwise.
+#
+# Only consulted by FileSystemStorage, i.e. only when AWS_STORAGE_BUCKET_NAME
+# below is unset — local dev and this variable are unaffected by S3 either way.
 MEDIA_ROOT = config('MEDIA_ROOT_DIR', default=os.path.join(BASE_DIR, 'media'))
 
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# ── AWS S3 (persistent media storage) ───────────────────────────────────────
+# Local disk (the FileSystemStorage fallback below) survives an in-place code
+# deploy (MEDIA_ROOT_DIR is kept outside /var/app/current, see above) but NOT
+# instance replacement or horizontal scaling — confirmed via `aws
+# elasticbeanstalk describe-environment-resources` that this environment runs
+# behind a Load Balancer with an Auto Scaling Group provisioned, so the
+# instance currently serving a request is not guaranteed to be the one a file
+# was originally saved to. That mismatch — not anything in the upload code
+# path — is the root cause of media that "disappears" or loads inconsistently
+# depending on which page/instance answers the request.
+#
+# Entirely opt-in via AWS_STORAGE_BUCKET_NAME: unset (the default everywhere
+# until deliberately configured), nothing below changes and every environment
+# — including local dev and the separate cPanel/Passenger deploy target (see
+# DEPLOYMENT.md) — keeps using local disk exactly as before this section
+# existed.
+#
+# No static access keys anywhere here on purpose: boto3's default credential
+# chain picks up the EC2 instance's own IAM role automatically, so the app
+# never holds a long-lived S3 credential. See authapp/storage_backends.py for
+# why this is two backends (PublicMediaStorage/PrivateMediaStorage) rather
+# than one.
+AWS_STORAGE_BUCKET_NAME = config('AWS_STORAGE_BUCKET_NAME', default='')
+AWS_S3_REGION_NAME = config('AWS_S3_REGION_NAME', default='ap-south-1')
+AWS_S3_ADDRESSING_STYLE = 'virtual'
+AWS_S3_SIGNATURE_VERSION = 's3v4'
+AWS_S3_OBJECT_PARAMETERS = {
+    # A full day, not "forever": Django's storage backend renames on a key
+    # collision rather than overwriting (file_overwrite=False on both
+    # backends in storage_backends.py) — so under normal use, a media
+    # *replacement* always gets a new URL instead of invalidating a cached
+    # old one, which is what actually satisfies "replaced media must not
+    # show a stale version". The one narrow case that still reuses a key is
+    # delete-then-re-upload-with-the-identical-original-filename (see the
+    # post_delete/pre_save cleanup in authapp/signals/media_cleanup.py) —
+    # a day keeps that edge case's stale-cache window bounded rather than
+    # picking a value so long the exception never meaningfully expires.
+    'CacheControl': 'max-age=86400',
+}
+
+# staticfiles is deliberately plain StaticFilesStorage, NOT whitenoise's
+# CompressedManifestStaticFilesStorage, because plain storage is what this
+# app has actually been running all along: the legacy STATICFILES_STORAGE
+# setting that used to name the manifest backend was removed in Django 5.1
+# (this project is on 5.2), so Django silently ignored it and fell back to
+# the default non-manifest storage. Naming the manifest backend here would
+# not be "keeping" the old config — it would switch manifest hashing on for
+# the very first time. That was tried and immediately broke production: with
+# manifest storage active, every {% static %} lookup must resolve through
+# staticfiles.json or it raises ValueError, and Django's own admin templates
+# 500'd on `Missing staticfiles manifest entry for 'admin/css/base.css'` —
+# which also failed the load balancer's /admin/login/ health check and marked
+# the whole environment unhealthy. Whitenoise still serves these files fine
+# via its middleware; it just serves them unhashed, exactly as before.
+#
+# Only the 'default' (media) entry differs by environment — that's the actual
+# S3 switch this block exists for.
+_STATICFILES_BACKEND = {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'}
+
+if AWS_STORAGE_BUCKET_NAME:
+    STORAGES = {
+        'default': {'BACKEND': 'authapp.storage_backends.PublicMediaStorage'},
+        'staticfiles': _STATICFILES_BACKEND,
+    }
+else:
+    STORAGES = {
+        'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+        'staticfiles': _STATICFILES_BACKEND,
+    }
 
 # Passenger imports this module once per worker process — make sure every
 # directory the app writes to exists before anything tries to use it, so a
-# fresh deploy never 500s on a missing staticfiles/media/logs folder.
-for _dir in (STATIC_ROOT, MEDIA_ROOT, os.path.join(BASE_DIR, 'logs')):
+# fresh deploy never 500s on a missing staticfiles/media/logs folder. Skips
+# MEDIA_ROOT when S3 is active since nothing ever writes to it in that mode.
+_local_dirs = [STATIC_ROOT, os.path.join(BASE_DIR, 'logs')]
+if not AWS_STORAGE_BUCKET_NAME:
+    _local_dirs.append(MEDIA_ROOT)
+for _dir in _local_dirs:
     os.makedirs(_dir, exist_ok=True)
 
 # ── Frontend (React SPA) ──────────────────────────────────────────────────────

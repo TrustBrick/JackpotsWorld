@@ -88,7 +88,7 @@ class SignupWheelReward(models.Model):
     no_repeat_for_player = models.BooleanField(default=False)
     icon = models.CharField(max_length=40, blank=True)
     color = models.CharField(max_length=9, blank=True)
-    image = models.ImageField(upload_to="wheel/signup_rewards/", null=True, blank=True)
+    image = models.ImageField(upload_to="wheel/signup_rewards/", max_length=255, null=True, blank=True)
     display_order = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -193,7 +193,7 @@ class BonusWheelReward(models.Model):
     )
     icon = models.CharField(max_length=40, blank=True)
     color = models.CharField(max_length=9, blank=True)
-    image = models.ImageField(upload_to="wheel/bonus_rewards/", null=True, blank=True)
+    image = models.ImageField(upload_to="wheel/bonus_rewards/", max_length=255, null=True, blank=True)
     # Wheel face shows a "?" and the win popup reveals this tier's real
     # label/reward as normal — a display flag, not a second hidden draw.
     is_mystery = models.BooleanField(default=False)

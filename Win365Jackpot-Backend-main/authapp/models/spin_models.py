@@ -61,7 +61,7 @@ class SpinConfig(models.Model):
     # over `image_url` (a plain external link) wherever both are set — see
     # SpinConfigSerializer.get_resolved_image.
     image_url   = models.URLField(blank=True)
-    image       = models.ImageField(upload_to="spin/rewards/", null=True, blank=True)
+    image       = models.ImageField(upload_to="spin/rewards/", max_length=255, null=True, blank=True)
     # Optional longer copy shown in the win popup, below the label.
     description = models.TextField(blank=True)
     # Relative odds among non-jackpot tiers (weighted random). Ignored for

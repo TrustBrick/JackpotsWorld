@@ -3,6 +3,8 @@
 from django.db import models
 from django.conf import settings
 
+from authapp.storage_backends import get_private_storage
+
 
 class KYCSubmission(models.Model):
 
@@ -27,16 +29,18 @@ class KYCSubmission(models.Model):
     date_of_birth    = models.DateField(null=True, blank=True)
     document_type    = models.CharField(max_length=50, blank=True)
     document_number  = models.CharField(max_length=100, blank=True)
-    doc_front        = models.ImageField(upload_to="kyc/docs/",    null=True, blank=True)
-    doc_back         = models.ImageField(upload_to="kyc/docs/",    null=True, blank=True)
-    selfie           = models.ImageField(upload_to="kyc/selfies/", null=True, blank=True)
+    # storage=get_private_storage: identity documents and a biometric selfie
+    # — never publicly readable. See authapp/storage_backends.py.
+    doc_front        = models.ImageField(upload_to="kyc/docs/",    max_length=255, storage=get_private_storage, null=True, blank=True)
+    doc_back         = models.ImageField(upload_to="kyc/docs/",    max_length=255, storage=get_private_storage, null=True, blank=True)
+    selfie           = models.ImageField(upload_to="kyc/selfies/", max_length=255, storage=get_private_storage, null=True, blank=True)
 
     ID_PROOF_CHOICES = [
         ("address_proof", "Address Proof"),
         ("income_proof",  "Income Proof"),
     ]
     id_proof_type = models.CharField(max_length=30, blank=True, choices=ID_PROOF_CHOICES)
-    id_proof_file = models.FileField(upload_to="kyc/id_proof/", null=True, blank=True)
+    id_proof_file = models.FileField(upload_to="kyc/id_proof/", max_length=255, storage=get_private_storage, null=True, blank=True)
 
     # Meta captured at submission time
     submitted_at = models.DateTimeField(auto_now_add=True)

@@ -34,7 +34,7 @@ def derive_status(event_date, end_date=None):
 
 
 class CasinoEvent(models.Model):
-    image             = models.ImageField(upload_to="events/", null=True, blank=True)
+    image             = models.ImageField(upload_to="events/", max_length=255, null=True, blank=True)
     name              = models.CharField(max_length=200)
     country           = models.CharField(max_length=100, db_index=True)
     city              = models.CharField(max_length=100, blank=True)

@@ -8,6 +8,7 @@ import TeenPattiMediaManageTab from "./TeenPattiMediaManageTab";
 import { Card, Spinner } from "../../components/SharedUI";
 import { adminFetch, API } from "../../helpers";
 import { useAdminTheme } from "../../context/AdminThemeContext";
+import { invalidateTeenPattiCache } from "../../../services/teenPattiService";
 
 const CASINO_CATALOG_URL = "/api/admin-panel/casino-catalog/";
 
@@ -186,7 +187,14 @@ export default function TeenPattiManageTab({ onToast }) {
           fields={FIELDS}
           columns={COLUMNS}
           onToast={onToast}
-          onSaved={() => setRefreshKey(k => k + 1)}
+          onSaved={() => {
+            // Drops the public /api/teen-patti/ cache (teenPattiService.js's
+            // own, independent of the dashboard stats refresh below) so an
+            // uploaded/replaced Event Image or Banner shows up without a
+            // 60s wait, same as every landingService-backed tab.
+            invalidateTeenPattiCache();
+            setRefreshKey(k => k + 1);
+          }}
         />
       ) : view === "media" ? (
         <TeenPattiMediaManageTab onToast={onToast} />
