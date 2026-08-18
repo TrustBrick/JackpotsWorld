@@ -59,7 +59,11 @@ export default function Poker() {
   const { live, upcoming, completed } = useMemo(() => {
     const buckets = { live: [], upcoming: [], completed: [] }
     tournaments.forEach(item => {
-      if (buckets[item.status]) buckets[item.status].push(item)
+      // Derived from the dates on every read, so a finished tournament stops
+      // sitting under "Live". Falls back to the stored column if the API has
+      // not been redeployed with computed_status yet.
+      const bucket = item.computed_status ?? item.status
+      if (buckets[bucket]) buckets[bucket].push(item)
     })
     const byDate = (a, b) => String(a.event_date).localeCompare(String(b.event_date))
     buckets.live.sort(byDate)

@@ -276,7 +276,11 @@ def evaluate(referred_user, *, commission_type, base_amount=None, casino_name=No
         commission_type=commission_type,
         base_amount=base_amount, currency=rule.currency,
         conditions_snapshot=condition_rows,
-        reference_id=reference_id or "",
+        # NULL rather than "" when absent -- that is what keeps the
+        # reference-less deposit/losing rows out of the uniqueness rule
+        # now that it is enforced unconditionally. See the constraint on
+        # CommissionLedgerEntry.
+        reference_id=reference_id or None,
     )
 
     if base_amount < rule.min_qualifying_amount:

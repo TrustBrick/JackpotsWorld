@@ -699,6 +699,50 @@ useEffect(() => {
             margin:'10px auto 16px auto',
           }}
         />
+
+        {/* Supporting line for the wordmark H1.
+            The <h1> above is the JACKPOTS WORLD wordmark alone, which
+            identifies the brand but says nothing about what the platform
+            actually offers — to a reader landing cold, or to a crawler
+            weighing topical relevance. This states it once, in plain
+            language, and the split is deliberate rather than stylistic:
+            promotions really are Asia-only (Vietnam, Macau, India, Sri
+            Lanka, Philippines), while events and poker span nine countries
+            that are mostly outside Asia. Claiming "across Asia" for all
+            three would misdescribe the data.
+
+            Rendered unconditionally, not gated on `compact` — a line that
+            only exists after an intro animation is a line some clients
+            never see. */}
+        {/* Deliberately has no opacity entrance animation, unlike its
+            siblings. Framer Motion drives `initial`/`animate` from
+            requestAnimationFrame, which never fires in a client that isn't
+            painting — the same failure mode Seo.jsx documents for
+            react-helmet-async's defer option. An element that starts at
+            opacity:0 and depends on rAF to reach opacity:1 is therefore
+            *invisible* to a renderer that doesn't paint, and text that is
+            present in the DOM but rendered invisible is exactly what hidden
+            SEO text looks like to Google. `layout` is kept so the line still
+            reflows smoothly when the wordmark collapses; only the fade is
+            dropped, and visibility never depends on JavaScript running. */}
+        <motion.p
+          layout
+          transition={{ layout: HERO_LAYOUT_TWEEN }}
+          style={{
+            fontFamily:"'Manrope', sans-serif",
+            fontSize:'clamp(13px, 1.6vw, 16px)',
+            fontWeight:400,
+            lineHeight:1.55,
+            color:'rgba(255,255,255,0.62)',
+            letterSpacing:'0.005em',
+            margin:'0 auto',
+            maxWidth:'46ch',
+            textWrap:'balance',
+          }}
+        >
+          VIP casino promotions across Asia, with poker tournaments and gaming
+          events worldwide.
+        </motion.p>
       </div>
 
       {/* Top Premium Partners media — the hero's major visual element,

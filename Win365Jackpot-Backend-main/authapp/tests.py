@@ -20,6 +20,23 @@ def _tiny_png_bytes():
     return buf.getvalue()
 
 
+def _oversized_png_bytes():
+    """A real, decodable PNG that genuinely exceeds MAX_IMAGE_SIZE_BYTES.
+
+    The size ceiling lives in validate_uploaded_image, but the serializer's
+    ImageField decodes the upload first, so a buffer of filler bytes never
+    reaches it -- it is rejected as a corrupt image and the test ends up
+    exercising the decoder rather than the ceiling. Random pixels rather than
+    a flat colour because PNG compresses the latter almost to nothing.
+    """
+    import os
+    from PIL import Image
+    size = (1400, 1300)  # ~5.2MB encoded, just over the 5MB limit
+    buf = io.BytesIO()
+    Image.frombytes("RGB", size, os.urandom(size[0] * size[1] * 3)).save(buf, format="PNG")
+    return buf.getvalue()
+
+
 class LandingMediaValidationTests(APITestCase):
     """
     Covers authapp/utils/file_validation.py's validate_uploaded_image /
@@ -32,7 +49,11 @@ class LandingMediaValidationTests(APITestCase):
         self.client.force_authenticate(user=self.admin)
 
     def test_oversized_image_rejected_with_specific_message(self):
-        big = SimpleUploadedFile("big.jpg", b"0" * (MAX_IMAGE_SIZE_BYTES + 1), content_type="image/jpeg")
+        payload = _oversized_png_bytes()
+        # Guards the fixture itself: if PNG ever compresses this below the
+        # ceiling, the test would pass for the wrong reason.
+        self.assertGreater(len(payload), MAX_IMAGE_SIZE_BYTES)
+        big = SimpleUploadedFile("big.png", payload, content_type="image/png")
         r = self.client.post("/api/admin-panel/vip-service-images/", {"image": big, "label": "x"}, format="multipart")
         self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("too large", str(r.data).lower())

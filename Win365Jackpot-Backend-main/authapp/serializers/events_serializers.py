@@ -8,13 +8,18 @@ class CasinoEventSerializer(serializers.ModelSerializer):
     # the model's default=True whenever the admin form omits this field.
     is_active = serializers.BooleanField(default=True, required=False)
 
+    # Additive and read-only: `status` keeps its existing meaning and stays
+    # writable, so admin tooling and any other consumer is unaffected. Public
+    # pages should prefer this one, which can never go stale.
+    computed_status = serializers.CharField(read_only=True)
+
     class Meta:
         model = CasinoEvent
         fields = [
             "id", "image", "name", "country", "city", "venue",
             "event_date", "event_time", "category",
             "short_description", "description", "ticket_note",
-            "status", "is_active", "created_at", "updated_at",
+            "status", "computed_status", "is_active", "created_at", "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
 

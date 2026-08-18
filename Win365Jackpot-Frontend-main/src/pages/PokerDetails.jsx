@@ -13,6 +13,7 @@ import { fetchPokerDetail, registerForTournament } from '../services/pokerServic
 import { getFallbackImage, fixMojibakeCurrency } from '../utils/mediaFallback'
 import { getToken } from '../services/authStorage'
 import Seo from '../components/Seo'
+import Breadcrumbs from '../components/shared/Breadcrumbs'
 import { pokerSchema, breadcrumbSchema } from '../utils/seoSchemas'
 import { toMetaDescription, TITLE_SUFFIX } from '../config/seo'
 
@@ -66,6 +67,15 @@ export default function PokerDetails() {
     if (ok) setTimeout(() => setTicketState(s => ({ ...s, message: '' })), 4000)
   }
 
+  // Shared by the visible <Breadcrumbs> and the BreadcrumbList JSON-LD.
+  const trail = tournament
+    ? [
+        { name: 'Home', path: '/' },
+        { name: 'Poker', path: '/poker' },
+        { name: tournament.name, path: `/poker/${tournament.id}` },
+      ]
+    : []
+
   return (
     <div className="min-h-screen" style={{ background: 'var(--w365-bg)' }}>
       <Navbar />
@@ -82,11 +92,7 @@ export default function PokerDetails() {
           type="article"
           jsonLd={[
             pokerSchema(tournament),
-            breadcrumbSchema([
-              { name: 'Home', path: '/' },
-              { name: 'Poker', path: '/poker' },
-              { name: tournament.name, path: `/poker/${tournament.id}` },
-            ]),
+            breadcrumbSchema(trail),
           ].filter(Boolean)}
         />
       )}
@@ -94,6 +100,8 @@ export default function PokerDetails() {
 
       <main>
       <section className="max-w-3xl mx-auto px-4 pt-28 pb-24">
+        <Breadcrumbs trail={trail} />
+
         <button
           onClick={() => navigate('/poker')}
           className="flex items-center gap-1.5 text-sm font-body text-white/50 hover:text-gold transition-colors mb-6"
@@ -127,12 +135,17 @@ export default function PokerDetails() {
                 </div>
               )}
               <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 40%, rgba(10,10,12,0.9) 100%)' }} />
-              {tournament.status && (
-                <span className="absolute top-4 left-4 px-3 py-1 rounded-full text-[11px] font-bold tracking-widest uppercase"
-                  style={{ background: 'rgba(212,175,55,0.15)', border: '1px solid rgba(212,175,55,0.5)', color: '#D4AF37' }}>
-                  {STATUS_LABEL_KEYS[tournament.status] ? t(STATUS_LABEL_KEYS[tournament.status]) : tournament.status}
-                </span>
-              )}
+              {(tournament.computed_status ?? tournament.status) && (() => {
+                // Date-derived, so a finished tournament stops advertising
+                // itself as live. Falls back to the stored column.
+                const shown = tournament.computed_status ?? tournament.status
+                return (
+                  <span className="absolute top-4 left-4 px-3 py-1 rounded-full text-[11px] font-bold tracking-widest uppercase"
+                    style={{ background: 'rgba(212,175,55,0.15)', border: '1px solid rgba(212,175,55,0.5)', color: '#D4AF37' }}>
+                    {STATUS_LABEL_KEYS[shown] ? t(STATUS_LABEL_KEYS[shown]) : shown}
+                  </span>
+                )
+              })()}
             </div>
 
             <div className="p-6 md:p-8">

@@ -69,16 +69,54 @@ export function eventSchema(event, basePath = '/events') {
   })
 }
 
+/** Some tournaments are played online rather than at a venue — the location
+ *  column carries "Online" for those. schema.org treats the two as different
+ *  shapes, not a cosmetic difference: an online event needs
+ *  OnlineEventAttendanceMode and a VirtualLocation, and claiming a physical
+ *  Place for one is misrepresentation Google validates against. */
+function isOnlineEvent(location) {
+  return /^\s*online\b/i.test(String(location || ''))
+}
+
 /** Poker tournament → schema.org Event, with the buy-in as its Offer. */
 export function pokerSchema(tournament) {
   if (!tournament) return null
-  const place = compact({
-    '@type': 'Place',
-    name: tournament.casino_name || tournament.location,
-    address: compact({ '@type': 'PostalAddress', addressLocality: tournament.location }),
-  })
+  const online = isOnlineEvent(tournament.location)
+  const place = online
+    ? compact({
+        '@type': 'VirtualLocation',
+        url: absoluteUrl(`/poker/${tournament.id}`),
+      })
+    : compact({
+        '@type': 'Place',
+        name: tournament.casino_name || tournament.location,
+        address: compact({ '@type': 'PostalAddress', addressLocality: tournament.location }),
+      })
 
   const buyIn = Number(tournament.buy_in)
+  // price and priceCurrency travel together: schema.org has no way to state
+  // an amount without saying what it is denominated in, so a blank currency
+  // means the figure is withheld rather than denominated in a guess.
+  const currency = String(tournament.currency || '').trim().toUpperCase()
+  const priced = Number.isFinite(buyIn) && buyIn > 0 && currency !== ''
+
+  // NULL seats mean "unknown", which is not the same as zero. Omit the key
+  // instead, so an open tournament is never advertised as sold out.
+  const seats = tournament.seats_available
+  const availability = seats === null || seats === undefined
+    ? undefined
+    : seats > 0
+      ? 'https://schema.org/InStock'
+      : 'https://schema.org/SoldOut'
+
+  const offers = compact({
+    '@type': 'Offer',
+    name: 'Tournament buy-in',
+    price: priced ? buyIn : undefined,
+    priceCurrency: priced ? currency : undefined,
+    url: absoluteUrl(`/poker/${tournament.id}`),
+    availability,
+  })
 
   return compact({
     '@context': 'https://schema.org',
@@ -87,24 +125,51 @@ export function pokerSchema(tournament) {
     description: toMetaDescription(tournament.description, 300),
     startDate: isoDateTime(tournament.event_date, tournament.event_time),
     eventStatus: STATUS_MAP[tournament.status] || undefined,
-    eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+    eventAttendanceMode: online
+      ? 'https://schema.org/OnlineEventAttendanceMode'
+      : 'https://schema.org/OfflineEventAttendanceMode',
     location: Object.keys(place).length > 1 ? place : undefined,
     image: tournament.image ? absoluteImage(tournament.image) : undefined,
     url: absoluteUrl(`/poker/${tournament.id}`),
     organizer: publisher,
-    offers: Number.isFinite(buyIn) && buyIn > 0
-      ? compact({
-          '@type': 'Offer',
-          name: 'Tournament buy-in',
-          price: buyIn,
-          priceCurrency: 'USD',
-          url: absoluteUrl(`/poker/${tournament.id}`),
-          availability: tournament.seats_available > 0
-            ? 'https://schema.org/InStock'
-            : 'https://schema.org/SoldOut',
-        })
+    // Nothing but boilerplate left: no price and no availability is not an
+    // offer, it is noise.
+    offers: offers.price !== undefined || offers.availability !== undefined
+      ? offers
       : undefined,
   })
+}
+
+/**
+ * Meta description for a promotion, assembled from the fields that actually
+ * hold data.
+ *
+ * Every promotion has an empty `description` column, so the previous
+ * `bonus_details || description` fallback produced a 68–82 character snippet
+ * — roughly half of what Google will display, with the concrete numbers
+ * ("Up to $2,000 match bonus") and the validity window left out even though
+ * both are already visible on the page.
+ *
+ * This composes real column values in the order a reader needs them: what the
+ * offer is, what you actually get, and when it applies. Nothing is invented
+ * and nothing is added that the page does not already show — nothing is
+ * written here that a visitor cannot also read on the page itself.
+ */
+export function promotionMetaDescription(promo) {
+  if (!promo) return ''
+  // Each fragment is punctuated as its own clause. The columns are stored
+  // without trailing periods, so joining them raw runs sentences together
+  // ("...wallet credit New players only") in the search snippet.
+  const sentence = text => {
+    const t = String(text || '').trim()
+    return t && !/[.!?]$/.test(t) ? `${t}.` : t
+  }
+  const parts = [
+    sentence(promo.bonus_details),
+    sentence((promo.benefits || []).slice(0, 2).join(' · ')),
+    sentence(promo.validity_text),
+  ]
+  return toMetaDescription(parts.filter(Boolean).join(' '), 158)
 }
 
 /** Casino promotion → schema.org Offer.

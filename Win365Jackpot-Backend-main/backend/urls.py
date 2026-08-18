@@ -3,10 +3,12 @@ import os
 from django.contrib import admin
 from django.urls import path, include, re_path
 from django.conf import settings
-from django.http import JsonResponse, FileResponse, Http404
+from django.http import JsonResponse, FileResponse, Http404, HttpResponse
+from django.views.static import serve as serve_static
 from authapp.url_patterns.gift_level_urls import admin_urlpatterns, user_urlpatterns
 from authapp.views.media_serve_views import serve_media
 from authapp.views.seo_views import sitemap_xml
+from authapp.views.spa_seo import render_spa_html
 
 
 def healthz(request):
@@ -25,6 +27,11 @@ def spa_index(request, *args, **kwargs):
     /login) that only exists in the React Router config, so every one of
     them gets the same index.html and the SPA's own router takes it from
     there.
+
+    The <head> is rewritten per route before the shell goes out, so clients
+    that never execute JavaScript -- social scrapers above all -- get that
+    route's real title, canonical and structured data instead of the home
+    page's. See authapp/views/spa_seo.py.
     """
     frontend_root = getattr(settings, 'WHITENOISE_ROOT', None)
     index_path = os.path.join(frontend_root, 'index.html') if frontend_root else None
@@ -33,7 +40,19 @@ def spa_index(request, *args, **kwargs):
             "Frontend build not found. Set FRONTEND_DIST_DIR to the built "
             "React app's dist/ folder and restart Passenger — see DEPLOYMENT.md."
         )
-    response = FileResponse(open(index_path, 'rb'), content_type='text/html')
+    # Per-route <head> metadata for clients that never run JavaScript (see
+    # authapp/views/spa_seo.py). It returns None on any failure, in which
+    # case the untouched shell is streamed exactly as it was before this
+    # existed -- SEO generation must never turn a working page into a 500.
+    try:
+        html = render_spa_html(request.path, index_path)
+    except Exception:  # pragma: no cover - the helper already traps its own
+        html = None
+
+    if html is None:
+        response = FileResponse(open(index_path, 'rb'), content_type='text/html')
+    else:
+        response = HttpResponse(html, content_type='text/html')
     # Always revalidate index.html so a new deploy's hashed asset filenames
     # are picked up immediately instead of being served from a cached shell.
     response['Cache-Control'] = 'no-cache'

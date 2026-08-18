@@ -16,13 +16,18 @@ class PokerTournamentSerializer(serializers.ModelSerializer):
     # boolean as False, bypassing the model's default=True.
     is_active = serializers.BooleanField(default=True, required=False)
     source_name = serializers.CharField(source="source.name", read_only=True, default="")
+    # Derived from event_date/end_date on every read, so a finished tournament
+    # cannot keep reporting itself as live the way the stored `status` column
+    # does once nobody revisits it. Additive: `status` keeps its meaning and
+    # stays writable, so the Back Office form is unaffected.
+    computed_status = serializers.CharField(read_only=True)
 
     class Meta:
         model = PokerTournament
         fields = [
             "id", "image", "name", "casino_name", "location",
             "event_date", "event_time", "prize_pool", "buy_in",
-            "status", "description", "seats_available",
+            "status", "computed_status", "description", "seats_available",
             # Part 6 additions
             "series", "country", "city", "end_date", "currency",
             "game_type", "organizer", "official_url",
@@ -36,7 +41,8 @@ class PokerTournamentSerializer(serializers.ModelSerializer):
         # the transition endpoint, which validates the lifecycle and writes a
         # change-history row. A blanket PATCH must not be able to publish.
         read_only_fields = [
-            "id", "review_status", "source_name", "discovered_at", "last_synced_at",
+            "id", "review_status", "source_name", "computed_status",
+            "discovered_at", "last_synced_at",
             "reviewed_at", "created_at", "updated_at",
         ]
 

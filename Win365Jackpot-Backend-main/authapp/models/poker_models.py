@@ -2,6 +2,10 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 
+# Same single-source rule as the casino events: see derive_status' docstring
+# for why this is read-time only and what it cannot know about multi-day runs.
+from authapp.models.events_models import derive_status
+
 STATUS_CHOICES = [
     ("upcoming",  "Upcoming"),
     ("live",      "Live"),
@@ -152,6 +156,15 @@ class PokerTournament(models.Model):
             models.Index(fields=["country", "event_date"]),
             models.Index(fields=["source", "source_event_id"]),
         ]
+
+    # Property, not a field -- no column, no migration. See CasinoEvent.
+    # Unlike CasinoEvent this model has a real end_date, so a multi-day
+    # festival reports "live" for its whole run rather than only day one.
+    # end_date is nullable and unpopulated on older rows; derive_status falls
+    # back to the single-date reading when it is None.
+    @property
+    def computed_status(self):
+        return derive_status(self.event_date, self.end_date)
 
     def __str__(self):
         return f"{self.name} ({self.casino_name})"

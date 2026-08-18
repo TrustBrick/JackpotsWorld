@@ -8,8 +8,9 @@ import { fetchPromotionDetail } from '../services/promotionService'
 import { flagFromCountryCode } from '../utils/countryFlags'
 import { getCasinoFallbackImage } from '../utils/mediaFallback'
 import Seo from '../components/Seo'
-import { promotionSchema, breadcrumbSchema } from '../utils/seoSchemas'
-import { toMetaDescription, TITLE_SUFFIX } from '../config/seo'
+import Breadcrumbs from '../components/shared/Breadcrumbs'
+import { promotionSchema, breadcrumbSchema, promotionMetaDescription } from '../utils/seoSchemas'
+import { TITLE_SUFFIX } from '../config/seo'
 
 export default function PromotionDetails() {
   const { id } = useParams()
@@ -27,6 +28,16 @@ export default function PromotionDetails() {
 
   useEffect(load, [id])
 
+  // Shared by the visible <Breadcrumbs> and the BreadcrumbList JSON-LD, so
+  // the markup and the structured data describe the same trail.
+  const trail = promo
+    ? [
+        { name: 'Home', path: '/' },
+        { name: 'Promotions', path: '/promotions' },
+        { name: promo.title, path: `/promotions/${promo.id}` },
+      ]
+    : []
+
   return (
     <div className="min-h-screen" style={{ background: 'var(--w365-bg)' }}>
       <Navbar />
@@ -34,23 +45,18 @@ export default function PromotionDetails() {
       {promo && (
         <Seo
           title={`${promo.title}${promo.casino_name ? ` — ${promo.casino_name}` : ''}${TITLE_SUFFIX}`}
-          description={toMetaDescription(promo.bonus_details || promo.description)}
+          description={promotionMetaDescription(promo)}
           path={`/promotions/${promo.id}`}
           image={promo.image}
           type="article"
-          jsonLd={[
-            promotionSchema(promo),
-            breadcrumbSchema([
-              { name: 'Home', path: '/' },
-              { name: 'Promotions', path: '/promotions' },
-              { name: promo.title, path: `/promotions/${promo.id}` },
-            ]),
-          ].filter(Boolean)}
+          jsonLd={[promotionSchema(promo), breadcrumbSchema(trail)].filter(Boolean)}
         />
       )}
 
       <main>
       <section className="max-w-3xl mx-auto px-4 pt-28 pb-24">
+        <Breadcrumbs trail={trail} />
+
         <button
           onClick={() => navigate('/promotions')}
           className="flex items-center gap-1.5 text-sm font-body text-white/50 hover:text-gold transition-colors mb-6"
@@ -106,10 +112,17 @@ export default function PromotionDetails() {
               <div className="px-6 md:px-8 pt-6">
                 <div className="text-xs font-body uppercase tracking-widest text-gold/70 mb-3">Gallery</div>
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                  {promo.gallery.map((g) => (
+                  {promo.gallery.map((g, i) => (
                     <button
                       key={g.id}
                       onClick={() => setLightbox(g.image)}
+                      // The thumbnail is this button's only content, so with
+                      // alt="" the control had no accessible name at all —
+                      // a screen reader announced a bare "button". Naming the
+                      // button (rather than the image) keeps the alt empty,
+                      // which is right for an image that carries no meaning
+                      // its own label doesn't already give.
+                      aria-label={`View image ${i + 1} of ${promo.gallery.length} for ${promo.title}`}
                       className="relative aspect-square rounded-lg overflow-hidden group"
                     >
                       <img

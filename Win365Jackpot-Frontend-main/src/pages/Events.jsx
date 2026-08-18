@@ -24,7 +24,11 @@ export default function Events() {
 
   const events = useMemo(() => {
     const list = data?.results || []
-    return [...list].sort((a, b) => (STATUS_ORDER[a.status] ?? 99) - (STATUS_ORDER[b.status] ?? 99))
+    // computed_status is derived from event_date on every request, so a past
+    // event can't keep sorting as "live". Falls back to the stored column if
+    // the API hasn't been redeployed yet.
+    const rank = (e) => STATUS_ORDER[e.computed_status ?? e.status] ?? 99
+    return [...list].sort((a, b) => rank(a) - rank(b))
   }, [data])
   const totalPages = Math.max(1, Math.ceil((data?.count || 0) / PAGE_SIZE))
 

@@ -691,6 +691,14 @@ class AdminOfflineDepositsView(APIView):
                     result = commission_engine_service.evaluate(
                         user, commission_type="rolling", base_amount=bet_amount,
                         casino_name=casino, reference_id=slip_number,
+                        # The country recorded against this entry, same as the
+                        # losing branch passes. Without it evaluate() falls back
+                        # to User.country, which stores an ISO-3166 alpha-2 code
+                        # ("LK") while CommissionRule.country stores the name
+                        # ("Sri Lanka") -- so every country-scoped rule silently
+                        # failed to match here and the payout quietly fell
+                        # through to the older per-affiliate plan instead.
+                        country=country or None,
                     )
                     if not result.applied:
                         if has_commission_assignment(user.referred_by):

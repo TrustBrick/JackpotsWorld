@@ -13,6 +13,7 @@ import { fetchEventDetail, requestEventTicket } from '../services/eventService'
 import { getFallbackImage, fixMojibakeCurrency } from '../utils/mediaFallback'
 import { getToken } from '../services/authStorage'
 import Seo from '../components/Seo'
+import Breadcrumbs from '../components/shared/Breadcrumbs'
 import { eventSchema, breadcrumbSchema } from '../utils/seoSchemas'
 import { toMetaDescription, TITLE_SUFFIX } from '../config/seo'
 
@@ -60,6 +61,17 @@ export default function EventDetails() {
     if (ok) setTimeout(() => setTicketState(s => ({ ...s, message: '' })), 4000)
   }
 
+  // One trail, used for both the visible <Breadcrumbs> and the JSON-LD below.
+  // Deriving them from the same array is the point: structured data is meant
+  // to describe what the visitor can actually see, so they must not drift.
+  const trail = event
+    ? [
+        { name: 'Home', path: '/' },
+        { name: 'Events', path: '/events' },
+        { name: event.name, path: `/events/${event.id}` },
+      ]
+    : []
+
   return (
     <div className="min-h-screen" style={{ background: 'var(--w365-bg)' }}>
       <Navbar />
@@ -70,25 +82,24 @@ export default function EventDetails() {
           publishing an empty one. */}
       {event && (
         <Seo
-          title={`${event.name}${TITLE_SUFFIX}`}
+          // City is populated on every event in the database and is exactly
+          // what distinguishes otherwise similar tour stops ("EPT Barcelona"
+          // vs "APT Manila"), so it earns its place in the title rather than
+          // being decoration.
+          title={`${event.name}${event.city ? ` — ${event.city}` : ''}${TITLE_SUFFIX}`}
           description={toMetaDescription(event.short_description || event.description)}
           path={`/events/${event.id}`}
           image={event.image}
           type="article"
-          jsonLd={[
-            eventSchema(event),
-            breadcrumbSchema([
-              { name: 'Home', path: '/' },
-              { name: 'Events', path: '/events' },
-              { name: event.name, path: `/events/${event.id}` },
-            ]),
-          ].filter(Boolean)}
+          jsonLd={[eventSchema(event), breadcrumbSchema(trail)].filter(Boolean)}
         />
       )}
       <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} defaultTab="login" onAuthSuccess={() => setAuthOpen(false)} />
 
       <main>
       <section className="max-w-3xl mx-auto px-4 pt-28 pb-24">
+        <Breadcrumbs trail={trail} />
+
         <button
           onClick={() => navigate('/events')}
           className="flex items-center gap-1.5 text-sm font-body text-white/50 hover:text-gold transition-colors mb-6"
