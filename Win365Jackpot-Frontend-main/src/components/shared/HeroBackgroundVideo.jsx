@@ -3,7 +3,7 @@ import { useReducedMotion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 
 /**
- * HeroBackgroundVideo — the very-low-opacity cinematic watermark layer
+ * HeroBackgroundVideo — the low-opacity cinematic watermark layer
  * behind a hero section (JACKPOTSWORLD spec Part 8). Purely atmospheric:
  * absolutely positioned behind every other layer, non-interactive, and
  * rendered at low opacity + darkened so it never competes with the text and
@@ -32,6 +32,22 @@ import { useInView } from 'react-intersection-observer'
  */
 
 const VISIBILITY_THRESHOLD = 0.1
+
+// Watermark compositing. These three values multiply out, so they are kept
+// together rather than inlined at three separate call sites — the previous
+// 0.16 / 0.14 / 0.35 combination left the footage at roughly 6% effective
+// luminance (0.16 opacity x 0.55 brightness x the 0.65 the overlay lets
+// through), i.e. loading and playing correctly but essentially invisible,
+// which read as a broken video rather than a subtle one.
+//
+// Raised deliberately so the footage is perceptible while staying a
+// background layer: it is still darkened and desaturated, still behind
+// every other element (zIndex 0), and still pointer-events: none. Hero text
+// sits on the app's near-black surface, so contrast stays far above WCAG AA
+// at these values. Turn the watermark down again here, in one place.
+const WATERMARK_OPACITY = 0.28
+const POSTER_OPACITY = 0.24
+const OVERLAY_ALPHA = 0.25
 
 export default function HeroBackgroundVideo({ item, fallbackVideo, fallbackPoster }) {
   const reduceMotion = useReducedMotion()
@@ -127,7 +143,7 @@ export default function HeroBackgroundVideo({ item, fallbackVideo, fallbackPoste
           onError={handleError}
           style={{
             width: '100%', height: '100%', objectFit: 'cover', display: 'block',
-            opacity: 0.16, filter: 'brightness(0.55) saturate(0.85)',
+            opacity: WATERMARK_OPACITY, filter: 'brightness(0.55) saturate(0.85)',
           }}
         />
       ) : (
@@ -138,13 +154,13 @@ export default function HeroBackgroundVideo({ item, fallbackVideo, fallbackPoste
           decoding="async"
           style={{
             width: '100%', height: '100%', objectFit: 'cover', display: 'block',
-            opacity: 0.14, filter: 'brightness(0.55) saturate(0.85)',
+            opacity: POSTER_OPACITY, filter: 'brightness(0.55) saturate(0.85)',
           }}
         />
       )}
       {/* Extra darkening so text/buttons above always stay legible regardless
           of how bright the source footage is. */}
-      <div style={{ position: 'absolute', inset: 0, background: 'rgba(10,0,5,0.35)' }} />
+      <div style={{ position: 'absolute', inset: 0, background: `rgba(10,0,5,${OVERLAY_ALPHA})` }} />
     </div>
   )
 }
