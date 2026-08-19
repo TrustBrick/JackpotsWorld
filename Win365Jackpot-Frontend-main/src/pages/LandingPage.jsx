@@ -3,6 +3,7 @@ import { useTheme } from '../context/ThemeContext'
 import Navbar from '../components/Navbar'
 import Hero from '../components/Hero'
 import CountryPackages from '../components/CountryPackages'
+import FeaturedDestinationShowcase from '../components/FeaturedDestinationShowcase'
 import EventsPreviewSection from '../components/EventsPreviewSection'
 import PromotionsPreviewSection from '../components/PromotionsPreviewSection'
 import GlobalReachCard from '../components/GlobalReachCard'
@@ -53,6 +54,10 @@ export default function LandingPage() {
       <main style={{ position: 'relative', zIndex: 1 }}>
         <Hero />
         <CountryPackages />
+        {/* After the destinations (CountryPackages renders them, and the
+            packages section they live in), before Events below. Renders
+            nothing at all when no showcase is active. */}
+        <FeaturedDestinationShowcase />
         <div className="grid md:grid-cols-3 gap-6 max-w-7xl mx-auto px-4 pb-16 items-stretch">
           <GlobalReachCard />
           <EventsPreviewSection />

@@ -41,6 +41,10 @@ export const fetchGiftSteps         = cached("/api/gift-steps/")
 export const fetchVipTiers          = cached("/api/vip-tiers/")
 export const fetchTestimonials      = cached("/api/testimonials/")
 export const fetchDestinations      = cached("/api/destinations/")
+// The promotional landing-page blocks — separate from fetchDestinations
+// above (that is the destination cards + their gallery) and from
+// section-media below. Returns active rows only, in display_order.
+export const fetchFeaturedDestinationShowcases = cached("/api/featured-destination-showcases/")
 // Hero showcase. Deliberately its own endpoint rather than a slice of
 // fetchDestinations — the hero and the destinations section share no data.
 export const fetchPremiumPartners   = cached("/api/premium-partners/")
