@@ -123,6 +123,21 @@ def _message_payload(ticket, msg):
     }
 
 
+# Ticket states that still accept new messages. Deliberately the same pair as
+# voice_call_service.CALLABLE_TICKET_STATUSES: a resolved or closed
+# conversation is over, and letting a late message through would silently
+# revive it behind the status machine both admin tabs read from — the session
+# would show as resolved while still accumulating replies.
+MESSAGEABLE_TICKET_STATUSES = ("open", "in_progress")
+
+
+def ticket_accepts_messages(ticket):
+    """True while the conversation is still live. Checked in the views so the
+    caller controls the HTTP response, matching how the rest of this module
+    keeps transport concerns out of the service layer."""
+    return ticket.status in MESSAGEABLE_TICKET_STATUSES
+
+
 def post_message(ticket, sender_type, sender_user, text, client_message_id=None):
     # Stored as plain text, not HTML-escaped — every consumer (both chat
     # widgets) renders this as text content, not raw HTML, so escaping here

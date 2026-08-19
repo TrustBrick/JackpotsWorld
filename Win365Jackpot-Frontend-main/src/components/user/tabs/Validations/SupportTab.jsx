@@ -321,6 +321,27 @@ export default function SupportTab({ onToast }) {
                     {tk.status.replace("_", " ")}
                   </span>
                 </div>
+                {/* While a request is still open, offer the live chat — that
+                    is where an agent answers in real time and where the voice
+                    call lives (see components/ChatBot.jsx). Deliberately a
+                    link into the existing chat rather than a second chat or a
+                    second call button here: there is one calling system and
+                    it belongs to the live-chat session. */}
+                {tk.status !== "resolved" && tk.status !== "closed" && (
+                  <button
+                    type="button"
+                    onClick={() => window.dispatchEvent(new CustomEvent("open-chat"))}
+                    style={{
+                      marginTop: 10, display: "inline-flex", alignItems: "center", gap: 6,
+                      padding: "7px 12px", borderRadius: 8, cursor: "pointer",
+                      background: "transparent", border: `1px solid ${C.blue}55`,
+                      color: C.blue, fontSize: 11.5, fontWeight: 700, fontFamily: "inherit",
+                    }}
+                  >
+                    <LifeBuoy size={13} aria-hidden="true" />
+                    {t("support.chatNow")} — talk or call an agent now
+                  </button>
+                )}
                 {/* MULTILINGUAL-CHAT: reply shown in the customer's language,
                     English kept visible as a small secondary line. Nothing
                     renders here at all while the feature flag is off. */}
