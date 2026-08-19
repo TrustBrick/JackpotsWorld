@@ -21,6 +21,7 @@ from django.test import override_settings
 from rest_framework.test import APITestCase
 
 from authapp.models.call_models import CallSession
+from authapp.models.support_settings_models import SupportSettings
 from authapp.models.support_ticket_models import SupportTicket
 from authapp.services import voice_call_service
 from authapp.throttles import VoiceCallStartRateThrottle
@@ -190,6 +191,87 @@ class ServiceRequestLifecycleTests(APITestCase):
         res = self.client.get(f"/api/live-chat/{ticket.id}/messages/")
         self.assertEqual(res.status_code, 200)
         self.assertEqual(len(res.data), 2)
+
+    # -- Reply visibility ----------------------------------------------------
+    #
+    # The customer must be able to read the agent's reply whether or not
+    # translation is switched on. The Service Request tab used to render the
+    # whole reply block behind the multilingual flag, so with translation off
+    # — its state in production — an answered ticket looked unanswered. The
+    # flag now only chooses which version is shown first.
+    #
+    # These assert the API side of that contract: `admin_reply` is present in
+    # the customer's own payload in both modes, so the frontend always has
+    # something to render.
+
+    def _reply_as_agent(self, ticket, text="Hi, how can I help?"):
+        self._as(self.agent)
+        return self.client.patch(
+            f"/api/admin-panel/support/tickets/{ticket.id}/",
+            {"admin_reply": text}, format="json",
+        )
+
+    def _customer_ticket_payload(self, ticket):
+        self._as(self.customer)
+        res = self.client.get("/api/support/tickets/")
+        self.assertEqual(res.status_code, 200)
+        rows = res.data.get("results", res.data) if isinstance(res.data, dict) else res.data
+        return next(r for r in rows if r["id"] == ticket.id)
+
+    @override_settings(ENABLE_MULTILINGUAL_CHAT=False)
+    def test_customer_sees_admin_reply_with_multilingual_disabled(self):
+        ticket = SupportTicket.objects.create(
+            user=self.customer, subject="Booking problem", message="Need help",
+            preferred_language="hi",
+        )
+        self.assertEqual(self._reply_as_agent(ticket).status_code, 200)
+
+        row = self._customer_ticket_payload(ticket)
+        self.assertEqual(row["admin_reply"], "Hi, how can I help?")
+        # Nothing was translated, so there is no translated version to show —
+        # the frontend falls back to admin_reply, which is the point.
+        self.assertFalse(row.get("admin_reply_translated"))
+        # And answering still must not resolve the request.
+        self.assertIn(self._status(ticket), ACTIVE_STATUSES)
+
+    @override_settings(ENABLE_MULTILINGUAL_CHAT=True)
+    def test_multilingual_translation_still_works_when_enabled(self):
+        settings_row = SupportSettings.load()
+        settings_row.enabled = True
+        settings_row.translation_provider = "mock"  # offline, no external calls
+        settings_row.save()
+
+        ticket = SupportTicket.objects.create(
+            user=self.customer, subject="Booking problem", message="Need help",
+            preferred_language="hi",
+        )
+        self.assertEqual(self._reply_as_agent(ticket).status_code, 200)
+
+        row = self._customer_ticket_payload(ticket)
+        # The original is still carried, so turning the flag on never costs
+        # the customer the English text.
+        self.assertEqual(row["admin_reply"], "Hi, how can I help?")
+        self.assertTrue(row["admin_reply_translated"])
+        self.assertIn("Hi, how can I help?", row["admin_reply_translated"])
+        self.assertIn(self._status(ticket), ACTIVE_STATUSES)
+
+    @override_settings(ENABLE_MULTILINGUAL_CHAT=True)
+    def test_english_speaker_gets_the_reply_untranslated_when_enabled(self):
+        """Flag on, but nothing to translate — the reply must still be there."""
+        settings_row = SupportSettings.load()
+        settings_row.enabled = True
+        settings_row.translation_provider = "mock"
+        settings_row.save()
+
+        ticket = SupportTicket.objects.create(
+            user=self.customer, subject="Booking problem", message="Need help",
+            preferred_language="en",
+        )
+        self.assertEqual(self._reply_as_agent(ticket).status_code, 200)
+
+        row = self._customer_ticket_payload(ticket)
+        self.assertEqual(row["admin_reply"], "Hi, how can I help?")
+        self.assertIn(self._status(ticket), ACTIVE_STATUSES)
 
     # -- 10. Authorization --------------------------------------------------
     def test_customer_cannot_resolve_their_own_request(self):

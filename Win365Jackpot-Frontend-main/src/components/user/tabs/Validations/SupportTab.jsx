@@ -342,16 +342,28 @@ export default function SupportTab({ onToast }) {
                     {t("support.chatNow")} — talk or call an agent now
                   </button>
                 )}
-                {/* MULTILINGUAL-CHAT: reply shown in the customer's language,
-                    English kept visible as a small secondary line. Nothing
-                    renders here at all while the feature flag is off. */}
-                {multilingualEnabled && tk.admin_reply && (
+                {/* The agent's reply is shown whenever one exists. The
+                    multilingual flag decides which *version* is primary, not
+                    whether the customer sees a reply at all — gating the whole
+                    block on the flag meant that with translation off (its
+                    state in production) an answered ticket looked unanswered.
+                    Flag on with a translation available: translated text
+                    first, English kept as a small secondary line. */}
+                {tk.admin_reply && (
                   <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.border}` }}>
                     <TicketMessage
                       C={C}
-                      primaryText={tk.admin_reply_translated || tk.admin_reply}
+                      primaryText={
+                        multilingualEnabled && tk.admin_reply_translated
+                          ? tk.admin_reply_translated
+                          : tk.admin_reply
+                      }
                       secondaryLabel="English"
-                      secondaryText={tk.admin_reply_translated ? tk.admin_reply : null}
+                      secondaryText={
+                        multilingualEnabled && tk.admin_reply_translated
+                          ? tk.admin_reply
+                          : null
+                      }
                     />
                   </div>
                 )}
