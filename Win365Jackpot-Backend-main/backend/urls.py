@@ -105,5 +105,18 @@ urlpatterns = [
     # top-level pattern rather than raising immediately — without this
     # exclusion a bad /api/... request would silently return the SPA's
     # index.html with a 200 instead of a real 404.
-    re_path(r'^(?!api/|admin/|admin-panel/|static/|media/|healthz/|sitemap\.xml).*$', spa_index),
+    #
+    # 'assets/' is in the list for the same reason, and it matters more than
+    # the others: every bundled image, video and icon lives under /assets/
+    # (see docs/MEDIA_ARCHITECTURE.md §2). Whitenoise's middleware serves the
+    # ones that exist long before the resolver runs, so the only requests
+    # that reach here are for assets that are NOT on disk — a typo, a file
+    # renamed without updating its reference, or a dist/ copied incompletely.
+    # Answering those with the SPA shell returns '200 text/html' where an
+    # image or video was expected, which is the worst possible outcome: the
+    # <img> is silently broken, a <video> reports the same generic
+    # MEDIA_ELEMENT_ERROR that a Cloudflare challenge produces, and the
+    # Network panel shows 200 so nothing looks wrong. A real 404 makes a
+    # missing asset immediately visible instead.
+    re_path(r'^(?!api/|admin/|admin-panel/|assets/|static/|media/|healthz/|sitemap\.xml).*$', spa_index),
 ]
