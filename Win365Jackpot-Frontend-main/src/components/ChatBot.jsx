@@ -3,6 +3,12 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 import { getToken } from "../services/authStorage"
 import { connectLiveChatSocket } from "../services/liveChatSocket"
 import { asMessageArray, highestRealId } from "../services/liveChatMessages"
+// VOICE-CALL: layered on the live-agent mode below. Everything call-related is
+// inert until `mode === "live"`, so the FAQ bot path is untouched.
+import { useVoiceCall, PHASE } from "../hooks/useVoiceCall"
+import VoiceCallButton from "./support/VoiceCallButton"
+import ActiveCallModal from "./support/ActiveCallModal"
+import CallStatus from "./support/CallStatus"
 
 const API = import.meta.env.VITE_API_URL || ""
 const INACTIVITY_MS = 3 * 60 * 1000 // 3 minutes
@@ -343,6 +349,41 @@ export default function ChatBot({ portal = "player" }) {
   const liveMessagesRef = useRef([])  // mirrors liveMessages so the poll closure can read the latest id
   const openRef        = useRef(open) // mirrors `open` for the long-lived WS onEvent closure below
   useEffect(() => { openRef.current = open }, [open])
+
+  // ── Voice call (VOICE-CALL) ──────────────────────────────────────────────
+  // Signaling rides the live-chat socket opened in startLiveChat below rather
+  // than a second connection, so reconnect/backoff stays owned by
+  // connectLiveChatSocket. The ref indirection is because the socket is
+  // created after this hook runs and is replaced on every reconnect.
+  const callFetcher = useCallback((url, opts = {}) => {
+    const token = getToken(tokenKey)
+    if (!token) return Promise.resolve(undefined)
+    return fetch(url, {
+      ...opts,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        ...(opts.headers || {}),
+      },
+    })
+  }, [tokenKey])
+
+  const sendCallSignal = useCallback(
+    (action, payload) => liveSocketRef.current?.send?.(action, payload) ?? false,
+    [],
+  )
+
+  const voiceCall = useVoiceCall({
+    role: "customer",
+    apiBase: API,
+    fetcher: callFetcher,
+    sendSignal: sendCallSignal,
+    ticketId: liveTicketId,
+    enabled: mode === "live" && !!liveTicketId,
+  })
+  // Read inside the long-lived socket closure, which captures its own scope.
+  const voiceCallRef = useRef(voiceCall)
+  useEffect(() => { voiceCallRef.current = voiceCall }, [voiceCall])
   useEffect(() => { liveMessagesRef.current = liveMessages }, [liveMessages])
 
   // Incremental fetch handed to the transport. It asks only for messages
@@ -412,7 +453,11 @@ export default function ChatBot({ portal = "player" }) {
           if (event === "new_message" && payload?.ticket_id === liveTicketRef.current) {
             setLiveMessages(prev => reconcileLiveMessage(prev, payload))
             if (!openRef.current && payload.sender_type === "admin") setUnread(u => u + 1)
+            return
           }
+          // VOICE-CALL: call frames share this socket. Anything the hook
+          // doesn't recognise falls through untouched, so chat is unaffected.
+          voiceCallRef.current?.onSocketEvent?.(event, payload)
         },
         onStatusChange: setLiveConnStatus,
       })
@@ -575,6 +620,24 @@ export default function ChatBot({ portal = "player" }) {
   const handleKey = e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage() } }
 
   return (
+    <>
+    {/* VOICE-CALL: rendered outside the launcher's fixed/stacked container so
+        the call surface is centred on the viewport rather than anchored to the
+        corner widget, and stays correct on a phone. */}
+    <ActiveCallModal
+      phase={voiceCall.phase}
+      call={voiceCall.call}
+      lastEnded={voiceCall.lastEnded}
+      seconds={voiceCall.seconds}
+      muted={voiceCall.muted}
+      speakerOn={voiceCall.speakerOn}
+      speakerSupported={voiceCall.speakerSupported}
+      error={voiceCall.error}
+      onToggleMute={voiceCall.toggleMute}
+      onToggleSpeaker={voiceCall.toggleSpeaker}
+      onEnd={voiceCall.endCall}
+      onDismiss={voiceCall.endCall}
+    />
     <div
       style={{
         position: "fixed",
@@ -646,7 +709,18 @@ export default function ChatBot({ portal = "player" }) {
                   </span>
                 </div>
               </div>
-              {mode === "live" && (
+              {/* VOICE-CALL: live call indicator, kept in the header so the
+                  transcript below stays the primary surface. */}
+              {mode === "live" && voiceCall.phase !== PHASE.IDLE && (
+                <div style={{ flexShrink: 0, marginRight: 6 }}>
+                  <CallStatus
+                    phase={voiceCall.phase}
+                    seconds={voiceCall.seconds}
+                    lastEnded={voiceCall.lastEnded}
+                  />
+                </div>
+              )}
+              {mode === "live" && voiceCall.phase === PHASE.IDLE && (
                 <button
                   onClick={backToBot}
                   style={{
@@ -800,6 +874,36 @@ export default function ChatBot({ portal = "player" }) {
                 >
                   {liveConnecting ? "Connecting…" : "Talk to a Live Agent"}
                 </button>
+              </div>
+            )}
+
+            {/* VOICE-CALL: the call action sits in its own row above the
+                composer while a live session is open, so it reads as an
+                action on this conversation rather than a chat shortcut.
+                VoiceCallButton renders nothing when calling is unavailable
+                here (unsupported browser, or a host that can't push). */}
+            {mode === "live" && voiceCall.phase === PHASE.IDLE && (
+              <div style={{
+                padding: "8px 12px",
+                display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+                borderTop: "1px solid rgba(212,175,55,0.08)",
+                flexShrink: 0,
+              }}>
+                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", letterSpacing: "0.04em" }}>
+                  Prefer to talk?
+                </span>
+                {/* Two separate conditions, both required. `available` says
+                    the *server* can carry signaling; liveConnStatus says this
+                    browser's socket is actually open right now. With chat,
+                    "polling" is a fully working state — for a call it is not,
+                    because an SDP offer has nowhere to go, and the call would
+                    ring until it timed out. */}
+                <VoiceCallButton
+                  available={voiceCall.available && liveConnStatus === "open"}
+                  busy={voiceCall.isBusy}
+                  onClick={voiceCall.startCall}
+                  compact
+                />
               </div>
             )}
 
@@ -964,5 +1068,6 @@ export default function ChatBot({ portal = "player" }) {
       )}
 
     </div>
+    </>
   )
 }

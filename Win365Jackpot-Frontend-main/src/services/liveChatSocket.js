@@ -166,6 +166,30 @@ export function connectLiveChatSocket(path, token, handlers = {}) {
   return {
     /** Force an immediate fetch (e.g. right after sending). */
     refresh: runPoll,
+    /**
+     * VOICE-CALL: put a frame on the socket, if one is actually open.
+     *
+     * Chat does not use this and still must not — messages are persisted over
+     * REST precisely so a dropped socket cannot lose one. This exists for
+     * WebRTC signaling, which is the opposite kind of traffic: worthless a
+     * second later, and pointless to persist. Returns false when there is no
+     * open socket so the caller can surface a real failure rather than
+     * assuming the frame was delivered; the poll fallback cannot stand in
+     * here, which is why calling is gated on `realtime` being true.
+     */
+    send(action, payload = {}) {
+      if (!socket || socket.readyState !== WebSocket.OPEN) return false
+      try {
+        socket.send(JSON.stringify({ action, ...payload }))
+        return true
+      } catch {
+        return false
+      }
+    },
+    /** Whether a socket is currently delivering (not merely configured). */
+    get isOpen() {
+      return !!socket && socket.readyState === WebSocket.OPEN
+    },
     close() {
       closedByCaller = true;
       clearTimeout(retryTimer);

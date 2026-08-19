@@ -11,6 +11,8 @@ import { Spinner } from "../../components/SharedUI";
 import SupportLanguageSelector from "../../../support/SupportLanguageSelector";
 import { fetchSupportConfig } from "../../../../services/translationService";
 import TicketMessage from "../../../support/TicketMessage";
+// VOICE-CALL: read-only history of this customer's own support calls.
+import CallHistoryList from "../../../support/CallHistoryList";
 
 // MULTILINGUAL-CHAT: chat language is stored separately from the site's
 // i18n language (User.preferred_language / Sidebar's selector) so picking a
@@ -204,6 +206,19 @@ export default function SupportTab({ onToast }) {
             {t("support.availabilityText")}
           </div>
         </Card>
+      </div>
+
+      {/* VOICE-CALL: the customer's own call history. The endpoint is scoped
+          to request.user server-side, so this can only ever show their calls.
+          Renders nothing at all until they have made one. */}
+      <div>
+        <CallHistoryList
+          fetcher={authFetch}
+          apiBase={API}
+          endpoint="/api/live-chat/calls/"
+          title="Recent voice calls"
+          emptyText=""
+        />
       </div>
 
       {/* Raise a ticket */}

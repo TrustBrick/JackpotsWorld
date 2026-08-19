@@ -53,6 +53,10 @@ from .wallet_request_models import (
     WithdrawalRequestStatusHistory,
 )
 
+# VOICE-CALL: new module — safe to delete this import block (and the module
+# itself) to remove the feature. See call_models.py's docstring.
+from .call_models import CallSession, CallEvent
+
 __all__ = [
     # User models
     "User",
@@ -95,4 +99,7 @@ __all__ = [
     "WithdrawalRequest",
     "DepositRequestStatusHistory",
     "WithdrawalRequestStatusHistory",
+    # VOICE-CALL
+    "CallSession",
+    "CallEvent",
 ]

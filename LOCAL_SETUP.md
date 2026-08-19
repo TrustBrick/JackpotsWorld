@@ -167,6 +167,32 @@ It reads `DB_*` from the **environment**, not from `.env`, and is idempotent via
 
 `REDIS_URL` only matters for deployments that split gunicorn and daphne into separate processes, where an in-memory layer would silently drop every broadcast. Leave it blank locally.
 
+### Voice calls (VOICE-CALL)
+
+**Works locally with no Redis and no TURN**, for the same reason live chat's
+real-time push does: under `runserver`, Channels serves HTTP and WebSocket from
+one process, so `LIVE_CHAT_REALTIME` is true and the signaling broadcast
+actually reaches the other browser. Calling is gated on that same flag — where
+chat degrades to polling, the call button is hidden rather than offered and
+left ringing.
+
+The default `WEBRTC_STUN_URLS` is enough for two tabs on one machine and for
+most home networks. TURN only matters for symmetric NAT and restrictive
+corporate firewalls, so leave `WEBRTC_TURN_URLS` blank in development —
+see `.env.example` for the production settings.
+
+Two things to know when testing:
+
+- **Both ends need a microphone permission grant**, and the browser only
+  prompts when a call actually starts — opening support never asks.
+- **Use two different browsers or a normal + private window**, signed in as a
+  player in one and a staff account in the other. Two tabs of the same profile
+  share a microphone and will fight over it.
+
+`https` is not needed on `localhost` — browsers treat it as a secure context,
+so `getUserMedia` works on `http://localhost:5173`. It is required on any other
+host, including a LAN IP.
+
 ## Troubleshooting
 
 | Symptom | Cause |
