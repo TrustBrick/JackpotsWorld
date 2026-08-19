@@ -3,7 +3,7 @@ from authapp.models.landing_models import (
     LandingSettings, HeroStat, WhyChooseUsFeature, TrustBadge,
     GiftItem, GiftStep, VipTier, VipTierBenefit, Testimonial,
     Destination, DestinationMedia, VipServiceImage, TourPackage,
-    PremiumPartner, SectionMedia,
+    PremiumPartner, SectionMedia, FeaturedDestinationShowcase,
 )
 from authapp.utils.file_validation import validate_uploaded_image, validate_uploaded_video
 
@@ -261,3 +261,82 @@ class SectionMediaSerializer(serializers.ModelSerializer):
                 "video": "An active slot needs a video or a poster image.",
             })
         return attrs
+
+
+class FeaturedDestinationShowcaseSerializer(serializers.ModelSerializer):
+    """Back Office CRUD. `destination_name` is read-only convenience for the
+    admin list so it doesn't have to join Destination client-side."""
+
+    is_active = serializers.BooleanField(default=True, required=False)
+    destination_name = serializers.CharField(source="destination.name", read_only=True)
+
+    class Meta:
+        model = FeaturedDestinationShowcase
+        fields = [
+            "id", "destination", "destination_name", "title", "description",
+            "media_type", "media", "mobile_media", "poster_image", "cta_text",
+            "is_active", "display_order", "created_at", "updated_at",
+        ]
+        read_only_fields = ["id", "destination_name", "created_at", "updated_at"]
+
+    def _validate_media_file(self, media_file, media_type):
+        # Same reasoning as DestinationMediaSerializer.validate: one field
+        # holds either an image or a video depending on the sibling
+        # media_type, so this can't be a single-field validator.
+        if media_type == "video":
+            validate_uploaded_video(media_file)
+        else:
+            validate_uploaded_image(media_file)
+
+    def validate_poster_image(self, value):
+        return validate_uploaded_image(value)
+
+    def validate(self, attrs):
+        def resolved(field, default=None):
+            if field in attrs:
+                return attrs[field]
+            return getattr(self.instance, field, default)
+
+        media_type = resolved("media_type", "video")
+
+        # Validate any file actually being uploaded in this request, against
+        # the media_type that will be in effect after the save.
+        for field in ("media", "mobile_media"):
+            uploaded = attrs.get(field)
+            if uploaded:
+                try:
+                    self._validate_media_file(uploaded, media_type)
+                except serializers.ValidationError as exc:
+                    raise serializers.ValidationError({field: exc.detail})
+
+        # An active section with nothing to show would render an empty frame,
+        # so require something renderable — mirrors SectionMediaSerializer.
+        is_active = attrs.get("is_active", getattr(self.instance, "is_active", True))
+        if is_active and not resolved("media") and not resolved("poster_image"):
+            raise serializers.ValidationError({
+                "media": "An active showcase needs media or a poster image.",
+            })
+        return attrs
+
+
+class PublicFeaturedDestinationShowcaseSerializer(serializers.ModelSerializer):
+    """What the landing page actually renders — deliberately narrower than the
+    admin serializer: no is_active (the endpoint only ever returns active
+    rows), no timestamps, nothing an anonymous visitor has no use for.
+
+    `destination_name` and `destination_slug` come from the existing
+    Destination row rather than being duplicated onto this model, so renaming
+    a destination updates the showcase automatically.
+    """
+
+    destination_name = serializers.CharField(source="destination.name", read_only=True)
+    destination_accent = serializers.CharField(source="destination.accent_color", read_only=True)
+
+    class Meta:
+        model = FeaturedDestinationShowcase
+        fields = [
+            "id", "destination", "destination_name", "destination_accent",
+            "title", "description", "media_type", "media", "mobile_media",
+            "poster_image", "cta_text", "display_order",
+        ]
+        read_only_fields = fields
