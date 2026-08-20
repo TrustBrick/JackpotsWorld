@@ -245,6 +245,12 @@ class LiveChatSessionConsumer(CallSignalingMixin, AsyncJsonWebsocketConsumer):
     async def chat_read(self, event):
         await self.send_json({"event": "message_read", "data": event["payload"]})
 
+    async def chat_status(self, event):
+        # LIVE-CHAT: a resolve (or other status move) pushed from the REST
+        # layer, so the customer's open Service Request conversation disables
+        # its composer and call button the moment an agent resolves it.
+        await self.send_json({"event": "ticket_status", "data": event["payload"]})
+
 
 class LiveChatAdminInboxConsumer(CallSignalingMixin, AsyncJsonWebsocketConsumer):
     """ws/live-chat/admin/inbox/ — admin-only, cross-session feed for the
@@ -289,3 +295,6 @@ class LiveChatAdminInboxConsumer(CallSignalingMixin, AsyncJsonWebsocketConsumer)
 
     async def chat_read(self, event):
         await self.send_json({"event": "message_read", "data": event["payload"]})
+
+    async def chat_status(self, event):
+        await self.send_json({"event": "ticket_status", "data": event["payload"]})

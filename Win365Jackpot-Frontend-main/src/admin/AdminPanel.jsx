@@ -10,6 +10,7 @@ import {
   Percent, ChevronDown, // AFFILIATE-APPROVAL: sidebar groups + Commission Engine icon
   Club, // Teen Patti
   Layers, // Commission Rules
+  LineChart, MousePointerClick, PlayCircle, Megaphone, UserCheck, // ANALYTICS
   Menu, X, // mobile off-canvas drawer controls
 } from "lucide-react";
 
@@ -40,6 +41,12 @@ import GiftsRewardsTab       from "./tabs/GiftsRewardsTab";        // GIFTS-REWA
 import SupportTicketsTab    from "./tabs/SupportTicketsTab";           // MULTILINGUAL-CHAT
 import SupportSettingsTab   from "./tabs/content/SupportSettingsTab";  // MULTILINGUAL-CHAT
 import LiveSupportTab       from "./tabs/LiveSupportTab";              // LIVE-CHAT
+// ANALYTICS: real first-party analytics dashboard tabs.
+import AnalyticsOverviewTab from "./tabs/analytics/AnalyticsOverviewTab";
+import UrlAnalyticsTab      from "./tabs/analytics/UrlAnalyticsTab";
+import VideoAnalyticsTab    from "./tabs/analytics/VideoAnalyticsTab";
+import CampaignAnalyticsTab from "./tabs/analytics/CampaignAnalyticsTab";
+import MemberEngagementTab  from "./tabs/analytics/MemberEngagementTab";
 
 import { Card, Toast, NotificationPopup } from "./components/SharedUI";
 import { API, adminFetch } from "./helpers";
@@ -62,6 +69,7 @@ const ICON_MAP = {
   Percent, // Affiliate Commissions — was referenced but never mapped/imported before this change
   Club, // Teen Patti
   Layers, // Commission Rules
+  LineChart, MousePointerClick, PlayCircle, Megaphone, UserCheck, // ANALYTICS
 };
 
 // AFFILIATE-APPROVAL: sessionStorage keys for sidebar state that should
@@ -403,6 +411,11 @@ function AdminPanelInner() {
       case "support-tickets":  return <SupportTicketsTab  {...props} />;
       case "support-settings": return <SupportSettingsTab {...props} />;
       case "live-support":     return <LiveSupportTab     {...props} />; // LIVE-CHAT
+      case "analytics-overview":  return <AnalyticsOverviewTab  {...props} />; // ANALYTICS
+      case "analytics-urls":      return <UrlAnalyticsTab       {...props} />;
+      case "analytics-videos":    return <VideoAnalyticsTab     {...props} />;
+      case "analytics-campaigns": return <CampaignAnalyticsTab  {...props} />;
+      case "analytics-members":   return <MemberEngagementTab   {...props} />;
       case "logs":      return <LogsTab           {...props} />;
       case "staff":     return <StaffTab          {...props} />;
       default:          return <OverviewTab       {...props} />;

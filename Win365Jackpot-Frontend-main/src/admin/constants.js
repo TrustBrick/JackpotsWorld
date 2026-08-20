@@ -145,6 +145,18 @@ export const ADMIN_NAV_GROUPS = [
     ],
   },
   {
+    // ANALYTICS: real first-party analytics — safe to remove this whole group
+    // + the analytics/ tab files + their cases in AdminPanel.jsx to remove it.
+    group: "Analytics",
+    items: [
+      { id:"analytics-overview",  label:"Overview",           icon:"LineChart" },
+      { id:"analytics-urls",      label:"URL Analytics",      icon:"MousePointerClick" },
+      { id:"analytics-videos",    label:"Video Analytics",    icon:"PlayCircle" },
+      { id:"analytics-campaigns", label:"Campaign Analytics", icon:"Megaphone" },
+      { id:"analytics-members",   label:"Member Engagement",  icon:"UserCheck" },
+    ],
+  },
+  {
     group: "System",
     items: [
       { id:"logs", label:"Activity Logs", icon:"Activity" },

@@ -1,5 +1,8 @@
 import React, { Suspense, lazy, useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+// ANALYTICS: records page views + first-touch UTM. Separate from the affiliate
+// ?ref capture below, which is untouched.
+import AnalyticsTracker from './components/AnalyticsTracker'
 import LandingPage from './pages/LandingPage'
 import { ThemeProvider } from './context/ThemeContext'
 import { authFetch, API } from './components/user/helpers'
@@ -134,6 +137,9 @@ export default function App() {
           Inside BrowserRouter because it reads useLocation(); above
           <Routes> so it applies to every route including lazy ones. */}
       <RouteSeo />
+      {/* ANALYTICS: page-view + UTM tracker. Renders nothing; here because it
+          reads useLocation() and must see every route. */}
+      <AnalyticsTracker />
       {/* One global inactivity manager for every route and every panel —
           see src/config/session.js for the timeout values. */}
       <SessionTimeoutProvider>
