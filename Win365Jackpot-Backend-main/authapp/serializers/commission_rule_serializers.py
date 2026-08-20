@@ -144,9 +144,16 @@ class CommissionLedgerEntrySerializer(serializers.ModelSerializer):
 
 
 class AffiliateCommissionLedgerSerializer(serializers.ModelSerializer):
-    """Affiliate-facing view. Excludes calculation_trace, rule/tier ids,
-    admin_notes and reviewed_by — an affiliate sees what they earned and
-    whether they qualified, not how the rules are configured internally."""
+    """Affiliate-facing view. Excludes calculation_trace, rule/tier names and
+    ids, admin_notes and reviewed_by — an affiliate sees what they earned and
+    whether they qualified, not how the rules are configured internally.
+
+    `reference_id` is the exception among the traceability fields, and
+    deliberately so: it is the affiliate's own bet-slip number (or the
+    synthetic deposit key for a deposit commission), which is what lets them
+    tie a ledger row back to the activity that produced it. It reveals nothing
+    about the rule configuration.
+    """
     casino_name = serializers.CharField(source="casino.name", read_only=True, default="")
     player_uid = serializers.CharField(source="referred_player.user_uid", read_only=True, default="")
 
@@ -155,7 +162,7 @@ class AffiliateCommissionLedgerSerializer(serializers.ModelSerializer):
         fields = [
             "id", "country", "casino_name", "player_uid",
             "commission_type", "base_amount", "commission_rate", "commission_amount",
-            "currency", "status", "qualification_reason",
+            "currency", "status", "qualification_reason", "reference_id",
             "created_at", "qualified_at", "paid_at",
         ]
         read_only_fields = fields

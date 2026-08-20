@@ -3,6 +3,7 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import { Volume2, VolumeX } from 'lucide-react'
 import { useAutoFetch } from '../hooks/useAutoFetch'
+import { attemptPlay, useSoundPreference, useUserActivation } from '../hooks/useAudioAutoplay'
 import { fetchPremiumPartners } from '../services/landingService'
 import { flagFromCountryCode } from '../utils/countryFlags'
 import { useVideoAnalytics } from '../hooks/useVideoAnalytics'
@@ -169,14 +170,29 @@ function buildSlides(partners, videoFailedIds) {
    now?" — rather than by the events themselves, so IntersectionObserver and
    document-visibility can never disagree about the resulting state.
 
+   Audio follows the shared policy in hooks/useAudioAutoplay: try audible,
+   fall back to muted once if the browser refuses, and take exactly one more
+   audible attempt when real user activation actually arrives. There is no
+   retry loop and no timer anywhere in here.
+
+   Two separate ideas, deliberately kept apart:
+     soundOn — what the visitor wants. Lives in the parent (and outside React
+               entirely, in the shared preference store) so a partner rotation
+               remounting this component cannot silently discard their choice.
+     audible — what the element is actually doing. Diverges from soundOn only
+               when the browser has blocked audible playback, which is exactly
+               when the unmute control needs to be obvious.
+
    play() returns a promise that rejects if pause() lands while it's still
    pending ("The play() request was interrupted by a call to pause()"), which
-   is exactly what fast scrolling produces. Every pause therefore awaits the
-   in-flight play first, so the two can't race.
+   is exactly what fast scrolling produces. Every call therefore awaits the
+   in-flight one first, so they can't race.
    ──────────────────────────────────────────────────────────────────────── */
-function HeroVideo({ src, poster, active, loop, onEnded, onError, contentId, title, fit, onNaturalSize }) {
+function HeroVideo({ src, poster, active, loop, soundOn, onSoundChange, onEnded, onError, contentId, title, fit, onNaturalSize }) {
   const videoRef = useRef(null)
   const pendingPlayRef = useRef(null)
+  const activated = useUserActivation()
+  const [audible, setAudible] = useState(false)
 
   // ANALYTICS: engagement on this premium-partner content video. Records only
   // on real playback (see the hook), keyed to the partner so the dashboard can
@@ -187,81 +203,57 @@ function HeroVideo({ src, poster, active, loop, onEnded, onError, contentId, tit
     contentKind: "premium_partner",
     enabled: !!contentId,
   })
-  // Sound defaults on: by the time this mounts the intro has already
-  // collapsed, which only happens after the visitor scrolled, tapped, or
-  // pressed a key (or the hold timer elapsed with no interaction at all).
-  // A real interaction counts as user activation, so an unmuted play()
-  // here is honoured by the browser instead of being autoplay-blocked.
-  const [muted, setMuted] = useState(false)
 
-  const play = useCallback(async () => {
+  const play = useCallback(async (withSound) => {
+    if (pendingPlayRef.current) await pendingPlayRef.current
     const v = videoRef.current
-    if (!v || !v.paused) return
-    try {
-      pendingPlayRef.current = v.play()
-      await pendingPlayRef.current
-    } catch {
-      // Autoplay refused (policy, or the element was torn down mid-play).
-      // Muted playback is always permitted, so fall back to it rather than
-      // leaving a dead frame on screen.
-      if (v.paused && !v.muted) {
-        v.muted = true
-        setMuted(true)
-        try {
-          pendingPlayRef.current = v.play()
-          await pendingPlayRef.current
-        } catch {
-          /* Nothing further to try — the poster/first frame stays visible. */
-        }
-      }
-    } finally {
-      pendingPlayRef.current = null
-    }
+    if (!v) return
+    const attempt = attemptPlay(v, { withSound })
+    pendingPlayRef.current = attempt
+    const outcome = await attempt
+    // Only clear the slot if it is still ours: a call that queued behind this
+    // one has already claimed it, and nulling that would let a later pause()
+    // slip past the promise it is supposed to wait for.
+    if (pendingPlayRef.current === attempt) pendingPlayRef.current = null
+    if (videoRef.current) setAudible(outcome === 'audible')
   }, [])
 
   const pause = useCallback(async () => {
+    if (pendingPlayRef.current) await pendingPlayRef.current
     const v = videoRef.current
-    if (!v) return
-    if (pendingPlayRef.current) {
-      try { await pendingPlayRef.current } catch { /* already handled in play() */ }
-    }
-    if (videoRef.current && !videoRef.current.paused) videoRef.current.pause()
+    if (v && !v.paused) v.pause()
   }, [])
 
   // Single source of truth for playback. `active` already folds in viewport
-  // visibility, document visibility and the hero intro state.
+  // visibility, document visibility and the hero intro state. `activated` is
+  // a dependency so the one audible retry happens precisely when the
+  // browser's answer can have changed — not on a schedule, and not on every
+  // render.
   useEffect(() => {
-    if (active) play()
+    if (active) play(soundOn)
     else pause()
-  }, [active, play, pause])
+  }, [active, soundOn, activated, play, pause])
 
   // Pause on unmount so a slide change or route change can't leave audio
   // running behind the next partner's media.
   useEffect(() => () => { const v = videoRef.current; if (v && !v.paused) v.pause() }, [])
 
-  // Retry unmuted once activation lands after the fact: the initial
-  // unmuted play() above can still get autoplay-blocked (e.g. the 4s hold
-  // timer fired with zero interaction), which silently falls back to
-  // muted. The moment the browser reports real user activation, take the
-  // opportunity to switch sound back on.
-  useEffect(() => {
-    if (!active) return
-    if (!navigator.userActivation?.hasBeenActive) return
-    const v = videoRef.current
-    if (!v || !v.muted) return
-    v.muted = false
-    setMuted(false)
-    play()
-  }, [active, play])
-
-  const toggleMuted = () => {
-    const v = videoRef.current
-    if (!v) return
-    const next = !v.muted
-    v.muted = next
-    setMuted(next)
-    if (!next) play()
+  const toggleSound = () => {
+    const next = !audible
+    // Remember the choice for the partners that come after this one...
+    onSoundChange(next)
+    // ...and act on this element now. The click is itself an activation
+    // gesture, so an audible attempt made here will be honoured — waiting for
+    // the preference to round-trip through state would do nothing when it is
+    // already `next` (the blocked-autoplay case, where the visitor wanted
+    // sound all along and the browser said no).
+    play(next)
   }
+
+  // The visitor asked for sound and is not getting it: the browser is holding
+  // it back until they interact. Say so, rather than leaving a 34px icon to
+  // carry the message on its own.
+  const blocked = active && soundOn && !audible
 
   return (
     <>
@@ -270,7 +262,15 @@ function HeroVideo({ src, poster, active, loop, onEnded, onError, contentId, tit
         src={src}
         poster={poster}
         loop={loop}
-        muted={muted}
+        // Static, and switched on imperatively once a play() attempt has
+        // actually been allowed. `soundOn` cannot drive this attribute: it is
+        // what the visitor wants, and it stays true through a refusal — so
+        // binding it would put React's idea of the element permanently at odds
+        // with the muted fallback the policy forced, and any later prop change
+        // would silently undo that fallback. The element is keyed by partner
+        // id, so a rotation remounts this component and re-runs the effect
+        // that owns the real state.
+        muted
         playsInline
         // "metadata" fetched the header and then began playback with no
         // buffered lead at all, so the very first network hiccup was already
@@ -296,21 +296,29 @@ function HeroVideo({ src, poster, active, loop, onEnded, onError, contentId, tit
         }}
       />
       <motion.button
-        onClick={toggleMuted}
-        whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.92 }}
-        title={muted ? 'Unmute' : 'Mute'}
-        aria-label={muted ? 'Unmute partner video' : 'Mute partner video'}
+        onClick={toggleSound}
+        whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
+        title={audible ? 'Mute' : 'Unmute'}
+        aria-label={audible ? 'Mute partner video' : 'Unmute partner video'}
         style={{
           position: 'absolute', top: 10, left: 10, zIndex: 3,
-          width: 34, height: 34, borderRadius: '50%',
-          background: muted ? 'rgba(0,0,0,0.6)' : 'rgba(212,175,55,0.25)',
+          height: 34, borderRadius: 999,
+          padding: blocked ? '0 12px 0 10px' : 0,
+          width: blocked ? 'auto' : 34,
+          gap: blocked ? 7 : 0,
+          background: audible ? 'rgba(212,175,55,0.25)' : 'rgba(0,0,0,0.6)',
           backdropFilter: 'blur(8px)',
           border: '1px solid rgba(212,175,55,0.35)',
           color: '#F5E07A', cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontFamily: "'Manrope', sans-serif",
+          fontSize: 10.5, fontWeight: 800,
+          letterSpacing: '0.12em', textTransform: 'uppercase',
+          whiteSpace: 'nowrap',
         }}
       >
-        {muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+        {audible ? <Volume2 size={15} /> : <VolumeX size={15} />}
+        {blocked && <span>Tap for sound</span>}
       </motion.button>
     </>
   )
@@ -355,6 +363,13 @@ function HeroPhoto({ slide, eager, reduceMotion, fit, onNaturalSize }) {
 /* ── Main ─────────────────────────────────────────────────────────────────── */
 export default function PremiumPartnerHeroMedia() {
   const reduceMotion = useReducedMotion()
+  // Held here, not inside HeroVideo: the video element is keyed by partner id
+  // and so remounts on every rotation, which would otherwise reset a visitor's
+  // mute back to "on" each time the slide changed. Defaults to wanting sound —
+  // this band only appears once the hero has collapsed, which itself follows a
+  // scroll, tap or keypress, so audible playback is usually already permitted
+  // by then. When it isn't, the control below says so.
+  const [soundOn, setSoundOn] = useSoundPreference('premium-partner-hero', true)
   const [videoFailedIds, setVideoFailedIds] = useState(() => new Set())
   const [idx, setIdx] = useState(0)
   const [documentVisible, setDocumentVisible] = useState(
@@ -519,6 +534,8 @@ export default function PremiumPartnerHeroMedia() {
             contentId={`partner-${current.id}`}
             title={current.name}
             active={active}
+            soundOn={soundOn}
+            onSoundChange={setSoundOn}
             fit={fit}
             onNaturalSize={setMediaRatio}
             // A lone partner loops as before; with several, ending is what

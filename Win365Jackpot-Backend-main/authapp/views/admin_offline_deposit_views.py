@@ -184,6 +184,30 @@ def _resolve_player_casino_wallet(user, casino_name: str, country: str):
     return wallet, None
 
 
+def _evaluate_deposit_commission(user, *, casino_name=None, country=None):
+    """Re-evaluate this player's Deposit Commission under the rule engine.
+
+    Called from every event that can change the answer: a recorded deposit
+    (which raises the base amount) and a verified bet slip (which advances the
+    wagering a deposit rule's conditions may be gated on). Best-effort and
+    non-fatal, matching the two commission call sites that already exist —
+    a commission problem must never roll back the transaction the admin just
+    recorded.
+
+    No fallback to the older engines: the per-affiliate plan engine's deposit
+    branch is already driven by the bet-slip trigger, and the legacy flat rate
+    has no deposit commission at all. An affiliate with no matching deposit
+    rule is therefore completely unaffected by this call.
+    """
+    try:
+        from authapp.services import commission_engine_service
+        commission_engine_service.evaluate(
+            user, commission_type="deposit", casino_name=casino_name, country=country,
+        )
+    except Exception as e:
+        logger.warning("deposit commission evaluation failed for user %s: %s", user.id, e)
+
+
 def _deduct_admin_wallet(wallet_type, amount, actor):
     """Deduct from AdminWallet. Raises ValueError if insufficient."""
     field = ADMIN_WALLET_FIELD.get(wallet_type)
@@ -353,6 +377,18 @@ class AdminOfflineDepositsView(APIView):
                 _log_offline(user=user, txn_type=txn_type, casino=casino,
                              wallet_type=wallet_type, amount=amount,
                              main_balance=new_main_bal, actor=actor, note=note)
+
+                # Deposit Commission — the deposit ledger this player's
+                # referrer earns off has just moved, so re-evaluate it. Only
+                # the rule engine is consulted here: the per-affiliate plan
+                # engine's own deposit branch is gated on completed wagering
+                # and is already driven by the bet-slip trigger below, so
+                # calling it from a deposit event would change when existing
+                # affiliates' plans are evaluated. This layer is additive —
+                # with no matching deposit rule it is a no-op, exactly as
+                # before.
+                _evaluate_deposit_commission(user, casino_name=casino, country=country or None)
+
                 ActivityLog.log(
                     action="casino_transfer", actor=actor, target_user=user,
                     description=f"DAC ${amount:,.2f} {wallet_type}: User main ▼ → {casino} casino ▲",
@@ -708,6 +744,15 @@ class AdminOfflineDepositsView(APIView):
                             record_referral_commission(user, bet_amount, source_ref=slip_number)
                 except Exception as e:
                     logger.warning("referral commission failed for RP entry: %s", e)
+
+            # Deposit Commission — a verified bet slip is the only thing that
+            # advances "completed wagering", so a deposit rule gated on
+            # betting_amount / rolling_points only becomes satisfiable here.
+            # Without this the entry created at deposit time would sit at
+            # "qualifying" forever. Idempotent: the deposit branch is
+            # one-per-(affiliate, player) and refreshes its existing row in
+            # place rather than adding another.
+            _evaluate_deposit_commission(user, casino_name=casino, country=country or None)
 
             ActivityLog.log(
                 action="rolling_points_added", actor=actor, target_user=user,

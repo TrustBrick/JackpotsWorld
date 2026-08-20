@@ -1,0 +1,21 @@
+# Line-ending policy.
+#
+# Development happens on Windows, where git's core.autocrlf=true converts
+# text files to CRLF on checkout. For most files that is harmless, but a
+# shell script is not most files: Elastic Beanstalk executes
+# .platform/hooks/**/*.sh on Amazon Linux, and a CRLF script fails at the
+# shebang line — `#!/bin/bash\r` is not a program that exists. The failure
+# is silent from the deploy's point of view (the hooks are written to never
+# fail a deployment), so a media migration or cleanup would simply never
+# run, with nothing obviously wrong.
+#
+# This is not hypothetical for this repo specifically: .ebignore exists, so
+# `eb deploy` zips the working directory rather than using `git archive`.
+# Whatever line endings a developer's checkout produced are exactly what
+# ships to production.
+*.sh text eol=lf
+
+# Same reasoning for the Procfile and the platform/ebextensions config that
+# the EB platform parses on the instance.
+Procfile text eol=lf
+*.config text eol=lf
