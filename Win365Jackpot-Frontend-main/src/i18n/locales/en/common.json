@@ -485,7 +485,7 @@
     "details": "Details"
   },
   "teenPatti": {
-    "eyebrow": "The Ultimate Indian Card Experience",
+    "eyebrow": "The Ultimate **Indian Card Experience**",
     "title": "Teen Patti",
     "subtitle": "Discover **exclusive** Teen Patti events at our partner casinos — reserve your seat before the table fills.",
     "viewLiveEvents": "View Live Events",
@@ -551,9 +551,9 @@
     "eventCount": "{{count}} events"
   },
   "vipStrip": {
-    "flyFree": "Fly Free",
-    "stayFree": "Stay Free",
-    "earnCommission": "Earn Hourly Commission",
+    "flyFree": "**Fly Free**",
+    "stayFree": "**Stay Free**",
+    "earnCommission": "**Earn Hourly Commission**",
     "tagline": "While Enjoying The Gaming",
     "disclaimer": "Eligible players may enjoy exclusive travel, stay and earning benefits while enjoying the gaming experience. Terms and conditions apply."
   }

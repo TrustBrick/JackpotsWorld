@@ -164,6 +164,20 @@ class TeenPattiEvent(models.Model):
     def is_full(self):
         return self.max_participants is not None and self.current_participants >= self.max_participants
 
+    @property
+    def computed_status(self):
+        """The status the clock says, evaluated on read.
+
+        CasinoEvent and PokerTournament both expose this and their pages
+        prefer it over the stored column; Teen Patti was the one that did not,
+        so an event whose dates had it under way still reported the
+        "published" an admin saved it as until sync_teenpatti_statuses next
+        ran. The stored column stays the source of truth for filtering and for
+        the promoter to write to — this is the read-time correction on top of
+        it, so a page is never wrong just because the scheduler has not fired.
+        """
+        return self.derive_status()
+
     def derive_status(self, now=None):
         """The status this event's dates imply, for the auto-managed states
         only. Returns the current status untouched for draft/cancelled/

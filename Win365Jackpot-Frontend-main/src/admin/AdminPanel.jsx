@@ -42,11 +42,7 @@ import SupportTicketsTab    from "./tabs/SupportTicketsTab";           // MULTIL
 import SupportSettingsTab   from "./tabs/content/SupportSettingsTab";  // MULTILINGUAL-CHAT
 import LiveSupportTab       from "./tabs/LiveSupportTab";              // LIVE-CHAT
 // ANALYTICS: real first-party analytics dashboard tabs.
-import AnalyticsOverviewTab from "./tabs/analytics/AnalyticsOverviewTab";
-import UrlAnalyticsTab      from "./tabs/analytics/UrlAnalyticsTab";
-import VideoAnalyticsTab    from "./tabs/analytics/VideoAnalyticsTab";
-import CampaignAnalyticsTab from "./tabs/analytics/CampaignAnalyticsTab";
-import MemberEngagementTab  from "./tabs/analytics/MemberEngagementTab";
+import SystemLogsTab       from "./tabs/SystemLogsTab";
 
 import { Card, Toast, NotificationPopup } from "./components/SharedUI";
 import { API, adminFetch } from "./helpers";
@@ -411,11 +407,16 @@ function AdminPanelInner() {
       case "support-tickets":  return <SupportTicketsTab  {...props} />;
       case "support-settings": return <SupportSettingsTab {...props} />;
       case "live-support":     return <LiveSupportTab     {...props} />; // LIVE-CHAT
-      case "analytics-overview":  return <AnalyticsOverviewTab  {...props} />; // ANALYTICS
-      case "analytics-urls":      return <UrlAnalyticsTab       {...props} />;
-      case "analytics-videos":    return <VideoAnalyticsTab     {...props} />;
-      case "analytics-campaigns": return <CampaignAnalyticsTab  {...props} />;
-      case "analytics-members":   return <MemberEngagementTab   {...props} />;
+      // SYSTEM LOGS: one destination, five tabs inside it. The old
+      // per-analytics ids still resolve here so a browser session holding one
+      // of them in sessionStorage opens the page that now contains that view
+      // rather than falling through to the default tab.
+      case "system-logs":
+      case "analytics-overview":
+      case "analytics-urls":
+      case "analytics-videos":
+      case "analytics-campaigns":
+      case "analytics-members":   return <SystemLogsTab        {...props} />;
       case "logs":      return <LogsTab           {...props} />;
       case "staff":     return <StaffTab          {...props} />;
       default:          return <OverviewTab       {...props} />;

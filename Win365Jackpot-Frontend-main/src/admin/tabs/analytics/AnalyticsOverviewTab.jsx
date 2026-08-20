@@ -59,14 +59,18 @@ export default function AnalyticsOverviewTab({ onToast }) {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 14 }}>
             <Panel title="Top Campaigns (by clicks)">
               {topCampaigns.length === 0 ? <EmptyState text="No campaign traffic yet" /> :
-                topCampaigns.map(c => (
-                  <BarRow key={c.id} label={c.name || c.utm_campaign || "—"} value={c.clicks} max={maxClicks} color={C.blue} />
+                topCampaigns.map((c, i) => (
+                  <BarRow key={`${c.id}-${i}`} label={c.name || c.utm_campaign || "—"} value={c.clicks} max={maxClicks} color={C.blue} />
                 ))}
             </Panel>
             <Panel title="Top Videos (by views)">
               {topVideos.length === 0 ? <EmptyState text="No video plays yet" /> :
-                topVideos.map(v => (
-                  <BarRow key={v.content_id} label={v.content_id} value={v.total_views} max={maxViews} color={C.orange}
+                // Keyed with the index as well as the id: these ids come from
+                // an aggregate the API is responsible for de-duplicating, and
+                // a list should not stop rendering correctly because an
+                // upstream query regressed.
+                topVideos.map((v, i) => (
+                  <BarRow key={`${v.content_id}-${i}`} label={v.content_id} value={v.total_views} max={maxViews} color={C.orange}
                           right={`${fmtN(v.total_views)}`} />
                 ))}
             </Panel>

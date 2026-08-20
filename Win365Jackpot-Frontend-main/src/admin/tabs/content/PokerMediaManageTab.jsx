@@ -14,13 +14,17 @@ const IMAGE_ACCEPT = ".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp";
 const VIDEO_ACCEPT = ".mp4,.webm,.mov,video/mp4,video/webm,video/quicktime";
 
 const SLOT_OPTIONS = [
-  { value: "side_left", label: "Side Card — Left" },
-  { value: "side_right", label: "Side Card — Right" },
+  // Background only. The side-card slots were removed from the public hero —
+  // both pages now carry a single cinematic watermark behind their content
+  // instead of media rails beside it — so offering them here would invite an
+  // upload that renders nowhere. The model keeps all three choices
+  // (landing_models.SectionMedia.SLOT_CHOICES) so any existing side row stays
+  // valid and readable; this list only governs what a new one can be.
   { value: "background", label: "Background Watermark" },
 ];
 
 const FIELDS = [
-  { name: "slot", label: "Slot", type: "select", default: "side_left", options: SLOT_OPTIONS },
+  { name: "slot", label: "Slot", type: "select", default: "background", options: SLOT_OPTIONS },
   {
     name: "label", label: "Badge Label (optional — e.g. FEATURED, CASINO EXPERIENCE)",
     placeholder: "FEATURED",

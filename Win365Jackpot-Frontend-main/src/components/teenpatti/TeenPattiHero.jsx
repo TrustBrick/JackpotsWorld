@@ -4,7 +4,6 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { Radio, CalendarRange, Crown } from 'lucide-react'
 import HighlightedText from '../shared/HighlightedText'
 import VipBenefitStrip from '../shared/VipBenefitStrip'
-import CinematicMediaCard from '../shared/CinematicMediaCard'
 import HeroBackgroundVideo from '../shared/HeroBackgroundVideo'
 import { fetchSectionMedia } from '../../services/landingService'
 import { HERO_WATERMARKS } from '../../config/heroWatermarks'
@@ -18,11 +17,19 @@ import { useAutoFetch } from '../../hooks/useAutoFetch'
  */
 
 // Three fanned cards, drawn in CSS. A/K/Q of the classic Teen Patti trail.
+// Face colours are the ink, not the theme: a real deck prints black and red,
+// and tinting them gold is what made the old fan read as a cheap graphic
+// rather than as cards. The gold lives in the edge, the foil and the light.
 const CARDS = [
-  { rank: 'A', suit: '♠', rotate: -16, x: -78, delay: 0.0, color: '#EDEDED' },
-  { rank: 'K', suit: '♥', rotate: 0, x: 0, delay: 0.12, color: '#E24B5A' },
-  { rank: 'Q', suit: '♦', rotate: 16, x: 78, delay: 0.24, color: '#E24B5A' },
+  { rank: 'A', suit: '♠', rotate: -15, x: -84, y: 6, delay: 0.0, color: '#14100B' },
+  { rank: 'K', suit: '♥', rotate: 0, x: 0, y: -6, delay: 0.12, color: '#B3222E' },
+  { rank: 'Q', suit: '♦', rotate: 15, x: 84, y: 6, delay: 0.24, color: '#B3222E' },
 ]
+
+// 2.5 : 3.5 — the real poker-card ratio. Every other dimension below is
+// derived from the width so the proportions hold at any size.
+const CARD_W = 116
+const CARD_H = Math.round(CARD_W * 3.5 / 2.5)
 
 // Faint background suit glyphs — pure atmosphere, no new assets. Delays are
 // set explicitly (not left to .floating-card's :nth-child rules, which key
@@ -35,75 +42,161 @@ const BG_SUITS = [
   { glyph: '♣', bottom: '14%', right: '7%', size: 58, dur: 9, delay: -1.5 },
 ]
 
+/** One corner index — rank over suit, the way a real card prints it. */
+function CornerIndex({ card, flipped = false }) {
+  return (
+    <div
+      className="absolute flex flex-col items-center leading-none z-20"
+      style={{
+        [flipped ? 'bottom' : 'top']: 9,
+        [flipped ? 'right' : 'left']: 9,
+        transform: flipped ? 'rotate(180deg)' : undefined,
+        color: card.color,
+      }}
+    >
+      <span style={{ fontSize: 17, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1 }}>
+        {card.rank}
+      </span>
+      <span style={{ fontSize: 13, lineHeight: 1, marginTop: 1 }}>{card.suit}</span>
+    </div>
+  )
+}
+
 function CardFan({ reduceMotion }) {
   return (
-    <div className="relative h-[210px] w-full flex items-center justify-center select-none" aria-hidden="true">
-      {/* Grounding shadow — gives the fan a sense of resting on a surface
-          rather than floating in a void. */}
+    <div
+      className="relative w-full flex items-center justify-center select-none"
+      style={{ height: CARD_H + 66 }}
+      aria-hidden="true"
+    >
+      {/* Contact shadow — the fan reads as resting on felt rather than
+          floating, which is most of what separates a card from a rectangle. */}
       <div
         className="absolute"
         style={{
-          bottom: 6, width: 220, height: 34, borderRadius: '50%',
-          background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.55) 0%, transparent 72%)',
+          bottom: 14, width: CARD_W * 2.5, height: 38, borderRadius: '50%',
+          background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.28) 45%, transparent 74%)',
+          filter: 'blur(5px)',
         }}
       />
 
-      {CARDS.map((card, i) => (
-        <motion.div
-          key={card.rank}
-          initial={{ opacity: 0, y: 30, rotate: 0, scale: 0.92 }}
-          animate={{ opacity: 1, y: 0, rotate: card.rotate, scale: 1 }}
-          transition={{ duration: 0.7, delay: card.delay, ease: [0.22, 1, 0.36, 1] }}
-          className="absolute rounded-xl"
-          // Positioned with `left`, never `transform` — framer-motion owns the
-          // transform property for the entry animation and would clobber it.
-          style={{
-            width: 104, height: 150,
-            left: `calc(50% - 52px + ${card.x}px)`,
-            zIndex: i === 1 ? 3 : 2,
-          }}
-        >
-          {/* Inner wrapper owns the continuous idle float, kept separate from
-              the outer element's one-time entrance transform so the two
-              animations never fight over the same property. */}
+      {CARDS.map((card, i) => {
+        const isCentre = i === 1
+        return (
           <motion.div
-            className="relative w-full h-full rounded-xl flex flex-col items-center justify-between py-3 overflow-hidden"
-            animate={reduceMotion ? undefined : { y: [0, -7, 0] }}
-            transition={reduceMotion ? undefined : {
-              duration: 3.4 + i * 0.4, repeat: Infinity, ease: 'easeInOut', delay: 0.9 + card.delay,
-            }}
+            key={card.rank}
+            initial={{ opacity: 0, y: 34, rotate: 0, scale: 0.9 }}
+            animate={{ opacity: 1, y: card.y, rotate: card.rotate, scale: 1 }}
+            transition={{ duration: 0.75, delay: card.delay, ease: [0.22, 1, 0.36, 1] }}
+            className="absolute"
+            // Positioned with `left`, never `transform` — framer-motion owns
+            // the transform property for the entry animation and would
+            // clobber it.
             style={{
-              background: 'linear-gradient(160deg, #FDFBF3 0%, #EDE6D3 55%, #E8E2D2 100%)',
-              border: '1px solid rgba(212,175,55,0.6)',
-              boxShadow: `0 18px 38px rgba(0,0,0,0.6), 0 0 0 1px rgba(212,175,55,0.08), 0 0 26px rgba(212,175,55,${i === 1 ? 0.28 : 0.16})`,
+              width: CARD_W, height: CARD_H,
+              left: `calc(50% - ${CARD_W / 2}px + ${card.x}px)`,
+              zIndex: isCentre ? 3 : 2,
+              transformOrigin: '50% 92%',   // cards pivot about the hand, not their middle
             }}
           >
-            {/* Glossy diagonal sheen — the lacquered-card look. */}
-            <div
-              className="pointer-events-none absolute inset-0"
-              style={{
-                background: 'linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.55) 45%, transparent 60%)',
-                mixBlendMode: 'overlay',
+            {/* Inner wrapper owns the continuous idle float, kept separate
+                from the outer element's one-time entrance transform so the
+                two animations never fight over the same property. */}
+            <motion.div
+              className="relative w-full h-full"
+              style={{ borderRadius: 11 }}
+              animate={reduceMotion ? undefined : { y: [0, -8, 0] }}
+              transition={reduceMotion ? undefined : {
+                duration: 3.6 + i * 0.45, repeat: Infinity, ease: 'easeInOut', delay: 0.95 + card.delay,
               }}
-            />
-
-            <div className="flex items-center gap-1 self-start pl-2.5 leading-none z-10">
-              <span className="text-base font-black" style={{ color: card.color }}>{card.rank}</span>
-              <span className="text-[10px]" style={{ color: card.color }}>{card.suit}</span>
-            </div>
-            <span className="text-4xl leading-none z-10" style={{ color: card.color, filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.15))' }}>
-              {card.suit}
-            </span>
-            <div
-              className="flex items-center gap-1 self-end pr-2.5 leading-none z-10"
-              style={{ transform: 'rotate(180deg)' }}
             >
-              <span className="text-base font-black" style={{ color: card.color }}>{card.rank}</span>
-              <span className="text-[10px]" style={{ color: card.color }}>{card.suit}</span>
-            </div>
+              {/* Gold foil edge. A hair larger than the face and sitting
+                  behind it, so the metal shows as a milled rim rather than as
+                  a border drawn on top of the artwork. */}
+              <div
+                className="absolute"
+                style={{
+                  inset: -1.5, borderRadius: 12.5,
+                  background: 'linear-gradient(150deg, #F6E7A8 0%, #C9A227 28%, #8C6D14 52%, #E8D48A 74%, #A8841C 100%)',
+                  boxShadow: `0 22px 44px rgba(0,0,0,0.62), 0 6px 14px rgba(0,0,0,0.45), 0 0 30px rgba(212,175,55,${isCentre ? 0.26 : 0.14})`,
+                }}
+              />
+
+              {/* The face. */}
+              <div
+                className="absolute inset-0 overflow-hidden"
+                style={{
+                  borderRadius: 11,
+                  background:
+                    'radial-gradient(ellipse at 32% 18%, #FFFEFA 0%, #F7F3E7 42%, #EBE4D2 78%, #DED5BE 100%)',
+                }}
+              >
+                {/* Engraved inner keyline, as printed decks carry. */}
+                <div
+                  className="absolute pointer-events-none"
+                  style={{
+                    inset: 6, borderRadius: 7,
+                    border: '1px solid rgba(140,109,20,0.30)',
+                    boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.65)',
+                  }}
+                />
+
+                {/* Guilloché tint — a whisper of pattern so the face is not a
+                    flat fill. Low opacity on purpose: visible as texture,
+                    never as decoration competing with the pip. */}
+                <div
+                  className="absolute pointer-events-none"
+                  style={{
+                    inset: 6, borderRadius: 7, opacity: 0.5,
+                    backgroundImage:
+                      'repeating-linear-gradient(45deg, rgba(140,109,20,0.05) 0 2px, transparent 2px 6px),' +
+                      'repeating-linear-gradient(-45deg, rgba(140,109,20,0.05) 0 2px, transparent 2px 6px)',
+                  }}
+                />
+
+                <CornerIndex card={card} />
+                <CornerIndex card={card} flipped />
+
+                {/* Centre pip. */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span
+                    style={{
+                      fontSize: 54, lineHeight: 1, color: card.color,
+                      filter: 'drop-shadow(0 3px 4px rgba(0,0,0,0.22))',
+                    }}
+                  >
+                    {card.suit}
+                  </span>
+                </div>
+
+                {/* Lacquer. A soft top-left bloom plus one raking highlight —
+                    the way light actually falls on a coated card, rather than
+                    a single diagonal band across the middle. */}
+                <div
+                  className="pointer-events-none absolute inset-0"
+                  style={{
+                    background:
+                      'radial-gradient(ellipse at 26% 12%, rgba(255,255,255,0.85) 0%, transparent 52%),' +
+                      'linear-gradient(118deg, transparent 34%, rgba(255,255,255,0.42) 47%, transparent 58%)',
+                    mixBlendMode: 'soft-light',
+                  }}
+                />
+
+                {/* Depth: the card curls very slightly away from the light at
+                    its lower right, which is what stops it reading as a
+                    sticker. */}
+                <div
+                  className="pointer-events-none absolute inset-0"
+                  style={{
+                    borderRadius: 11,
+                    boxShadow: 'inset -10px -14px 26px rgba(90,70,25,0.16), inset 6px 8px 18px rgba(255,255,255,0.55)',
+                  }}
+                />
+              </div>
+            </motion.div>
           </motion.div>
-        </motion.div>
-      ))}
+        )
+      })}
     </div>
   )
 }
@@ -185,13 +278,8 @@ export default function TeenPattiHero({ liveCount = 0, upcomingCount = 0, onView
           hierarchy: content, then VIP strip, then featured visual) — one
           grid, no duplicated DOM nodes per breakpoint, so a video is never
           fetched or decoded twice. */}
-      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)_240px] gap-6 lg:gap-8 items-stretch max-w-[1400px] mx-auto">
-        <CinematicMediaCard
-          item={bySlot('side_left')} align="left"
-          className="order-2 lg:order-1 h-48 sm:h-64 lg:h-auto lg:min-h-[380px]"
-        />
-
-        <div className="order-1 lg:order-2 max-w-3xl mx-auto text-center w-full">
+      <div className="relative z-10 max-w-[1400px] mx-auto">
+        <div className="max-w-3xl mx-auto text-center w-full">
         <CardFan reduceMotion={reduceMotion} />
 
         <motion.div
@@ -203,7 +291,7 @@ export default function TeenPattiHero({ liveCount = 0, upcomingCount = 0, onView
           <span className="h-px w-8 md:w-14" style={{ background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.6))' }} />
           <Crown size={13} className="text-gold shrink-0" />
           <p className="font-body text-xs md:text-sm tracking-[0.35em] uppercase text-gold/80 whitespace-nowrap">
-            {t('teenPatti.eyebrow')}
+            <HighlightedText text={t('teenPatti.eyebrow')} />
           </p>
           <Crown size={13} className="text-gold shrink-0" />
           <span className="h-px w-8 md:w-14" style={{ background: 'linear-gradient(90deg, rgba(212,175,55,0.6), transparent)' }} />
@@ -284,11 +372,6 @@ export default function TeenPattiHero({ liveCount = 0, upcomingCount = 0, onView
           <span className="section-divider w-16 md:w-28" />
         </motion.div>
         </div>
-
-        <CinematicMediaCard
-          item={bySlot('side_right')} align="right"
-          className="order-3 h-48 sm:h-64 lg:h-auto lg:min-h-[380px]"
-        />
       </div>
     </section>
   )

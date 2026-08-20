@@ -182,11 +182,11 @@ def _visitor_key(user_id, anonymous_id):
 def _unique_from_qs(qs):
     """(unique_visitors, unique_members) over a queryset, DB-side distinct."""
     member_ids = set(
-        qs.filter(user__isnull=False).values_list("user_id", flat=True).distinct()
+        qs.filter(user__isnull=False).order_by().values_list("user_id", flat=True).distinct()
     )
     anon_ids = set(
         qs.filter(user__isnull=True).exclude(anonymous_id="")
-          .values_list("anonymous_id", flat=True).distinct()
+          .order_by().values_list("anonymous_id", flat=True).distinct()
     )
     return len(member_ids) + len(anon_ids), len(member_ids)
 
@@ -233,7 +233,7 @@ def overview(start_dt, end_dt):
             # "Total Visitors" = distinct sessions (visits); "Unique Visitors"
             # = distinct people. Documented so the two cards never read as a
             # contradiction.
-            "total_visitors": qs.exclude(session_id="").values("session_id").distinct().count(),
+            "total_visitors": qs.exclude(session_id="").order_by().values("session_id").distinct().count(),
             "unique_visitors": unique_visitors,
             "unique_members": unique_members,
             "total_page_views": page_views.count(),
@@ -254,7 +254,7 @@ def urls_report(start_dt, end_dt):
     covering both formally-defined campaigns and raw UTM traffic."""
     def produce():
         qs = _events(start_dt, end_dt).exclude(utm_campaign="")
-        keys = qs.values_list("utm_source", "utm_medium", "utm_campaign").distinct()
+        keys = qs.order_by().values_list("utm_source", "utm_medium", "utm_campaign").distinct()
         rows = []
         for source, medium, campaign in keys:
             group = qs.filter(utm_source=source, utm_medium=medium, utm_campaign=campaign)
@@ -353,8 +353,14 @@ def _reduce_video(rows):
 
 def videos_report(start_dt, end_dt):
     def produce():
+        # NOTE: the .order_by() before .distinct() is load-bearing, here and in
+        # every other distinct() in this module. AnalyticsEvent orders by
+        # -created_at by default; Django appends an ORDER BY column to the
+        # SELECT list, so a DISTINCT without clearing it de-duplicates
+        # (content_id, created_at) pairs and returns one row per event.
+
         qs = _video_events(start_dt, end_dt).exclude(content_id="")
-        video_ids = list(qs.values_list("content_id", flat=True).distinct())
+        video_ids = list(qs.order_by().values_list("content_id", flat=True).distinct())
         rows = []
         for vid in video_ids:
             raw = list(
@@ -421,8 +427,8 @@ def member_engagement(user, start_dt=None, end_dt=None):
         "email": user.email,
         "urls_clicked": qs.filter(event_type=EVENT_URL_CLICK).count(),
         "page_views": qs.filter(event_type=EVENT_PAGE_VIEW).count(),
-        "videos_watched": watched.filter(event_type=EVENT_VIDEO_START).values("content_id").distinct().count(),
-        "videos_completed": watched.filter(event_type=EVENT_VIDEO_COMPLETE).values("content_id").distinct().count(),
+        "videos_watched": watched.filter(event_type=EVENT_VIDEO_START).order_by().values("content_id").distinct().count(),
+        "videos_completed": watched.filter(event_type=EVENT_VIDEO_COMPLETE).order_by().values("content_id").distinct().count(),
         "total_watch_seconds": round(sum(per_video.values()), 1),
         "logins": qs.filter(event_type=EVENT_LOGIN).count(),
         "last_activity": last.isoformat() if last else None,

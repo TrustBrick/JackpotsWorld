@@ -137,8 +137,19 @@ class TeenPattiRegistrationTests(APITestCase):
         )
 
 
+def _clear_seeded_events():
+    """Migration 0068_seed_teen_patti_events ships seven real Teen Patti
+    events so the public page is not empty on a fresh environment. Any test
+    asserting on absolute counts or on an exact result list needs them gone
+    first, or it is really asserting on the seed fixture rather than on what
+    the test itself created. Same reasoning as
+    tests_poker_sources._clear_seeded_tournaments."""
+    TeenPattiEvent.objects.all().delete()
+
+
 class TeenPattiStatusAutomationTests(APITestCase):
     def test_dates_drive_upcoming_live_and_completed(self):
+        _clear_seeded_events()
         now = timezone.now()
         future = _make_event(name="Future", start_date=(now + timedelta(days=3)).date())
         running = _make_event(
@@ -189,6 +200,7 @@ class TeenPattiStatusAutomationTests(APITestCase):
 
 class TeenPattiApiTests(APITestCase):
     def setUp(self):
+        _clear_seeded_events()
         self.user = User.objects.create_user(email="api@example.com", password="pw12345!", name="Api User")
         self.admin = User.objects.create_superuser(email="admin@example.com", password="pw12345!", name="Admin")
         # get_or_create, not create — migration 0050 already seeds Sri Lankan

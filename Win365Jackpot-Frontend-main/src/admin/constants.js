@@ -145,22 +145,25 @@ export const ADMIN_NAV_GROUPS = [
     ],
   },
   {
-    // ANALYTICS: real first-party analytics — safe to remove this whole group
-    // + the analytics/ tab files + their cases in AdminPanel.jsx to remove it.
-    group: "Analytics",
+    // SYSTEM: the platform's own telemetry. The five analytics views used to
+    // be five sidebar entries; they are now tabs inside System Logs
+    // (tabs/SystemLogsTab.jsx), because they are five readings of one subject
+    // rather than five destinations. The tab components themselves are
+    // untouched and still live in tabs/analytics/.
+    group: "System",
     items: [
-      { id:"analytics-overview",  label:"Overview",           icon:"LineChart" },
-      { id:"analytics-urls",      label:"URL Analytics",      icon:"MousePointerClick" },
-      { id:"analytics-videos",    label:"Video Analytics",    icon:"PlayCircle" },
-      { id:"analytics-campaigns", label:"Campaign Analytics", icon:"Megaphone" },
-      { id:"analytics-members",   label:"Member Engagement",  icon:"UserCheck" },
+      { id:"system-logs", label:"System Logs", icon:"LineChart" },
+      // { id:"staff", label:"Staff", icon:"UserCog" },
     ],
   },
   {
-    group: "System",
+    // Deliberately its own group, and deliberately not merged into System
+    // Logs above: Activity Logs is the who-did-what audit trail (User Logs /
+    // Admin Logs) and answers questions about people, where System Logs
+    // answers questions about the system.
+    group: "Activity / Logs",
     items: [
       { id:"logs", label:"Activity Logs", icon:"Activity" },
-      // { id:"staff", label:"Staff", icon:"UserCog" },
     ],
   },
 ];

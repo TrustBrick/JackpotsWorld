@@ -2,6 +2,7 @@ import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { Plane, Building2, Coins } from 'lucide-react'
+import HighlightedText from './HighlightedText'
 
 /**
  * VipBenefitStrip — the "FLY FREE | STAY FREE | EARN HOURLY COMMISSION"
@@ -56,7 +57,7 @@ export default function VipBenefitStrip({ className = '' }) {
             )}
             <span className="flex items-center gap-2 px-3 sm:px-0 font-body text-xs sm:text-sm font-bold tracking-wide text-white/90 whitespace-nowrap">
               <item.icon size={15} className="text-gold shrink-0" />
-              {t(`vipStrip.${item.key}`)}
+              <HighlightedText text={t(`vipStrip.${item.key}`)} />
             </span>
           </React.Fragment>
         ))}

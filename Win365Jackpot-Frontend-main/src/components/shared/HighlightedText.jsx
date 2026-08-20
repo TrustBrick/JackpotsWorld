@@ -9,8 +9,15 @@ import React from 'react'
  * per-locale editorial choice rather than a hardcoded "3rd word in English"
  * assumption that would silently misalign once translated — word order
  * differs across the 24 locales this app ships.
+ *
+ * The emphasis is `.gold-emphasis` (index.css): gold gradient, slow sheen,
+ * faint glow, and no motion at all under prefers-reduced-motion. Applying it
+ * here rather than at each call site means every marked phrase across the app
+ * gets the same treatment, and changing that treatment is one edit — callers
+ * can still override with `goldClassName` where a specific context needs
+ * something quieter.
  */
-export default function HighlightedText({ text, as: Tag = 'span', goldClassName = 'text-gold font-semibold' }) {
+export default function HighlightedText({ text, as: Tag = 'span', goldClassName = 'gold-emphasis' }) {
   if (!text) return null
   const parts = text.split(/\*\*(.+?)\*\*/g)
   return (

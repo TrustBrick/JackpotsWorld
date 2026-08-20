@@ -73,9 +73,15 @@ export default function TeenPatti() {
   const { live, upcoming, completed } = useMemo(() => {
     const buckets = { live: [], upcoming: [], completed: [] }
     events.forEach(ev => {
-      if (ev.status === 'live') buckets.live.push(ev)
-      else if (UPCOMING_STATUSES.has(ev.status)) buckets.upcoming.push(ev)
-      else if (ev.status === 'completed') buckets.completed.push(ev)
+      // Prefer the date-derived status over the stored column, the way the
+      // Poker page already does: the promoter that writes that column runs on
+      // a schedule, so between runs an event that has started still carries
+      // the 'published' it was saved as. Falls back to the column when an
+      // older API build has not shipped computed_status yet.
+      const state = ev.computed_status ?? ev.status
+      if (state === 'live') buckets.live.push(ev)
+      else if (UPCOMING_STATUSES.has(state)) buckets.upcoming.push(ev)
+      else if (state === 'completed') buckets.completed.push(ev)
     })
     // Nearest first for anything still ahead of us.
     const byDate = (a, b) => String(a.start_date).localeCompare(String(b.start_date))

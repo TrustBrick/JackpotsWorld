@@ -22,6 +22,10 @@ class TeenPattiEventPublicSerializer(serializers.ModelSerializer):
     is_registered = serializers.SerializerMethodField()
     my_confirmation_id = serializers.SerializerMethodField()
     can_register = serializers.SerializerMethodField()
+    # Derived from the dates on every read — see the model property. Sent
+    # alongside `status`, never in place of it, so nothing that already reads
+    # the stored value changes behaviour.
+    computed_status = serializers.CharField(read_only=True)
 
     class Meta:
         model = TeenPattiEvent
@@ -32,7 +36,7 @@ class TeenPattiEventPublicSerializer(serializers.ModelSerializer):
             "entry_fee", "currency", "prize_pool",
             "max_participants", "current_participants", "seats_remaining", "is_full",
             "event_type", "image", "banner",
-            "status", "is_featured", "registration_open",
+            "status", "computed_status", "is_featured", "registration_open",
             "is_registered", "my_confirmation_id", "can_register",
         ]
         read_only_fields = fields

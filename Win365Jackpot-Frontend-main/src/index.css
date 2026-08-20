@@ -116,6 +116,37 @@ select:disabled {
 }
 
 @layer components {
+  /* Emphasised words inside body copy — what HighlightedText wraps a
+     **phrase** in. Deliberately quieter than .gold-text: that one is for
+     headlines, where a full shimmer sweep is the point. Here the text sits
+     mid-paragraph, so it gets the same gold gradient and a slow sheen at half
+     the speed, plus a whisper of glow to lift it off the background — enough
+     to draw the eye without turning a sentence into a light show.
+
+     The glow is a text-shadow rather than a filter: filter would rasterise
+     the gradient fill and cost a layer on every paint. */
+  .gold-emphasis {
+    background: linear-gradient(120deg, #B08D22 0%, #D4AF37 28%, #F7DE8B 50%, #D4AF37 72%, #B08D22 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 600;
+    animation: shimmer 6s linear infinite;
+    text-shadow: 0 0 18px rgba(212, 175, 55, 0.18);
+  }
+
+  /* Reduced motion keeps the gold — it is meaning, not decoration — and drops
+     only the movement. Pinning the position mid-gradient leaves the brightest
+     part of the sweep showing, so a still emphasis looks intentional rather
+     than like an animation caught at frame zero. */
+  @media (prefers-reduced-motion: reduce) {
+    .gold-emphasis {
+      animation: none;
+      background-position: 50% center;
+    }
+  }
+
   .gold-text {
     background: linear-gradient(135deg, #9A7D20, #D4AF37, #F5D060, #D4AF37, #9A7D20);
     background-size: 200% auto;
