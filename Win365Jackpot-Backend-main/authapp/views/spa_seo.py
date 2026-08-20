@@ -46,7 +46,10 @@ SITE_URL = str(getattr(settings, 'SITE_BASE_URL', 'https://jackpotsworld.vip')).
 SITE_NAME = 'JackpotsWorld'
 TITLE_SUFFIX = f' | {SITE_NAME}'
 
-DEFAULT_OG_IMAGE = f'{SITE_URL}/web-app-manifest-512x512.png'
+# Must stay under /assets/ — Cloudflare challenges static paths outside it,
+# so the root-level copy of this icon returns 403 to every scraper (WhatsApp,
+# Telegram, Slack, LinkedIn, Google). See docs/MEDIA_ARCHITECTURE.md §2.
+DEFAULT_OG_IMAGE = f'{SITE_URL}/assets/icons/web-app-manifest-512x512.png'
 DEFAULT_TITLE = "JackpotsWorld — Asia's #1 Offline Casino VIP Platform"
 DEFAULT_DESCRIPTION = (
     'Premium offline casino packages across Vietnam, Macau, India, Sri Lanka and the '
@@ -371,7 +374,7 @@ def organization_schema():
                 'url': SITE_URL,
                 'logo': {
                     '@type': 'ImageObject',
-                    'url': f'{SITE_URL}/web-app-manifest-512x512.png',
+                    'url': DEFAULT_OG_IMAGE,
                     'width': 512,
                     'height': 512,
                 },

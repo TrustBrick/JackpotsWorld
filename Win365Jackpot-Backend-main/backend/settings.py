@@ -611,3 +611,59 @@ LOGGING = {
     },
 }
 POKER_RSS_FEEDS = [u.strip() for u in config("POKER_RSS_FEEDS", default="").split(",") if u.strip()]
+# ── VOICE-CALL (WebRTC in-app support calling) ────────────────────────────────
+# Signaling rides the existing Channels/Redis layer (see CHANNEL_LAYERS above);
+# audio never touches this server. These settings only configure what the
+# browser needs in order to negotiate a peer connection, plus the server-side
+# ring timeout.
+#
+# Everything comes from the environment. No STUN/TURN credential is ever
+# hardcoded here or committed — TURN in particular is a metered, abusable
+# resource, and a leaked static credential is a bill, not just an exposure.
+#
+# STUN alone is enough for local development and for most home/office
+# networks. TURN is the fallback for symmetric NAT and restrictive corporate
+# firewalls, where a direct peer-to-peer path cannot be established at all;
+# without it those users get a call that rings, connects and then carries no
+# audio. Configure it in production.
+WEBRTC_STUN_URLS = [
+    u.strip() for u in config(
+        "WEBRTC_STUN_URLS", default="stun:stun.l.google.com:19302",
+    ).split(",") if u.strip()
+]
+WEBRTC_TURN_URLS = [
+    u.strip() for u in config("WEBRTC_TURN_URLS", default="").split(",") if u.strip()
+]
+WEBRTC_TURN_USERNAME = config("WEBRTC_TURN_USERNAME", default="")
+WEBRTC_TURN_CREDENTIAL = config("WEBRTC_TURN_CREDENTIAL", default="")
+
+# Optional shared secret for time-limited TURN credentials (coturn's
+# `use-auth-secret` / RFC 5766 REST API). When set, the ICE endpoint mints a
+# short-lived username/password per request instead of handing out the static
+# WEBRTC_TURN_USERNAME/CREDENTIAL pair, so a credential scraped from one
+# browser stops working within the TTL. Leave blank to use static credentials.
+WEBRTC_TURN_STATIC_AUTH_SECRET = config("WEBRTC_TURN_STATIC_AUTH_SECRET", default="")
+WEBRTC_TURN_CREDENTIAL_TTL = config("WEBRTC_TURN_CREDENTIAL_TTL", default=3600, cast=int)
+
+# How long an unanswered call rings before the backend marks it "missed".
+# Enforced from CallSession.ring_expires_at, never from a browser timer.
+VOICE_CALL_RING_TIMEOUT_SECONDS = config(
+    "VOICE_CALL_RING_TIMEOUT_SECONDS", default=30, cast=int,
+)
+
+# Calling requires cross-process push to work: the REST process that creates
+# the call must be able to reach the daphne process holding both browsers'
+# sockets. That is exactly what LIVE_CHAT_REALTIME already answers, so the
+# call feature reuses it rather than introducing a second, drift-prone flag.
+VOICE_CALL_ENABLED = config("VOICE_CALL_ENABLED", default=True, cast=bool)
+
+REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["voice-call-start"] = config(
+    "VOICE_CALL_START_RATE", default="6/min",
+)
+
+# ANALYTICS: per-IP/account ceiling on the public event-ingest endpoint. The
+# client batches and only sends on milestones/intervals, so this is generous —
+# purely an abuse cap.
+REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["analytics-ingest"] = config(
+    "ANALYTICS_INGEST_RATE", default="120/min",
+)

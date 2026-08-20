@@ -129,6 +129,12 @@ class LiveChatMessageListCreateView(generics.ListCreateAPIView):
         text = (request.data.get("message") or "").strip()
         if not text:
             return Response({"error": "message is required"}, status=400)
+        # A resolved conversation is finished — see MESSAGEABLE_TICKET_STATUSES.
+        if not live_chat_service.ticket_accepts_messages(ticket):
+            return Response(
+                {"error": "This conversation has been resolved.", "code": "ticket_not_active"},
+                status=409,
+            )
         msg = live_chat_service.post_message(
             ticket, "user", request.user, text,
             client_message_id=request.data.get("client_message_id"),
@@ -187,6 +193,12 @@ class AdminLiveChatMessageListCreateView(generics.ListCreateAPIView):
         text = (request.data.get("message") or "").strip()
         if not text:
             return Response({"error": "message is required"}, status=400)
+        # Same gate as the customer side — resolving ends it for both.
+        if not live_chat_service.ticket_accepts_messages(ticket):
+            return Response(
+                {"error": "This conversation has been resolved.", "code": "ticket_not_active"},
+                status=409,
+            )
         msg = live_chat_service.post_message(
             ticket, "admin", request.user, text,
             client_message_id=request.data.get("client_message_id"),

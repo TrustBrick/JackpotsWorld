@@ -46,3 +46,36 @@ def parse_user_agent(ua: str) -> tuple:
             break
 
     return device, browser
+
+
+# ANALYTICS: OS classification, added alongside (never replacing) the
+# device/browser classifier above so the affiliate click log keeps its exact
+# current behaviour. Same dependency-free, best-effort approach — coarse OS
+# family only, which is all the analytics dashboard reports.
+_OS_PATTERNS = [
+    ("Android", re.compile(r"Android", re.I)),          # before Linux (Android UAs say "Linux" too)
+    ("iOS", re.compile(r"iPhone|iPad|iPod", re.I)),
+    ("Windows", re.compile(r"Windows NT|Windows ", re.I)),
+    ("macOS", re.compile(r"Mac OS X|Macintosh", re.I)),
+    ("Linux", re.compile(r"Linux|X11", re.I)),
+    ("Chrome OS", re.compile(r"CrOS", re.I)),
+]
+
+
+def parse_os(ua: str) -> str:
+    """Returns a coarse OS family label ('Windows', 'Android', 'iOS', 'macOS',
+    'Linux', 'Chrome OS') or 'Other'. Never raises; blank input yields
+    'Unknown'."""
+    ua = (ua or "").strip()
+    if not ua:
+        return "Unknown"
+    for label, pattern in _OS_PATTERNS:
+        if pattern.search(ua):
+            return label
+    return "Other"
+
+
+def classify_user_agent(ua: str) -> tuple:
+    """Convenience for analytics ingest: (device, browser, os) in one call."""
+    device, browser = parse_user_agent(ua)
+    return device, browser, parse_os(ua)

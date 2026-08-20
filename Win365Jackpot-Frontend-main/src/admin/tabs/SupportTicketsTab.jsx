@@ -7,7 +7,7 @@
 // Original/English columns just show "—" / the raw English message when
 // there's nothing translated to show.
 import React, { useState, useCallback, useEffect } from "react";
-import { LifeBuoy, Send, RefreshCw } from "lucide-react";
+import { LifeBuoy, Send, RefreshCw, CheckCircle2 } from "lucide-react";
 import { API, adminFetch, fmtDT } from "../helpers";
 import { Card, Btn, Table, StatusBadge, Spinner } from "../components/SharedUI";
 import { useAdminTheme } from "../context/AdminThemeContext";
@@ -23,18 +23,39 @@ function ReplyRow({ ticket, C, onReplied, onToast }) {
   const [open, setOpen] = useState(false);
   const [reply, setReply] = useState(ticket.admin_reply || "");
   const [saving, setSaving] = useState(false);
+  const [resolving, setResolving] = useState(false);
   const lang = ticket.preferred_language || "en";
+  const isResolved = ticket.status === "resolved" || ticket.status === "closed";
 
+  // Replying and resolving are deliberately two separate requests.
+  //
+  // This used to send { admin_reply, status: "resolved" } in one PATCH, so
+  // answering "Hi" to a customer's first message closed their request on the
+  // spot — the customer saw it as resolved while the conversation had barely
+  // started, and the agent had no way to reply without ending it. An admin
+  // reply is an ordinary message; only the explicit action below ends a
+  // request.
   const submit = async () => {
     if (!reply.trim()) return;
     setSaving(true);
     const r = await adminFetch(`${API}/api/admin-panel/support/tickets/${ticket.id}/`, {
       method: "PATCH",
-      body: JSON.stringify({ admin_reply: reply, status: "resolved" }),
+      body: JSON.stringify({ admin_reply: reply }),
     });
     if (r?.ok) { onToast?.("Reply sent", true); setOpen(false); onReplied(); }
     else onToast?.("Failed to send reply", false);
     setSaving(false);
+  };
+
+  const resolve = async () => {
+    setResolving(true);
+    const r = await adminFetch(`${API}/api/admin-panel/support/tickets/${ticket.id}/`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: "resolved" }),
+    });
+    if (r?.ok) { onToast?.("Request resolved", true); setOpen(false); onReplied(); }
+    else onToast?.("Failed to resolve request", false);
+    setResolving(false);
   };
 
   return (
@@ -69,9 +90,23 @@ function ReplyRow({ ticket, C, onReplied, onToast }) {
                 Last translated reply ({LANGUAGE_NAMES[lang] || lang}): {ticket.admin_reply_translated}
               </div>
             )}
-            <Btn onClick={submit} disabled={saving || !reply.trim()} style={{ marginTop: 8 }}>
-              {saving ? "Sending…" : <><Send size={12} /> Send reply</>}
-            </Btn>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 8 }}>
+              <Btn onClick={submit} disabled={saving || !reply.trim()}>
+                {saving ? "Sending…" : <><Send size={12} /> Send reply</>}
+              </Btn>
+              {/* Ending the request is its own action, never a side effect of
+                  replying. Hidden once the request is already resolved. */}
+              {!isResolved && (
+                <Btn outline onClick={resolve} disabled={resolving}>
+                  {resolving ? "Resolving…" : <><CheckCircle2 size={12} /> Resolve request</>}
+                </Btn>
+              )}
+              {isResolved && (
+                <span style={{ fontSize: 11.5, color: C.muted }}>
+                  This request is resolved — replying will not reopen it.
+                </span>
+              )}
+            </div>
           </td>
         </tr>
       )}

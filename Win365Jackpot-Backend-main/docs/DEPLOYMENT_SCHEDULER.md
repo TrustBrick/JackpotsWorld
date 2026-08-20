@@ -12,6 +12,17 @@ idempotent and safe to run repeatedly or concurrently with itself.
 | `python manage.py sync_poker --statuses-only` | every 15 min | Refreshes only upcoming/live/completed from event dates. Cheap; no outbound requests. |
 | `python manage.py sync_teenpatti_statuses` | every 15 min | Promotes Teen Patti events published → upcoming → live → completed, notifying registrants when an event goes live. |
 | `python manage.py sync_teenpatti_statuses --remind` | once daily | The above, plus a "your event starts soon" notification for events inside the next 24h. |
+| `python manage.py sweep_expired_calls` | every minute | VOICE-CALL: marks voice calls whose ring window has lapsed as `missed`. Cheap; no outbound requests. |
+
+`sweep_expired_calls` is a safety net rather than the primary mechanism. Every
+read path already expires a lapsed call lazily
+(`voice_call_service.expire_if_due`), so this only matters for a ring nobody
+ever looks at again — a customer whose browser died mid-call with no agent
+opening the panel. Without it that row stays `ringing`, holding its
+conversation's single active-call slot and blocking the next call. Unlike the
+sync jobs below it is safe to run on every instance: each transition is a
+conditional `UPDATE` against a still-ringing row and it sends no
+notifications.
 
 A failing source never aborts a run: `sync_poker` catches per source, records
 the error on `PokerSource.error_message` and in `PokerSyncLog`, and continues.

@@ -11,6 +11,7 @@ import { motion } from "framer-motion";
 import {
   Settings, BarChart3, Sparkles, ShieldCheck, Gift, ListOrdered,
   Crown, ListChecks, Quote, MapPin, Images, GalleryHorizontal, Plane, Star,
+  Clapperboard,
 } from "lucide-react";
 import { useAdminTheme } from "../../context/AdminThemeContext";
 
@@ -26,6 +27,7 @@ import TestimonialsManageTab from "./TestimonialsManageTab";
 import PremiumPartnersManageTab from "./PremiumPartnersManageTab";
 import DestinationsManageTab from "./DestinationsManageTab";
 import DestinationMediaManageTab from "./DestinationMediaManageTab";
+import FeaturedDestinationShowcaseManageTab from "./FeaturedDestinationShowcaseManageTab";
 import VipServiceImagesManageTab from "./VipServiceImagesManageTab";
 import TourPackagesManageTab from "./TourPackagesManageTab";
 
@@ -42,6 +44,9 @@ const SUB_TABS = [
   { id: "partners",   label: "Premium Partners",  Icon: Star,              Comp: PremiumPartnersManageTab },
   { id: "destinations",label: "Destinations",     Icon: MapPin,            Comp: DestinationsManageTab },
   { id: "destmedia",  label: "Destination Media", Icon: Images,            Comp: DestinationMediaManageTab },
+  // Separate from "Destination Media" above on purpose: that is the
+  // per-destination gallery, this is the promotional landing-page block.
+  { id: "destshowcase", label: "Featured Showcase", Icon: Clapperboard,    Comp: FeaturedDestinationShowcaseManageTab },
   { id: "vipgallery", label: "VIP Gallery",       Icon: GalleryHorizontal, Comp: VipServiceImagesManageTab },
   { id: "packages",   label: "Tour Packages",     Icon: Plane,             Comp: TourPackagesManageTab },
 ];

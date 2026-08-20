@@ -47,7 +47,7 @@ issue a **bot challenge** on static paths. Measured against production on
 
 | Path | Result |
 |---|---|
-| `/assets/**` (any depth, even nonexistent files) | **200** |
+| `/assets/**` (any depth) | **200**, or a real **404** if the file is not on disk — see §2.1 |
 | `/api/**`, `/media/**`, `/robots.txt`, `/` | **200** |
 | `/images/**`, `/videos/**`, `/static/**` | **403** `Cf-Mitigated: challenge` |
 | `/favicon.ico`, `/site.webmanifest`, `/apple-touch-icon.png` | **403** `Cf-Mitigated: challenge` |
@@ -76,6 +76,32 @@ why "refresh two or three times" sometimes appeared to fix it.
 Cloudflare's rule is configuration, not code, and could be changed in the
 dashboard. **Fixing it there is still worth doing** (see §7), but keeping
 assets under `/assets/` is correct regardless and does not depend on it.
+
+---
+
+### 2.1 A missing asset must 404, never return the SPA shell
+
+`/assets/` is excluded from the SPA catch-all in `backend/urls.py`. Whitenoise
+serves the files that exist before the resolver ever runs, so anything
+reaching the catch-all under that prefix is a file that is **not on disk**.
+
+Until this exclusion existed, those requests were answered with `index.html`:
+`200 text/html` where image or video bytes were expected. That is the worst
+available outcome —
+
+- an `<img>` is silently broken with no failed request to point at,
+- a `<video>` fails with the same generic `MEDIA_ELEMENT_ERROR: Format error`
+  that a Cloudflare challenge produces, so the two are indistinguishable,
+- and DevTools shows `200`, so a missing asset does not look like a problem
+  at all.
+
+Measured on production 2026-08-19, before the fix:
+`/assets/images/definitely-not-real-xyz123.jpg` → `200 text/html`, 11568 bytes.
+
+> **Rule:** when auditing media, check the **Content-Type**, not just the
+> status code. A `200 text/html` on an image URL is a missing file.
+> `authapp/tests_spa_routing.py` locks this in from both directions: missing
+> assets 404, existing assets still serve as `image/*`.
 
 ---
 
@@ -125,6 +151,37 @@ returns `403` to anonymous requests — verified.
 No static AWS keys exist anywhere. boto3 picks up the EC2 instance role
 (`aws-elasticbeanstalk-ec2-role`, policy `jackpotsworld-media-s3-access`).
 
+### Verifying the bucket policy — read this before concluding it is broken
+
+An anonymous `GET` of a **nonexistent** key returns **`403 AccessDenied`**,
+not `404`, even when the public-read policy is perfectly correct. S3 only
+answers `404 NoSuchKey` to a caller that also holds `s3:ListBucket`; without
+it, S3 deliberately refuses to confirm whether a key exists. The policy
+grants `s3:GetObject` alone, by design.
+
+So `403` on a made-up key proves **nothing**, and a sweep of invented keys
+across every prefix returning `403` is the expected result of a *correct*
+configuration. Distinguishing a real permissions fault requires a key that
+genuinely exists:
+
+```bash
+aws s3 ls s3://jackpotsworld-media/ --recursive --region ap-south-1 | head
+# then, against a real key from that listing — no credentials:
+curl -s -o /dev/null -w '%{http_code}
+'   https://jackpotsworld-media.s3.ap-south-1.amazonaws.com/<a-real-key-from-above>
+```
+
+`200` = public read is working. `403` on a key that is definitely present =
+a genuine fault, and the two things to check are the bucket policy itself
+and S3 **Block Public Access**, which silently overrides a public policy:
+
+```bash
+aws s3api get-bucket-policy --bucket jackpotsworld-media --region ap-south-1 --query Policy --output text
+aws s3api get-public-access-block --bucket jackpotsworld-media --region ap-south-1
+```
+
+---
+
 ### Range requests
 
 S3 answers `Range` requests natively (`206 Partial Content`), which is what
@@ -160,6 +217,26 @@ and browsers would block them all as mixed content.** Do not remove it.
 
 There is no `localhost`, `127.0.0.1`, or hardcoded IP anywhere in media URL
 generation, and none should be introduced.
+
+### The one duplicated URL: server-rendered SEO tags
+
+`authapp/views/spa_seo.py` is a **hand-maintained mirror** of
+`src/config/seo.js` — it re-renders `og:image`, `twitter:image` and the
+schema.org Organization logo server-side, because social scrapers never run
+JS. The Python copy wins: it rewrites the tags Vite put in `index.html`.
+
+That mirror is the one place a bundled-asset URL is written twice, and it
+drifted exactly as you would expect. When the frontend icons moved under
+`/assets/`, the Python side was missed and kept emitting
+`https://jackpotsworld.vip/web-app-manifest-512x512.png` — a **403** for
+every scraper, so every WhatsApp/Telegram/Slack/LinkedIn link preview and
+Google's brand logo silently had no image. Nothing failed loudly; the site
+looked fine to a human.
+
+`authapp/tests_spa_seo_assets.py` now asserts structurally that **no bundled
+asset URL emitted by that module sits outside `/assets/`**, rather than
+matching one hardcoded string that would have to be edited in lockstep.
+If you add an asset URL to either file, add it to both.
 
 ---
 

@@ -390,3 +390,70 @@ class SectionMedia(models.Model):
         if self.poster_image:
             return "image"
         return "none"
+
+
+class FeaturedDestinationShowcase(models.Model):
+    """A promotional destination block on the landing page.
+
+    Deliberately NOT part of DestinationMedia, and not a replacement for it.
+    DestinationMedia is the destination *gallery* — many small images per
+    destination, shown inside the destination card. This is one large
+    promotional cut (usually video) with its own headline and call to action,
+    rendered as a full landing-page section. The same destination legitimately
+    has both: four gallery photos in DestinationMedia and one aftermovie here.
+    Merging them would force one model to carry two unrelated sets of fields
+    and would make the gallery's ordering meaningless.
+
+    The Destination FK is the existing table — this feature never introduces a
+    second source of destination names.
+    """
+
+    MEDIA_TYPE_CHOICES = [("image", "Image"), ("video", "Video")]
+
+    destination = models.ForeignKey(
+        Destination, on_delete=models.CASCADE, related_name="showcases",
+    )
+    title       = models.CharField(max_length=150)
+    description = models.CharField(max_length=300, blank=True)
+    media_type  = models.CharField(max_length=10, choices=MEDIA_TYPE_CHOICES, default="video")
+
+    # upload_to stays under landing/ on purpose: the S3 bucket policy grants
+    # anonymous GetObject on landing/* (plus promotions/, teenpatti/, poker/,
+    # events/, spin/, wheel/, avatars/). A new top-level prefix would not be
+    # covered and every file would 403 in production — see
+    # docs/MEDIA_ARCHITECTURE.md §3. max_length=255 for the same reason the
+    # other media fields use it: real filenames exceed Django's 100 default.
+    media = models.FileField(
+        upload_to="landing/showcase/", max_length=255, null=True, blank=True,
+    )
+    # Optional narrow-viewport cut. When empty the main media is used
+    # responsively, so this is purely an optimisation for heavy videos.
+    mobile_media = models.FileField(
+        upload_to="landing/showcase/", max_length=255, null=True, blank=True,
+    )
+    # Shown before a video plays and if it fails — the section never collapses
+    # to an empty frame.
+    poster_image = models.ImageField(
+        upload_to="landing/showcase/posters/", max_length=255, null=True, blank=True,
+    )
+
+    cta_text = models.CharField(max_length=80, blank=True)
+    # No cta_url field on purpose: the CTA always targets the existing
+    # destinations section of the landing page, so an admin cannot point it at
+    # an arbitrary (or unsafe) URL, and there is no second destination route to
+    # keep in sync.
+
+    is_active     = models.BooleanField(default=True, db_index=True)
+    display_order = models.PositiveIntegerField(default=0)
+    created_at    = models.DateTimeField(auto_now_add=True)
+    updated_at    = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["display_order", "id"]
+        indexes = [
+            # Backs the public list: active rows in display order.
+            models.Index(fields=["is_active", "display_order"]),
+        ]
+
+    def __str__(self):
+        return f"{self.destination_id} — {self.title}"

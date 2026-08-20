@@ -1,7 +1,7 @@
 # authapp/urls.py
 from django.urls import path, include
 
-from authapp.url_patterns import events_urls, poker_urls, promotion_urls, location_urls, affiliate_urls, affiliate_wallet_urls, wallet_request_urls, admin_gift_urls, support_urls, spin_urls, chat_urls, landing_urls, wheel_urls, live_chat_urls, teenpatti_urls, commission_rule_urls
+from authapp.url_patterns import events_urls, poker_urls, promotion_urls, location_urls, affiliate_urls, affiliate_wallet_urls, wallet_request_urls, admin_gift_urls, support_urls, spin_urls, chat_urls, landing_urls, wheel_urls, live_chat_urls, teenpatti_urls, commission_rule_urls, voice_call_urls, analytics_urls
 
 urlpatterns = [
     path("", include("authapp.url_patterns.auth_urls")),
@@ -57,6 +57,11 @@ urlpatterns = [
     path("", include(support_urls.public_urlpatterns)),
     path("admin-panel/", include(support_urls.admin_urlpatterns)),
 
+    # ── Analytics & Video Engagement (ANALYTICS — safe to delete this block
+    #    + analytics_urls.py to remove the feature's routes) ──────────────────
+    path("", include(analytics_urls.public_urlpatterns)),
+    path("admin-panel/", include(analytics_urls.admin_urlpatterns)),
+
     # ── Daily Login Spin Wheel — RETIRED (see spin_views.py: the 3 live
     #    endpoints now return 410 Gone). Admin CRUD endpoints are left
     #    working for reference; SpinHistory is frozen, permanent historical
@@ -74,4 +79,10 @@ urlpatterns = [
     # ── Live Support Chat (real-time, human-agent — see authapp/consumers/) ────
     path("", include(live_chat_urls.public_urlpatterns)),
     path("admin-panel/", include(live_chat_urls.admin_urlpatterns)),
+
+    # ── VOICE-CALL: in-app WebRTC support calling, layered on the live-chat
+    #    session above (safe to delete this block + voice_call_urls.py to
+    #    remove the feature; chat is unaffected either way) ──────────────────
+    path("", include(voice_call_urls.public_urlpatterns)),
+    path("admin-panel/", include(voice_call_urls.admin_urlpatterns)),
 ]

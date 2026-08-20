@@ -7,7 +7,7 @@ from authapp.models.landing_models import (
     LandingSettings, HeroStat, WhyChooseUsFeature, TrustBadge,
     GiftItem, GiftStep, VipTier, VipTierBenefit, Testimonial,
     Destination, DestinationMedia, VipServiceImage, TourPackage,
-    PremiumPartner, SectionMedia,
+    PremiumPartner, SectionMedia, FeaturedDestinationShowcase,
 )
 from authapp.serializers.landing_serializers import (
     LandingSettingsSerializer, HeroStatSerializer, WhyChooseUsFeatureSerializer,
@@ -16,6 +16,8 @@ from authapp.serializers.landing_serializers import (
     DestinationSerializer, DestinationMediaSerializer, VipServiceImageSerializer,
     PremiumPartnerSerializer, SectionMediaSerializer,
     TourPackageSerializer,
+    FeaturedDestinationShowcaseSerializer,
+    PublicFeaturedDestinationShowcaseSerializer,
 )
 from authapp.permissions.super_admin_permissions import IsAdminOrSuperAdmin
 
@@ -94,6 +96,35 @@ class DestinationListView(APIView):
     def get(self, request):
         qs = Destination.objects.filter(is_active=True).prefetch_related("images")
         return Response(DestinationSerializer(qs, many=True, context={"request": request}).data)
+
+
+class FeaturedDestinationShowcaseListView(APIView):
+    """GET /api/featured-destination-showcases/ — the landing page's
+    promotional destination blocks.
+
+    Active rows only, in display order. Inactive rows are never exposed
+    publicly, and when nothing is active this returns [] so the frontend
+    renders no section at all rather than an empty container.
+
+    select_related("destination") because the serializer reads the
+    destination's name and accent colour on every row — without it this is
+    one extra query per showcase.
+    """
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        qs = (
+            FeaturedDestinationShowcase.objects
+            .filter(is_active=True)
+            .select_related("destination")
+            .order_by("display_order", "id")
+        )
+        return Response(
+            PublicFeaturedDestinationShowcaseSerializer(
+                qs, many=True, context={"request": request},
+            ).data
+        )
 
 
 class PremiumPartnerListView(APIView):
@@ -211,6 +242,7 @@ AdminDestinationMediaListCreateView, AdminDestinationMediaDetailView = _admin_cr
 AdminVipServiceImageListCreateView, AdminVipServiceImageDetailView = _admin_crud_views(VipServiceImage, VipServiceImageSerializer)
 AdminTourPackageListCreateView, AdminTourPackageDetailView = _admin_crud_views(TourPackage, TourPackageSerializer)
 AdminPremiumPartnerListCreateView, AdminPremiumPartnerDetailView = _admin_crud_views(PremiumPartner, PremiumPartnerSerializer)
+AdminFeaturedDestinationShowcaseListCreateView, AdminFeaturedDestinationShowcaseDetailView = _admin_crud_views(FeaturedDestinationShowcase, FeaturedDestinationShowcaseSerializer)
 
 
 class _SectionMediaAdminListCreateBase(generics.ListCreateAPIView):

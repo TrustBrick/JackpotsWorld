@@ -6,6 +6,7 @@ import { useAutoFetch } from '../hooks/useAutoFetch'
 import { attemptPlay, useSoundPreference, useUserActivation } from '../hooks/useAudioAutoplay'
 import { fetchPremiumPartners } from '../services/landingService'
 import { flagFromCountryCode } from '../utils/countryFlags'
+import { useVideoAnalytics } from '../hooks/useVideoAnalytics'
 
 /* ─────────────────────────────────────────────────────────────────────────
    Top Premium Partners hero media.
@@ -87,11 +88,21 @@ function buildSlides(partners, videoFailedIds) {
    is exactly what fast scrolling produces. Every call therefore awaits the
    in-flight one first, so they can't race.
    ──────────────────────────────────────────────────────────────────────── */
-function HeroVideo({ src, poster, active, loop, soundOn, onSoundChange, onEnded, onError }) {
+function HeroVideo({ src, poster, active, loop, soundOn, onSoundChange, onEnded, onError, contentId, title }) {
   const videoRef = useRef(null)
   const pendingPlayRef = useRef(null)
   const activated = useUserActivation()
   const [audible, setAudible] = useState(false)
+
+  // ANALYTICS: engagement on this premium-partner content video. Records only
+  // on real playback (see the hook), keyed to the partner so the dashboard can
+  // report per-partner views/retention.
+  useVideoAnalytics(videoRef, {
+    contentId,
+    title,
+    contentKind: "premium_partner",
+    enabled: !!contentId,
+  })
 
   const play = useCallback(async (withSound) => {
     if (pendingPlayRef.current) await pendingPlayRef.current
@@ -329,6 +340,8 @@ export default function PremiumPartnerHeroMedia() {
             key={current.id}
             src={current.src}
             poster={current.poster}
+            contentId={`partner-${current.id}`}
+            title={current.name}
             active={active}
             soundOn={soundOn}
             onSoundChange={setSoundOn}

@@ -2,13 +2,23 @@
 // (async ticket replies, MULTILINGUAL-CHAT). Both sit on the same
 // SupportTicket model; this one only shows is_live_chat=True sessions and
 // talks over authapp's live-chat REST + WebSocket API.
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { LifeBuoy, Send, RefreshCw, CheckCircle2, Volume2, VolumeX } from "lucide-react";
 import { API, adminFetch, fmtDT } from "../helpers";
 import { Card, Btn, Spinner } from "../components/SharedUI";
 import { useAdminTheme } from "../context/AdminThemeContext";
 import { connectLiveChatSocket } from "../../services/liveChatSocket";
 import { asMessageArray, highestRealId, mergeById } from "../../services/liveChatMessages";
+// VOICE-CALL: the agent end of in-app support calls. Rings over this tab's
+// existing admin-inbox socket — the same channel that already carries
+// new-message notifications — so an agent is reachable without having the
+// relevant conversation open.
+import { useVoiceCall, PHASE } from "../../hooks/useVoiceCall";
+import IncomingCallModal from "../../components/support/IncomingCallModal";
+import ActiveCallModal from "../../components/support/ActiveCallModal";
+import CallStatus from "../../components/support/CallStatus";
+import CallHistoryList from "../../components/support/CallHistoryList";
+import { adminCallTheme } from "../../components/support/callTheme";
 
 const SOUND_PREF_KEY = "admin_live_chat_sound";
 
@@ -72,6 +82,24 @@ export default function LiveSupportTab({ onToast }) {
   // and would otherwise capture the first render's values forever.
   useEffect(() => { messagesRef.current = messages }, [messages]);
   useEffect(() => { soundOnRef.current = soundOn }, [soundOn]);
+
+  // ── Voice call (VOICE-CALL) ──────────────────────────────────────────────
+  // Signaling goes out on the inbox socket created below rather than a second
+  // connection. The ref indirection is needed because that socket is created
+  // after this hook runs, and is replaced on every reconnect.
+  const callTheme = useMemo(() => adminCallTheme(C), [C]);
+  const sendCallSignal = useCallback(
+    (action, payload) => socketRef.current?.send?.(action, payload) ?? false,
+    [],
+  );
+  const voiceCall = useVoiceCall({
+    role: "agent",
+    apiBase: API,
+    fetcher: adminFetch,
+    sendSignal: sendCallSignal,
+  });
+  const voiceCallRef = useRef(voiceCall);
+  useEffect(() => { voiceCallRef.current = voiceCall }, [voiceCall]);
 
   const toggleSound = () => {
     setSoundOn(prev => {
@@ -188,6 +216,10 @@ export default function LiveSupportTab({ onToast }) {
               if (payload.ticket_id !== selectedIdRef.current && soundOnRef.current) playChime();
               loadSessionsRef.current();
             }
+          } else {
+            // VOICE-CALL: call frames share this socket. The hook ignores
+            // anything it doesn't recognise, so chat is unaffected.
+            voiceCallRef.current?.onSocketEvent?.(event, payload);
           }
         },
         onStatusChange: setConnStatus,
@@ -231,6 +263,14 @@ export default function LiveSupportTab({ onToast }) {
 
   const markResolved = async () => {
     if (!selectedId) return;
+    // Resolving is the one explicit action that ends a request — a reply or a
+    // voice call never does (that rule is enforced in the backend). Confirm
+    // first, per the spec's Resolve Request flow.
+    if (!window.confirm(
+      "Are you sure you want to resolve this request?\n\n" +
+      "The customer will no longer be able to send messages or start a call on it. " +
+      "The conversation stays visible as history."
+    )) return;
     const r = await adminFetch(`${API}/api/admin-panel/support/tickets/${selectedId}/`, {
       method: "PATCH",
       body: JSON.stringify({ status: "resolved" }),
@@ -251,10 +291,43 @@ export default function LiveSupportTab({ onToast }) {
 
   return (
     <div>
+      {/* VOICE-CALL: both surfaces are fixed-position overlays, so they sit
+          outside the tab's layout and stay centred on any viewport. The
+          incoming card only renders while a call is actually ringing. */}
+      <IncomingCallModal
+        call={voiceCall.phase === PHASE.INCOMING ? voiceCall.call : null}
+        onAccept={() => voiceCall.acceptCall(voiceCall.call)}
+        onReject={() => voiceCall.rejectCall(voiceCall.call)}
+        theme={callTheme}
+      />
+      <ActiveCallModal
+        phase={voiceCall.phase}
+        call={voiceCall.call}
+        lastEnded={voiceCall.lastEnded}
+        seconds={voiceCall.seconds}
+        muted={voiceCall.muted}
+        speakerOn={voiceCall.speakerOn}
+        speakerSupported={voiceCall.speakerSupported}
+        error={voiceCall.error}
+        onToggleMute={voiceCall.toggleMute}
+        onToggleSpeaker={voiceCall.toggleSpeaker}
+        onEnd={voiceCall.endCall}
+        onDismiss={voiceCall.endCall}
+        theme={callTheme}
+      />
+
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <LifeBuoy size={15} style={{ color: C.gold }} />
           <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Live Support Chat</div>
+          {voiceCall.phase !== PHASE.IDLE && (
+            <CallStatus
+              phase={voiceCall.phase}
+              seconds={voiceCall.seconds}
+              lastEnded={voiceCall.lastEnded}
+              theme={callTheme}
+            />
+          )}
           <span style={{
             fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
             background: connStatus === "open" || connStatus === "polling" ? `${C.green}18` : `${C.orange}18`,
@@ -401,6 +474,20 @@ export default function LiveSupportTab({ onToast }) {
                 {selected.status !== "resolved" && selected.status !== "closed" && (
                   <Btn small onClick={markResolved}><CheckCircle2 size={12} /> Mark Resolved</Btn>
                 )}
+              </div>
+
+              {/* VOICE-CALL: calls on this conversation. Scoped server-side to
+                  what this agent is allowed to see — the component filters
+                  nothing itself. refreshKey re-fetches when a call ends. */}
+              <div style={{ marginBottom: 12 }}>
+                <CallHistoryList
+                  fetcher={adminFetch}
+                  apiBase={API}
+                  endpoint={`/api/admin-panel/live-chat/calls/?ticket_id=${selectedId}`}
+                  theme={callTheme}
+                  refreshKey={voiceCall.lastEnded?.id || 0}
+                  emptyText="No voice calls on this conversation yet"
+                />
               </div>
 
               <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8, marginBottom: 12, padding: "4px 2px" }}>

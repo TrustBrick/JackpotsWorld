@@ -7,6 +7,9 @@ import {
   Loader2, CheckCircle2, AlertCircle, ArrowRight, ChevronDown, ShieldCheck, RotateCcw,
 } from 'lucide-react'
 import { setSession } from '../services/authStorage'
+// ANALYTICS: record signup/login as real events (carry first-touch UTM so
+// campaign registrations are attributable). Never touches the auth flow itself.
+import { trackLogin, trackSignup } from '../services/analytics'
 import { noteLogin } from '../services/sessionManager'
 import Turnstile from './Turnstile'
 import Logo from './shared/Logo'
@@ -415,6 +418,7 @@ function OTPStep({ email, registrationData, onSuccess, onBack }) {
         }),
       })
       // Registration + OTP both succeeded
+      trackSignup()  // ANALYTICS: a real signup (attributed to first-touch UTM)
       onSuccess?.()
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.')
@@ -577,6 +581,7 @@ function SignInPanel({ onSuccess, onClose, onForgotPassword }) {
       )
       // Start the inactivity clock fresh for the new session.
       noteLogin()
+      trackLogin()  // ANALYTICS: a real login (token is stored, so it attributes to the member)
       onSuccess?.(json.user)
       navigate('/dashboard')
       onClose?.()

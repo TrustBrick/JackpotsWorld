@@ -11,6 +11,10 @@ import { Spinner } from "../../components/SharedUI";
 import SupportLanguageSelector from "../../../support/SupportLanguageSelector";
 import { fetchSupportConfig } from "../../../../services/translationService";
 import TicketMessage from "../../../support/TicketMessage";
+// VOICE-CALL: read-only history of this customer's own support calls.
+import CallHistoryList from "../../../support/CallHistoryList";
+// SERVICE-REQUEST CONVERSATION: the per-ticket Chat + Voice + Resolve surface.
+import ServiceRequestConversation from "../../../support/ServiceRequestConversation";
 
 // MULTILINGUAL-CHAT: chat language is stored separately from the site's
 // i18n language (User.preferred_language / Sidebar's selector) so picking a
@@ -98,6 +102,10 @@ export default function SupportTab({ onToast }) {
   // translated-reply rendering) when the feature flag is off.
   const [multilingualEnabled, setMultilingualEnabled] = useState(false);
   const [supportedLanguages, setSupportedLanguages] = useState([]);
+  // SERVICE-REQUEST CONVERSATION: the ticket whose conversation is open, if any.
+  // While set, this tab renders that request's Chat + Voice + Resolve surface
+  // instead of the list — carrying the exact ticket id, never a generic thread.
+  const [activeTicket, setActiveTicket] = useState(null);
   const [chatLanguage, setChatLanguage] = useState(
     () => localStorage.getItem(CHAT_LANG_STORAGE_KEY) || "en"
   );
@@ -161,6 +169,19 @@ export default function SupportTab({ onToast }) {
     setSubmitting(false);
   };
 
+  // SERVICE-REQUEST CONVERSATION: when a request is open, this tab becomes that
+  // one conversation (back arrow returns to the list). On the way back we do a
+  // silent reload so a status change (e.g. the agent resolved it) is reflected.
+  if (activeTicket) {
+    return (
+      <ServiceRequestConversation
+        ticket={activeTicket}
+        onToast={onToast}
+        onBack={() => { setActiveTicket(null); load({ silent: true }); }}
+      />
+    );
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -204,6 +225,19 @@ export default function SupportTab({ onToast }) {
             {t("support.availabilityText")}
           </div>
         </Card>
+      </div>
+
+      {/* VOICE-CALL: the customer's own call history. The endpoint is scoped
+          to request.user server-side, so this can only ever show their calls.
+          Renders nothing at all until they have made one. */}
+      <div>
+        <CallHistoryList
+          fetcher={authFetch}
+          apiBase={API}
+          endpoint="/api/live-chat/calls/"
+          title="Recent voice calls"
+          emptyText=""
+        />
       </div>
 
       {/* Raise a ticket */}
@@ -306,16 +340,61 @@ export default function SupportTab({ onToast }) {
                     {tk.status.replace("_", " ")}
                   </span>
                 </div>
-                {/* MULTILINGUAL-CHAT: reply shown in the customer's language,
-                    English kept visible as a small secondary line. Nothing
-                    renders here at all while the feature flag is off. */}
-                {multilingualEnabled && tk.admin_reply && (
+                {/* SERVICE-REQUEST CONVERSATION: opens THIS request — its exact
+                    ticket id — as a Chat + Voice + Resolve conversation, not the
+                    generic floating widget it used to dispatch. A resolved or
+                    closed request opens the same view read-only (history), with
+                    no active chat/call, per the spec's list rules. */}
+                {tk.status !== "resolved" && tk.status !== "closed" ? (
+                  <button
+                    type="button"
+                    onClick={() => setActiveTicket(tk)}
+                    style={{
+                      marginTop: 10, display: "inline-flex", alignItems: "center", gap: 6,
+                      padding: "7px 12px", borderRadius: 8, cursor: "pointer",
+                      background: "transparent", border: `1px solid ${C.blue}55`,
+                      color: C.blue, fontSize: 11.5, fontWeight: 700, fontFamily: "inherit",
+                    }}
+                  >
+                    <LifeBuoy size={13} aria-hidden="true" />
+                    {t("support.chatNow")} — talk or call an agent now
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setActiveTicket(tk)}
+                    style={{
+                      marginTop: 10, display: "inline-flex", alignItems: "center", gap: 6,
+                      padding: "7px 12px", borderRadius: 8, cursor: "pointer",
+                      background: "transparent", border: `1px solid ${C.border}`,
+                      color: "rgba(255,255,255,0.6)", fontSize: 11.5, fontWeight: 700, fontFamily: "inherit",
+                    }}
+                  >
+                    View Details →
+                  </button>
+                )}
+                {/* The agent's reply is shown whenever one exists. The
+                    multilingual flag decides which *version* is primary, not
+                    whether the customer sees a reply at all — gating the whole
+                    block on the flag meant that with translation off (its
+                    state in production) an answered ticket looked unanswered.
+                    Flag on with a translation available: translated text
+                    first, English kept as a small secondary line. */}
+                {tk.admin_reply && (
                   <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.border}` }}>
                     <TicketMessage
                       C={C}
-                      primaryText={tk.admin_reply_translated || tk.admin_reply}
+                      primaryText={
+                        multilingualEnabled && tk.admin_reply_translated
+                          ? tk.admin_reply_translated
+                          : tk.admin_reply
+                      }
                       secondaryLabel="English"
-                      secondaryText={tk.admin_reply_translated ? tk.admin_reply : null}
+                      secondaryText={
+                        multilingualEnabled && tk.admin_reply_translated
+                          ? tk.admin_reply
+                          : null
+                      }
                     />
                   </div>
                 )}
