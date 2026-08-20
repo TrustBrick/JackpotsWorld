@@ -69,9 +69,13 @@ const MAX_VIDEO_SLIDE_MS = 30_000
 // before, so the first paint is identical and there is no jump once the media
 // reports its real size.
 const DEFAULT_MEDIA_RATIO = 2.4
-// A frame taller than this stops being a banner and starts pushing the page
-// around. Portrait uploads clamp here and letterbox within it.
-const MIN_MEDIA_RATIO = 1.2
+// The frame always spans its container, so its ratio is what decides its
+// height. The floor is what stops a portrait upload turning a banner into a
+// column — anything squarer than this letterboxes inside a 1.6:1 band instead
+// of growing the page. 1.6 sits below 16:9, so an ordinary landscape upload
+// (including the 1.774 one in production) is never clamped and never gets
+// bars.
+const MIN_MEDIA_RATIO = 1.6
 const MAX_MEDIA_RATIO = 3.2
 
 const clampRatio = (r) => Math.min(MAX_MEDIA_RATIO, Math.max(MIN_MEDIA_RATIO, r))
@@ -500,11 +504,17 @@ export default function PremiumPartnerHeroMedia() {
       <div
         style={{
           position: 'relative',
+          width: '100%',
           // Shaped by the media, not by a fixed height — that is what lets
           // `contain` show the whole frame without leaving bars around it.
-          // Bounded so a portrait clip cannot turn the banner into a column.
+          //
+          // Deliberately no max-height: `aspect-ratio` honours a height cap by
+          // narrowing the box, not by cropping, so a cap here would pull the
+          // frame in from its own border and leave a gap beside it. The ratio
+          // floor above is the bound instead — it limits height by limiting
+          // how tall a shape the frame will adopt, while the width always
+          // spans the container.
           aspectRatio: String(frameRatio),
-          maxHeight: 520,
           overflow: 'hidden',
           // Seen only when a clamped ratio leaves a surround, and deliberately
           // the hero's own graded dark magenta rather than the flat #000 the
