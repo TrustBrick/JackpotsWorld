@@ -4,6 +4,7 @@ import { Play, MapPin, ArrowRight } from 'lucide-react'
 import { useInView } from 'react-intersection-observer'
 import { useAutoFetch } from '../hooks/useAutoFetch'
 import { fetchFeaturedDestinationShowcases } from '../services/landingService'
+import { useVideoAnalytics } from '../hooks/useVideoAnalytics'
 
 /**
  * Promotional destination blocks on the landing page (CMS-managed).
@@ -80,6 +81,15 @@ function ShowcaseMedia({ item, narrow }) {
     if (inView) attemptPlay()
     else if (!v.paused) v.pause()
   }, [inView, isVideo, failed, reduceMotion, attemptPlay])
+
+  // ANALYTICS: engagement on this content video. Fires only on real playback
+  // (see the hook); a poster/image fallback below records nothing.
+  useVideoAnalytics(videoRef, {
+    contentId: `showcase-${item.id}`,
+    title: item.title || item.destination_name,
+    contentKind: "showcase",
+    enabled: isVideo && !failed,
+  })
 
   // No media at all, or the file failed: fall back to the poster, and if
   // there is no poster either, render nothing rather than a broken frame.

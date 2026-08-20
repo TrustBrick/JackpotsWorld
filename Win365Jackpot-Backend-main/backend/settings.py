@@ -660,3 +660,10 @@ VOICE_CALL_ENABLED = config("VOICE_CALL_ENABLED", default=True, cast=bool)
 REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["voice-call-start"] = config(
     "VOICE_CALL_START_RATE", default="6/min",
 )
+
+# ANALYTICS: per-IP/account ceiling on the public event-ingest endpoint. The
+# client batches and only sends on milestones/intervals, so this is generous —
+# purely an abuse cap.
+REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["analytics-ingest"] = config(
+    "ANALYTICS_INGEST_RATE", default="120/min",
+)

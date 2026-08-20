@@ -5,6 +5,7 @@ import { Volume2, VolumeX } from 'lucide-react'
 import { useAutoFetch } from '../hooks/useAutoFetch'
 import { fetchPremiumPartners } from '../services/landingService'
 import { flagFromCountryCode } from '../utils/countryFlags'
+import { useVideoAnalytics } from '../hooks/useVideoAnalytics'
 
 /* ─────────────────────────────────────────────────────────────────────────
    Top Premium Partners hero media.
@@ -73,9 +74,19 @@ function buildSlides(partners, videoFailedIds) {
    is exactly what fast scrolling produces. Every pause therefore awaits the
    in-flight play first, so the two can't race.
    ──────────────────────────────────────────────────────────────────────── */
-function HeroVideo({ src, poster, active, loop, onEnded, onError }) {
+function HeroVideo({ src, poster, active, loop, onEnded, onError, contentId, title }) {
   const videoRef = useRef(null)
   const pendingPlayRef = useRef(null)
+
+  // ANALYTICS: engagement on this premium-partner content video. Records only
+  // on real playback (see the hook), keyed to the partner so the dashboard can
+  // report per-partner views/retention.
+  useVideoAnalytics(videoRef, {
+    contentId,
+    title,
+    contentKind: "premium_partner",
+    enabled: !!contentId,
+  })
   // Sound defaults on: by the time this mounts the intro has already
   // collapsed, which only happens after the visitor scrolled, tapped, or
   // pressed a key (or the hold timer elapsed with no interaction at all).
@@ -314,6 +325,8 @@ export default function PremiumPartnerHeroMedia() {
             key={current.id}
             src={current.src}
             poster={current.poster}
+            contentId={`partner-${current.id}`}
+            title={current.name}
             active={active}
             // A lone partner loops as before; with several, ending is what
             // hands over to the next one.

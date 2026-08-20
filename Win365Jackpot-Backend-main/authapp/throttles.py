@@ -75,3 +75,15 @@ class VoiceCallStartRateThrottle(SimpleRateThrottle):
     def get_cache_key(self, request, view):
         ident = request.user.pk if request.user and request.user.is_authenticated else self.get_ident(request)
         return self.cache_format % {"scope": self.scope, "ident": ident}
+
+
+class AnalyticsIngestThrottle(SimpleRateThrottle):
+    """ANALYTICS: per-IP cap on the public event-ingest endpoint. The client
+    already batches and only sends on milestones/intervals (never per second),
+    so this is purely an abuse ceiling. Keyed per authenticated account when
+    signed in, else per IP."""
+    scope = "analytics-ingest"
+
+    def get_cache_key(self, request, view):
+        ident = request.user.pk if request.user and request.user.is_authenticated else self.get_ident(request)
+        return self.cache_format % {"scope": self.scope, "ident": ident}
