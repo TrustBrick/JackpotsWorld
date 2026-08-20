@@ -8,6 +8,7 @@ the guarantee that adding rules never disturbs the two older commission layers.
 from datetime import timedelta
 from decimal import Decimal
 
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -18,8 +19,11 @@ from authapp.models.commission_rule_models import (
     CommissionCondition, CommissionLedgerEntry, CommissionRule, CommissionTier,
 )
 from authapp.models.offline_deposit import OfflineDepositLog
+from authapp.models.super_admin_models import AdminWallet
 from authapp.models.user_model import User
+from authapp.models.wallet_request_models import DepositRequest
 from authapp.services import commission_engine_service, commission_rule_service
+from authapp.services.wallet_request_service import admin_approve_deposit
 
 
 # Two representations of the same country, deliberately kept apart because the
@@ -352,9 +356,10 @@ class CommissionCalculationTests(APITestCase):
         self.assertEqual(second.reason, "Already processed.")
 
     def test_entries_without_a_reference_are_exempt_from_the_uniqueness_rule(self):
-        """Losing/deposit commissions carry no bet slip. They store NULL, not
-        "", precisely so any number of them can coexist -- if they collided,
-        the constraint would block legitimate repeat payouts."""
+        """Losing commissions carry no bet slip. They store NULL, not "",
+        precisely so any number of them can coexist -- if they collided, the
+        constraint would block legitimate repeat payouts. (Deposit entries do
+        carry a reference, deliberately: see deposit_reference().)"""
         _rule(name="10pct", country="Sri Lanka", rate=Decimal("10"), commission_type="losing")
 
         for _ in range(3):
@@ -367,6 +372,46 @@ class CommissionCalculationTests(APITestCase):
         self.assertEqual(entries.count(), 3)
         # NULL, not "" -- the blank string would collide on the second row.
         self.assertEqual(entries.filter(reference_id__isnull=True).count(), 3)
+
+    def test_an_unqualified_losing_row_is_refreshed_rather_than_duplicated(self):
+        """Open rows carry no money, so re-evaluating one must advance it, not
+        stack another beside it. Before this, a losing rule whose minimum was
+        not yet reached left one dead zero-value row per recorded loss."""
+        _rule(name="10pct over 2500", country="Sri Lanka", rate=Decimal("10"),
+              commission_type="losing", min_qualifying_amount=Decimal("2500"))
+
+        for base in (Decimal("1000"), Decimal("1800"), Decimal("2400")):
+            commission_engine_service.evaluate(
+                self.player, commission_type="losing", base_amount=base,
+                casino_name="Bellagio Casino", country=SRI_LANKA,
+            )
+
+        entry = CommissionLedgerEntry.objects.get(commission_type="losing")
+        self.assertEqual(entry.status, "qualifying")
+        self.assertEqual(entry.base_amount, Decimal("2400.00"))
+        self.assertEqual(ReferralCommission.objects.count(), 0)
+
+        # Crossing the minimum settles that same row into a real commission.
+        commission_engine_service.evaluate(
+            self.player, commission_type="losing", base_amount=Decimal("3000"),
+            casino_name="Bellagio Casino", country=SRI_LANKA,
+        )
+
+        self.assertEqual(CommissionLedgerEntry.objects.filter(commission_type="losing").count(), 1)
+        entry.refresh_from_db()
+        self.assertEqual(entry.status, "qualified")
+        self.assertEqual(entry.commission_amount, Decimal("300.00"))
+        self.assertEqual(ReferralCommission.objects.count(), 1)
+
+        # ...and the next real loss is a genuinely new award, so it gets its
+        # own row rather than overwriting the settled one.
+        commission_engine_service.evaluate(
+            self.player, commission_type="losing", base_amount=Decimal("4000"),
+            casino_name="Bellagio Casino", country=SRI_LANKA,
+        )
+
+        self.assertEqual(CommissionLedgerEntry.objects.filter(commission_type="losing").count(), 2)
+        self.assertEqual(ReferralCommission.objects.count(), 2)
 
     def test_no_matching_rule_reports_not_applied_so_the_caller_falls_through(self):
         result = commission_engine_service.evaluate(
@@ -785,3 +830,363 @@ class CommissionApiSecurityTests(APITestCase):
 
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("casino", res.data)
+
+
+class DepositCommissionTriggerTests(APITestCase):
+    """The Deposit Commission branch, end to end through the real admin
+    endpoints.
+
+    Deposit was the one commission_type the rule engine could calculate but
+    nothing ever asked it to: the offline deposit view only ever called
+    evaluate() with "rolling" (bet slip) and "losing" (LAC), and the online
+    deposit-approval service called nothing at all. A Back Office rule of type
+    "Deposit Commission" was therefore configurable, visibly saved, and dead --
+    its ledger stayed empty no matter how much the referred player deposited.
+    These tests drive the two deposit paths and the bet-slip path that can
+    finally satisfy a gated deposit rule, and pin the one-per-player rule that
+    keeps a cumulative base from being priced twice.
+    """
+
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            email="dep-admin@example.com", password="pw12345!", name="Admin",
+            is_staff=True, is_superuser=True,
+        )
+        self.affiliate = User.objects.create_user(
+            email="dep-aff@example.com", password="pw12345!", name="Dep Aff",
+        )
+        AffiliateProfile.objects.create(user=self.affiliate, is_active=True)
+        self.player = User.objects.create_user(
+            email="dep-player@example.com", password="pw12345!", name="Dep Player",
+            referred_by=self.affiliate, country=SRI_LANKA_ISO,
+        )
+        self.casino, _ = Casino.objects.get_or_create(
+            country=SRI_LANKA, name="Bellagio Casino", defaults={"is_active": True},
+        )
+        AdminWallet.objects.get_or_create(
+            pk=1,
+            defaults={
+                "cash_balance": Decimal("1000000"),
+                "non_cash_balance": Decimal("1000000"),
+                "otp_balance": Decimal("1000000"),
+            },
+        )
+        self.client.force_authenticate(self.admin)
+
+    # ── helpers driving the real endpoints ───────────────────────────────────
+
+    def _offline(self, **payload):
+        payload.setdefault("user_id", self.player.id)
+        return self.client.post("/api/admin-panel/deposits/offline/", payload, format="json")
+
+    def _fund_main(self, amount):
+        response = self._offline(transaction_type="DMA", wallet_type="C", amount=str(amount))
+        self.assertEqual(response.status_code, 200, response.data)
+
+    def _deposit_at_casino(self, amount):
+        """DMA into the main wallet, then DAC it into the casino -- the exact
+        two-step an admin performs to record an offline deposit."""
+        self._fund_main(amount)
+        response = self._offline(
+            transaction_type="DAC", wallet_type="C", amount=str(amount),
+            casino_name="Bellagio Casino", country=SRI_LANKA,
+        )
+        self.assertEqual(response.status_code, 200, response.data)
+        return response
+
+    def _bet_slip(self, slip_number, bet_amount):
+        response = self._offline(
+            type="rolling_points", casino_name="Bellagio Casino", country=SRI_LANKA,
+            slip_number=slip_number, total_bets=1, total_bet_amount=str(bet_amount),
+        )
+        self.assertEqual(response.status_code, 200, response.data)
+        return response
+
+    def _deposit_entries(self):
+        return CommissionLedgerEntry.objects.filter(
+            affiliate=self.affiliate, commission_type="deposit",
+        )
+
+    # ── the reported failure ────────────────────────────────────────────────
+
+    def test_recorded_deposit_produces_a_deposit_commission_ledger_entry(self):
+        rule = _rule(
+            name="Aff deposit 10%", affiliate=self.affiliate,
+            commission_type="deposit", rate=Decimal("10"),
+        )
+
+        self._deposit_at_casino(Decimal("10000"))
+
+        entry = self._deposit_entries().get()
+        self.assertEqual(entry.rule, rule)
+        self.assertEqual(entry.status, "qualified")
+        self.assertEqual(entry.base_amount, Decimal("10000.00"))
+        self.assertEqual(entry.commission_rate, Decimal("10.000"))
+        self.assertEqual(entry.commission_amount, Decimal("1000.00"))
+        self.assertEqual(entry.referred_player, self.player)
+        self.assertEqual(entry.country, SRI_LANKA)
+        self.assertEqual(entry.casino, self.casino)
+
+        # And the money row the affiliate dashboard reads from.
+        commission = entry.referral_commission
+        self.assertIsNotNone(commission)
+        self.assertEqual(commission.commission_type, "deposit")
+        self.assertEqual(commission.amount, Decimal("1000.00"))
+        self.assertEqual(commission.status, "pending")
+        self.affiliate.refresh_from_db()
+        self.assertEqual(self.affiliate.affiliate_profile.total_earned, Decimal("1000.00"))
+
+    def test_an_approved_online_deposit_request_also_triggers_it(self):
+        """get_deposit_totals() counts approved DepositRequests as well as
+        offline DAC entries, so both have to reach the engine or the base
+        amount and the trigger would disagree."""
+        rule = _rule(
+            name="Aff deposit 10%", affiliate=self.affiliate,
+            commission_type="deposit", rate=Decimal("10"),
+        )
+        request_obj = DepositRequest.objects.create(
+            user=self.player, amount=Decimal("4000"), status="pending",
+        )
+
+        admin_approve_deposit(request_obj=request_obj, actor=self.admin)
+
+        entry = self._deposit_entries().get()
+        self.assertEqual(entry.rule, rule)
+        self.assertEqual(entry.base_amount, Decimal("4000.00"))
+        self.assertEqual(entry.commission_amount, Decimal("400.00"))
+
+    # ── one-per-player / duplicate protection ───────────────────────────────
+
+    def test_a_second_deposit_never_awards_the_commission_again(self):
+        """The base is the player's *cumulative* deposit total, so a second
+        entry would pay a second time on money the first already covered."""
+        _rule(
+            name="Aff deposit 10%", affiliate=self.affiliate,
+            commission_type="deposit", rate=Decimal("10"),
+        )
+
+        self._deposit_at_casino(Decimal("10000"))
+        self._deposit_at_casino(Decimal("7000"))
+        self._deposit_at_casino(Decimal("3000"))
+
+        self.assertEqual(self._deposit_entries().count(), 1)
+        self.assertEqual(
+            ReferralCommission.objects.filter(commission_type="deposit").count(), 1,
+        )
+        entry = self._deposit_entries().get()
+        self.assertEqual(entry.commission_amount, Decimal("1000.00"))
+        self.affiliate.refresh_from_db()
+        self.assertEqual(self.affiliate.affiliate_profile.total_earned, Decimal("1000.00"))
+
+    def test_repeated_evaluation_of_an_awarded_deposit_is_an_applied_no_op(self):
+        """applied=False is the signal a caller uses to fall through to the
+        older engines. A no-op must not look like "no rule matched", or the
+        same deposit gets paid again by another route."""
+        _rule(
+            name="Aff deposit 10%", affiliate=self.affiliate,
+            commission_type="deposit", rate=Decimal("10"),
+        )
+        self._deposit_at_casino(Decimal("10000"))
+
+        repeat = commission_engine_service.evaluate(
+            self.player, commission_type="deposit",
+            casino_name="Bellagio Casino", country=SRI_LANKA,
+        )
+
+        self.assertTrue(repeat.applied)
+        self.assertEqual(repeat.reason, "Deposit commission already awarded for this player.")
+        self.assertEqual(self._deposit_entries().count(), 1)
+
+    def test_the_uniqueness_constraint_backs_the_one_per_player_rule(self):
+        """The read-then-write check in evaluate() can be raced; the database
+        constraint cannot. Deposit entries carry a deterministic reference so
+        the constraint applies to them, unlike the reference-less losing rows.
+        """
+        _rule(
+            name="Aff deposit 10%", affiliate=self.affiliate,
+            commission_type="deposit", rate=Decimal("10"),
+        )
+        self._deposit_at_casino(Decimal("10000"))
+        entry = self._deposit_entries().get()
+        self.assertEqual(
+            entry.reference_id,
+            commission_engine_service.deposit_reference(self.player),
+        )
+
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                CommissionLedgerEntry.objects.create(
+                    affiliate=self.affiliate, referred_player=self.player,
+                    commission_type="deposit", reference_id=entry.reference_id,
+                )
+
+    def test_an_admin_rejected_deposit_commission_is_not_resurrected(self):
+        _rule(
+            name="Aff deposit 10%", affiliate=self.affiliate,
+            commission_type="deposit", rate=Decimal("10"),
+        )
+        self._deposit_at_casino(Decimal("10000"))
+        entry = self._deposit_entries().get()
+        entry.status = "rejected"
+        entry.save(update_fields=["status"])
+
+        self._deposit_at_casino(Decimal("5000"))
+
+        self.assertEqual(self._deposit_entries().count(), 1)
+        entry.refresh_from_db()
+        self.assertEqual(entry.status, "rejected")
+
+    # ── condition-gated deposit rules ───────────────────────────────────────
+
+    def test_a_gated_rule_opens_one_row_and_qualifies_it_in_place(self):
+        """A deposit rule gated on wagering can only be satisfied by a bet
+        slip, so the deposit event opens a "qualifying" row and the bet slip
+        completes it -- one row that moves through the flow, not two rows."""
+        rule = _rule(
+            name="Aff deposit 10% after 5k wagered", affiliate=self.affiliate,
+            commission_type="deposit", rate=Decimal("10"),
+        )
+        CommissionCondition.objects.create(
+            rule=rule, metric="betting_amount", operator="gte", value=Decimal("5000"),
+        )
+
+        self._deposit_at_casino(Decimal("10000"))
+
+        entry = self._deposit_entries().get()
+        self.assertEqual(entry.status, "qualifying")
+        self.assertEqual(entry.commission_amount, Decimal("0.00"))
+        self.assertIn("Conditions not yet met", entry.qualification_reason)
+        self.assertEqual(ReferralCommission.objects.filter(commission_type="deposit").count(), 0)
+        opened_at = entry.created_at
+
+        self._bet_slip("SLIP-GATE-1", Decimal("2000"))
+        entry.refresh_from_db()
+        self.assertEqual(self._deposit_entries().count(), 1)
+        self.assertEqual(entry.status, "qualifying")
+
+        self._bet_slip("SLIP-GATE-2", Decimal("4000"))
+
+        self.assertEqual(self._deposit_entries().count(), 1)
+        entry.refresh_from_db()
+        self.assertEqual(entry.status, "qualified")
+        self.assertEqual(entry.commission_amount, Decimal("1000.00"))
+        self.assertEqual(entry.created_at, opened_at)
+        self.assertIsNotNone(entry.referral_commission)
+        self.assertEqual(ReferralCommission.objects.filter(commission_type="deposit").count(), 1)
+
+    def test_min_qualifying_amount_holds_the_row_open_until_deposits_reach_it(self):
+        _rule(
+            name="Aff deposit 10% over 15k", affiliate=self.affiliate,
+            commission_type="deposit", rate=Decimal("10"),
+            min_qualifying_amount=Decimal("15000"),
+        )
+
+        self._deposit_at_casino(Decimal("10000"))
+        entry = self._deposit_entries().get()
+        self.assertEqual(entry.status, "qualifying")
+        self.assertEqual(entry.base_amount, Decimal("10000.00"))
+
+        self._deposit_at_casino(Decimal("8000"))
+
+        self.assertEqual(self._deposit_entries().count(), 1)
+        entry.refresh_from_db()
+        self.assertEqual(entry.status, "qualified")
+        self.assertEqual(entry.base_amount, Decimal("18000.00"))
+        self.assertEqual(entry.commission_amount, Decimal("1800.00"))
+
+    # ── the additive guarantee ──────────────────────────────────────────────
+
+    def test_an_affiliate_with_no_deposit_rule_is_completely_unaffected(self):
+        """The whole point of the layering: wiring a new trigger must not
+        change what anyone earns until an admin creates a rule that matches."""
+        _rule(
+            name="Aff rolling 5%", affiliate=self.affiliate,
+            commission_type="rolling", rate=Decimal("5"),
+        )
+
+        self._deposit_at_casino(Decimal("10000"))
+
+        self.assertEqual(self._deposit_entries().count(), 0)
+        self.assertEqual(CommissionLedgerEntry.objects.count(), 0)
+        self.assertEqual(ReferralCommission.objects.count(), 0)
+
+        # ...and the rolling rule still pays on the bet slip exactly as before.
+        self._bet_slip("SLIP-ADDITIVE", Decimal("1000"))
+        rolling = CommissionLedgerEntry.objects.get(commission_type="rolling")
+        self.assertEqual(rolling.commission_amount, Decimal("50.00"))
+
+    def test_a_deposit_by_a_player_with_no_referrer_is_a_no_op(self):
+        _rule(name="global deposit", commission_type="deposit", rate=Decimal("10"))
+        self.player.referred_by = None
+        self.player.save(update_fields=["referred_by"])
+
+        self._deposit_at_casino(Decimal("10000"))
+
+        self.assertEqual(CommissionLedgerEntry.objects.count(), 0)
+
+
+class DepositCommissionVisibilityTests(APITestCase):
+    """The ledger is only fixed if both audiences can actually see the entry
+    it produced -- the Back Office searching by the affiliate's code, and the
+    affiliate themselves."""
+
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            email="vis-admin@example.com", password="pw12345!", is_staff=True, is_superuser=True,
+        )
+        self.affiliate = User.objects.create_user(
+            email="vis-aff@example.com", password="pw12345!", name="Vis Aff",
+        )
+        AffiliateProfile.objects.create(user=self.affiliate, is_active=True)
+        self.affiliate_code = self.affiliate.user_uid
+        self.player = User.objects.create_user(
+            email="vis-player@example.com", password="pw12345!",
+            referred_by=self.affiliate, country=SRI_LANKA_ISO,
+        )
+        _rule(
+            name="Vis deposit 10%", affiliate=self.affiliate,
+            commission_type="deposit", rate=Decimal("10"),
+        )
+        request_obj = DepositRequest.objects.create(
+            user=self.player, amount=Decimal("6000"), status="pending",
+        )
+        admin_approve_deposit(request_obj=request_obj, actor=self.admin)
+
+    def test_back_office_ledger_finds_it_by_affiliate_code(self):
+        self.client.force_authenticate(self.admin)
+
+        response = self.client.get(
+            "/api/admin-panel/commissions/ledger/", {"search": self.affiliate_code},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 1)
+        row = response.data["results"][0]
+        self.assertEqual(row["affiliate_uid"], self.affiliate_code)
+        self.assertEqual(row["commission_type"], "deposit")
+        self.assertEqual(Decimal(row["commission_amount"]), Decimal("600.00"))
+        self.assertEqual(row["status"], "qualified")
+
+    def test_the_affiliate_sees_the_same_entry_on_their_own_ledger(self):
+        self.client.force_authenticate(self.affiliate)
+
+        response = self.client.get("/api/affiliate/commissions/ledger/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 1)
+        row = response.data["results"][0]
+        self.assertEqual(row["commission_type"], "deposit")
+        self.assertEqual(Decimal(row["commission_amount"]), Decimal("600.00"))
+        self.assertEqual(row["reference_id"], commission_engine_service.deposit_reference(self.player))
+        # Rule internals stay out of the affiliate-facing payload (Part 40).
+        self.assertNotIn("rule_name", row)
+        self.assertNotIn("calculation_trace", row)
+
+    def test_the_affiliate_summary_counts_it(self):
+        self.client.force_authenticate(self.affiliate)
+
+        response = self.client.get("/api/affiliate/commissions/summary/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(Decimal(response.data["total_earned"]), Decimal("600.00"))
+        self.assertEqual(response.data["statuses"]["qualified"]["count"], 1)

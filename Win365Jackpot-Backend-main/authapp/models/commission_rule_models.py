@@ -333,13 +333,17 @@ class CommissionLedgerEntry(models.Model):
         on_delete=models.SET_NULL, related_name="ledger_entries",
     )
     # Bet-slip number / transaction ref that triggered this calculation. Used
-    # for idempotency on the rolling branch.
+    # for idempotency on the rolling branch, and — via the synthetic
+    # "deposit:<player id>" reference that
+    # commission_engine_service.deposit_reference() stamps on every deposit
+    # entry — for the deposit branch's one-per-(affiliate, player) rule too.
     #
     # NULL, never "", when there is no reference. The uniqueness below is
     # enforced unconditionally, and every backend treats NULLs in a unique
-    # index as distinct from one another -- so the deposit/losing entries,
-    # which have no bet slip, stay exempt without needing a partial index
-    # that MySQL cannot build. Blank strings would all collide instead.
+    # index as distinct from one another -- so the losing entries, which
+    # price a genuinely new slice of loss each time and have no bet slip,
+    # stay exempt without needing a partial index that MySQL cannot build.
+    # Blank strings would all collide instead.
     reference_id = models.CharField(max_length=100, null=True, blank=True, db_index=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -363,8 +367,9 @@ class CommissionLedgerEntry(models.Model):
             models.Index(fields=["status", "created_at"]),
         ]
         constraints = [
-            # Idempotency for the rolling branch: one entry per bet slip per
-            # affiliate/player.
+            # Idempotency for the rolling branch (one entry per bet slip per
+            # affiliate/player) and for the deposit branch (one entry per
+            # affiliate/player, under its synthetic deposit:<id> reference).
             #
             # This deliberately carries no condition=. It used to be
             # condition=~Q(reference_id="") to exempt the deposit/losing rows

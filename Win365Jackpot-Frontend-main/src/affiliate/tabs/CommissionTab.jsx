@@ -3,6 +3,7 @@ import { HandCoins, TrendingUp, Clock, Banknote, XCircle, CheckCircle2, Search, 
 import { API, affiliateFetch, fmt, fmtD } from "../helpers";
 import { C, Card, Table, Tr, Td, Pagination, Select, Pill } from "../components/SharedUI";
 import CountryCasinoBreakdown from "../components/CountryCasinoBreakdown";
+import CommissionLedger from "../components/CommissionLedger";
 
 const TYPE_LABEL = { deposit: "Deposit Commission", losing: "Losing Commission", rolling: "Rolling Commission" };
 const PAGE_SIZE = 20;
@@ -132,6 +133,15 @@ function LegacyView() {
         </div>
       </Card>
 
+      {/* Country + Casino rule-engine earnings. The rule engine is the layer
+          *above* the per-affiliate plans, so an affiliate can earn under it
+          without ever being assigned a plan — which lands them here, in the
+          legacy view. Both of these self-hide when the affiliate has no
+          rule-engine entries, so anyone genuinely on the flat rate sees this
+          view exactly as before. */}
+      <CountryCasinoBreakdown />
+      <CommissionLedger />
+
       <div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 10 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: "white" }}>Commission History</div>
@@ -238,10 +248,12 @@ function EngineView({ summary, onAgreed }) {
         ))}
       </div>
 
-      {/* Country + Casino rule-engine earnings. Self-hiding — renders
+      {/* Country + Casino rule-engine earnings, then the per-entry ledger
+          those totals are summed from. Both self-hiding — they render
           nothing for an affiliate with no rule-based commissions, so the
           tab is unchanged for anyone still on a plan or the flat rate. */}
       <CountryCasinoBreakdown />
+      <CommissionLedger />
 
       {/* Plan explainer */}
       {plan && (

@@ -155,6 +155,21 @@ def cancel_deposit_request(*, request_obj, actor, ip_address=None):
     return request_obj
 
 
+def _evaluate_deposit_commission(user):
+    """Re-evaluate this player's Deposit Commission under the rule engine.
+
+    Best-effort and non-fatal, the same shape the admin offline-deposit view
+    uses: a commission problem must never roll back an approved deposit. With
+    no matching deposit rule this is a no-op, so nothing changes for any
+    affiliate who has not been given one.
+    """
+    try:
+        from authapp.services import commission_engine_service
+        commission_engine_service.evaluate(user, commission_type="deposit")
+    except Exception as e:
+        logger.warning("deposit commission evaluation failed for user %s: %s", user.id, e)
+
+
 def _require_deposit_status(request_obj, *valid_from):
     if request_obj.status not in valid_from:
         raise WalletRequestError(
@@ -194,6 +209,15 @@ def admin_approve_deposit(*, request_obj, actor, note="", ip_address=None):
     )
     _notify(request_obj.user, "Deposit approved",
             f"Your deposit request {request_obj.request_reference} for ${request_obj.amount:,.2f} has been approved and credited to your Cash Wallet.")
+
+    # Deposit Commission — an approved DepositRequest is one of the two
+    # deposits affiliate_stats_service.get_deposit_totals() counts (the other
+    # being an offline DAC entry), so the referrer's deposit commission has to
+    # be re-evaluated here too or it would only ever see half the money.
+    # There is no casino in this flow, so only rules that do not pin one can
+    # match — which is the correct outcome, not a miss.
+    _evaluate_deposit_commission(request_obj.user)
+
     return request_obj
 
 

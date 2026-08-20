@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
+import { attemptPlay, useUserActivation } from '../hooks/useAudioAutoplay'
 import { Link } from 'react-scroll'
 import {
   Plane, Hotel, Coins, Car, UtensilsCrossed, Wine,
@@ -165,24 +166,16 @@ function WhatsAppBtn({ label = 'Enquire on WhatsApp', pkg = '' }) {
 }
 
 // Browsers block audible autoplay until the visitor has interacted with the
-// page at least once. This tiny module-level flag is shared by every
-// ImageCarousel instance (only one is ever mounted at a time — countries are
-// swapped via AnimatePresence — but the flag must survive that remount), so
-// destination video audio only turns on automatically once a real gesture
-// (click/tap/keypress) has happened anywhere on the page.
-let hasInteractedWithPage = false
-const INTERACTION_EVENTS = ['pointerdown', 'keydown', 'touchstart']
-
-function useHasInteracted() {
-  const [interacted, setInteracted] = useState(hasInteractedWithPage)
-  useEffect(() => {
-    if (interacted) return
-    const markInteracted = () => { hasInteractedWithPage = true; setInteracted(true) }
-    INTERACTION_EVENTS.forEach(evt => document.addEventListener(evt, markInteracted, { passive: true }))
-    return () => INTERACTION_EVENTS.forEach(evt => document.removeEventListener(evt, markInteracted))
-  }, [interacted])
-  return interacted
-}
+// page at least once. That answer comes from hooks/useAudioAutoplay — the
+// same module the Premium Partner hero band reads — rather than a tracker
+// local to this file. Two independent implementations of "may we play sound
+// yet?" were how the two landing-page videos ended up disagreeing about it:
+// this one listened for real events, the hero one sampled
+// navigator.userActivation once, which Safari does not implement at all.
+//
+// The shared module keeps its flag at module scope for the same reason the
+// local one did: only one ImageCarousel is mounted at a time (countries swap
+// via AnimatePresence) and the answer has to survive that remount.
 
 /* ══════════════════════════════════════════════
    IMAGE CAROUSEL — mobile-first heights
@@ -198,7 +191,7 @@ function ImageCarousel({ images, color, glow, isVisible }) {
   const [manualMute, setManualMute] = useState(null) // null = automatic, true/false = user override
   const timerRef          = useRef(null)
   const videoRef          = useRef(null)
-  const hasInteracted      = useHasInteracted()
+  const hasInteracted      = useUserActivation()
   const isVideo            = images[idx]?.type === 'video'
 
   // Reset any manual override on slide change so a newly active video always
@@ -219,16 +212,40 @@ function ImageCarousel({ images, color, glow, isVisible }) {
 
   // Sync muted/volume to the video element, gracefully falling back to muted
   // playback if the browser rejects an audible play() (autoplay policy).
-  useEffect(() => {
-    const el = videoRef.current
-    if (!el) return
-    el.volume = muted ? 0 : 0.18
-    el.muted  = muted
-    if (!muted) {
-      const p = el.play()
-      if (p?.catch) p.catch(() => { el.muted = true; setMuted(true) })
-    }
-  }, [muted, idx])
+  // attemptPlay makes exactly one audible attempt and one muted fallback, and
+  // a refusal settles: setMuted(true) here does not re-run the scroll/audio
+  // effect above (isVisible/hasInteracted/manualMute are all unchanged), so
+  // this can never become a retry loop.
+  const applyAudio = useCallback((el, wantMuted) => {
+    if (!el) return undefined
+    el.volume = wantMuted ? 0 : 0.18
+    el.muted = wantMuted
+    if (wantMuted) return undefined
+    let cancelled = false
+    attemptPlay(el, { withSound: true }).then(outcome => {
+      // Only speak for the element still mounted: a slide can swap underneath
+      // an in-flight attempt, and muting the state on a stale one would mute
+      // the wrong video.
+      if (!cancelled && videoRef.current === el && outcome !== 'audible') setMuted(true)
+    })
+    return () => { cancelled = true }
+  }, [])
+
+  const mutedRef = useRef(muted)
+  mutedRef.current = muted
+
+  useEffect(() => applyAudio(videoRef.current, muted), [applyAudio, muted, idx])
+
+  // AnimatePresence mode="wait" mounts the incoming slide *after* the effect
+  // for that idx has already run, so the effect writes to the outgoing
+  // element and never touches the new one — which is how a destination video
+  // ended up playing at the element default volume instead of 0.18. Applying
+  // the state from the ref callback closes that gap: it fires exactly when
+  // the node attaches, however late that is.
+  const attachVideo = useCallback(node => {
+    videoRef.current = node
+    if (node) applyAudio(node, mutedRef.current)
+  }, [applyAudio])
 
   useEffect(() => {
     setIdx(0)
@@ -266,8 +283,13 @@ function ImageCarousel({ images, color, glow, isVisible }) {
           >
             {isVideo ? (
               <video
-                ref={videoRef}
+                ref={attachVideo}
                 src={images[idx].src}
+                // `muted` stays bound rather than being left entirely to
+                // applyAudio: AnimatePresence swaps this element on every
+                // slide transition, and a new element has to mount with the
+                // audio state already correct rather than flashing audible
+                // for a frame.
                 autoPlay muted={muted} loop playsInline
                 // contain (not cover) — uploaded destination videos can be any
                 // aspect ratio, and cover crops whatever doesn't match this
