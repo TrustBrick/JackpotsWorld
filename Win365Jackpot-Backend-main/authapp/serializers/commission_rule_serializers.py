@@ -7,9 +7,12 @@ affiliate's own earnings and never the rule internals (Part 40: "Do not expose
 internal admin-only commission rules"), so an affiliate can see *that* they're
 on 12% in Sri Lanka without seeing every other affiliate's arrangement.
 """
+from decimal import Decimal
+
 from rest_framework import serializers
 
 from authapp.models.commission_rule_models import (
+    MANUAL_COMMISSION_TYPE,
     CommissionCondition, CommissionLedgerEntry, CommissionRule, CommissionTier,
 )
 
@@ -123,6 +126,15 @@ class CommissionLedgerEntrySerializer(serializers.ModelSerializer):
     player_email = serializers.EmailField(source="referred_player.email", read_only=True, default="")
     player_uid = serializers.CharField(source="referred_player.user_uid", read_only=True, default="")
     casino_name = serializers.CharField(source="casino.name", read_only=True, default="")
+    # For a manual/bonus row this is the admin who granted it; for a
+    # calculated row, whoever last moved it through the approval flow. The
+    # Back Office labels it accordingly rather than storing the same person
+    # twice under two names.
+    reviewed_by_email = serializers.EmailField(source="reviewed_by.email", read_only=True, default="")
+    is_manual = serializers.SerializerMethodField()
+
+    def get_is_manual(self, obj):
+        return obj.commission_type == MANUAL_COMMISSION_TYPE
 
     class Meta:
         model = CommissionLedgerEntry
@@ -131,9 +143,10 @@ class CommissionLedgerEntrySerializer(serializers.ModelSerializer):
             "referred_player", "player_email", "player_uid",
             "country", "casino", "casino_name",
             "rule", "rule_name", "tier", "tier_name",
-            "commission_type", "base_amount", "commission_rate", "commission_amount", "currency",
+            "commission_type", "is_manual",
+            "base_amount", "commission_rate", "commission_amount", "currency",
             "conditions_snapshot", "calculation_trace", "qualification_reason",
-            "status", "reference_id", "admin_notes",
+            "status", "reference_id", "admin_notes", "reviewed_by_email",
             "created_at", "qualified_at", "approved_at", "paid_at", "updated_at",
         ]
         # Everything except status/admin_notes is a historical fact — Part 37's
@@ -166,3 +179,48 @@ class AffiliateCommissionLedgerSerializer(serializers.ModelSerializer):
             "created_at", "qualified_at", "paid_at",
         ]
         read_only_fields = fields
+
+
+class ManualCommissionCreateSerializer(serializers.Serializer):
+    """Input for POST .../commissions/manual/.
+
+    Deliberately a plain Serializer, not a ModelSerializer: an admin supplies
+    an intent (who, how much, what for), not a ledger row. Every derived field
+    — status, rate, base amount, the entry itself — is decided by
+    services/manual_commission_service.py, so no client can post a
+    commission_amount that disagrees with what it asked for, or set a status
+    of its own choosing.
+
+    The heavier rules (the affiliate is genuinely an active affiliate, the
+    currency is one the platform supports, the reason is present) live in the
+    service, so they hold for any caller rather than only for requests that
+    happen to arrive through this serializer.
+    """
+
+    affiliate = serializers.IntegerField()
+    amount = serializers.DecimalField(max_digits=14, decimal_places=2, min_value=Decimal("0.01"))
+    currency = serializers.CharField(max_length=8, required=False, default="USD")
+    reason = serializers.CharField(max_length=255)
+    note = serializers.CharField(max_length=2000, required=False, allow_blank=True, default="")
+    # Supplied by the Back Office once per opened form. Two submissions of the
+    # same form carry the same key and produce one commission.
+    idempotency_key = serializers.CharField(max_length=64, required=False, allow_blank=True, default="")
+    # Accepted so the API reads the way the UI does, and rejected if it says
+    # anything other than "manual" -- this endpoint grants bonuses and nothing
+    # else. The other three types are calculated, never posted.
+    commission_type = serializers.CharField(max_length=10, required=False, default=MANUAL_COMMISSION_TYPE)
+
+    def validate_reason(self, value):
+        value = (value or "").strip()
+        if not value:
+            raise serializers.ValidationError("A reason is required for every manual commission.")
+        return value
+
+    def validate_commission_type(self, value):
+        value = (value or MANUAL_COMMISSION_TYPE).strip().lower()
+        if value != MANUAL_COMMISSION_TYPE:
+            raise serializers.ValidationError(
+                f"This endpoint only creates '{MANUAL_COMMISSION_TYPE}' commissions. "
+                f"Deposit, losing and rolling commissions are calculated from rules."
+            )
+        return value

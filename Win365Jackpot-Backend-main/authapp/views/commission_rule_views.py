@@ -8,6 +8,7 @@ Back Office (api/admin-panel/commissions/…) — all IsAdminOrSuperAdmin
   AdminCommissionRuleDuplicateView  POST  .../rules/<id>/duplicate/
   AdminCommissionRuleResolveView    GET   .../rules/resolve/
   AdminCommissionTier*/Condition*   CRUD  .../tiers/ .../conditions/
+  AdminManualCommissionCreateView   POST  .../manual/
   AdminCommissionLedgerListView     GET   .../ledger/
   AdminCommissionLedgerUpdateView   PATCH .../ledger/<id>/
   AdminCommissionLedgerTransitionView POST .../ledger/<id>/transition/
@@ -32,6 +33,7 @@ from rest_framework.views import APIView
 
 from authapp.models.casino_models import Casino
 from authapp.models.commission_rule_models import (
+    MANUAL_COMMISSION_TYPE,
     CommissionCondition, CommissionLedgerEntry, CommissionRule, CommissionTier,
 )
 from authapp.models.user_model import User
@@ -43,9 +45,15 @@ from authapp.serializers.commission_rule_serializers import (
     CommissionLedgerEntrySerializer,
     CommissionRuleSerializer,
     CommissionTierSerializer,
+    ManualCommissionCreateSerializer,
 )
+from authapp.models.affiliate_wallet_models import AffiliateWalletAccount
 from authapp.services import commission_rule_service
+from authapp.services.manual_commission_service import (
+    ManualCommissionError, create_manual_commission,
+)
 from authapp.services.notification_service import notify_generic
+from authapp.utils.client_ip import get_client_ip as _client_ip
 
 # Which status a given transition is allowed to move to. Enforced server-side
 # so no client can jump an entry straight to "paid".
@@ -214,6 +222,66 @@ def _ledger_queryset():
     )
 
 
+class AdminManualCommissionCreateView(APIView):
+    """POST .../commissions/manual/ — grant a Manual / Bonus commission.
+
+    The fourth commission type, and the only one an admin creates by hand.
+    Everything financial is decided server-side by
+    manual_commission_service.create_manual_commission(): the client states
+    who, how much and why, and receives back what was actually committed.
+
+    Admin-only through the same IsAdminOrSuperAdmin the rest of this module
+    uses, so an affiliate or player calling it gets 403 from DRF before any
+    code here runs.
+    """
+    permission_classes = [IsAdminOrSuperAdmin]
+
+    def post(self, request):
+        serializer = ManualCommissionCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        affiliate = User.objects.filter(pk=data["affiliate"]).first()
+
+        try:
+            entry, created = create_manual_commission(
+                affiliate=affiliate,
+                amount=data["amount"],
+                currency=data.get("currency") or "USD",
+                reason=data["reason"],
+                note=data.get("note") or "",
+                idempotency_key=data.get("idempotency_key") or "",
+                actor=request.user,
+                ip_address=_client_ip(request),
+            )
+        except ManualCommissionError as exc:
+            return Response({"success": False, "error": str(exc)}, status=400)
+
+        # Read the resulting balance back rather than computing it here, so
+        # what the admin is shown is what the database actually holds.
+        wallet = AffiliateWalletAccount.objects.filter(user=affiliate).first()
+
+        return Response(
+            {
+                "success": True,
+                "message": (
+                    "Manual commission added successfully."
+                    if created else
+                    "This commission was already recorded — no duplicate was created."
+                ),
+                "created": created,
+                "amount": str(entry.commission_amount),
+                "currency": entry.currency,
+                "available_commission": str(wallet.balance if wallet else Decimal("0")),
+                "entry": CommissionLedgerEntrySerializer(entry).data,
+            },
+            # 201 only when this request is what created it; a de-duplicated
+            # repeat is a successful 200, never an error -- the outcome the
+            # admin asked for is in place either way.
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+
 class AdminCommissionLedgerListView(generics.ListAPIView):
     serializer_class = CommissionLedgerEntrySerializer
     permission_classes = [IsAdminOrSuperAdmin]
@@ -265,6 +333,22 @@ class AdminCommissionLedgerTransitionView(APIView):
             entry = _ledger_queryset().get(pk=pk)
         except CommissionLedgerEntry.DoesNotExist:
             return Response({"error": "Ledger entry not found."}, status=404)
+
+        if entry.commission_type == MANUAL_COMMISSION_TYPE:
+            # A manual commission is credited to the affiliate's withdrawable
+            # wallet the instant it is granted, so its ledger row records a
+            # completed credit rather than a step in the approval flow. Moving
+            # it to "rejected" here would change the paperwork while leaving
+            # the money where it is -- and the affiliate may already have
+            # withdrawn it. Reversals belong to the withdrawal screens, which
+            # move real balance.
+            return Response(
+                {
+                    "error": "A manual / bonus commission cannot be moved through the approval flow — "
+                             "it was credited to the affiliate's balance when it was created.",
+                },
+                status=400,
+            )
 
         target = (request.data.get("status") or "").strip()
         if target not in dict(CommissionLedgerEntry._meta.get_field("status").choices):

@@ -26,6 +26,10 @@ const TYPE_LABEL = {
   deposit: "Deposit Commission",
   losing: "Losing Commission",
   rolling: "Rolling Commission",
+  // Granted by an account manager rather than calculated from activity, so
+  // it has no player, country or casino behind it — those columns render
+  // their usual dash.
+  manual: "Manual / Bonus",
 };
 
 // Mirrors LEDGER_STATUSES in commission_rule_models.py. Colours follow the
@@ -51,6 +55,12 @@ const STATUS_OPTIONS = [
   { value: "paid", label: "Paid" },
   { value: "rejected", label: "Rejected" },
 ];
+
+// Nothing was multiplied by anything on a manual bonus, and a fixed-amount
+// rule has no rate either. Rendering "0.000%" and "$0.00" in those columns
+// reads as a broken calculation rather than as "no calculation took place".
+const showsRate = row => Number(row.commission_rate) > 0;
+const showsBase = row => row.commission_type !== "manual";
 
 function titleCase(value) {
   return value ? value[0].toUpperCase() + value.slice(1) : "—";
@@ -101,7 +111,7 @@ export default function CommissionLedger() {
             <div style={{ fontSize: 13, fontWeight: 700, color: "white" }}>Commission Ledger</div>
           </div>
           <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 4 }}>
-            Every commission calculated for you under country and casino specific rates, with the status it is currently at.
+            Every commission recorded for you — calculated from country and casino rates, or added directly by your account manager — with the status it is currently at.
           </div>
         </div>
         <Select
@@ -129,15 +139,21 @@ export default function CommissionLedger() {
             <Td muted mono>{r.player_uid || "—"}</Td>
             <Td muted>{r.country || "—"}</Td>
             <Td muted>{r.casino_name || "—"}</Td>
-            <Td muted mono>{fmt(r.base_amount)}</Td>
-            <Td muted mono>{Number(r.commission_rate) > 0 ? `${r.commission_rate}%` : "—"}</Td>
+            <Td muted mono>{showsBase(r) ? fmt(r.base_amount) : "—"}</Td>
+            <Td muted mono>{showsRate(r) ? `${r.commission_rate}%` : "—"}</Td>
             <Td gold mono>{`${r.currency || "USD"} ${Number(r.commission_amount || 0).toFixed(2)}`}</Td>
             <Td>
               <Pill color={STATUS_COLOR[r.status] || C.textSecondary}>{titleCase(r.status)}</Pill>
             </Td>
-            <Td muted mono style={{ maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-              title={r.qualification_reason || ""}>
-              {r.reference_id || "—"}
+            {/* A manual bonus has no bet slip to reference; what identifies
+                it is the reason it was granted for, so that is what this
+                column carries for those rows. */}
+            <Td muted style={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+              mono={r.commission_type !== "manual"}
+              title={r.qualification_reason || r.reference_id || ""}>
+              {r.commission_type === "manual"
+                ? (r.qualification_reason || "—")
+                : (r.reference_id || "—")}
             </Td>
           </Tr>
         ))}

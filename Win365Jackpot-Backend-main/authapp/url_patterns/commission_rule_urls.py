@@ -11,6 +11,7 @@ from authapp.views.commission_rule_views import (
     AdminCommissionTierDetailView,
     AdminCommissionConditionListCreateView,
     AdminCommissionConditionDetailView,
+    AdminManualCommissionCreateView,
     AdminCommissionLedgerListView,
     AdminCommissionLedgerUpdateView,
     AdminCommissionLedgerTransitionView,
@@ -40,6 +41,9 @@ admin_urlpatterns = [
 
     path("commissions/conditions/", AdminCommissionConditionListCreateView.as_view()),
     path("commissions/conditions/<int:pk>/", AdminCommissionConditionDetailView.as_view()),
+
+    # Manual / Bonus commission — declared before the ledger routes it feeds.
+    path("commissions/manual/", AdminManualCommissionCreateView.as_view()),
 
     path("commissions/ledger/", AdminCommissionLedgerListView.as_view()),
     path("commissions/ledger/<int:pk>/transition/", AdminCommissionLedgerTransitionView.as_view()),

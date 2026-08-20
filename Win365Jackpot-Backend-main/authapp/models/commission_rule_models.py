@@ -36,6 +36,19 @@ COMMISSION_TYPES = [
     ("rolling", "Rolling Commission"),
 ]
 
+# The canonical value for a discretionary credit an admin grants directly.
+# One spelling, used in the database, the API and the UI alike.
+MANUAL_COMMISSION_TYPE = "manual"
+
+# What a *ledger entry* may be. Deliberately wider than COMMISSION_TYPES: a
+# manual commission is granted by an admin, not calculated from a rule, so
+# "manual" must never appear in the rule editor's type dropdown — there is no
+# such thing as a rule that pays a manual bonus. Keeping the two lists apart
+# is what stops one leaking into the other.
+LEDGER_COMMISSION_TYPES = COMMISSION_TYPES + [
+    (MANUAL_COMMISSION_TYPE, "Manual / Bonus"),
+]
+
 RATE_TYPES = [
     ("percentage", "Percentage of base amount"),
     ("fixed", "Fixed amount per qualifying player"),
@@ -287,6 +300,16 @@ class CommissionLedgerEntry(models.Model):
 
     Rule/tier FKs are SET_NULL with the name snapshotted alongside, so deleting
     a rule never destroys the history of what was paid under it.
+
+    A manual/bonus row (commission_type="manual") is the one kind that no
+    engine produces: an admin grants it directly, so it carries no rule, no
+    tier, no referred_player, a zero base_amount and a zero commission_rate --
+    there was no calculation, only a decision. It records that decision in the
+    fields the calculated rows already use: `qualification_reason` holds the
+    admin's stated reason, `admin_notes` any reference/note, and `reviewed_by`
+    the admin accountable for it. Its status is "payable" from the moment it
+    is created, because the money is credited to the affiliate's withdrawable
+    wallet in the same transaction. See services/manual_commission_service.py.
     """
 
     affiliate = models.ForeignKey(
@@ -311,7 +334,7 @@ class CommissionLedgerEntry(models.Model):
     )
     tier_name = models.CharField(max_length=120, blank=True)
 
-    commission_type = models.CharField(max_length=10, choices=COMMISSION_TYPES, db_index=True)
+    commission_type = models.CharField(max_length=10, choices=LEDGER_COMMISSION_TYPES, db_index=True)
     base_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
     commission_rate = models.DecimalField(max_digits=6, decimal_places=3, default=Decimal("0"))
     commission_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
@@ -345,6 +368,19 @@ class CommissionLedgerEntry(models.Model):
     # stay exempt without needing a partial index that MySQL cannot build.
     # Blank strings would all collide instead.
     reference_id = models.CharField(max_length=100, null=True, blank=True, db_index=True)
+
+    # Caller-supplied de-duplication token, used only by the manual/bonus
+    # branch. NULL on every calculated row -- and every backend allows any
+    # number of NULLs in a unique index, so the automatic engines are wholly
+    # unaffected by this constraint while a repeated manual submission
+    # collides on it.
+    #
+    # It has to be its own column rather than riding on
+    # uniq_commission_ledger_reference: a manual entry has no referred_player,
+    # and a NULL anywhere in a composite unique index makes MySQL treat the
+    # whole row as distinct, so that constraint cannot see manual duplicates
+    # at all.
+    idempotency_key = models.CharField(max_length=64, null=True, blank=True, unique=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     qualified_at = models.DateTimeField(null=True, blank=True)
