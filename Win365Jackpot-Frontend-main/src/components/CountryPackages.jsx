@@ -443,7 +443,12 @@ function VIPServicesGallery() {
       { src: '/assets/videos/spa-retreat.mp4',  label: 'Luxury Spa Retreat' },
     ].map((v, i) => (
       <div key={i} style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(212,175,55,0.15)', background: 'rgba(255,255,255,0.03)', position: 'relative', aspectRatio: '16/9' }}>
-        <video src={v.src} autoPlay muted loop playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+        {/* contain, not cover: these tiles share one 16:9 grid cell but the
+            clips do not share one shape — casino-floor.mp4 is a 360x640
+            portrait, and `cover` was showing about a third of it. The tile
+            keeps its grid shape and the clip keeps all of its frame, against
+            the tile's own dark surface. */}
+        <video src={v.src} autoPlay muted loop playsInline style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
         <div style={{ position: 'absolute', bottom: 8, left: 10, right: 10 }}>
           <span className=" font-bold" style={{ fontSize: 'clamp(0.68rem,2.5vw,0.78rem)', color: '#fff', fontWeight: 700, background: 'rgba(0,0,0,0.55)', padding: '3px 9px', borderRadius: 6 }}>{v.label}</span>
         </div>

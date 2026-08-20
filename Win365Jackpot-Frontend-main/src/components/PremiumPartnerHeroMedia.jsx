@@ -54,22 +54,27 @@ const MAX_VIDEO_SLIDE_MS = 30_000
    `cover` removes them without stretching anything, at the cost of a crop.
    How much crop is the only real question, and it is decided per upload from
    the media's own intrinsic size rather than assumed: `cover` has to scale
-   the media by max(boxRatio/mediaRatio, mediaRatio/boxRatio), and past a
-   point that stops being "fill the frame" and becomes "zoom into a detail".
+   Nothing here is ever cropped. `cover` used to be chosen whenever the crop
+   was small enough to look deliberate, which traded away part of the frame to
+   avoid letterbox bars — and on the real 848x478 upload against this ~2.4:1
+   band that meant a quarter of the picture, top and bottom, was simply not
+   shown.
 
-   1.6 is where that line sits here. The real 16:9 upload needs 2.35/1.77 =
-   1.32x, comfortably inside it, so it fills the frame edge to edge. A
-   phone-shot portrait clip would need ~4x, so it keeps its full height and
-   the surround stays the hero's own dark surface — never flat black. */
-const MAX_COVER_ZOOM = 1.6
+   The frame takes the media's shape instead, so `contain` has nothing left to
+   letterbox: no crop, no bars. The height is bounded so a portrait upload
+   cannot grow the hero without limit, and only in that clamped case does any
+   surround show — the hero's own graded dark surface, never flat black. */
 
-/** How far `cover` would have to scale this media up to fill this box.
- *  Returns 1 when either ratio isn't known yet, so an unmeasured frame reads
- *  as "no zoom needed" and takes the `cover` branch. */
-function coverZoom(mediaRatio, boxRatio) {
-  if (!mediaRatio || !boxRatio) return 1
-  return mediaRatio > boxRatio ? mediaRatio / boxRatio : boxRatio / mediaRatio
-}
+// The band's proportions when nothing better is known: the shape it had
+// before, so the first paint is identical and there is no jump once the media
+// reports its real size.
+const DEFAULT_MEDIA_RATIO = 2.4
+// A frame taller than this stops being a banner and starts pushing the page
+// around. Portrait uploads clamp here and letterbox within it.
+const MIN_MEDIA_RATIO = 1.2
+const MAX_MEDIA_RATIO = 3.2
+
+const clampRatio = (r) => Math.min(MAX_MEDIA_RATIO, Math.max(MIN_MEDIA_RATIO, r))
 
 /* ── Sheen ────────────────────────────────────────────────────────────────
    The partner name is gold lettering with a soft highlight travelling across
@@ -188,7 +193,7 @@ function buildSlides(partners, videoFailedIds) {
    is exactly what fast scrolling produces. Every call therefore awaits the
    in-flight one first, so they can't race.
    ──────────────────────────────────────────────────────────────────────── */
-function HeroVideo({ src, poster, active, loop, soundOn, onSoundChange, onEnded, onError, contentId, title, fit, onNaturalSize }) {
+function HeroVideo({ src, poster, active, loop, soundOn, onSoundChange, onEnded, onError, contentId, title, onNaturalSize }) {
   const videoRef = useRef(null)
   const pendingPlayRef = useRef(null)
   const activated = useUserActivation()
@@ -280,7 +285,7 @@ function HeroVideo({ src, poster, active, loop, soundOn, onSoundChange, onEnded,
         preload="metadata"
         onEnded={onEnded}
         onError={onError}
-        // The intrinsic size the fit decision is made from. videoWidth /
+        // The intrinsic size the frame is shaped from. videoWidth /
         // videoHeight are only populated once metadata has arrived, which is
         // exactly when this fires.
         onLoadedMetadata={e => {
@@ -292,7 +297,7 @@ function HeroVideo({ src, poster, active, loop, soundOn, onSoundChange, onEnded,
         // dark surface rather than the flat black bars this used to paint.
         style={{
           width: '100%', height: '100%',
-          objectFit: fit, objectPosition: 'center',
+          objectFit: 'contain', objectPosition: 'center',
           display: 'block', background: 'transparent',
         }}
       />
@@ -326,7 +331,7 @@ function HeroVideo({ src, poster, active, loop, soundOn, onSoundChange, onEnded,
 }
 
 /* ── Still image ─────────────────────────────────────────────────────────── */
-function HeroPhoto({ slide, eager, reduceMotion, fit, onNaturalSize }) {
+function HeroPhoto({ slide, eager, reduceMotion, onNaturalSize }) {
   return (
     <AnimatePresence mode="sync">
       <motion.img
@@ -348,13 +353,13 @@ function HeroPhoto({ slide, eager, reduceMotion, fit, onNaturalSize }) {
           opacity: { duration: reduceMotion ? 0 : 0.9, ease: 'easeInOut' },
           scale: { duration: reduceMotion ? 0 : SLIDE_MS / 1000 + 1, ease: 'linear' },
         }}
-        // Shares the video's fit decision rather than being hardcoded to
+        // Shares the video's contain treatment rather than being hardcoded to
         // cover: an admin uploading a poster-shaped still gets it whole,
         // exactly as a portrait video would, in this same frame.
         style={{
           position: 'absolute', inset: 0,
           width: '100%', height: '100%',
-          objectFit: fit, objectPosition: 'center', display: 'block',
+          objectFit: 'contain', objectPosition: 'center', display: 'block',
         }}
       />
     </AnimatePresence>
@@ -415,37 +420,18 @@ export default function PremiumPartnerHeroMedia() {
   // has loaded, so the box does not exist during the first commits. A plain
   // ref read from a mount-only effect would be null then and never looked at
   // again; this re-runs the moment the node actually appears.
-  const [boxEl, setBoxEl] = useState(null)
-  const [boxRatio, setBoxRatio] = useState(null)
   const [mediaRatio, setMediaRatio] = useState(null)
 
-  useEffect(() => {
-    if (!boxEl) return undefined
-    const measure = () => {
-      const { width, height } = boxEl.getBoundingClientRect()
-      if (width > 0 && height > 0) setBoxRatio(width / height)
-    }
-    measure()
-    if (typeof ResizeObserver === 'undefined') return undefined
-    // Observing the box rather than listening on window covers every way its
-    // size can change — viewport resize, orientation, the hero's own layout
-    // animation settling — with one subscription.
-    const observer = new ResizeObserver(measure)
-    observer.observe(boxEl)
-    return () => observer.disconnect()
-  }, [boxEl])
-
   // A new partner's media has its own dimensions; drop the previous one's so
-  // the fit is never decided from the slide that just left.
+  // the frame is never shaped by the slide that just left.
   const currentId = current?.id
   const currentIsVideo = !!current?.isVideo
   useEffect(() => { setMediaRatio(null) }, [currentId])
 
-  // Filling the frame is the default, including before the media has reported
-  // a size — that is the state this component is in for the first frames
-  // after mount, and a brief black-barred flash there is exactly what this
-  // change exists to remove.
-  const fit = coverZoom(mediaRatio, boxRatio) > MAX_COVER_ZOOM ? 'contain' : 'cover'
+  // The frame's shape. Falls back to the band's original proportions until the
+  // media reports its own, so the first paint matches what was there before
+  // and settles into the media's shape rather than jumping from a wrong one.
+  const frameRatio = clampRatio(mediaRatio || DEFAULT_MEDIA_RATIO)
 
   // A partner removed in the Back Office can shorten the list under a stale
   // index; snap back rather than showing the clamped last slide forever.
@@ -512,13 +498,16 @@ export default function PremiumPartnerHeroMedia() {
           height scales with it here so the box keeps a consistent banner
           proportion across breakpoints instead of a fixed vh slice. */}
       <div
-        ref={setBoxEl}
         style={{
           position: 'relative',
-          height: 'clamp(220px,34vw,520px)',
+          // Shaped by the media, not by a fixed height — that is what lets
+          // `contain` show the whole frame without leaving bars around it.
+          // Bounded so a portrait clip cannot turn the banner into a column.
+          aspectRatio: String(frameRatio),
+          maxHeight: 520,
           overflow: 'hidden',
-          // Only ever seen in the `contain` fallback, and deliberately the
-          // hero's own graded dark magenta rather than the flat #000 the
+          // Seen only when a clamped ratio leaves a surround, and deliberately
+          // the hero's own graded dark magenta rather than the flat #000 the
           // media element used to paint behind itself.
           background: 'radial-gradient(ellipse at 50% 40%, #1d0018 0%, #0A0005 100%)',
         }}
@@ -537,7 +526,6 @@ export default function PremiumPartnerHeroMedia() {
             active={active}
             soundOn={soundOn}
             onSoundChange={setSoundOn}
-            fit={fit}
             onNaturalSize={setMediaRatio}
             // A lone partner loops as before; with several, ending is what
             // hands over to the next one.
@@ -551,7 +539,6 @@ export default function PremiumPartnerHeroMedia() {
             slide={current}
             eager={safeIdx === 0}
             reduceMotion={reduceMotion}
-            fit={fit}
             onNaturalSize={setMediaRatio}
           />
         )}
