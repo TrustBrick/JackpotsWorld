@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import { Volume2, VolumeX } from 'lucide-react'
@@ -30,13 +30,113 @@ import { useVideoAnalytics } from '../hooks/useVideoAnalytics'
 const SLIDE_MS = 3800
 
 // Fraction of the media box that must be on screen for it to count as
-// "active". 0.5 keeps playback tied to the media actually being watched
-// without flickering on/off during ordinary scrolling.
-const VISIBILITY_THRESHOLD = 0.5
+// "active".
+//
+// Was 0.5, which is too much for a box this tall: at up to 520px it is a
+// large share of a laptop viewport, so ordinary scrolling crossed the 50%
+// line repeatedly and each crossing produced another pause()/play() pair —
+// playback visibly stopping and restarting while the visitor was still
+// looking straight at it. 0.25 still ties playback to media that is
+// genuinely on screen while leaving room to scroll without chopping it up.
+const VISIBILITY_THRESHOLD = 0.25
 
 // A video slide advances when it ends. This bounds the wait so one very long
 // upload can't strand the rotation on a single partner.
 const MAX_VIDEO_SLIDE_MS = 30_000
+
+/* ── Media fit ────────────────────────────────────────────────────────────
+   The frame is a wide banner (up to 1220 x 520, ~2.35:1) but uploads are
+   whatever the admin has: the live Bellagio clip is 848x478 (1.77:1). Fitting
+   that with `contain` left ~149px of flat black down each side — those bars
+   were the CSS backdrop showing through, not part of the video.
+
+   `cover` removes them without stretching anything, at the cost of a crop.
+   How much crop is the only real question, and it is decided per upload from
+   the media's own intrinsic size rather than assumed: `cover` has to scale
+   the media by max(boxRatio/mediaRatio, mediaRatio/boxRatio), and past a
+   point that stops being "fill the frame" and becomes "zoom into a detail".
+
+   1.6 is where that line sits here. The real 16:9 upload needs 2.35/1.77 =
+   1.32x, comfortably inside it, so it fills the frame edge to edge. A
+   phone-shot portrait clip would need ~4x, so it keeps its full height and
+   the surround stays the hero's own dark surface — never flat black. */
+const MAX_COVER_ZOOM = 1.6
+
+/** How far `cover` would have to scale this media up to fill this box.
+ *  Returns 1 when either ratio isn't known yet, so an unmeasured frame reads
+ *  as "no zoom needed" and takes the `cover` branch. */
+function coverZoom(mediaRatio, boxRatio) {
+  if (!mediaRatio || !boxRatio) return 1
+  return mediaRatio > boxRatio ? mediaRatio / boxRatio : boxRatio / mediaRatio
+}
+
+/* ── Sheen ────────────────────────────────────────────────────────────────
+   The partner name is gold lettering with a soft highlight travelling across
+   it, left to right, once every 7s.
+
+   Deliberately a background-position animation on a background-clipped
+   gradient: nothing about the text's geometry changes, so the line never
+   moves, reflows or shifts the layout around it — the only thing that
+   animates is which part of the gradient each glyph is painted from.
+
+   background-size is 300%, and the animation only sweeps position across
+   0%..100% of the remaining 200%, which keeps the visible window inside the
+   gradient at all times — no tile seam ever crosses the text. The bright
+   band sits at the gradient's midpoint and the outer thirds are flat base
+   gold, so both ends of the loop show plain gold: the rest phase is clean
+   and the restart is invisible rather than a flash.
+
+   Injected here rather than added to Hero.jsx's stylesheet so this component
+   carries its own presentation. */
+const SHEEN_CSS = `
+  @keyframes w365-partner-sheen {
+    0%,  14% { background-position: 100% center; }
+    66%,100% { background-position:   0% center; }
+  }
+  .w365-partner-name {
+    background-image: linear-gradient(100deg,
+      #C9A22B 0%, #C9A22B 30%,
+      #E8CE6E 42%, #FFFDF0 50%, #E8CE6E 58%,
+      #C9A22B 70%, #C9A22B 100%);
+    background-size: 300% 100%;
+    background-position: 0% center;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    /* drop-shadow, not text-shadow: with the fill transparent a text-shadow
+       would trace the glyphs of an invisible layer. This softly glows the
+       clipped result instead. */
+    filter: drop-shadow(0 1px 9px rgba(212,175,55,0.30));
+    animation: w365-partner-sheen 7s ease-in-out infinite;
+  }
+  /* Without background-clip: text the rules above would paint the name in
+     transparent. Fall back to a plain gold fill. */
+  @supports not ((-webkit-background-clip: text) or (background-clip: text)) {
+    .w365-partner-name {
+      background-image: none;
+      color: #E8CE6E;
+      -webkit-text-fill-color: #E8CE6E;
+      animation: none;
+      filter: none;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .w365-partner-name {
+      animation: none;
+      background-position: 50% center;
+    }
+  }
+`
+
+function injectSheenCSS() {
+  if (typeof document === 'undefined') return
+  if (document.getElementById('w365-partner-sheen-css')) return
+  const el = document.createElement('style')
+  el.id = 'w365-partner-sheen-css'
+  el.textContent = SHEEN_CSS
+  document.head.appendChild(el)
+}
 
 /** One renderable slide per partner: its video when it has one, else its
  *  image. Partners with neither are dropped rather than rendered as an empty
@@ -74,7 +174,7 @@ function buildSlides(partners, videoFailedIds) {
    is exactly what fast scrolling produces. Every pause therefore awaits the
    in-flight play first, so the two can't race.
    ──────────────────────────────────────────────────────────────────────── */
-function HeroVideo({ src, poster, active, loop, onEnded, onError, contentId, title }) {
+function HeroVideo({ src, poster, active, loop, onEnded, onError, contentId, title, fit, onNaturalSize }) {
   const videoRef = useRef(null)
   const pendingPlayRef = useRef(null)
 
@@ -172,13 +272,28 @@ function HeroVideo({ src, poster, active, loop, onEnded, onError, contentId, tit
         loop={loop}
         muted={muted}
         playsInline
-        preload="metadata"
+        // "metadata" fetched the header and then began playback with no
+        // buffered lead at all, so the very first network hiccup was already
+        // a stall. This is the video the visitor is here to watch — let the
+        // browser buffer ahead of the playhead.
+        preload="auto"
         onEnded={onEnded}
         onError={onError}
-        // contain, matching the destinations carousel: uploaded videos can be
-        // any aspect ratio and cover would crop whatever doesn't match this
-        // fixed-height band.
-        style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', background: '#000' }}
+        // The intrinsic size the fit decision is made from. videoWidth /
+        // videoHeight are only populated once metadata has arrived, which is
+        // exactly when this fires.
+        onLoadedMetadata={e => {
+          const v = e.currentTarget
+          if (v.videoWidth > 0 && v.videoHeight > 0) onNaturalSize?.(v.videoWidth / v.videoHeight)
+        }}
+        // No background of its own: with `cover` nothing shows behind it, and
+        // in the `contain` fallback the surround should be the frame's own
+        // dark surface rather than the flat black bars this used to paint.
+        style={{
+          width: '100%', height: '100%',
+          objectFit: fit, objectPosition: 'center',
+          display: 'block', background: 'transparent',
+        }}
       />
       <motion.button
         onClick={toggleMuted}
@@ -202,7 +317,7 @@ function HeroVideo({ src, poster, active, loop, onEnded, onError, contentId, tit
 }
 
 /* ── Still image ─────────────────────────────────────────────────────────── */
-function HeroPhoto({ slide, eager, reduceMotion }) {
+function HeroPhoto({ slide, eager, reduceMotion, fit, onNaturalSize }) {
   return (
     <AnimatePresence mode="sync">
       <motion.img
@@ -211,6 +326,12 @@ function HeroPhoto({ slide, eager, reduceMotion }) {
         alt={slide.name}
         loading={eager ? 'eager' : 'lazy'}
         decoding="async"
+        onLoad={e => {
+          const img = e.currentTarget
+          if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+            onNaturalSize?.(img.naturalWidth / img.naturalHeight)
+          }
+        }}
         initial={{ opacity: 0, scale: reduceMotion ? 1 : 1.05 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0 }}
@@ -218,10 +339,13 @@ function HeroPhoto({ slide, eager, reduceMotion }) {
           opacity: { duration: reduceMotion ? 0 : 0.9, ease: 'easeInOut' },
           scale: { duration: reduceMotion ? 0 : SLIDE_MS / 1000 + 1, ease: 'linear' },
         }}
+        // Shares the video's fit decision rather than being hardcoded to
+        // cover: an admin uploading a poster-shaped still gets it whole,
+        // exactly as a portrait video would, in this same frame.
         style={{
           position: 'absolute', inset: 0,
           width: '100%', height: '100%',
-          objectFit: 'cover', display: 'block',
+          objectFit: fit, objectPosition: 'center', display: 'block',
         }}
       />
     </AnimatePresence>
@@ -248,14 +372,64 @@ export default function PremiumPartnerHeroMedia() {
     return () => document.removeEventListener('visibilitychange', onVisibility)
   }, [])
 
+  useEffect(injectSheenCSS, [])
+
   // Server-ordered by the admin's display_order, so no client-side sorting.
   const { data: partners } = useAutoFetch(fetchPremiumPartners, {}, { intervalMs: 60_000 })
-  const slides = buildSlides(partners, videoFailedIds)
+  // Memoised because `current` below is derived from this and feeds an
+  // effect's dependency array. Rebuilding the array on every render gave
+  // every slide a new object identity each time, so that effect tore down
+  // and recreated its timer on renders that had changed nothing — and this
+  // component re-renders on a schedule it doesn't control, since Hero.jsx
+  // re-renders roughly every 60s from its own interval and its auto-fetch
+  // polls.
+  const slides = useMemo(() => buildSlides(partners, videoFailedIds), [partners, videoFailedIds])
 
   const count = slides.length
   const safeIdx = count > 0 ? Math.min(idx, count - 1) : 0
   const current = slides[safeIdx]
   const active = inView && documentVisible
+
+  // ── Media fit ───────────────────────────────────────────────────────────
+  // Both halves of the comparison are measured, never assumed: the box ratio
+  // from the element itself (it is fluid — width tracks the viewport, height
+  // is a clamp()), and the media ratio from the file once it reports one.
+  //
+  // A callback ref, not useRef: this component returns null until a partner
+  // has loaded, so the box does not exist during the first commits. A plain
+  // ref read from a mount-only effect would be null then and never looked at
+  // again; this re-runs the moment the node actually appears.
+  const [boxEl, setBoxEl] = useState(null)
+  const [boxRatio, setBoxRatio] = useState(null)
+  const [mediaRatio, setMediaRatio] = useState(null)
+
+  useEffect(() => {
+    if (!boxEl) return undefined
+    const measure = () => {
+      const { width, height } = boxEl.getBoundingClientRect()
+      if (width > 0 && height > 0) setBoxRatio(width / height)
+    }
+    measure()
+    if (typeof ResizeObserver === 'undefined') return undefined
+    // Observing the box rather than listening on window covers every way its
+    // size can change — viewport resize, orientation, the hero's own layout
+    // animation settling — with one subscription.
+    const observer = new ResizeObserver(measure)
+    observer.observe(boxEl)
+    return () => observer.disconnect()
+  }, [boxEl])
+
+  // A new partner's media has its own dimensions; drop the previous one's so
+  // the fit is never decided from the slide that just left.
+  const currentId = current?.id
+  const currentIsVideo = !!current?.isVideo
+  useEffect(() => { setMediaRatio(null) }, [currentId])
+
+  // Filling the frame is the default, including before the media has reported
+  // a size — that is the state this component is in for the first frames
+  // after mount, and a brief black-barred flash there is exactly what this
+  // change exists to remove.
+  const fit = coverZoom(mediaRatio, boxRatio) > MAX_COVER_ZOOM ? 'contain' : 'cover'
 
   // A partner removed in the Back Office can shorten the list under a stale
   // index; snap back rather than showing the clamped last slide forever.
@@ -269,16 +443,22 @@ export default function PremiumPartnerHeroMedia() {
 
   // Image slides advance on a timer; video slides advance when they end
   // (with MAX_VIDEO_SLIDE_MS as a backstop). A single partner never rotates.
+  //
+  // Depends on the two facts it actually reads — which slide, and whether it
+  // is a video — rather than on the slide object. `current` is rebuilt on
+  // every render, so depending on it restarted this timer on every render,
+  // and the MAX_VIDEO_SLIDE_MS backstop could be pushed out indefinitely by
+  // renders that had nothing to do with playback.
   useEffect(() => {
-    if (!active || count < 2 || !current) return
-    if (current.isVideo) {
+    if (!active || count < 2 || currentId === undefined) return
+    if (currentIsVideo) {
       const id = setTimeout(advance, MAX_VIDEO_SLIDE_MS)
       return () => clearTimeout(id)
     }
     if (reduceMotion) return
     const id = setTimeout(advance, SLIDE_MS)
     return () => clearTimeout(id)
-  }, [active, count, current, advance, reduceMotion])
+  }, [active, count, currentId, currentIsVideo, advance, reduceMotion])
 
   const markVideoFailed = useCallback((id) => {
     setVideoFailedIds(prev => {
@@ -315,7 +495,18 @@ export default function PremiumPartnerHeroMedia() {
           from the wide container Hero.jsx wraps this in (up to ~1220px), and
           height scales with it here so the box keeps a consistent banner
           proportion across breakpoints instead of a fixed vh slice. */}
-      <div style={{ position: 'relative', height: 'clamp(220px,34vw,520px)', overflow: 'hidden' }}>
+      <div
+        ref={setBoxEl}
+        style={{
+          position: 'relative',
+          height: 'clamp(220px,34vw,520px)',
+          overflow: 'hidden',
+          // Only ever seen in the `contain` fallback, and deliberately the
+          // hero's own graded dark magenta rather than the flat #000 the
+          // media element used to paint behind itself.
+          background: 'radial-gradient(ellipse at 50% 40%, #1d0018 0%, #0A0005 100%)',
+        }}
+      >
         {/* Only the current partner's media is mounted, so several partner
             videos are never fetched, decoded or played at once. Keying on the
             slide id tears the previous element down on change, which also
@@ -328,6 +519,8 @@ export default function PremiumPartnerHeroMedia() {
             contentId={`partner-${current.id}`}
             title={current.name}
             active={active}
+            fit={fit}
+            onNaturalSize={setMediaRatio}
             // A lone partner loops as before; with several, ending is what
             // hands over to the next one.
             loop={count < 2}
@@ -335,7 +528,14 @@ export default function PremiumPartnerHeroMedia() {
             onError={() => markVideoFailed(current.id)}
           />
         ) : (
-          <HeroPhoto key={current.id} slide={current} eager={safeIdx === 0} reduceMotion={reduceMotion} />
+          <HeroPhoto
+            key={current.id}
+            slide={current}
+            eager={safeIdx === 0}
+            reduceMotion={reduceMotion}
+            fit={fit}
+            onNaturalSize={setMediaRatio}
+          />
         )}
 
         {/* Bottom scrim — keeps the caption legible over any frame, using the
@@ -363,23 +563,57 @@ export default function PremiumPartnerHeroMedia() {
           Premium Partner
         </div>
 
+        {/* Partner plate. Stacked rather than the previous single baseline
+            row so the name reads as a title with the caption under it, and
+            kept to the lower-left corner and its own width so it sits over
+            the darkest part of the scrim without spanning the frame or
+            covering what is happening in the middle of the shot.
+
+            There is deliberately no "Premium Partner" line here — that badge
+            already exists top-right, and a second one would just say the same
+            thing twice inside one frame.
+
+            pointerEvents none so it never intercepts a click meant for the
+            slide dots sharing this edge. */}
         <div style={{
-          position: 'absolute', left: 16, right: 16, bottom: 12, zIndex: 2,
-          display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap',
+          position: 'absolute',
+          left: 'clamp(12px,2vw,18px)',
+          bottom: 'clamp(10px,1.6vw,14px)',
+          zIndex: 2,
+          maxWidth: 'min(72%, 460px)',
+          display: 'flex', flexDirection: 'column', gap: 3,
           fontFamily: "'Manrope', sans-serif",
+          pointerEvents: 'none',
         }}>
-          <span style={{
-            fontSize: 'clamp(16px,2.6vw,26px)', fontWeight: 700, lineHeight: 1.1,
-            background: 'linear-gradient(135deg,#D4AF37,#F5E07A)',
-            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-          }}>
-            {current.flag ? `${current.flag} ` : ''}{current.name}
+          {/* The flag sits outside the sheen span on purpose. Everything
+              inside it is painted from a background clipped to the glyphs
+              with the text fill transparent, which is right for lettering
+              and wrong for a colour emoji — this keeps the flag its own
+              artwork and lets only the name catch the light. */}
+          <span style={{ display: 'flex', alignItems: 'baseline', gap: 7 }}>
+            {current.flag && (
+              <span
+                aria-hidden
+                style={{ fontSize: 'clamp(15px,2.2vw,23px)', lineHeight: 1.12, flexShrink: 0 }}
+              >
+                {current.flag}
+              </span>
+            )}
+            <span
+              className="w365-partner-name"
+              style={{
+                fontSize: 'clamp(17px,2.6vw,27px)', fontWeight: 700,
+                lineHeight: 1.12, letterSpacing: '0.005em',
+              }}
+            >
+              {current.name}
+            </span>
           </span>
           {current.caption && (
             <span style={{
               fontSize: 'clamp(8px,1.3vw,11px)', fontWeight: 700,
               letterSpacing: '0.16em', textTransform: 'uppercase',
-              color: 'rgba(255,255,255,0.55)',
+              color: 'rgba(255,255,255,0.62)',
             }}>
               {current.caption}
             </span>
