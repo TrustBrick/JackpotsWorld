@@ -10,6 +10,7 @@ Live Support / Responsible Gambling backend:
   • SupportSettingsView             — GET/PATCH /api/admin-panel/support-settings/ (MULTILINGUAL-CHAT)
 """
 from django.conf import settings as django_settings
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
@@ -19,6 +20,9 @@ from rest_framework.views import APIView
 from authapp.models.responsible_gambling_models import ResponsibleGamblingSettings
 from authapp.models.support_ticket_models import SupportTicket
 from authapp.permissions.super_admin_permissions import IsAdminOrSuperAdmin
+# SERVICE-REQUEST CONVERSATION: opening a customer's own ticket as a live thread
+from authapp.services import live_chat_service
+from authapp.serializers.live_chat_serializers import ChatMessageSerializer
 from authapp.serializers.support_serializers import (
     ResponsibleGamblingSettingsSerializer,
     SupportTicketSerializer,
@@ -83,6 +87,49 @@ class SupportTicketListCreateView(generics.ListCreateAPIView):
         )
 
 
+class SupportTicketOpenConversationView(APIView):
+    """POST /api/support/tickets/<id>/open-conversation/
+
+    Opens one of the customer's OWN Service Requests as a live conversation.
+    An active ticket-form request is promoted in place to a real-time thread
+    (never a new ticket — see live_chat_service.open_ticket_conversation) and
+    returned with its transcript plus the realtime transport config the chat
+    client needs. A resolved/closed request is returned read-only: it is not
+    promoted, so the existing status gates keep refusing new messages and
+    calls, and the client renders it from the ticket's own message/admin_reply.
+
+    Owner-scoped: the get_object_or_404 on user=request.user is the whole
+    access rule, so a customer can never open another customer's request — the
+    same owner-or-staff boundary the WebSocket consumer already enforces.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, ticket_id):
+        ticket = get_object_or_404(SupportTicket, pk=ticket_id, user=request.user)
+        live_chat_service.open_ticket_conversation(ticket)
+        messages = ticket.chat_messages.all()
+        return Response({
+            "ticket": {
+                "id": ticket.id,
+                "subject": ticket.subject,
+                "status": ticket.status,
+                "created_at": ticket.created_at.isoformat(),
+                "is_live_chat": ticket.is_live_chat,
+                # Original submission + async reply, so the client can show a
+                # resolved (unpromoted) request's history without a thread.
+                "message": ticket.message,
+                "admin_reply": ticket.admin_reply,
+                "admin_reply_translated": ticket.admin_reply_translated,
+                "preferred_language": ticket.preferred_language,
+            },
+            "messages": ChatMessageSerializer(messages, many=True).data,
+            # Same realtime hint the live-chat endpoints return, so the client
+            # picks WebSocket-vs-poll here exactly as the floating widget does.
+            "realtime": bool(getattr(django_settings, "LIVE_CHAT_REALTIME", False)),
+            "poll_interval_ms": 2000,
+        })
+
+
 class AdminSupportTicketListView(generics.ListAPIView):
     queryset = SupportTicket.objects.select_related("user").order_by("-created_at")
     serializer_class = AdminSupportTicketSerializer
@@ -96,18 +143,22 @@ class AdminSupportTicketUpdateView(generics.UpdateAPIView):
     http_method_names = ["patch"]
 
     def perform_update(self, serializer):
-        # MULTILINGUAL-CHAT: when off, identical to the original save().
-        if not _multilingual_active():
-            serializer.save()
-            return
-
+        # MULTILINGUAL-CHAT: the translation step still only runs when the
+        # feature is active; the live-status push below runs either way.
         instance = serializer.save()
-        lang = instance.preferred_language or "en"
-        if instance.admin_reply and lang != "en":
-            translated = TranslationService().translate(instance.admin_reply, "en", lang)
-            instance.admin_reply_translated = translated
-            instance.translated_at = timezone.now()
-            instance.save(update_fields=["admin_reply_translated", "translated_at"])
+        if _multilingual_active():
+            lang = instance.preferred_language or "en"
+            if instance.admin_reply and lang != "en":
+                translated = TranslationService().translate(instance.admin_reply, "en", lang)
+                instance.admin_reply_translated = translated
+                instance.translated_at = timezone.now()
+                instance.save(update_fields=["admin_reply_translated", "translated_at"])
+        # SERVICE-REQUEST CONVERSATION: when an agent resolves (or otherwise
+        # moves the status of) a live session, push it so the customer's open
+        # conversation reflects it at once — composer and call disabled. A
+        # no-op for async form tickets: nobody is subscribed to their group.
+        if instance.is_live_chat:
+            live_chat_service.broadcast_ticket_status(instance)
 
 
 # MULTILINGUAL-CHAT: new view — public, read-only. Lets the frontend decide

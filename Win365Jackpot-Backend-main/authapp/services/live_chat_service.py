@@ -84,6 +84,60 @@ def get_or_create_active_session(user, participant_type=PARTICIPANT_PLAYER):
     return session, created
 
 
+def open_ticket_conversation(ticket):
+    """Promote one of the customer's own Service Requests to a real-time
+    conversation, in place.
+
+    "My Service Requests" are ordinary SupportTickets raised through the ticket
+    form (is_live_chat=False, one admin_reply field). The live thread, the
+    WebSocket and the voice call all key off is_live_chat=True, so opening such
+    a request as a conversation means flipping that one flag on the existing
+    row — never creating a second ticket or a second thread. Reuse, not a
+    parallel system.
+
+    Idempotent and status-aware:
+      • An active request (open/in_progress) that is not yet live is promoted,
+        and its original submission (plus any admin_reply already written on
+        it) is copied once into the thread so it opens showing what was already
+        said rather than blank. Promotion is announced to the agent inbox
+        exactly like a fresh live chat.
+      • A resolved/closed request is left exactly as it is — never promoted,
+        never seeded. Its status still gates messages and calls
+        (MESSAGEABLE_TICKET_STATUSES / voice_call_service.CALLABLE_TICKET_STATUSES),
+        so opening it can only ever show history, never revive it. The caller
+        renders such a ticket read-only from its own message/admin_reply.
+      • A request already in live-chat mode is returned untouched.
+    """
+    if ticket.is_live_chat or ticket.status not in ACTIVE_STATUSES:
+        return ticket
+
+    ticket.is_live_chat = True
+    ticket.save(update_fields=["is_live_chat", "updated_at"])
+    if not ticket.chat_messages.exists():
+        _seed_thread_from_form_ticket(ticket)
+    notify_session_started(ticket)
+    return ticket
+
+
+def _seed_thread_from_form_ticket(ticket):
+    """Copies a just-promoted form ticket's original message (and any
+    admin_reply already answered on it) into the ChatMessage thread, so the
+    conversation opens with its existing history instead of empty. The caller
+    guards this on an empty thread, so it runs once and never duplicates."""
+    original = (ticket.message or "").strip()
+    # The placeholder get_or_create_active_session writes for a brand-new live
+    # session is not a real customer message — never surface it as one.
+    if original and original != "(live chat session)":
+        ChatMessage.objects.create(
+            ticket=ticket, sender_type="user", sender=ticket.user, message=original,
+        )
+    reply = (ticket.admin_reply or "").strip()
+    if reply:
+        ChatMessage.objects.create(
+            ticket=ticket, sender_type="admin", sender=None, message=reply,
+        )
+
+
 def _broadcast(group, event_type, payload):
     """Best-effort push to the channel layer. Never raises — if Channels
     isn't configured (or the layer is briefly unavailable), the message is
@@ -203,6 +257,22 @@ def notify_session_started(ticket):
         "created_at": ticket.created_at.isoformat(),
     }
     _broadcast("livechat_admins", "chat.created", payload)
+
+
+def broadcast_ticket_status(ticket):
+    """Pushes a live session's current status to its participants and the agent
+    inbox. Called when an agent resolves (or otherwise moves) a session, so the
+    customer's open conversation flips to its resolved state — composer and
+    call disabled — the instant it happens, instead of only finding out when
+    their next send is rejected, and the inbox row restyles in place.
+
+    Best-effort like every other push here: the status is already persisted by
+    the caller, so a missed broadcast only costs the realtime nicety, never
+    correctness — the customer's next message/call is still refused by the
+    status gates, and a reload still shows the resolved state."""
+    payload = {"ticket_id": ticket.id, "status": ticket.status}
+    _broadcast(f"livechat_{ticket.id}", "chat.status", payload)
+    _broadcast("livechat_admins", "chat.status", payload)
 
 
 def mark_read(ticket, reader_is_admin):

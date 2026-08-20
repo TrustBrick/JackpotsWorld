@@ -13,6 +13,8 @@ import { fetchSupportConfig } from "../../../../services/translationService";
 import TicketMessage from "../../../support/TicketMessage";
 // VOICE-CALL: read-only history of this customer's own support calls.
 import CallHistoryList from "../../../support/CallHistoryList";
+// SERVICE-REQUEST CONVERSATION: the per-ticket Chat + Voice + Resolve surface.
+import ServiceRequestConversation from "../../../support/ServiceRequestConversation";
 
 // MULTILINGUAL-CHAT: chat language is stored separately from the site's
 // i18n language (User.preferred_language / Sidebar's selector) so picking a
@@ -100,6 +102,10 @@ export default function SupportTab({ onToast }) {
   // translated-reply rendering) when the feature flag is off.
   const [multilingualEnabled, setMultilingualEnabled] = useState(false);
   const [supportedLanguages, setSupportedLanguages] = useState([]);
+  // SERVICE-REQUEST CONVERSATION: the ticket whose conversation is open, if any.
+  // While set, this tab renders that request's Chat + Voice + Resolve surface
+  // instead of the list — carrying the exact ticket id, never a generic thread.
+  const [activeTicket, setActiveTicket] = useState(null);
   const [chatLanguage, setChatLanguage] = useState(
     () => localStorage.getItem(CHAT_LANG_STORAGE_KEY) || "en"
   );
@@ -162,6 +168,19 @@ export default function SupportTab({ onToast }) {
     }
     setSubmitting(false);
   };
+
+  // SERVICE-REQUEST CONVERSATION: when a request is open, this tab becomes that
+  // one conversation (back arrow returns to the list). On the way back we do a
+  // silent reload so a status change (e.g. the agent resolved it) is reflected.
+  if (activeTicket) {
+    return (
+      <ServiceRequestConversation
+        ticket={activeTicket}
+        onToast={onToast}
+        onBack={() => { setActiveTicket(null); load({ silent: true }); }}
+      />
+    );
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -321,16 +340,15 @@ export default function SupportTab({ onToast }) {
                     {tk.status.replace("_", " ")}
                   </span>
                 </div>
-                {/* While a request is still open, offer the live chat — that
-                    is where an agent answers in real time and where the voice
-                    call lives (see components/ChatBot.jsx). Deliberately a
-                    link into the existing chat rather than a second chat or a
-                    second call button here: there is one calling system and
-                    it belongs to the live-chat session. */}
-                {tk.status !== "resolved" && tk.status !== "closed" && (
+                {/* SERVICE-REQUEST CONVERSATION: opens THIS request — its exact
+                    ticket id — as a Chat + Voice + Resolve conversation, not the
+                    generic floating widget it used to dispatch. A resolved or
+                    closed request opens the same view read-only (history), with
+                    no active chat/call, per the spec's list rules. */}
+                {tk.status !== "resolved" && tk.status !== "closed" ? (
                   <button
                     type="button"
-                    onClick={() => window.dispatchEvent(new CustomEvent("open-chat"))}
+                    onClick={() => setActiveTicket(tk)}
                     style={{
                       marginTop: 10, display: "inline-flex", alignItems: "center", gap: 6,
                       padding: "7px 12px", borderRadius: 8, cursor: "pointer",
@@ -340,6 +358,19 @@ export default function SupportTab({ onToast }) {
                   >
                     <LifeBuoy size={13} aria-hidden="true" />
                     {t("support.chatNow")} — talk or call an agent now
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setActiveTicket(tk)}
+                    style={{
+                      marginTop: 10, display: "inline-flex", alignItems: "center", gap: 6,
+                      padding: "7px 12px", borderRadius: 8, cursor: "pointer",
+                      background: "transparent", border: `1px solid ${C.border}`,
+                      color: "rgba(255,255,255,0.6)", fontSize: 11.5, fontWeight: 700, fontFamily: "inherit",
+                    }}
+                  >
+                    View Details →
                   </button>
                 )}
                 {/* The agent's reply is shown whenever one exists. The

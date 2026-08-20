@@ -263,6 +263,14 @@ export default function LiveSupportTab({ onToast }) {
 
   const markResolved = async () => {
     if (!selectedId) return;
+    // Resolving is the one explicit action that ends a request — a reply or a
+    // voice call never does (that rule is enforced in the backend). Confirm
+    // first, per the spec's Resolve Request flow.
+    if (!window.confirm(
+      "Are you sure you want to resolve this request?\n\n" +
+      "The customer will no longer be able to send messages or start a call on it. " +
+      "The conversation stays visible as history."
+    )) return;
     const r = await adminFetch(`${API}/api/admin-panel/support/tickets/${selectedId}/`, {
       method: "PATCH",
       body: JSON.stringify({ status: "resolved" }),
