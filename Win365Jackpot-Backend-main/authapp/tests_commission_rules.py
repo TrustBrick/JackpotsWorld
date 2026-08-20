@@ -373,6 +373,51 @@ class CommissionCalculationTests(APITestCase):
         # NULL, not "" -- the blank string would collide on the second row.
         self.assertEqual(entries.filter(reference_id__isnull=True).count(), 3)
 
+    def test_a_trigger_with_no_new_activity_writes_nothing(self):
+        """The losing branch re-derives its base from the loss ledger, so a
+        trigger that fires with nothing new behind it resolves to zero. That
+        is not a qualification story worth a row -- without this, every LAC
+        that added no unpriced loss left another meaningless zero line in the
+        affiliate's ledger."""
+        _rule(name="losing 10pct", country="Sri Lanka", rate=Decimal("10"),
+              commission_type="losing")
+        first = commission_engine_service.evaluate(
+            self.player, commission_type="losing", base_amount=Decimal("1000"),
+            casino_name="Bellagio Casino", country=SRI_LANKA,
+        )
+        self.assertEqual(first.entry.commission_amount, Decimal("100.00"))
+
+        # No further loss recorded, so the derived base is zero.
+        for _ in range(3):
+            repeat = commission_engine_service.evaluate(
+                self.player, commission_type="losing",
+                casino_name="Bellagio Casino", country=SRI_LANKA,
+            )
+            # applied, so the caller does not fall through and pay it again
+            # under an older engine.
+            self.assertTrue(repeat.applied)
+            self.assertEqual(repeat.reason, "No new activity to price.")
+
+        self.assertEqual(CommissionLedgerEntry.objects.count(), 1)
+        self.assertEqual(ReferralCommission.objects.count(), 1)
+
+    def test_an_explicit_zero_base_still_records_the_event(self):
+        """Only a *derived* zero is silence. A caller passing a base is
+        describing a real event, and the ledger should say what it decided."""
+        _rule(name="rolling 10pct", country="Sri Lanka", rate=Decimal("10"))
+
+        result = commission_engine_service.evaluate(
+            self.player, commission_type="rolling", base_amount=Decimal("0"),
+            casino_name="Bellagio Casino", reference_id="SLIP-ZERO",
+            country=SRI_LANKA,
+        )
+
+        self.assertTrue(result.applied)
+        self.assertIsNotNone(result.entry)
+        self.assertEqual(result.entry.status, "qualifying")
+        self.assertEqual(result.entry.commission_amount, Decimal("0.00"))
+        self.assertEqual(ReferralCommission.objects.count(), 0)
+
     def test_an_unqualified_losing_row_is_refreshed_rather_than_duplicated(self):
         """Open rows carry no money, so re-evaluating one must advance it, not
         stack another beside it. Before this, a losing rule whose minimum was

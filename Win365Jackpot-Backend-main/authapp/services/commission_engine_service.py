@@ -327,10 +327,30 @@ def evaluate(referred_user, *, commission_type, base_amount=None, casino_name=No
         f"specificity {rule.specificity}, priority {rule.priority}.",
     ]
 
+    caller_supplied_base = base_amount is not None
     base_amount = _resolve_base_amount(
         commission_type, affiliate=affiliate, referred_user=referred_user, base_amount=base_amount,
     )
     trace.append(f"Base amount for {commission_type}: {base_amount}")
+
+    # Nothing to price. A derived base of zero means the ledgers this branch
+    # reads hold nothing new -- every dollar of loss is already accounted for,
+    # or the player has not deposited yet -- so there is no calculation to
+    # record and no progress to show. Writing a zero-value "qualifying" row
+    # here would put a meaningless line in the affiliate's ledger every time a
+    # trigger fired with no new activity behind it.
+    #
+    # Only for a *derived* base: a caller that explicitly passes zero (which
+    # the bet-slip trigger never does -- the view rejects a non-positive bet
+    # amount upstream) is making a claim about a real event, and still gets a
+    # row. And applied=True, because the rule did match; applied=False is the
+    # fall-through signal, and the older engines must not be handed an event
+    # this one has already accounted for.
+    if not caller_supplied_base and base_amount <= 0:
+        return CommissionResult(
+            applied=True, entry=open_entry,
+            reason="No new activity to price.", trace=trace,
+        )
 
     conditions_met, condition_rows, unmet = evaluate_conditions(
         rule, affiliate=affiliate, referred_user=referred_user,

@@ -415,7 +415,17 @@ export default function Hero() {
   const { data: heroStatsData } = useAutoFetch(fetchHeroStats, {}, { intervalMs: 60_000 })
 
   // Background video loop fallback — some encodes don't honor the native
-  // `loop` attribute reliably in every browser, so force-restart on end/pause.
+  // `loop` attribute reliably in every browser, so restart once the video
+  // genuinely reaches its end.
+  //
+  // Only ever wired to `ended`. It used to run on `pause` as well, which made
+  // the video unplayable on any device that pauses it for its own reasons —
+  // offscreen media on mobile, battery saver, a hidden tab, decoder pressure.
+  // The browser paused, this seeked back to 0 and called play(), the browser
+  // paused again, and the loop pinned the element at frame 0 with readyState
+  // stuck at HAVE_METADATA: a video that visibly loaded and never moved,
+  // differently on every device. Confirmed by blocking the seek-to-zero in a
+  // live page, after which the same element played at full rate immediately.
   const videoRef = useRef(null)
   const restartVideo = () => {
     const v = videoRef.current
@@ -423,6 +433,35 @@ export default function Hero() {
     v.currentTime = 0
     v.play().catch(() => {})
   }
+
+  // A browser can leave this paused for reasons that later stop applying: the
+  // autoplay attribute is evaluated before `preload="metadata"` has any frames
+  // to show, a backgrounded tab suspends playback, and mobile Chrome parks
+  // large background media under resource pressure. Resume on exactly the two
+  // events that mean the answer may have changed since — never on `pause`
+  // itself, which is what turned this element into a frame-0 loop before.
+  // Both are readyState/visibility transitions, so neither can spin: they
+  // cannot re-fire without the browser first changing its mind.
+  //
+  // This video is always muted, so a refused play() here is a resource
+  // decision rather than an autoplay-policy one, and is simply left alone —
+  // the poster frame stays on screen and the hero reads exactly as designed.
+  useEffect(() => {
+    const v = videoRef.current
+    if (!v) return undefined
+    const resume = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
+      if (!v.paused) return
+      v.play().catch(() => {})
+    }
+    v.addEventListener('canplay', resume)
+    document.addEventListener('visibilitychange', resume)
+    resume()
+    return () => {
+      v.removeEventListener('canplay', resume)
+      document.removeEventListener('visibilitychange', resume)
+    }
+  }, [])
 
 useEffect(() => {
   const handleResize = () => {
@@ -459,24 +498,24 @@ useEffect(() => {
       }}
     >
       {/* Background video — sits behind everything else in the hero.
-          `loop` is set natively, with the onEnded fallback below covering
-          encodes some browsers won't loop seamlessly on their own (common
-          with web-editor exports). */}
+          `loop` is set natively; the onEnded fallback below covers encodes
+          some browsers won't loop seamlessly on their own (common with
+          web-editor exports). Muted by design: this plays behind the hero
+          text at low opacity with pointerEvents disabled, so it is scenery,
+          not content, and never asks for sound. */}
       <video
         ref={videoRef}
         autoPlay
         loop
         muted
         playsInline
-        preload="auto"
-        // `onPause` deliberately does NOT restart: the browser fires `pause`
-        // for reasons that are not "the loop ended" — iOS Low Power Mode, a
-        // tab being restored, decode/bandwidth pressure. Restarting on those
-        // seeks this 38MB file back to byte 0 and re-buffers the whole thing,
-        // which turns a momentary stall into a visible restart and starves
-        // the partner video streaming alongside it. `loop` already handles
-        // looping natively; `onEnded` stays as the fallback for encodes that
-        // don't honour it (and never fires while `loop` is working).
+        // metadata, matching every other video on the site. "auto" told the
+        // browser to pull this whole file as fast as it could, and it is by
+        // far the heaviest asset on the page — a full-length 1080p loop that
+        // renders behind a gradient at low opacity — so that download
+        // competed with the hero text, the partner video's audio and
+        // everything below the fold. It streams progressively either way.
+        preload="metadata"
         onEnded={restartVideo}
         style={{
           position:'absolute', inset:0, width:'100%', height:'100%',

@@ -272,11 +272,12 @@ function HeroVideo({ src, poster, active, loop, soundOn, onSoundChange, onEnded,
         // that owns the real state.
         muted
         playsInline
-        // "metadata" fetched the header and then began playback with no
-        // buffered lead at all, so the very first network hiccup was already
-        // a stall. This is the video the visitor is here to watch — let the
-        // browser buffer ahead of the playhead.
-        preload="auto"
+        // metadata, matching every other video on the site. Buffering ahead
+        // with "auto" looks like the obvious fix for a stall, but preload was
+        // A/B'd on real devices while chasing this and was never what stopped
+        // playback — while "auto" on a 25MB file does measurably compete for
+        // bandwidth with everything else the page still needs.
+        preload="metadata"
         onEnded={onEnded}
         onError={onError}
         // The intrinsic size the fit decision is made from. videoWidth /
