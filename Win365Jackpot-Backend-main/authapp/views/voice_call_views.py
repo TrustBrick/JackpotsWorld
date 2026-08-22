@@ -237,6 +237,36 @@ class AdminCallHistoryView(generics.ListAPIView):
     serializer_class = CallSessionSerializer
     permission_classes = [IsAdminOrSuperAdmin]
 
+    def list(self, request, *args, **kwargs):
+        """Retire lapsed rings before answering, so the panel never offers a
+        call that can no longer be answered.
+
+        Every *action* on a call already expires it first (accept, reject, end
+        and the rest all call expire_if_due), but a list is not an action: the
+        queryset below simply read `status`, so a call whose ring window had
+        lapsed kept appearing as "ringing" indefinitely. An agent could click
+        Accept on it — correctly refused, since accept expires it first — but
+        the panel was showing them something to click that could never work,
+        and abandoned rings accumulated at the top of the list.
+
+        sweep_expired_calls() is the same routine the management command runs,
+        and it is a real state transition per call rather than a bulk UPDATE:
+        each lapsed row goes through expire_if_due, which releases the ticket's
+        active_key and broadcasts the change, so a freed ticket can take a new
+        call immediately. In the normal case there is nothing due and it costs
+        one indexed SELECT that matches no rows.
+
+        Placed here rather than in get_queryset because it is a write, and this
+        is the one method guaranteed to run exactly once per request.
+
+        The scheduled sweep is still worth running: this only fires when an
+        agent opens the panel, so a deployment where nobody does would still
+        leave rings holding their tickets. See
+        authapp/management/commands/sweep_expired_calls.py.
+        """
+        voice_call_service.sweep_expired_calls()
+        return super().list(request, *args, **kwargs)
+
     def get_queryset(self):
         qs = CallSession.objects.select_related("ticket", "caller", "receiver")
         if not self.request.user.is_superuser:
