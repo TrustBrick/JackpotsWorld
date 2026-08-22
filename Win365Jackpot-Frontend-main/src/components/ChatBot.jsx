@@ -36,7 +36,18 @@ const WELCOME = { role: "bot", text: "Welcome to Jackpots World Customer Support
 // 1024) rather than pinning everything below desktop to the floor; the bounds
 // keep it inside 65–90px on phones and 90–130px on desktop, so it never
 // covers page content at either end.
-const AVATAR_H = "clamp(68px, 11vw, 124px)"
+// Mascot height. The floor and the vw term are unchanged, so a phone still
+// renders it at 68px exactly as before; only the desktop ceiling moves,
+// 124px -> 90px. At 124 the character was competing with the hero copy
+// instead of reading as a floating support button.
+//
+//   375px phone  -> 68px   (11vw = 41, floored)
+//   768px tablet -> 84px   (11vw, between the bounds)
+//   1440px+      -> 90px   (11vw = 158, capped)
+//
+// Height is what the design is specified in; the button derives its width
+// from the 120x138 viewBox.
+const AVATAR_H = "clamp(68px, 11vw, 90px)"
 
 // Merges a "real" (server-assigned-id) live-chat message into the list
 // without duplicating it. Needed because a message we just sent can reach
@@ -122,6 +133,16 @@ function ConciergeRobot({ reduceMotion }) {
   const blink = reduceMotion ? undefined : { scaleY: [1, 1, 0.12, 1, 1, 1, 0.12, 1, 1] }
   const blinkTx = { duration: 7.6, repeat: Infinity, times: [0, 0.33, 0.355, 0.38, 0.7, 0.73, 0.755, 0.78, 1], ease: "easeInOut" }
 
+  // The greeting wave. Four beats of forearm rotation packed into the first
+  // ~1.2s of a 7s cycle, and flat for the rest — so it reads as an occasional
+  // friendly hello rather than a character permanently flapping at the reader.
+  // `delay` lets the bot settle into frame before it waves the first time.
+  const wave = reduceMotion ? undefined : { rotate: [0, -22, -4, -19, -2, 0, 0, 0] }
+  const waveTx = {
+    duration: 7, repeat: Infinity, delay: 1.2, ease: "easeInOut",
+    times: [0, 0.03, 0.06, 0.09, 0.13, 0.17, 0.6, 1],
+  }
+
   return (
     <svg viewBox="0 0 120 138" width="100%" height="100%" style={{ overflow: "visible", display: "block" }}>
       <defs>
@@ -148,23 +169,37 @@ function ConciergeRobot({ reduceMotion }) {
           <stop offset="58%" stopColor="#C99F2C" />
           <stop offset="100%" stopColor="#7E5D14" />
         </linearGradient>
-        {/* Helmet: lit from upper-left, falling to near-black at the jaw. */}
+        {/* Helmet: pearl-white, lit from upper-left and falling to a warm
+            shadow at the jaw. Ivory rather than pure white all through, so the
+            dome still reads as a moulded surface against a near-black page. */}
         <radialGradient id="cb-helmet" cx="34%" cy="24%" r="82%">
-          <stop offset="0%" stopColor="#55504a" />
-          <stop offset="34%" stopColor="#221f1c" />
-          <stop offset="72%" stopColor="#0d0c0b" />
-          <stop offset="100%" stopColor="#040404" />
+          <stop offset="0%" stopColor="#FFFFFF" />
+          <stop offset="36%" stopColor="#F7F2E8" />
+          <stop offset="72%" stopColor="#E3DAC9" />
+          <stop offset="100%" stopColor="#C4B9A3" />
         </radialGradient>
+        {/* The coat. Burgundy is the half of the palette that makes this a
+            JackpotsWorld concierge rather than a generic assistant, so it is
+            deep enough to sit against gold without muddying it. */}
         <radialGradient id="cb-torso" cx="38%" cy="18%" r="88%">
-          <stop offset="0%" stopColor="#3a3630" />
-          <stop offset="38%" stopColor="#171512" />
-          <stop offset="100%" stopColor="#040404" />
+          <stop offset="0%" stopColor="#A8324E" />
+          <stop offset="40%" stopColor="#7C2038" />
+          <stop offset="100%" stopColor="#460D1D" />
         </radialGradient>
-        {/* Visor glass — darkest at the centre so the specular streak pops. */}
+        {/* Visor glass stays dark: it is the contrast the eyes glow against.
+            Cooled slightly toward blue so the eye light looks reflected in it
+            rather than pasted on. */}
         <radialGradient id="cb-visor" cx="32%" cy="22%" r="86%">
-          <stop offset="0%" stopColor="#1d1a24" />
-          <stop offset="45%" stopColor="#0a0910" />
-          <stop offset="100%" stopColor="#030307" />
+          <stop offset="0%" stopColor="#1c2231" />
+          <stop offset="45%" stopColor="#0a0e17" />
+          <stop offset="100%" stopColor="#03050a" />
+        </radialGradient>
+        {/* Halo behind each eye — what makes them read as lit rather than
+            painted, without needing an SVG blur filter (which Safari renders
+            expensively at this size). */}
+        <radialGradient id="cb-eyeglow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#9FE4FF" stopOpacity="0.55" />
+          <stop offset="100%" stopColor="#9FE4FF" stopOpacity="0" />
         </radialGradient>
         <linearGradient id="cb-sheen" x1="0%" y1="0%" x2="60%" y2="100%">
           <stop offset="0%" stopColor="#ffffff" stopOpacity="0.4" />
@@ -191,7 +226,7 @@ function ConciergeRobot({ reduceMotion }) {
         animate={reduceMotion ? undefined : { y: [0, -3.6, 0] }}
         transition={{ duration: 3.8, repeat: Infinity, ease: "easeInOut" }}
       >
-        {/* ── Body: rounded pebble in a black tuxedo ── */}
+        {/* ── Body: rounded pebble in a burgundy dinner coat ── */}
         <motion.g
           animate={reduceMotion ? undefined : { scaleY: [1, 1.016, 1] }}
           transition={{ duration: 4.6, repeat: Infinity, ease: "easeInOut" }}
@@ -200,26 +235,47 @@ function ConciergeRobot({ reduceMotion }) {
           <path d="M60 78 C44 78 33 89 31 103 C29 116 42 126 60 126 C78 126 91 116 89 103 C87 89 76 78 60 78 Z"
             fill="url(#cb-torso)" />
           {/* rim light down the left shoulder — separates body from background */}
-          <path d="M40 88 C34 94 32 100 32 106" fill="none" stroke="#fff" strokeWidth="1.5" strokeOpacity="0.1" strokeLinecap="round" />
+          <path d="M40 88 C34 94 32 100 32 106" fill="none" stroke="#fff" strokeWidth="1.5" strokeOpacity="0.16" strokeLinecap="round" />
 
-          {/* Shirt: the champagne wedge the lapels open onto. */}
-          <path d="M52 80 L60 79 L68 80 L64 100 L56 100 Z" fill="url(#cb-gold)" opacity="0.92" />
+          {/* Dress shirt: the ivory wedge the lapels open onto. */}
+          <path d="M52 80 L60 79 L68 80 L64 100 L56 100 Z" fill="#F7F2E6" />
           {/* Collar points folding over the shirt. */}
-          <path d="M52 80 L60 87 L68 80" fill="none" stroke="#0b0a09" strokeWidth="1.5" strokeLinejoin="round" />
+          <path d="M52 80 L60 87 L68 80" fill="none" stroke="#5E1526" strokeWidth="1.5" strokeLinejoin="round" />
 
-          {/* Necktie — black with a gold edge, as in the reference. */}
-          <path d="M57 87 L63 87 L64.6 106 L60 110 L55.4 106 Z" fill="#08080a" stroke="url(#cb-gold)" strokeWidth="0.7" strokeOpacity="0.55" />
-          <path d="M57.6 84.4 L62.4 84.4 L63 87.4 L57 87.4 Z" fill="#0d0c0e" stroke="url(#cb-gold)" strokeWidth="0.6" strokeOpacity="0.5" />
+          {/* Bow tie — gold, centred on the collar. A concierge's tie, and the
+              warmest point on the chest now the coat carries the colour. */}
+          <path d="M60 88.4 L53.6 84.8 L53.6 92 Z" fill="url(#cb-gold)" />
+          <path d="M60 88.4 L66.4 84.8 L66.4 92 Z" fill="url(#cb-gold)" />
+          <circle cx="60" cy="88.4" r="1.9" fill="#FBF0BE" />
 
-          {/* Lapels — gold-edged panels sweeping out from the collar. */}
-          <path d="M52 80 C46 84 41 92 39.5 103 L48 100 C49 92 50.5 85 53.5 81.5 Z" fill="#0a0a09" stroke="url(#cb-gold)" strokeWidth="1.15" strokeLinejoin="round" />
-          <path d="M68 80 C74 84 79 92 80.5 103 L72 100 C71 92 69.5 85 66.5 81.5 Z" fill="#0a0a09" stroke="url(#cb-gold)" strokeWidth="1.15" strokeLinejoin="round" />
+          {/* Shirt studs down the placket. */}
+          <circle cx="60" cy="95" r="0.9" fill="#D4AF37" opacity="0.85" />
+          <circle cx="59.4" cy="99.5" r="0.9" fill="#D4AF37" opacity="0.75" />
 
-          {/* Crown badge on the chest — the VIP mark, sized as a lapel pin. */}
-          <g transform="translate(70.5 104) scale(0.42)">
-            <path d="M0 12 L3.2 0.8 L8 7.4 L13 -1 L18 7.4 L22.8 0.8 L26 12 Z" fill="url(#cb-gold)" />
-            <circle cx="13" cy="2.2" r="1.6" fill="#FBF0BE" />
-          </g>
+          {/* Lapels — gold-edged burgundy panels sweeping out from the collar. */}
+          <path d="M52 80 C46 84 41 92 39.5 103 L48 100 C49 92 50.5 85 53.5 81.5 Z" fill="#611427" stroke="url(#cb-gold)" strokeWidth="1.15" strokeLinejoin="round" />
+          <path d="M68 80 C74 84 79 92 80.5 103 L72 100 C71 92 69.5 85 66.5 81.5 Z" fill="#611427" stroke="url(#cb-gold)" strokeWidth="1.15" strokeLinejoin="round" />
+
+          {/* Pocket square, gold, on the wearer's right. */}
+          <path d="M74.5 104.5 L80.5 103 L79.6 106.4 L74 107.4 Z" fill="url(#cb-gold)" opacity="0.9" />
+        </motion.g>
+
+        {/* ── Waving arm ────────────────────────────────────────────────────
+            Rotates from the shoulder so the whole forearm swings as one, the
+            way an arm does. Kept on the viewer's left, clear of the antenna
+            and the right ear disc. */}
+        <motion.g
+          animate={wave}
+          transition={waveTx}
+          style={{ transformOrigin: "37px 95px" }}
+        >
+          {/* sleeve */}
+          <path d="M37 95 C31 91 26 85 24 79" fill="none" stroke="#6B182D" strokeWidth="7.5" strokeLinecap="round" />
+          {/* gold cuff */}
+          <path d="M27.4 82.6 C26.4 81 25.4 79.4 24.6 77.8" fill="none" stroke="url(#cb-gold)" strokeWidth="7.8" strokeLinecap="round" />
+          {/* ivory hand */}
+          <circle cx="22.4" cy="74.6" r="6.2" fill="#F7F2E8" />
+          <circle cx="20.6" cy="72.4" r="2.1" fill="#fff" opacity="0.75" />
         </motion.g>
 
         {/* ── Head — a slow, small tilt so it reads as attentive ── */}
@@ -236,7 +292,7 @@ function ConciergeRobot({ reduceMotion }) {
           {/* Ear discs — gold cylinders either side of the helmet. */}
           <ellipse cx="27" cy="56" rx="7.5" ry="11" fill="url(#cb-gold)" />
           <ellipse cx="93" cy="56" rx="8.5" ry="12" fill="url(#cb-gold)" />
-          <ellipse cx="94.5" cy="56" rx="4.6" ry="7" fill="#0c0b0a" opacity="0.82" />
+          <ellipse cx="94.5" cy="56" rx="4.6" ry="7" fill="#5E1526" opacity="0.7" />
 
           {/* Helmet dome. No outline — the gradient's own falloff is what
               gives it a glossy moulded edge; a stroke would flatten it. */}
@@ -244,7 +300,19 @@ function ConciergeRobot({ reduceMotion }) {
           {/* broad specular across the top-left of the dome */}
           <ellipse cx="47" cy="32" rx="17" ry="9" fill="url(#cb-sheen)" transform="rotate(-24 47 32)" />
           {/* tight hot spot */}
-          <ellipse cx="43.5" cy="30" rx="5.5" ry="2.8" fill="#fff" opacity="0.3" transform="rotate(-24 43.5 30)" />
+          <ellipse cx="43.5" cy="30" rx="5.5" ry="2.8" fill="#fff" opacity="0.55" transform="rotate(-24 43.5 30)" />
+
+          {/* Crown — the VIP mark, worn rather than pinned to the chest. Sits
+              on the dome's crest, tilted with the head because it is part of
+              this group. */}
+          <g transform="translate(60 21)">
+            <path d="M-13 7 L-9.6 -5.2 L-4.4 2 L0 -7.6 L4.4 2 L9.6 -5.2 L13 7 Z"
+              fill="url(#cb-gold)" stroke="#8E6B18" strokeWidth="0.5" strokeLinejoin="round" />
+            <rect x="-13.4" y="6.6" width="26.8" height="3.4" rx="1.7" fill="url(#cb-gold)" />
+            <circle cx="0" cy="-9.4" r="2" fill="#FFF6D2" />
+            <circle cx="-9.6" cy="-6.8" r="1.3" fill="#FFF6D2" opacity="0.9" />
+            <circle cx="9.6" cy="-6.8" r="1.3" fill="#FFF6D2" opacity="0.9" />
+          </g>
 
           {/* Visor bezel + glass. */}
           <ellipse cx="59" cy="53" rx="26.5" ry="22.5"
@@ -253,18 +321,20 @@ function ConciergeRobot({ reduceMotion }) {
           <path d="M42 40 C36 45 34.5 53 36 60 C40 50 48 43 58 41 C52 39 46 38.5 42 40 Z" fill="#fff" opacity="0.09" />
           <ellipse cx="47" cy="43" rx="8" ry="3.4" fill="#fff" opacity="0.1" transform="rotate(-26 47 43)" />
 
-          {/* Eyes — happy gold arcs. Grouped so the blink squashes both at
-              once about the eye line. framer-motion animates these as style
-              transforms, so `initial` has to seed the starting value: it does
-              not read back the element's own presentation attributes. */}
+          {/* Eyes — happy arcs, lit ice-blue. Grouped so the blink squashes
+              both at once about the eye line. framer-motion animates these as
+              style transforms, so `initial` has to seed the starting value: it
+              does not read back the element's own presentation attributes. */}
           <motion.g
             initial={{ scaleY: 1 }}
             animate={blink}
             transition={blinkTx}
             style={{ transformOrigin: "59px 55px" }}
           >
-            <path d="M45 50 Q51.5 60 58 50" fill="none" stroke="#F7E9A8" strokeWidth="4.4" strokeLinecap="round" />
-            <path d="M62 50 Q68.5 60 75 50" fill="none" stroke="#F7E9A8" strokeWidth="4.4" strokeLinecap="round" />
+            <ellipse cx="51.5" cy="54" rx="11" ry="8" fill="url(#cb-eyeglow)" />
+            <ellipse cx="68.5" cy="54" rx="11" ry="8" fill="url(#cb-eyeglow)" />
+            <path d="M45 50 Q51.5 60 58 50" fill="none" stroke="#CFF1FF" strokeWidth="4.4" strokeLinecap="round" />
+            <path d="M62 50 Q68.5 60 75 50" fill="none" stroke="#CFF1FF" strokeWidth="4.4" strokeLinecap="round" />
           </motion.g>
         </motion.g>
       </motion.g>
@@ -721,8 +791,13 @@ export default function ChatBot({ portal = "player" }) {
     <div
       style={{
         position: "fixed",
-        bottom: "clamp(14px, 4vw, 24px)",
-        right: "clamp(12px, 3vw, 24px)",
+        // Inset from the corner. Floors raised to 20px so the launcher clears
+        // the corner by the same comfortable margin on a phone as on a
+        // desktop -- at the old 14px/12px it sat close enough to the edge to
+        // crowd a thumb reaching for it, and close enough to be clipped by the
+        // rounded corners some phones apply to the viewport.
+        bottom: "clamp(20px, 4vw, 26px)",
+        right: "clamp(20px, 3vw, 26px)",
         zIndex: 50,
         display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 12,
       }}
@@ -1115,7 +1190,7 @@ export default function ChatBot({ portal = "player" }) {
               Need any help?<br />I'm here for you!
             </div>
             {/* tail — sits over the avatar below it on every breakpoint (the
-                avatar is ~59px wide on a phone, ~108px on desktop) */}
+                avatar is ~59px wide on a phone, ~78px on desktop) */}
             <span aria-hidden style={{
               position: "absolute", width: 10, height: 10,
               background: "rgba(6,4,2,0.96)",
@@ -1136,9 +1211,7 @@ export default function ChatBot({ portal = "player" }) {
             transition={{ duration: 0.35, delay: 0.5 }}
             style={{
               position: "relative",
-              // Avatar-sized, never a full-body character: ~68px tall on a
-              // 390px phone, ~124px on desktop. Height is what the design is
-              // specified in, so width is derived from the 120x138 viewBox.
+              // Avatar-sized, never a full-body character. See AVATAR_H.
               height: AVATAR_H,
               width: `calc(${AVATAR_H} / 1.15)`,
               padding: 0, border: "none", flexShrink: 0,
@@ -1152,13 +1225,25 @@ export default function ChatBot({ portal = "player" }) {
             <ConciergeRobot reduceMotion={reduceMotion} />
 
             {unread > 0 && (
+              // Gold rather than the alert red it used to be: an unread reply
+              // from a concierge is not an error state, and red was the one
+              // colour on the launcher that did not belong to the brand.
+              //
+              // The pulse is a slow, shallow scale — a ring drawing attention
+              // to itself, not a flash. Two seconds a cycle and never below
+              // full opacity, so it stays legible while it moves and cannot
+              // read as flicker. Reduced-motion visitors get the badge static.
               <motion.div
-                initial={{ scale: 0 }} animate={{ scale: 1 }}
+                initial={{ scale: 0 }}
+                animate={reduceMotion ? { scale: 1 } : { scale: [1, 1.14, 1] }}
+                transition={reduceMotion ? { duration: 0.25 } : { duration: 2, repeat: Infinity, ease: "easeInOut" }}
                 style={{
                   position: "absolute", top: 2, right: -2,
                   width: 18, height: 18, borderRadius: "50%",
-                  background: "#ff3366", border: "2px solid #08000f",
-                  fontSize: 10, fontWeight: 800, color: "#fff",
+                  background: "linear-gradient(135deg, #F5E07A, #D4AF37)",
+                  border: "2px solid #08000f",
+                  boxShadow: "0 0 12px rgba(212,175,55,0.75)",
+                  fontSize: 10, fontWeight: 800, color: "#2a1c00",
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}
               >
