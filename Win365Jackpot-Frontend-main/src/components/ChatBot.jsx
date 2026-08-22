@@ -126,33 +126,36 @@ function RobotIcon({ size = 28 }) {
 // Idle life is restrained — float, breathe, a slight head tilt, and an
 // occasional blink. `reduceMotion` stills all of it.
 function ConciergeRobot({ reduceMotion }) {
-  // The eyes are happy arcs, so a "blink" is a quick vertical squash of the
-  // pair rather than a lid closing. Two blinks at uneven offsets in one long
-  // cycle — a single evenly-spaced blink reads as a metronome, which is the
-  // robotic tell the design is trying to avoid.
-  const blink = reduceMotion ? undefined : { scaleY: [1, 1, 0.12, 1, 1, 1, 0.12, 1, 1] }
+  // Blink: the eyes are solid lozenges, so closing them is a vertical squash
+  // about the eye line. Two blinks at uneven offsets in one long cycle — a
+  // single evenly-spaced blink reads as a metronome, which is the robotic tell
+  // the design is trying to avoid.
+  const blink = reduceMotion ? undefined : { scaleY: [1, 1, 0.1, 1, 1, 1, 0.1, 1, 1] }
   const blinkTx = { duration: 7.6, repeat: Infinity, times: [0, 0.33, 0.355, 0.38, 0.7, 0.73, 0.755, 0.78, 1], ease: "easeInOut" }
 
-  // The greeting wave. Four beats of forearm rotation packed into the first
-  // ~1.2s of a 7s cycle, and flat for the rest — so it reads as an occasional
-  // friendly hello rather than a character permanently flapping at the reader.
-  // `delay` lets the bot settle into frame before it waves the first time.
-  const wave = reduceMotion ? undefined : { rotate: [0, -22, -4, -19, -2, 0, 0, 0] }
+  // The greeting. Four beats of rotation about the shoulder packed into the
+  // first ~1.2s of a 7s cycle and flat for the rest, so the character says
+  // hello occasionally rather than flapping continuously. `delay` lets it
+  // settle into frame before the first wave.
+  const wave = reduceMotion ? undefined : { rotate: [0, -20, -3, -17, -2, 0, 0, 0] }
   const waveTx = {
     duration: 7, repeat: Infinity, delay: 1.2, ease: "easeInOut",
     times: [0, 0.03, 0.06, 0.09, 0.13, 0.17, 0.6, 1],
   }
 
   return (
-    <svg viewBox="0 0 120 138" width="100%" height="100%" style={{ overflow: "visible", display: "block" }}>
+    <svg viewBox="0 0 120 152" width="100%" height="100%" style={{ overflow: "visible", display: "block" }}>
       <defs>
-        <radialGradient id="cb-halo" cx="50%" cy="38%" r="55%">
-          <stop offset="0%" stopColor="#D4AF37" stopOpacity="0.22" />
+        <radialGradient id="cb-halo" cx="50%" cy="34%" r="56%">
+          <stop offset="0%" stopColor="#D4AF37" stopOpacity="0.2" />
           <stop offset="100%" stopColor="#D4AF37" stopOpacity="0" />
         </radialGradient>
-        <radialGradient id="cb-ground" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#F5E07A" stopOpacity="0.75" />
-          <stop offset="55%" stopColor="#D4AF37" stopOpacity="0.3" />
+        {/* The gold disc the character stands on. Brightest at the rim, which
+            is what makes it read as a lit ring rather than a flat shadow. */}
+        <radialGradient id="cb-ring" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#FFF3C4" stopOpacity="0.05" />
+          <stop offset="62%" stopColor="#F5E07A" stopOpacity="0.55" />
+          <stop offset="86%" stopColor="#D4AF37" stopOpacity="0.9" />
           <stop offset="100%" stopColor="#D4AF37" stopOpacity="0" />
         </radialGradient>
         <linearGradient id="cb-gold" x1="12%" y1="0%" x2="88%" y2="100%">
@@ -161,180 +164,167 @@ function ConciergeRobot({ reduceMotion }) {
           <stop offset="62%" stopColor="#D4AF37" />
           <stop offset="100%" stopColor="#8E6B18" />
         </linearGradient>
-        {/* Brighter, more vertical gold for the visor ring so it reads as a
-            polished bezel catching light from above rather than flat trim. */}
-        <linearGradient id="cb-gold-ring" x1="30%" y1="0%" x2="70%" y2="100%">
-          <stop offset="0%" stopColor="#FFF6D2" />
-          <stop offset="26%" stopColor="#EBCB63" />
-          <stop offset="58%" stopColor="#C99F2C" />
-          <stop offset="100%" stopColor="#7E5D14" />
-        </linearGradient>
-        {/* Helmet: pearl-white, lit from upper-left and falling to a warm
-            shadow at the jaw. Ivory rather than pure white all through, so the
-            dome still reads as a moulded surface against a near-black page. */}
-        <radialGradient id="cb-helmet" cx="34%" cy="24%" r="82%">
+        {/* Pearl shell: lit from upper-left, falling to a warm ivory shadow. */}
+        <radialGradient id="cb-shell" cx="34%" cy="22%" r="84%">
           <stop offset="0%" stopColor="#FFFFFF" />
-          <stop offset="36%" stopColor="#F7F2E8" />
-          <stop offset="72%" stopColor="#E3DAC9" />
-          <stop offset="100%" stopColor="#C4B9A3" />
+          <stop offset="40%" stopColor="#F8F4EC" />
+          <stop offset="76%" stopColor="#E4DBCB" />
+          <stop offset="100%" stopColor="#C3B8A2" />
         </radialGradient>
         {/* The coat. Burgundy is the half of the palette that makes this a
-            JackpotsWorld concierge rather than a generic assistant, so it is
-            deep enough to sit against gold without muddying it. */}
-        <radialGradient id="cb-torso" cx="38%" cy="18%" r="88%">
+            JackpotsWorld concierge rather than a generic assistant. */}
+        <radialGradient id="cb-coat" cx="36%" cy="16%" r="88%">
           <stop offset="0%" stopColor="#A8324E" />
-          <stop offset="40%" stopColor="#7C2038" />
+          <stop offset="42%" stopColor="#7C2038" />
           <stop offset="100%" stopColor="#460D1D" />
         </radialGradient>
-        {/* Visor glass stays dark: it is the contrast the eyes glow against.
-            Cooled slightly toward blue so the eye light looks reflected in it
-            rather than pasted on. */}
-        <radialGradient id="cb-visor" cx="32%" cy="22%" r="86%">
-          <stop offset="0%" stopColor="#1c2231" />
-          <stop offset="45%" stopColor="#0a0e17" />
-          <stop offset="100%" stopColor="#03050a" />
+        {/* Visor glass stays dark: it is the contrast the eyes glow against. */}
+        <radialGradient id="cb-visor" cx="34%" cy="24%" r="84%">
+          <stop offset="0%" stopColor="#232a3d" />
+          <stop offset="48%" stopColor="#0d1220" />
+          <stop offset="100%" stopColor="#04060d" />
         </radialGradient>
-        {/* Halo behind each eye — what makes them read as lit rather than
-            painted, without needing an SVG blur filter (which Safari renders
-            expensively at this size). */}
         <radialGradient id="cb-eyeglow" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#9FE4FF" stopOpacity="0.55" />
-          <stop offset="100%" stopColor="#9FE4FF" stopOpacity="0" />
+          <stop offset="0%" stopColor="#7FDBFF" stopOpacity="0.6" />
+          <stop offset="100%" stopColor="#7FDBFF" stopOpacity="0" />
         </radialGradient>
         <linearGradient id="cb-sheen" x1="0%" y1="0%" x2="60%" y2="100%">
-          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.4" />
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.5" />
           <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
         </linearGradient>
       </defs>
 
-      {/* ambient gold pool behind the character */}
-      <ellipse cx="60" cy="58" rx="58" ry="60" fill="url(#cb-halo)" />
+      <ellipse cx="60" cy="58" rx="58" ry="62" fill="url(#cb-halo)" />
 
-      {/* Ground glow — stays put while the body floats above it, and softens
-          as the body rises. This contact shadow is what sells "hovering"
-          rather than "drifting in space". */}
-      <motion.ellipse
-        cx="60" cy="133" rx="26" ry="3.6" fill="url(#cb-ground)"
-        initial={{ scaleX: 1, opacity: 0.95 }}
-        animate={reduceMotion ? undefined : { scaleX: [1, 0.84, 1], opacity: [0.95, 0.6, 0.95] }}
-        transition={{ duration: 3.8, repeat: Infinity, ease: "easeInOut" }}
-        style={{ transformOrigin: "60px 133px" }}
-      />
-
-      {/* Everything above the shadow floats as one unit. */}
+      {/* ── The gold ring the concierge stands on ──────────────────────────
+          Stays put while the body floats above it and dims as the body rises.
+          This is the contact cue that sells "hovering" rather than "pasted
+          onto the page", and it is the anchor the reference has too. */}
       <motion.g
-        animate={reduceMotion ? undefined : { y: [0, -3.6, 0] }}
+        initial={{ scale: 1, opacity: 0.95 }}
+        animate={reduceMotion ? undefined : { scale: [1, 0.9, 1], opacity: [0.95, 0.65, 0.95] }}
+        transition={{ duration: 3.8, repeat: Infinity, ease: "easeInOut" }}
+        style={{ transformOrigin: "60px 143px" }}
+      >
+        <ellipse cx="60" cy="143" rx="33" ry="8.5" fill="url(#cb-ring)" />
+        <ellipse cx="60" cy="143" rx="24" ry="5.6" fill="none" stroke="#FFF3C4" strokeWidth="1.4" strokeOpacity="0.65" />
+      </motion.g>
+
+      {/* Everything above the ring floats as one unit. */}
+      <motion.g
+        animate={reduceMotion ? undefined : { y: [0, -3.4, 0] }}
         transition={{ duration: 3.8, repeat: Infinity, ease: "easeInOut" }}
       >
-        {/* ── Body: rounded pebble in a burgundy dinner coat ── */}
+        {/* ── Legs ── short, in the coat's colour, with ivory shoes. Drawn
+            before the torso so the hem overlaps them. */}
+        <path d="M50 118 L48.5 132" stroke="#611427" strokeWidth="9" strokeLinecap="round" />
+        <path d="M70 118 L71.5 132" stroke="#611427" strokeWidth="9" strokeLinecap="round" />
+        <ellipse cx="47.6" cy="135" rx="7" ry="4.4" fill="#F3EDE1" />
+        <ellipse cx="72.4" cy="135" rx="7" ry="4.4" fill="#F3EDE1" />
+        <ellipse cx="47.6" cy="136.4" rx="7" ry="2.4" fill="#C9BEA8" opacity="0.55" />
+        <ellipse cx="72.4" cy="136.4" rx="7" ry="2.4" fill="#C9BEA8" opacity="0.55" />
+
+        {/* ── Right arm (viewer's left) — resting at the side ── */}
+        <path d="M39 92 C33 99 31 107 31.5 113" fill="none" stroke="#6B182D" strokeWidth="8.5" strokeLinecap="round" />
+        <path d="M32.4 109.5 C32 111 31.7 112.4 31.6 113.6" fill="none" stroke="url(#cb-gold)" strokeWidth="8.8" strokeLinecap="round" />
+        {/* ivory mitten glove */}
+        <g>
+          <ellipse cx="31" cy="119.5" rx="6.4" ry="6.8" fill="#FBF8F1" />
+          <path d="M26.4 117.8 C25 118.6 25 120.6 26.4 121.4" fill="none" stroke="#DCD3C2" strokeWidth="1.2" strokeLinecap="round" />
+        </g>
+
+        {/* ── Torso — the burgundy dinner jacket ── */}
         <motion.g
-          animate={reduceMotion ? undefined : { scaleY: [1, 1.016, 1] }}
+          animate={reduceMotion ? undefined : { scaleY: [1, 1.015, 1] }}
           transition={{ duration: 4.6, repeat: Infinity, ease: "easeInOut" }}
-          style={{ transformOrigin: "60px 126px" }}
+          style={{ transformOrigin: "60px 122px" }}
         >
-          <path d="M60 78 C44 78 33 89 31 103 C29 116 42 126 60 126 C78 126 91 116 89 103 C87 89 76 78 60 78 Z"
-            fill="url(#cb-torso)" />
-          {/* rim light down the left shoulder — separates body from background */}
-          <path d="M40 88 C34 94 32 100 32 106" fill="none" stroke="#fff" strokeWidth="1.5" strokeOpacity="0.16" strokeLinecap="round" />
+          <path d="M60 82 C47 82 39 90 37.5 101 C36 113 45 122 60 122 C75 122 84 113 82.5 101 C81 90 73 82 60 82 Z"
+            fill="url(#cb-coat)" />
+          {/* rim light down the left shoulder */}
+          <path d="M45 89 C40 94 38 99 37.8 104" fill="none" stroke="#fff" strokeWidth="1.4" strokeOpacity="0.18" strokeLinecap="round" />
 
-          {/* Dress shirt: the ivory wedge the lapels open onto. */}
-          <path d="M52 80 L60 79 L68 80 L64 100 L56 100 Z" fill="#F7F2E6" />
-          {/* Collar points folding over the shirt. */}
-          <path d="M52 80 L60 87 L68 80" fill="none" stroke="#5E1526" strokeWidth="1.5" strokeLinejoin="round" />
+          {/* Ivory shirt wedge the lapels open onto */}
+          <path d="M53 84 L60 83 L67 84 L64 102 L56 102 Z" fill="#F8F4EA" />
 
-          {/* Bow tie — gold, centred on the collar. A concierge's tie, and the
-              warmest point on the chest now the coat carries the colour. */}
-          <path d="M60 88.4 L53.6 84.8 L53.6 92 Z" fill="url(#cb-gold)" />
-          <path d="M60 88.4 L66.4 84.8 L66.4 92 Z" fill="url(#cb-gold)" />
-          <circle cx="60" cy="88.4" r="1.9" fill="#FBF0BE" />
+          {/* Shawl lapels — burgundy panels piped in gold */}
+          <path d="M53 84 C47.5 88 43.5 94 42 103 L49.5 100 C50.5 93 51.5 88 54.2 85 Z" fill="#611427" stroke="url(#cb-gold)" strokeWidth="1.1" strokeLinejoin="round" />
+          <path d="M67 84 C72.5 88 76.5 94 78 103 L70.5 100 C69.5 93 68.5 88 65.8 85 Z" fill="#611427" stroke="url(#cb-gold)" strokeWidth="1.1" strokeLinejoin="round" />
 
-          {/* Shirt studs down the placket. */}
-          <circle cx="60" cy="95" r="0.9" fill="#D4AF37" opacity="0.85" />
-          <circle cx="59.4" cy="99.5" r="0.9" fill="#D4AF37" opacity="0.75" />
+          {/* Gold bow tie at the collar */}
+          <path d="M60 89 L54.2 85.6 L54.2 92.4 Z" fill="url(#cb-gold)" />
+          <path d="M60 89 L65.8 85.6 L65.8 92.4 Z" fill="url(#cb-gold)" />
+          <circle cx="60" cy="89" r="1.8" fill="#FBF0BE" />
 
-          {/* Lapels — gold-edged burgundy panels sweeping out from the collar. */}
-          <path d="M52 80 C46 84 41 92 39.5 103 L48 100 C49 92 50.5 85 53.5 81.5 Z" fill="#611427" stroke="url(#cb-gold)" strokeWidth="1.15" strokeLinejoin="round" />
-          <path d="M68 80 C74 84 79 92 80.5 103 L72 100 C71 92 69.5 85 66.5 81.5 Z" fill="#611427" stroke="url(#cb-gold)" strokeWidth="1.15" strokeLinejoin="round" />
-
-          {/* Pocket square, gold, on the wearer's right. */}
-          <path d="M74.5 104.5 L80.5 103 L79.6 106.4 L74 107.4 Z" fill="url(#cb-gold)" opacity="0.9" />
+          {/* Gold button, and a pocket square */}
+          <circle cx="60" cy="104" r="1.7" fill="url(#cb-gold)" />
+          <path d="M71 106 L77.5 104.4 L76.6 108 L70.4 109 Z" fill="url(#cb-gold)" opacity="0.9" />
         </motion.g>
 
-        {/* ── Waving arm ────────────────────────────────────────────────────
-            Rotates from the shoulder so the whole forearm swings as one, the
-            way an arm does. Kept on the viewer's left, clear of the antenna
-            and the right ear disc. */}
+        {/* ── Left arm (viewer's right) — raised, and the arm that waves ──
+            Rotating the whole group about the shoulder swings upper arm, cuff
+            and glove together, the way a real arm moves. */}
         <motion.g
           animate={wave}
           transition={waveTx}
-          style={{ transformOrigin: "37px 95px" }}
+          style={{ transformOrigin: "81px 92px" }}
         >
-          {/* sleeve */}
-          <path d="M37 95 C31 91 26 85 24 79" fill="none" stroke="#6B182D" strokeWidth="7.5" strokeLinecap="round" />
+          <path d="M81 92 C88 88 92 82 93 76" fill="none" stroke="#6B182D" strokeWidth="8.5" strokeLinecap="round" />
           {/* gold cuff */}
-          <path d="M27.4 82.6 C26.4 81 25.4 79.4 24.6 77.8" fill="none" stroke="url(#cb-gold)" strokeWidth="7.8" strokeLinecap="round" />
-          {/* ivory hand */}
-          <circle cx="22.4" cy="74.6" r="6.2" fill="#F7F2E8" />
-          <circle cx="20.6" cy="72.4" r="2.1" fill="#fff" opacity="0.75" />
+          <path d="M91.6 79.6 C92.3 78.2 92.7 77 93 75.8" fill="none" stroke="url(#cb-gold)" strokeWidth="8.8" strokeLinecap="round" />
+          {/* ivory glove, fingers up — the waving hand */}
+          <g>
+            <ellipse cx="94.5" cy="69.5" rx="6.8" ry="7.4" fill="#FBF8F1" />
+            <path d="M91.4 63.6 L91.4 60.4" stroke="#FBF8F1" strokeWidth="3" strokeLinecap="round" />
+            <path d="M95 63 L95.4 59.6" stroke="#FBF8F1" strokeWidth="3" strokeLinecap="round" />
+            <path d="M98.4 64 L99.4 61" stroke="#FBF8F1" strokeWidth="3" strokeLinecap="round" />
+            <path d="M99.8 71.4 C101.4 70.4 101.6 68.4 100.2 67.4" fill="none" stroke="#DCD3C2" strokeWidth="1.3" strokeLinecap="round" />
+          </g>
         </motion.g>
 
         {/* ── Head — a slow, small tilt so it reads as attentive ── */}
         <motion.g
-          animate={reduceMotion ? undefined : { rotate: [0, 1.5, 0, -1.5, 0] }}
+          animate={reduceMotion ? undefined : { rotate: [0, 1.6, 0, -1.6, 0] }}
           transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
-          style={{ transformOrigin: "60px 80px" }}
+          style={{ transformOrigin: "60px 76px" }}
         >
-          {/* Antenna, off the upper right of the helmet. */}
-          <path d="M88 30 L99 17" stroke="url(#cb-gold)" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-          <circle cx="100.5" cy="15" r="5" fill="url(#cb-gold)" />
-          <circle cx="99" cy="13.4" r="1.6" fill="#FFF6D2" opacity="0.85" />
+          {/* Antenna with a four-point sparkle, off the upper right. */}
+          <path d="M83 25 L93 13" stroke="url(#cb-gold)" strokeWidth="2.4" strokeLinecap="round" fill="none" />
+          <path d="M94.5 5.5 L96.3 11 L101.8 12.8 L96.3 14.6 L94.5 20.1 L92.7 14.6 L87.2 12.8 L92.7 11 Z" fill="url(#cb-gold)" />
+          <circle cx="94.5" cy="12.8" r="1.9" fill="#FFF8DC" />
 
-          {/* Ear discs — gold cylinders either side of the helmet. */}
-          <ellipse cx="27" cy="56" rx="7.5" ry="11" fill="url(#cb-gold)" />
-          <ellipse cx="93" cy="56" rx="8.5" ry="12" fill="url(#cb-gold)" />
-          <ellipse cx="94.5" cy="56" rx="4.6" ry="7" fill="#5E1526" opacity="0.7" />
+          {/* Headphone ear cups — gold, prominent, on both sides. */}
+          <ellipse cx="25.5" cy="50" rx="9.5" ry="11.5" fill="url(#cb-gold)" />
+          <ellipse cx="26.8" cy="50" rx="5.2" ry="6.8" fill="#5E1526" opacity="0.55" />
+          <ellipse cx="94.5" cy="50" rx="9.5" ry="11.5" fill="url(#cb-gold)" />
+          <ellipse cx="93.2" cy="50" rx="5.2" ry="6.8" fill="#5E1526" opacity="0.55" />
 
-          {/* Helmet dome. No outline — the gradient's own falloff is what
-              gives it a glossy moulded edge; a stroke would flatten it. */}
-          <ellipse cx="60" cy="52" rx="34" ry="32" fill="url(#cb-helmet)" />
-          {/* broad specular across the top-left of the dome */}
-          <ellipse cx="47" cy="32" rx="17" ry="9" fill="url(#cb-sheen)" transform="rotate(-24 47 32)" />
-          {/* tight hot spot */}
-          <ellipse cx="43.5" cy="30" rx="5.5" ry="2.8" fill="#fff" opacity="0.55" transform="rotate(-24 43.5 30)" />
+          {/* Pearl head shell. */}
+          <ellipse cx="60" cy="48" rx="33" ry="31" fill="url(#cb-shell)" />
+          <ellipse cx="47" cy="28" rx="16" ry="8.5" fill="url(#cb-sheen)" transform="rotate(-24 47 28)" />
+          <ellipse cx="43.5" cy="26" rx="5" ry="2.6" fill="#fff" opacity="0.6" transform="rotate(-24 43.5 26)" />
 
-          {/* Crown — the VIP mark, worn rather than pinned to the chest. Sits
-              on the dome's crest, tilted with the head because it is part of
-              this group. */}
-          <g transform="translate(60 21)">
-            <path d="M-13 7 L-9.6 -5.2 L-4.4 2 L0 -7.6 L4.4 2 L9.6 -5.2 L13 7 Z"
-              fill="url(#cb-gold)" stroke="#8E6B18" strokeWidth="0.5" strokeLinejoin="round" />
-            <rect x="-13.4" y="6.6" width="26.8" height="3.4" rx="1.7" fill="url(#cb-gold)" />
-            <circle cx="0" cy="-9.4" r="2" fill="#FFF6D2" />
-            <circle cx="-9.6" cy="-6.8" r="1.3" fill="#FFF6D2" opacity="0.9" />
-            <circle cx="9.6" cy="-6.8" r="1.3" fill="#FFF6D2" opacity="0.9" />
-          </g>
+          {/* Gold crest on the forehead — the VIP mark, set into the shell. */}
+          <path d="M60 15.5 L67 24 L60 31 L53 24 Z" fill="url(#cb-gold)" stroke="#8E6B18" strokeWidth="0.5" strokeLinejoin="round" />
+          <path d="M60 19.5 L63.4 24 L60 27.6 L56.6 24 Z" fill="#FFF6D2" opacity="0.75" />
 
-          {/* Visor bezel + glass. */}
-          <ellipse cx="59" cy="53" rx="26.5" ry="22.5"
-            fill="url(#cb-visor)" stroke="url(#cb-gold-ring)" strokeWidth="4.2" />
-          {/* sheen sweeping across the glass */}
-          <path d="M42 40 C36 45 34.5 53 36 60 C40 50 48 43 58 41 C52 39 46 38.5 42 40 Z" fill="#fff" opacity="0.09" />
-          <ellipse cx="47" cy="43" rx="8" ry="3.4" fill="#fff" opacity="0.1" transform="rotate(-26 47 43)" />
+          {/* Visor glass. */}
+          <ellipse cx="60" cy="50" rx="25" ry="21" fill="url(#cb-visor)" stroke="url(#cb-gold)" strokeWidth="2.6" />
+          <path d="M44 38 C38.5 43 37 51 38.5 58 C42 48 49.5 41.5 59 39.5 C53.5 37.6 47.6 37.2 44 38 Z" fill="#fff" opacity="0.08" />
 
-          {/* Eyes — happy arcs, lit ice-blue. Grouped so the blink squashes
-              both at once about the eye line. framer-motion animates these as
-              style transforms, so `initial` has to seed the starting value: it
-              does not read back the element's own presentation attributes. */}
+          {/* Eyes — bright cyan lozenges over a soft halo. */}
           <motion.g
             initial={{ scaleY: 1 }}
             animate={blink}
             transition={blinkTx}
-            style={{ transformOrigin: "59px 55px" }}
+            style={{ transformOrigin: "60px 50px" }}
           >
-            <ellipse cx="51.5" cy="54" rx="11" ry="8" fill="url(#cb-eyeglow)" />
-            <ellipse cx="68.5" cy="54" rx="11" ry="8" fill="url(#cb-eyeglow)" />
-            <path d="M45 50 Q51.5 60 58 50" fill="none" stroke="#CFF1FF" strokeWidth="4.4" strokeLinecap="round" />
-            <path d="M62 50 Q68.5 60 75 50" fill="none" stroke="#CFF1FF" strokeWidth="4.4" strokeLinecap="round" />
+            <ellipse cx="51" cy="50" rx="10" ry="8.5" fill="url(#cb-eyeglow)" />
+            <ellipse cx="69" cy="50" rx="10" ry="8.5" fill="url(#cb-eyeglow)" />
+            <rect x="47.4" y="44.6" width="7.2" height="11" rx="3.6" fill="#8FE3FF" />
+            <rect x="65.4" y="44.6" width="7.2" height="11" rx="3.6" fill="#8FE3FF" />
+            <rect x="48.6" y="46" width="3" height="4.6" rx="1.5" fill="#EAFBFF" opacity="0.9" />
+            <rect x="66.6" y="46" width="3" height="4.6" rx="1.5" fill="#EAFBFF" opacity="0.9" />
           </motion.g>
         </motion.g>
       </motion.g>
@@ -1213,7 +1203,7 @@ export default function ChatBot({ portal = "player" }) {
               position: "relative",
               // Avatar-sized, never a full-body character. See AVATAR_H.
               height: AVATAR_H,
-              width: `calc(${AVATAR_H} / 1.15)`,
+              width: `calc(${AVATAR_H} / 1.27)`,
               padding: 0, border: "none", flexShrink: 0,
               background: "transparent", cursor: "pointer", touchAction: "manipulation",
               WebkitTapHighlightColor: "transparent",
