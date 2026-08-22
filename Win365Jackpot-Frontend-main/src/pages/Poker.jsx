@@ -52,6 +52,16 @@ export default function Poker() {
     ? sectionMedia.find(m => m.slot === 'background')
     : undefined
 
+  // The watermark's own width/height ratio, which is what PageHeader shapes
+  // the hero band around %(d)s see the note there for why a text-sized band was
+  // clipping most of the footage away.
+  //
+  // Seeded at 16:9 rather than null so the band is the right height on the
+  // first paint instead of jumping once metadata arrives. That is the bundled
+  // fallback's real shape, and a Back Office upload of some other shape simply
+  // corrects it on load.
+  const [mediaRatio, setMediaRatio] = useState(16 / 9)
+
   useEffect(() => {
     let cancelled = false
     fetchPokerFilters()
@@ -99,11 +109,13 @@ export default function Poker() {
         eyebrow={t('poker.eyebrow')}
         title={t('poker.title')}
         subtitle={t('poker.subtitle')}
+        backgroundRatio={mediaRatio}
         background={
           <HeroBackgroundVideo
             item={backgroundSlot}
             fallbackVideo={HERO_WATERMARKS.poker.video}
             fallbackPoster={HERO_WATERMARKS.poker.poster}
+            onNaturalSize={setMediaRatio}
           />
         }
       />

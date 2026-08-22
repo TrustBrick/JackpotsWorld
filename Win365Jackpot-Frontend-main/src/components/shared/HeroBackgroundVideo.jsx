@@ -29,6 +29,15 @@ import { useInView } from 'react-intersection-observer'
  * `prefers-reduced-motion` visitors get the static poster (if any) instead
  * of an autoplaying loop; with neither a poster nor motion allowed, nothing
  * renders.
+ *
+ * `onNaturalSize` reports the source's intrinsic width/height ratio once the
+ * browser knows it. A background has to fill its box, so it is the *box* that
+ * decides how much of the frame survives; a caller that wants to shape its
+ * band around the footage cannot do that without knowing the footage's shape.
+ * Optional on purpose: TeenPattiHero renders this component into a band it
+ * sizes itself and passes nothing, so the optional call is a no-op there.
+ * Matches the onNaturalSize(ratio) convention PremiumPartnerHeroMedia already
+ * uses, rather than inventing a second shape for the same idea.
  */
 
 const VISIBILITY_THRESHOLD = 0.1
@@ -49,7 +58,16 @@ const WATERMARK_OPACITY = 0.28
 const POSTER_OPACITY = 0.24
 const OVERLAY_ALPHA = 0.25
 
-export default function HeroBackgroundVideo({ item, fallbackVideo, fallbackPoster }) {
+/** Renders nothing, but tells the caller there is no media to shape a band
+ *  around. Separate component purely so the effect is legal: the decision is
+ *  made after this component's own hooks have run, and a hook cannot be added
+ *  behind that early return. */
+function NothingToShow({ onNaturalSize }) {
+  useEffect(() => { onNaturalSize?.(null) }, [onNaturalSize])
+  return null
+}
+
+export default function HeroBackgroundVideo({ item, fallbackVideo, fallbackPoster, onNaturalSize }) {
   const reduceMotion = useReducedMotion()
   const [documentVisible, setDocumentVisible] = useState(
     () => (typeof document === 'undefined' ? true : document.visibilityState !== 'hidden')
@@ -117,7 +135,13 @@ export default function HeroBackgroundVideo({ item, fallbackVideo, fallbackPoste
 
   // Neither a playable video nor a poster (e.g. reduced-motion with only a
   // video configured, or every source exhausted) — nothing safe to render.
-  if (!showVideo && !posterSrc) return null
+  //
+  // Report that upward as well as rendering nothing. A caller that shapes its
+  // band around this footage must not hold a band open for footage that is
+  // never going to appear: a reduced-motion visitor with no poster configured
+  // would otherwise get a tall empty box where the watermark would have been.
+  // Reporting null collapses the band back to its content height.
+  if (!showVideo && !posterSrc) return <NothingToShow onNaturalSize={onNaturalSize} />
 
   return (
     <div
@@ -140,6 +164,14 @@ export default function HeroBackgroundVideo({ item, fallbackVideo, fallbackPoste
           loop
           playsInline
           preload="metadata"
+          // preload="metadata" is what makes this fire without playback, so
+          // the ratio is known even where autoplay is refused.
+          onLoadedMetadata={e => {
+            const el = e.currentTarget
+            if (el.videoWidth > 0 && el.videoHeight > 0) {
+              onNaturalSize?.(el.videoWidth / el.videoHeight)
+            }
+          }}
           onError={handleError}
           style={{
             width: '100%', height: '100%', objectFit: 'cover', display: 'block',
@@ -152,6 +184,14 @@ export default function HeroBackgroundVideo({ item, fallbackVideo, fallbackPoste
           alt=""
           loading="lazy"
           decoding="async"
+          // The reduced-motion path shows this instead of the video, and it
+          // shapes the band the same way the video would.
+          onLoad={e => {
+            const el = e.currentTarget
+            if (el.naturalWidth > 0 && el.naturalHeight > 0) {
+              onNaturalSize?.(el.naturalWidth / el.naturalHeight)
+            }
+          }}
           style={{
             width: '100%', height: '100%', objectFit: 'cover', display: 'block',
             opacity: POSTER_OPACITY, filter: 'brightness(0.55) saturate(0.85)',
