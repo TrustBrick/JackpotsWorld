@@ -26,6 +26,43 @@ import { useInView } from 'react-intersection-observer'
  * consumed at most once end-to-end: `srcIndex` only ever advances, so a
  * broken source can never put the element into a retry loop.
  *
+ * ── Why this used to need two or three visits ───────────────────────────
+ * Playback was driven only by an effect watching `active`, and the <video>
+ * carries `key={currentSrc}` so a source change replaces the element rather
+ * than mutating it. Those two facts combined into a race on every page that
+ * has a Back Office row:
+ *
+ *   1. first render — `item` has not arrived, so the bundled fallback mounts
+ *   2. the observer fires, `active` flips true, that element plays
+ *   3. GET /api/section-media/ resolves, `currentSrc` becomes the configured
+ *      file, React unmounts the playing element and mounts a fresh one
+ *   4. `active` did not change, so the effect never re-runs — and nothing
+ *      ever calls play() on the element that is actually on screen
+ *
+ * It ended paused at readyState 4: fully downloaded, decoded, ready, and
+ * never started. With no poster configured there was nothing to see, so the
+ * hero looked empty. Whether it worked came down to whether step 3 landed
+ * before or after step 2, which is why navigating away and back — warming the
+ * API response so the source settles before the observer fires — appeared to
+ * "fix" it.
+ *
+ * Three changes close it, in order of how much they are relied on:
+ *
+ *   • `autoPlay` on the element. A muted, playsInline video starts itself,
+ *     so playback no longer depends on any effect firing at the right moment.
+ *     A remount self-heals because the new element autoplays too.
+ *   • the play effect keys on `currentSrc` as well as `active`, so a source
+ *     swap re-runs it against the element that replaced the old one.
+ *   • an observer that has not reported yet no longer counts as "out of
+ *     view". This is a page-level hero background, at the top of the page by
+ *     construction; waiting for a callback that arrives after mount is what
+ *     made the first paint blank. The observer still pauses playback once it
+ *     genuinely reports the band scrolled away.
+ *
+ * `onCanPlay` re-asserts playback once, per source load, if the element is
+ * still paused while active — which covers a play() the browser rejected
+ * before it had data. It is an event, not a timer: it cannot spin.
+ *
  * `prefers-reduced-motion` visitors get the static poster (if any) instead
  * of an autoplaying loop; with neither a poster nor motion allowed, nothing
  * renders.
@@ -72,7 +109,11 @@ export default function HeroBackgroundVideo({ item, fallbackVideo, fallbackPoste
   const [documentVisible, setDocumentVisible] = useState(
     () => (typeof document === 'undefined' ? true : document.visibilityState !== 'hidden')
   )
-  const { ref: inViewRef, inView } = useInView({ threshold: VISIBILITY_THRESHOLD })
+  // `entry` is undefined until the observer has actually reported. That is a
+  // different state from "reported, not visible", and conflating the two is
+  // what delayed the first play by a whole navigation.
+  const { ref: inViewRef, inView, entry } = useInView({ threshold: VISIBILITY_THRESHOLD })
+  const observerHasReported = entry !== undefined
   const videoRef = useRef(null)
   const pendingPlayRef = useRef(null)
 
@@ -102,7 +143,10 @@ export default function HeroBackgroundVideo({ item, fallbackVideo, fallbackPoste
   }, [])
 
   const showVideo = Boolean(currentSrc) && !reduceMotion
-  const active = inView && documentVisible && showVideo
+  // Before the observer speaks, assume visible: this band is the top of the
+  // page. Once it speaks, believe it, so scrolling away still stops decoding.
+  const withinViewport = observerHasReported ? inView : true
+  const active = withinViewport && documentVisible && showVideo
 
   const play = useCallback(async () => {
     const v = videoRef.current
@@ -125,8 +169,24 @@ export default function HeroBackgroundVideo({ item, fallbackVideo, fallbackPoste
     if (videoRef.current && !videoRef.current.paused) videoRef.current.pause()
   }, [])
 
-  useEffect(() => { if (active) play(); else pause() }, [active, play, pause])
+  // `currentSrc` is in here because it is the <video>'s key: when it changes,
+  // the element on screen is a new one that nothing has played yet.
+  useEffect(() => { if (active) play(); else pause() }, [active, currentSrc, play, pause])
   useEffect(() => () => { const v = videoRef.current; if (v && !v.paused) v.pause() }, [])
+
+  // Read by onCanPlay, which fires outside React's render cycle and would
+  // otherwise close over whatever `active` was when the element mounted.
+  const activeRef = useRef(active)
+  useEffect(() => { activeRef.current = active }, [active])
+
+  // The one place playback is re-asserted after the initial attempt. `canplay`
+  // fires once per source load, so this runs at most once per source and
+  // cannot become a poll. It covers the case where play() was called — or the
+  // autoPlay attribute was honoured — before the element had data.
+  const handleCanPlay = useCallback(() => {
+    const v = videoRef.current
+    if (v && v.paused && activeRef.current) play()
+  }, [play])
 
   // Advances to the next source; when the list is exhausted this lands on
   // undefined and the component falls back to the poster (or renders
@@ -160,10 +220,21 @@ export default function HeroBackgroundVideo({ item, fallbackVideo, fallbackPoste
           ref={videoRef}
           src={currentSrc}
           poster={posterSrc}
+          // The attribute, not just the play() call. This is what makes the
+          // watermark independent of effect timing: a muted, playsInline
+          // element starts itself as soon as it has data, including the fresh
+          // element a source swap mounts. play() remains as the explicit path
+          // for resuming after a pause, and for browsers that decline the
+          // attribute.
+          autoPlay
           muted
           loop
           playsInline
+          // Enough to start without pulling the whole file up front. autoPlay
+          // makes the browser fetch what it needs to begin regardless, so this
+          // stays a hint about eagerness rather than a cap on it.
           preload="metadata"
+          onCanPlay={handleCanPlay}
           // preload="metadata" is what makes this fire without playback, so
           // the ratio is known even where autoplay is refused.
           onLoadedMetadata={e => {

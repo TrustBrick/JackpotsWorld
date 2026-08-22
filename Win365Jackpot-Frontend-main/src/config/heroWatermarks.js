@@ -23,6 +23,26 @@
  * Paths are served from public/assets/ — see docs/MEDIA_ARCHITECTURE.md for
  * why every static asset URL in this app begins with /assets/.
  *
+ * ── Posters ────────────────────────────────────────────────────────────────
+ * Both entries carry one, and neither is decorative. A <video> paints nothing
+ * until it has decoded a frame, so a hero with no poster is an empty band for
+ * however long the file takes to arrive — which on a first, uncached visit is
+ * exactly when someone is most likely to be looking at it. The poster is the
+ * native `poster` attribute, so the browser swaps it for the video the moment
+ * there is a frame, with no state to manage.
+ *
+ * These are single frames pulled from the clips themselves:
+ *   ffmpeg -ss 3 -i videos/<clip>.mp4 -frames:v 1 -vf scale=960:-2 -q:v 6  *          posters/<clip>.jpg
+ * 960 wide and quality 6 because the layer renders at 0.24 opacity through
+ * brightness(0.55) and a scrim — roughly a tenth of full luminance, where
+ * neither resolution nor compression detail is resolvable.
+ *
+ * A Back Office row's own poster_image wins over these when it has one. When
+ * it does not, the bundled poster still shows, which means the frame briefly
+ * belongs to a different clip than the uploaded video that replaces it. At
+ * this opacity that reads as dark texture rather than as a picture, and the
+ * alternative is a blank hero.
+ *
  * ── These files MUST be landscape, and wide ────────────────────────────────
  * A watermark is painted with `object-fit: cover` across a hero band that is
  * roughly 4:1 (about 1494x361 on a desktop viewport), because a background
@@ -63,12 +83,12 @@ export const HERO_WATERMARKS = {
   //     -movflags +faststart poker-watermark.mp4
   poker: {
     video: '/assets/videos/poker-watermark.mp4',
-    poster: null,
+    poster: '/assets/posters/poker-watermark.jpg',
   },
   // VIP lounge footage — 640x360, landscape, and deliberately different
   // footage from Poker's.
   teen_patti: {
     video: '/assets/videos/vip-lounge.mp4',
-    poster: null,
+    poster: '/assets/posters/vip-lounge.jpg',
   },
 }

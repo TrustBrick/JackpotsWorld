@@ -74,13 +74,23 @@ function ShowcaseMedia({ item, narrow }) {
     }
   }, [])
 
+  // `src` belongs in here. Assigning a new src to a <video> resets it to
+  // paused, and without src as a dependency this effect would not re-run to
+  // start it again -- so a Back Office replacement, or any change of source
+  // while the block is already in view, would leave a loaded video sitting
+  // paused on its poster. Same shape of bug as the hero watermark had; see
+  // the note in shared/HeroBackgroundVideo.jsx.
+  //
+  // The IntersectionObserver gate is right here, unlike on the hero: a
+  // showcase is genuinely below the fold, and starting several of them before
+  // the reader reaches them is what preload="none" above exists to avoid.
   useEffect(() => {
     if (!isVideo || failed || reduceMotion) return
     const v = videoRef.current
     if (!v) return
     if (inView) attemptPlay()
     else if (!v.paused) v.pause()
-  }, [inView, isVideo, failed, reduceMotion, attemptPlay])
+  }, [inView, src, isVideo, failed, reduceMotion, attemptPlay])
 
   // ANALYTICS: engagement on this content video. Fires only on real playback
   // (see the hook); a poster/image fallback below records nothing.
@@ -135,7 +145,12 @@ function ShowcaseMedia({ item, narrow }) {
         // once the block is near the viewport.
         preload={inView ? 'metadata' : 'none'}
         // No autoPlay attribute — playback is driven by attemptPlay() so a
-        // rejected promise can be handled instead of failing silently.
+        // rejected promise can be handled instead of failing silently, and so
+        // several showcases on one page do not all start the moment they
+        // mount. onCanPlay re-asserts it once per source load if the block is
+        // in view and the element is still paused, which covers an attempt
+        // that happened before the element had data.
+        onCanPlay={() => { if (inView && videoRef.current?.paused) attemptPlay() }}
         controls={needsTap || reduceMotion}
         onError={() => setFailed(true)}
         className="w-full h-full object-cover"

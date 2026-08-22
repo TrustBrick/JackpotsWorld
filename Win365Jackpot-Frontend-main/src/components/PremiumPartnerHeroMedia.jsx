@@ -233,15 +233,38 @@ function HeroVideo({ src, poster, active, loop, soundOn, onSoundChange, onEnded,
     if (v && !v.paused) v.pause()
   }, [])
 
+  // Read by onCanPlay, which fires outside the render cycle and would
+  // otherwise close over stale values.
+  const activeRef = useRef(active)
+  const soundRef = useRef(soundOn)
+  useEffect(() => { activeRef.current = active; soundRef.current = soundOn }, [active, soundOn])
+
+  // The only re-assert. `canplay` fires once per source load, so this runs at
+  // most once per source and can never become a poll. It exists because a
+  // single play() attempt has no recovery: if the browser refuses it because
+  // the element had no data yet, or because the document was hidden at that
+  // instant, nothing else would ever ask again and the video would sit loaded
+  // and paused. Routed through play(), so the sound policy is unchanged --
+  // a refused audible attempt still falls back to muted exactly once.
+  const handleCanPlay = useCallback(() => {
+    const v = videoRef.current
+    if (v && v.paused && activeRef.current) play(soundRef.current)
+  }, [play])
+
   // Single source of truth for playback. `active` already folds in viewport
   // visibility, document visibility and the hero intro state. `activated` is
   // a dependency so the one audible retry happens precisely when the
   // browser's answer can have changed — not on a schedule, and not on every
   // render.
+  //
+  // `src` is in here because assigning a new source to a <video> resets it to
+  // paused. Without it, advancing to the next partner would load that
+  // partner's media and then never start it, since none of the other
+  // dependencies change on a slide advance.
   useEffect(() => {
     if (active) play(soundOn)
     else pause()
-  }, [active, soundOn, activated, play, pause])
+  }, [active, src, soundOn, activated, play, pause])
 
   // Pause on unmount so a slide change or route change can't leave audio
   // running behind the next partner's media.
@@ -281,6 +304,7 @@ function HeroVideo({ src, poster, active, loop, soundOn, onSoundChange, onEnded,
         // that owns the real state.
         muted
         playsInline
+        onCanPlay={handleCanPlay}
         // metadata, matching every other video on the site. Buffering ahead
         // with "auto" looks like the obvious fix for a stall, but preload was
         // A/B'd on real devices while chasing this and was never what stopped
@@ -389,7 +413,14 @@ export default function PremiumPartnerHeroMedia() {
   // triggerOnce is deliberately off — unlike the reveal animations elsewhere
   // on this page, this observer has to keep reporting as the visitor scrolls
   // back and forth so playback can stop and resume.
-  const { ref: inViewRef, inView } = useInView({ threshold: VISIBILITY_THRESHOLD })
+  // `entry` stays undefined until the observer has actually reported, which is
+  // a different thing from having reported "not visible". This band sits above
+  // the fold, so treating "not yet reported" as not-visible costs a real delay
+  // on the first paint -- the same defect the hero watermark had. Once the
+  // observer does report, it is believed, so scrolling away still stops
+  // playback and the audio with it.
+  const { ref: inViewRef, inView, entry } = useInView({ threshold: VISIBILITY_THRESHOLD })
+  const observerHasReported = entry !== undefined
 
   useEffect(() => {
     const onVisibility = () => setDocumentVisible(document.visibilityState !== 'hidden')
@@ -413,7 +444,7 @@ export default function PremiumPartnerHeroMedia() {
   const count = slides.length
   const safeIdx = count > 0 ? Math.min(idx, count - 1) : 0
   const current = slides[safeIdx]
-  const active = inView && documentVisible
+  const active = (observerHasReported ? inView : true) && documentVisible
 
   // ── Media fit ───────────────────────────────────────────────────────────
   // Both halves of the comparison are measured, never assumed: the box ratio
