@@ -23,11 +23,17 @@ public_urlpatterns = [
     path("section-media/", v.SectionMediaListView.as_view()),
     path("vip-service-images/", v.VipServiceImageListView.as_view()),
     path("tour-packages/", v.TourPackageListView.as_view()),
+    # The prefilled WhatsApp text for each enquiry button. Public because it is
+    # the message the visitor is about to send themselves.
+    path("enquiry-messages/", v.EnquiryMessageListView.as_view()),
 ]
 
 # Admin-managed — mounted at api/admin-panel/
 admin_urlpatterns = [
     path("landing-settings/", v.AdminLandingSettingsView.as_view()),
+
+    path("enquiry-messages/", v.AdminEnquiryMessageListCreateView.as_view()),
+    path("enquiry-messages/<int:pk>/", v.AdminEnquiryMessageDetailView.as_view()),
 
     path("hero-stats/", v.AdminHeroStatListCreateView.as_view()),
     path("hero-stats/<int:pk>/", v.AdminHeroStatDetailView.as_view()),

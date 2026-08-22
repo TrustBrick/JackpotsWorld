@@ -11,7 +11,7 @@ import { motion } from "framer-motion";
 import {
   Settings, BarChart3, Sparkles, ShieldCheck, Gift, ListOrdered,
   Crown, ListChecks, Quote, MapPin, Images, GalleryHorizontal, Plane, Star,
-  Clapperboard,
+  Clapperboard, MessageSquare,
 } from "lucide-react";
 import { useAdminTheme } from "../../context/AdminThemeContext";
 
@@ -19,6 +19,7 @@ import LandingSiteSettingsTab from "./LandingSiteSettingsTab";
 import HeroStatsManageTab from "./HeroStatsManageTab";
 import WhyChooseUsManageTab from "./WhyChooseUsManageTab";
 import TrustBadgesManageTab from "./TrustBadgesManageTab";
+import EnquiryMessagesManageTab from "./EnquiryMessagesManageTab";
 import GiftItemsManageTab from "./GiftItemsManageTab";
 import GiftStepsManageTab from "./GiftStepsManageTab";
 import VipTiersManageTab from "./VipTiersManageTab";
@@ -49,6 +50,10 @@ const SUB_TABS = [
   { id: "destshowcase", label: "Featured Showcase", Icon: Clapperboard,    Comp: FeaturedDestinationShowcaseManageTab },
   { id: "vipgallery", label: "VIP Gallery",       Icon: GalleryHorizontal, Comp: VipServiceImagesManageTab },
   { id: "packages",   label: "Tour Packages",     Icon: Plane,             Comp: TourPackagesManageTab },
+  // The prefilled WhatsApp text behind each enquiry button. Lives here
+  // because these buttons are landing-page content, and this is where an
+  // admin already comes to edit landing-page content.
+  { id: "enquiries",  label: "Enquiry Messages",  Icon: MessageSquare,     Comp: EnquiryMessagesManageTab },
 ];
 
 export default function LandingManageTab({ onToast }) {

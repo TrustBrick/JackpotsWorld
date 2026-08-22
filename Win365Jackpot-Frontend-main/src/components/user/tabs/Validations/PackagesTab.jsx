@@ -9,6 +9,7 @@ import { Card } from "../../components/SharedUI";
 import { useAutoFetch } from "../../../../hooks/useAutoFetch";
 import { fetchTourPackages } from "../../../../services/landingService";
 import useEnquiryNumber from "../../../../hooks/useEnquiryNumber";
+import useEnquiryMessage, { renderEnquiryTemplate } from "../../../../hooks/useEnquiryMessage";
 import { buildWhatsAppLink } from "../../../../services/enquiryContact";
 
 const FALLBACK_PACKAGES = [
@@ -74,9 +75,12 @@ function mapTourPackage(p) {
   };
 }
 
-function purchaseLink(pkg, whatsappNumber) {
-  // Raw text — buildWhatsAppLink() does the URL encoding.
-  const msg = `Hi! I'm interested in purchasing the *${pkg.name}* Offline Casino Tour Package (${pkg.price}). Please share more details.`;
+// `template` is the Back Office message with its {placeholders} still in it;
+// each package fills them with its own name and price. Taking the template as
+// an argument keeps this a plain function -- it is called once per package
+// inside a map, and a hook cannot be.
+function purchaseLink(pkg, whatsappNumber, template) {
+  const msg = renderEnquiryTemplate(template, { package: pkg.name, price: pkg.price });
   return buildWhatsAppLink(whatsappNumber, msg);
 }
 
@@ -86,6 +90,8 @@ export default function PackagesTab() {
   const PACKAGES = (Array.isArray(packagesData) && packagesData.length > 0 ? packagesData : FALLBACK_PACKAGES).map(mapTourPackage);
   // Country-based: Sri Lanka gets the local number, everywhere else the default.
   const whatsappNumber = useEnquiryNumber();
+  // No vars here on purpose: this is the raw template, rendered per package below.
+  const purchaseTemplate = useEnquiryMessage("package_purchase");
   return (
     <div>
       <div style={{ marginBottom: 18 }}>
@@ -153,7 +159,7 @@ export default function PackagesTab() {
                   ))}
                 </div>
 
-                <a href={purchaseLink(pkg, whatsappNumber)} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+                <a href={purchaseLink(pkg, whatsappNumber, purchaseTemplate)} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
                   <button style={{
                     width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                     padding: "11px 0", borderRadius: 10, border: "none", cursor: "pointer",

@@ -29,6 +29,7 @@ import { fetchDestinations, fetchVipServiceImages, fetchTourPackages } from '../
 import { flagFromCountryCode } from '../utils/countryFlags'
 import useEnquiryNumber from '../hooks/useEnquiryNumber'
 import { buildWhatsAppLink } from '../services/enquiryContact'
+import useEnquiryMessage, { renderEnquiryTemplate } from '../hooks/useEnquiryMessage'
 
 // Enquiry routing is decided by the visitor's country (Sri Lanka vs everywhere
 // else), so this no longer reads whatsapp_number from the landing settings —
@@ -145,10 +146,14 @@ const INCLUSIONS = [
 /* ── WHATSAPP BUTTON ── */
 function WhatsAppBtn({ label = 'Enquire on WhatsApp', pkg = '' }) {
   const whatsappNumber = useWhatsAppNumber()
+  // Two different enquiries, so two different Back Office messages: a button
+  // tied to one package says which one, a general button does not. Both keys
+  // are requested unconditionally because hooks cannot be called behind a
+  // branch; only the one this button needs is used.
+  const namedMsg = useEnquiryMessage('tour_package_named', { package: pkg })
+  const generalMsg = useEnquiryMessage('tour_packages_general')
   // Raw text — buildWhatsAppLink() does the URL encoding.
-  const msg = pkg
-    ? `Hi! I'm interested in the *${pkg}* Offline Casino Tour Package. Please share more details.`
-    : `Hi! I'm interested in your Offline Casino Tour Packages. Please share more details.`
+  const msg = pkg ? namedMsg : generalMsg
   return (
     <a href={buildWhatsAppLink(whatsappNumber, msg)} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textDecoration: 'none' }}>
       <motion.button
@@ -624,6 +629,7 @@ function mapTourPackage(p) {
 function PackagesSection() {
   const { ref: inViewRef, inView } = useInView({ threshold: 0.05, triggerOnce: true })
   const whatsappNumber = useWhatsAppNumber()
+  const cruiseMsg = useEnquiryMessage('cruise_package')
   const { data: packagesData } = useAutoFetch(fetchTourPackages, {}, { intervalMs: 60_000 })
   const PACKAGES = (Array.isArray(packagesData) && packagesData.length > 0 ? packagesData : FALLBACK_PACKAGES).map(mapTourPackage)
 
@@ -921,7 +927,7 @@ function PackagesSection() {
       {/* CTA */}
       <div style={{ maxWidth: 380, margin: '0 auto' }}>
   <a
-    href={buildWhatsAppLink(whatsappNumber, "Hi! I'm interested in the *Cruise Offline Casino Package*. Please share more details.")}
+    href={buildWhatsAppLink(whatsappNumber, cruiseMsg)}
     target="_blank"
     rel="noopener noreferrer"
     style={{ display: 'block', textDecoration: 'none' }}

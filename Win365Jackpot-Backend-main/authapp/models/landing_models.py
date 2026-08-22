@@ -457,3 +457,62 @@ class FeaturedDestinationShowcase(models.Model):
 
     def __str__(self):
         return f"{self.destination_id} — {self.title}"
+
+
+class EnquiryMessage(models.Model):
+    """The WhatsApp message text behind one enquiry button.
+
+    Every enquiry button on the site opens wa.me with a prefilled message. That
+    text used to be a literal in the React component that rendered the button,
+    so changing a single word meant a code change and a frontend rebuild. The
+    rows here are that same text, moved to where the Back Office can edit it.
+
+    Only the *message* moves. The destination number is unchanged and still
+    resolved per visitor by services/enquiryContact.js (Sri Lanka gets the
+    local number, everywhere else the default), and no number, credential or
+    internal setting is stored on this model or exposed by the public endpoint
+    -- it serves display text and nothing else.
+
+    `key` is the contract between a button and its text. It is a slug the
+    frontend passes, not a database id, so seeding, exporting or recreating a
+    row cannot silently repoint a button at the wrong message. The keys that
+    exist are exactly the buttons that exist today; adding a category here does
+    nothing until a button asks for it by key.
+
+    `template` may contain {placeholders} that the call site fills in, because
+    two of these buttons already build their text from the package the visitor
+    is looking at. Supported names are listed in `placeholders` so the Back
+    Office can see what a given message may use without reading the source.
+    Rendering is a plain str.format_map with a default, so an unknown or
+    misspelled placeholder leaves the literal text in place rather than raising
+    -- an admin's typo must never break an enquiry button.
+    """
+
+    key = models.SlugField(max_length=60, unique=True)
+    label = models.CharField(max_length=120)
+    description = models.CharField(
+        max_length=200, blank=True,
+        help_text="Where this button appears, shown to the admin editing it.",
+    )
+    template = models.TextField(
+        help_text="The WhatsApp message. May contain {placeholders} listed below.",
+    )
+    placeholders = models.CharField(
+        max_length=200, blank=True,
+        help_text="Comma-separated placeholder names this message may use, e.g. package,price",
+    )
+    is_active = models.BooleanField(default=True, db_index=True)
+    order = models.PositiveIntegerField(default=0)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="enquiry_messages_updated",
+    )
+
+    class Meta:
+        ordering = ["order", "key"]
+
+    def __str__(self):
+        return f"{self.label} ({self.key})"

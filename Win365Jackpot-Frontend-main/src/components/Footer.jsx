@@ -5,15 +5,16 @@ import { Link as RouterLink } from 'react-router-dom'
 import Logo from './shared/Logo'
 import BrandMark from './shared/BrandMark'
 import useEnquiryNumber from '../hooks/useEnquiryNumber'
+import useEnquiryMessage from '../hooks/useEnquiryMessage'
 import { buildWhatsAppLink } from '../services/enquiryContact'
 
 const PRIMARY_DESTINATIONS = ['Vietnam', 'Macau', 'India (Goa)', 'Sri Lanka', 'Philippines']
 const EXTRA_DESTINATIONS   = ['Las Vegas', 'Malaysia', 'Singapore', 'Armenia', 'Georgia']
 const ALL_DESTINATIONS     = [...PRIMARY_DESTINATIONS, ...EXTRA_DESTINATIONS]
 
-// Raw text — buildWhatsAppLink() does the URL encoding. The number itself is
-// resolved per visitor by useEnquiryNumber(), no longer hardcoded here.
-const WA_MSG   = "Hi! I'd like to get in touch with Jackpots World 🎰"
+// The message is no longer a literal either: useEnquiryMessage() reads it from
+// the Back Office, falling back to the same wording this constant held. The
+// number is resolved per visitor by useEnquiryNumber(), as before.
 
 const SOCIAL_LINKS = [
   {
@@ -52,6 +53,7 @@ const SHOW_SOCIAL_LINKS = true
 export default function Footer() {
   const [open, setOpen] = useState(false)
   const enquiryNumber = useEnquiryNumber()
+  const enquiryMessage = useEnquiryMessage('footer_general')
 
   return (
     <footer id="contact" style={{
@@ -195,7 +197,7 @@ export default function Footer() {
 
               <li>
                 <a
-                  href={buildWhatsAppLink(enquiryNumber, WA_MSG)}
+                  href={buildWhatsAppLink(enquiryNumber, enquiryMessage)}
                   target="_blank" rel="noopener noreferrer"
                   style={{ fontSize: 13, color: 'var(--w365-text-muted)', textDecoration: 'none', transition: 'color 0.15s' }}
                   onMouseEnter={e => e.currentTarget.style.color = '#D4AF37'}

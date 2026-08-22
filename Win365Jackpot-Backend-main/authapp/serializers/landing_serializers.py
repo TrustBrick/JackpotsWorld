@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from authapp.models.landing_models import (
+    EnquiryMessage,
     LandingSettings, HeroStat, WhyChooseUsFeature, TrustBadge,
     GiftItem, GiftStep, VipTier, VipTierBenefit, Testimonial,
     Destination, DestinationMedia, VipServiceImage, TourPackage,
@@ -340,3 +341,30 @@ class PublicFeaturedDestinationShowcaseSerializer(serializers.ModelSerializer):
             "poster_image", "cta_text", "display_order",
         ]
         read_only_fields = fields
+
+
+class EnquiryMessageSerializer(serializers.ModelSerializer):
+    """Back Office view: everything an admin edits, plus who touched it last."""
+    is_active = serializers.BooleanField(default=True, required=False)
+    updated_by_email = serializers.EmailField(source="updated_by.email", read_only=True, default="")
+
+    class Meta:
+        model = EnquiryMessage
+        fields = [
+            "id", "key", "label", "description", "template", "placeholders",
+            "is_active", "order", "created_at", "updated_at", "updated_by_email",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at", "updated_by_email"]
+
+
+class PublicEnquiryMessageSerializer(serializers.ModelSerializer):
+    """What the site is allowed to see: the key and the text, nothing else.
+
+    Deliberately narrower than the admin serializer. The public endpoint is
+    unauthenticated, so it returns only what a button needs to build its link
+    -- no ids, no timestamps, no record of which admin last edited it.
+    """
+
+    class Meta:
+        model = EnquiryMessage
+        fields = ["key", "template", "placeholders"]

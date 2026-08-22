@@ -4,12 +4,14 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 
 from authapp.models.landing_models import (
+    EnquiryMessage,
     LandingSettings, HeroStat, WhyChooseUsFeature, TrustBadge,
     GiftItem, GiftStep, VipTier, VipTierBenefit, Testimonial,
     Destination, DestinationMedia, VipServiceImage, TourPackage,
     PremiumPartner, SectionMedia, FeaturedDestinationShowcase,
 )
 from authapp.serializers.landing_serializers import (
+    EnquiryMessageSerializer, PublicEnquiryMessageSerializer,
     LandingSettingsSerializer, HeroStatSerializer, WhyChooseUsFeatureSerializer,
     TrustBadgeSerializer, GiftItemSerializer, GiftStepSerializer,
     VipTierSerializer, VipTierBenefitSerializer, TestimonialSerializer,
@@ -56,6 +58,27 @@ class TrustBadgeListView(APIView):
     def get(self, request):
         qs = TrustBadge.objects.filter(is_active=True)
         return Response(TrustBadgeSerializer(qs, many=True, context={"request": request}).data)
+
+
+class EnquiryMessageListView(APIView):
+    """GET /api/enquiry-messages/ — the text behind every enquiry button.
+
+    Unauthenticated on purpose: these are the words a visitor is about to see
+    in their own WhatsApp composer, so there is nothing here to protect. The
+    serializer is the narrow public one, so the response carries the key and
+    the text and nothing else -- no ids, no timestamps, no admin identity, and
+    no phone number (the destination is still resolved client-side per visitor,
+    exactly as before).
+
+    Inactive rows are omitted rather than returned with a flag, so a message an
+    admin has switched off falls back to the site's built-in default instead of
+    opening WhatsApp with an empty composer.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        qs = EnquiryMessage.objects.filter(is_active=True)
+        return Response(PublicEnquiryMessageSerializer(qs, many=True).data)
 
 
 class GiftItemListView(APIView):
@@ -232,6 +255,24 @@ def _admin_crud_views(_model, _serializer_cls, prefetch=None):
 AdminHeroStatListCreateView, AdminHeroStatDetailView = _admin_crud_views(HeroStat, HeroStatSerializer)
 AdminWhyChooseUsFeatureListCreateView, AdminWhyChooseUsFeatureDetailView = _admin_crud_views(WhyChooseUsFeature, WhyChooseUsFeatureSerializer)
 AdminTrustBadgeListCreateView, AdminTrustBadgeDetailView = _admin_crud_views(TrustBadge, TrustBadgeSerializer)
+# Enquiry button messages. The factory supplies the queryset, serializer and
+# permission exactly as it does for every other landing resource; these two
+# subclasses add one thing on top -- stamping the admin who saved the row, so
+# the Back Office table's "Last Updated" column can say who as well as when.
+#
+# Subclassed rather than folded into _admin_crud_views because that factory is
+# shared by a dozen content types, none of which have an updated_by column.
+_EnquiryListCreate, _EnquiryDetail = _admin_crud_views(EnquiryMessage, EnquiryMessageSerializer)
+
+
+class AdminEnquiryMessageListCreateView(_EnquiryListCreate):
+    def perform_create(self, serializer):
+        serializer.save(updated_by=self.request.user)
+
+
+class AdminEnquiryMessageDetailView(_EnquiryDetail):
+    def perform_update(self, serializer):
+        serializer.save(updated_by=self.request.user)
 AdminGiftItemListCreateView, AdminGiftItemDetailView = _admin_crud_views(GiftItem, GiftItemSerializer)
 AdminGiftStepListCreateView, AdminGiftStepDetailView = _admin_crud_views(GiftStep, GiftStepSerializer)
 AdminVipTierListCreateView, AdminVipTierDetailView = _admin_crud_views(VipTier, VipTierSerializer, prefetch=["benefits"])

@@ -2,12 +2,9 @@ import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import useEnquiryNumber from '../hooks/useEnquiryNumber'
 import { buildWhatsAppLink } from '../services/enquiryContact'
-
-// Raw text — buildWhatsAppLink() does the URL encoding.
-const WA_MESSAGE = "Hi! I'm interested in a casino package from jackpotsworld.com 🎰 Please help me!"
+import useEnquiryMessage from '../hooks/useEnquiryMessage'
 
 const TG_USERNAME = 'yourwinningdestination888'
-const TG_MESSAGE = encodeURIComponent("Hi! I'm interested in a casino package from jackpotsworld.com 🎰 Please help me!")
 
 const BTN  = 'clamp(48px, 12vw, 64px)'
 const ICON = 'clamp(28px, 7vw, 36px)'
@@ -18,6 +15,13 @@ export default function WhatsAppButton() {
   const [showTooltip, setShowTooltip] = useState(true)
   // Sri Lanka gets the local number; every other country gets the default.
   const enquiryNumber = useEnquiryNumber()
+  // One message drives both buttons. They have always sent the same words, and
+  // splitting them into two Back Office rows would invite them to drift apart
+  // for no reason an admin asked for. buildWhatsAppLink encodes for wa.me;
+  // Telegram's t.me takes the text in a query string, so it needs its own
+  // encodeURIComponent.
+  const enquiryMessage = useEnquiryMessage('floating_button')
+  const tgMessage = encodeURIComponent(enquiryMessage)
 
   React.useEffect(() => {
     const t = setTimeout(() => setShowTooltip(false), 5000)
@@ -27,10 +31,10 @@ export default function WhatsAppButton() {
   const handleTelegramClick = (e) => {
     e.preventDefault()
     // Try native app first via username
-    window.location.href = `tg://resolve?domain=${TG_USERNAME}&text=${TG_MESSAGE}`
+    window.location.href = `tg://resolve?domain=${TG_USERNAME}&text=${tgMessage}`
     // Fallback to web after 1s
     setTimeout(() => {
-      window.open(`https://t.me/${TG_USERNAME}?text=${TG_MESSAGE}`, '_blank')
+      window.open(`https://t.me/${TG_USERNAME}?text=${tgMessage}`, '_blank')
     }, 1000)
   }
 
@@ -88,7 +92,7 @@ export default function WhatsAppButton() {
 
       {/* ── WhatsApp Button ── */}
       <motion.a
-        href={buildWhatsAppLink(enquiryNumber, WA_MESSAGE)}
+        href={buildWhatsAppLink(enquiryNumber, enquiryMessage)}
         target="_blank"
         rel="noopener noreferrer"
         onHoverStart={() => setHoveredWA(true)}
@@ -176,7 +180,7 @@ export default function WhatsAppButton() {
 
       {/* ── Telegram Button ── */}
       <motion.a
-        href={`https://t.me/${TG_USERNAME}?text=${TG_MESSAGE}`}
+        href={`https://t.me/${TG_USERNAME}?text=${tgMessage}`}
         onClick={handleTelegramClick}
         target="_blank"
         rel="noopener noreferrer"
