@@ -106,12 +106,25 @@ export const ADMIN_NAV_GROUPS = [
       // Commission Engine (Deposit / Losing / Rolling) — safe to remove this
       // line along with AffiliateCommissionsTab.jsx and its case in
       // AdminPanel.jsx to remove the feature.
+      //
+      // The single destination for automatic commission configuration. It now
+      // hosts four views: Configuration (commission plans + the scoped
+      // per-affiliate assignments that used to be the separate "Commission
+      // Rules" page), Dashboard, Commission Ledger (which carries the Manual /
+      // Bonus action) and Commission Report.
       { id:"affiliate-commissions", label:"Affiliate Commissions", icon:"Percent" },
-      // Country + Casino + Tier commission rules — the layer above the
-      // per-affiliate plans in the tab directly above. Dashboard, rules
-      // (with tier/condition editors) and the ledger live behind one tab's
-      // view toggle, matching how Manage Poker / Teen Patti are organised.
-      { id:"commission-rules", label:"Commission Rules", icon:"Layers" },
+      // NOTE: there is deliberately no "commission-rules" entry here any more.
+      // It pointed at a second page for configuring the same thing this one
+      // configures — an affiliate's country/casino-scoped rate — so an admin
+      // had to know which of two destinations owned which half of the answer.
+      // Everything it did is reachable above.
+      //
+      // Only the navigation entry was removed. CommissionRulesTab.jsx, its
+      // case in AdminPanel.jsx, and every backend model, service and endpoint
+      // behind it are untouched and still in use: CommissionRule *is* what the
+      // engine resolves first (services/commission_rule_service.resolve_rule),
+      // and the new Configuration view reads and writes those same rows
+      // through the same /api/admin-panel/commissions/rules/ endpoints.
       // AFFILIATE-WITHDRAWALS: new tab (local preview feature) — safe to
       // remove this line along with AffiliateWithdrawalsTab.jsx and its case
       // in AdminPanel.jsx to remove the feature.
