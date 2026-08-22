@@ -5,6 +5,7 @@ import {
   Bell, FileText, Shield, Activity, UserCog, LogOut, Key,
   Eye, EyeOff, AlertCircle, CalendarDays, Spade, Handshake, MapPin, LayoutTemplate,
   LifeBuoy, Languages, // MULTILINGUAL-CHAT
+  MessageSquare, // SUPPORT-SCRIPT
   ArrowDownCircle, ArrowUpCircle, Sparkles, // WALLET-REQUESTS / GIFTS-REWARDS
   MessageCircle, // LIVE-CHAT
   Percent, ChevronDown, // AFFILIATE-APPROVAL: sidebar groups + Commission Engine icon
@@ -40,6 +41,7 @@ import WithdrawalRequestsTab from "./tabs/WithdrawalRequestsTab";  // WALLET-REQ
 import GiftsRewardsTab       from "./tabs/GiftsRewardsTab";        // GIFTS-REWARDS
 import SupportTicketsTab    from "./tabs/SupportTicketsTab";           // MULTILINGUAL-CHAT
 import SupportSettingsTab   from "./tabs/content/SupportSettingsTab";  // MULTILINGUAL-CHAT
+import SupportScriptsManageTab from "./tabs/content/SupportScriptsManageTab";  // SUPPORT-SCRIPT
 import LiveSupportTab       from "./tabs/LiveSupportTab";              // LIVE-CHAT
 // ANALYTICS: real first-party analytics dashboard tabs.
 import SystemLogsTab       from "./tabs/SystemLogsTab";
@@ -60,6 +62,7 @@ const ICON_MAP = {
   BarChart3, Users, Wallet, Building2, Crown, Gift,
   Bell, FileText, Shield, Activity, UserCog, CalendarDays, Spade, Handshake, MapPin, LayoutTemplate,
   LifeBuoy, Languages, // MULTILINGUAL-CHAT
+  MessageSquare, // SUPPORT-SCRIPT
   ArrowDownCircle, ArrowUpCircle, Sparkles, // WALLET-REQUESTS / GIFTS-REWARDS
   MessageCircle, // LIVE-CHAT
   Percent, // Affiliate Commissions — was referenced but never mapped/imported before this change
@@ -406,6 +409,7 @@ function AdminPanelInner() {
       // MULTILINGUAL-CHAT: 2 new cases
       case "support-tickets":  return <SupportTicketsTab  {...props} />;
       case "support-settings": return <SupportSettingsTab {...props} />;
+      case "support-scripts": return <SupportScriptsManageTab {...props} />;  // SUPPORT-SCRIPT
       case "live-support":     return <LiveSupportTab     {...props} />; // LIVE-CHAT
       // SYSTEM LOGS: one destination, five tabs inside it. The old
       // per-analytics ids still resolve here so a browser session holding one

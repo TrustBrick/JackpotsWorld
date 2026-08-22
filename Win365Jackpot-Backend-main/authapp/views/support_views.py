@@ -33,6 +33,8 @@ from authapp.serializers.support_serializers import (
 from authapp.models.support_settings_models import SupportSettings
 from authapp.services.translation_service import TranslationService, LANGUAGE_NATIVE_NAMES
 from authapp.services.language_detector import detect_preferred_language, normalize_language_code
+from authapp.serializers.support_serializers import SupportScriptSerializer
+from authapp.models.support_script_models import SupportScript
 
 
 def _multilingual_active():
@@ -194,3 +196,25 @@ class SupportSettingsView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+
+# ── Support script library (Back Office) ────────────────────────────────────
+# The standard wording from the Call & Live Chat Script Manual. Admin-only:
+# IsAdminOrSuperAdmin on both, matching every other Back Office content
+# resource, so a player can neither read nor edit the agent playbook.
+class AdminSupportScriptListCreateView(generics.ListCreateAPIView):
+    queryset = SupportScript.objects.all()
+    serializer_class = SupportScriptSerializer
+    permission_classes = [IsAdminOrSuperAdmin]
+
+    def perform_create(self, serializer):
+        serializer.save(updated_by=self.request.user)
+
+
+class AdminSupportScriptDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = SupportScript.objects.all()
+    serializer_class = SupportScriptSerializer
+    permission_classes = [IsAdminOrSuperAdmin]
+
+    def perform_update(self, serializer):
+        serializer.save(updated_by=self.request.user)

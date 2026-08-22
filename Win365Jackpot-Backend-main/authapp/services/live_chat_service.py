@@ -81,7 +81,48 @@ def get_or_create_active_session(user, participant_type=PARTICIPANT_PLAYER):
             status="open",
         )
         created = True
+        _post_opening_greeting(session)
     return session, created
+
+
+def _post_opening_greeting(session):
+    """The one message this system sends by itself.
+
+    Section 5 of the Call & Live Chat Script Manual: the customer gets the
+    standard opening the moment the conversation exists, instead of typing into
+    a silent window and waiting for an agent to notice. It is stored as an
+    ordinary admin ChatMessage, so it persists, survives a refresh, appears in
+    the agent's view of the thread, and is translated by the same path as any
+    other agent message.
+
+    Nothing else is ever auto-sent. The manual's rule is to check before
+    responding, and an automatic message cannot check anything -- so the row
+    has to be explicitly flagged is_auto_send, and only the greeting is. An
+    admin who clears that flag, or deactivates the row, turns this off without
+    a code change.
+
+    Deliberately non-fatal. A missing or deactivated script row must not stop a
+    customer opening a conversation, so a failure here is logged and the
+    session is returned regardless: the customer gets a silent window, which is
+    exactly what they had before this existed, rather than an error.
+    """
+    try:
+        from authapp.models.support_script_models import SupportScript
+
+        script = (
+            SupportScript.objects
+            .filter(key="greeting", is_active=True, is_auto_send=True)
+            .first()
+        )
+        if not script or not script.body.strip():
+            return
+        # sender=None: this is the desk speaking, not any particular agent, and
+        # attributing it to one would put a name on a message they did not
+        # write. sender_type stays "admin" so it renders on the support side of
+        # the thread like every other agent message.
+        post_message(session, "admin", None, script.body)
+    except Exception:
+        logger.exception("opening greeting failed for live chat session %s", session.pk)
 
 
 def open_ticket_conversation(ticket):

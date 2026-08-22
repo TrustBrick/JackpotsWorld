@@ -150,6 +150,10 @@ export const ADMIN_NAV_GROUPS = [
       // MULTILINGUAL-CHAT: 2 new tabs (local preview feature)
       { id:"support-tickets",  label:"Support Tickets",  icon:"LifeBuoy"  },
       { id:"support-settings", label:"Support Settings", icon:"Languages" },
+      // SUPPORT-SCRIPT: the standard live-chat wording from the Call & Live
+      // Chat Script Manual. The greeting row is the one message the system
+      // sends by itself; the rest are wording agents send deliberately.
+      { id:"support-scripts", label:"Support Scripts", icon:"MessageSquare" },
       // LIVE-CHAT: real-time human-agent chat (distinct from the async
       // ticket tabs above) — safe to remove this line + LiveSupportTab.jsx +
       // its case in AdminPanel.jsx to remove the feature.

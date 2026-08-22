@@ -57,6 +57,11 @@ from .wallet_request_models import (
 # itself) to remove the feature. See call_models.py's docstring.
 from .call_models import CallSession, CallEvent
 
+# SUPPORT-SCRIPT: the standard live-chat wording from the Call & Live Chat
+# Script Manual. Imported here so the app registry sees the model at load
+# time -- without this, makemigrations proposes deleting it.
+from .support_script_models import SupportScript
+
 # ANALYTICS: new module — safe to delete this import block (and the module
 # itself) to remove the feature. See analytics_models.py's docstring.
 from .analytics_models import AnalyticsEvent, Campaign
@@ -109,4 +114,6 @@ __all__ = [
     # ANALYTICS
     "AnalyticsEvent",
     "Campaign",
+    # SUPPORT-SCRIPT
+    "SupportScript",
 ]

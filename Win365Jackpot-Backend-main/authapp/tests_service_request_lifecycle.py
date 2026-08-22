@@ -25,6 +25,11 @@ from authapp.models.support_settings_models import SupportSettings
 from authapp.models.support_ticket_models import SupportTicket
 from authapp.services import voice_call_service
 from authapp.throttles import VoiceCallStartRateThrottle
+# Opening a live session posts the scripted greeting as an admin message.
+# These tests count the messages the participants exchanged, so the system
+# one is switched off here. Defined and explained once in tests_live_chat;
+# the greeting itself is covered by OpeningGreetingTests there.
+from authapp.tests_live_chat import silence_opening_greeting
 
 User = get_user_model()
 
@@ -34,6 +39,7 @@ ACTIVE_STATUSES = ("open", "in_progress")
 @override_settings(LIVE_CHAT_REALTIME=True)
 class ServiceRequestLifecycleTests(APITestCase):
     def setUp(self):
+        silence_opening_greeting()
         # Same stub as tests_live_chat/tests_voice_call: the User post_save
         # signal provisions wallet rows whose numbers come from a millisecond
         # timestamp, and tests create users faster than that resolves.

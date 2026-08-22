@@ -7,7 +7,8 @@ from authapp.views.support_views import (
     AdminSupportTicketListView,
     AdminSupportTicketUpdateView,
     SupportConfigView,       # MULTILINGUAL-CHAT
-    SupportSettingsView,     # MULTILINGUAL-CHAT
+    SupportSettingsView,     # MULTILINGUAL-CHAT,
+    AdminSupportScriptListCreateView, AdminSupportScriptDetailView,
 )
 
 # Public (authenticated user) — mounted at api/
@@ -25,4 +26,8 @@ admin_urlpatterns = [
     path("support/tickets/", AdminSupportTicketListView.as_view()),
     path("support/tickets/<int:pk>/", AdminSupportTicketUpdateView.as_view()),
     path("support-settings/", SupportSettingsView.as_view()),  # MULTILINGUAL-CHAT
+
+    # SUPPORT-SCRIPT: the standard live-chat wording. Admin-only by design.
+    path("support-scripts/", AdminSupportScriptListCreateView.as_view()),
+    path("support-scripts/<int:pk>/", AdminSupportScriptDetailView.as_view()),
 ]

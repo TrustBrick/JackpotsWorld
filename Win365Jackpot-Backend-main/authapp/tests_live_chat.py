@@ -14,12 +14,36 @@ from rest_framework.test import APITestCase
 
 from authapp.models.affiliate_models import AffiliateProfile
 from authapp.models.support_ticket_models import ChatMessage, SupportTicket
+from authapp.models.support_script_models import SupportScript
 
 User = get_user_model()
 
 
+def silence_opening_greeting():
+    """Stop the scripted greeting posting into these tests' threads.
+
+    Opening a live-chat session posts the Section 5 greeting as the first admin
+    message (see live_chat_service._post_opening_greeting). That is intended
+    behaviour and has its own test below, but it is a *system* message, and
+    every test in this module asserts on the exact messages the participants
+    exchanged -- transcripts, counts, idempotency of a retried send. Leaving it
+    in would mean rewriting each of those assertions to say "and also the
+    greeting", which tests the greeting nine times over and obscures what each
+    case is actually about.
+
+    Clearing the flag rather than deleting the row keeps the fixture honest:
+    the script still exists, it is simply not auto-sent, which is exactly the
+    supported Back Office configuration.
+
+    Same shape as tests_teenpatti._clear_seeded_events -- seeded data that
+    breaks count assertions is neutralised in setUp, not asserted around.
+    """
+    SupportScript.objects.filter(key="greeting").update(is_auto_send=False)
+
+
 class LiveChatDeliveryTests(APITestCase):
     def setUp(self):
+        silence_opening_greeting()
         # Creating a User fires a post_save signal that provisions four
         # WalletAccount rows, whose unique account numbers come from a
         # timestamp with millisecond resolution. Tests create users faster
@@ -182,6 +206,7 @@ class AffiliateChatRoutingTests(APITestCase):
     """
 
     def setUp(self):
+        silence_opening_greeting()
         counter = count()
         patcher = patch(
             "authapp.signals.generate_account_number",
@@ -374,3 +399,48 @@ class AffiliateChatRoutingTests(APITestCase):
         )
         self.assertEqual(rows[0]["unread_count"], 1)
         self.assertEqual(rows[0]["last_message"]["message"], "anyone there?")
+
+
+class OpeningGreetingTests(APITestCase):
+    """The one message the system sends on its own.
+
+    Deliberately not silenced here: this is the case that proves the greeting
+    is delivered, so the other classes are free to switch it off and assert on
+    participant messages alone.
+    """
+
+    def setUp(self):
+        self.player = User.objects.create(email="greet-player@example.com", user_uid="GRTP01")
+
+    def test_opening_a_session_posts_the_scripted_greeting(self):
+        from authapp.services import live_chat_service
+
+        script = SupportScript.objects.get(key="greeting")
+        session, created = live_chat_service.get_or_create_active_session(self.player)
+
+        self.assertTrue(created)
+        messages = list(session.chat_messages.all())
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(messages[0].sender_type, "admin")
+        self.assertEqual(messages[0].message, script.body)
+        # No agent wrote it, so it is attributed to none of them.
+        self.assertIsNone(messages[0].sender_id)
+
+    def test_reopening_does_not_post_it_twice(self):
+        from authapp.services import live_chat_service
+
+        session, _ = live_chat_service.get_or_create_active_session(self.player)
+        again, created = live_chat_service.get_or_create_active_session(self.player)
+
+        self.assertFalse(created)
+        self.assertEqual(again.pk, session.pk)
+        self.assertEqual(again.chat_messages.count(), 1)
+
+    def test_turning_the_flag_off_stops_it(self):
+        from authapp.services import live_chat_service
+
+        SupportScript.objects.filter(key="greeting").update(is_auto_send=False)
+        session, created = live_chat_service.get_or_create_active_session(self.player)
+
+        self.assertTrue(created)
+        self.assertEqual(session.chat_messages.count(), 0)

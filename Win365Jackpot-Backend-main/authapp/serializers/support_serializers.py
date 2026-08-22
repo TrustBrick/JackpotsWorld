@@ -4,6 +4,7 @@ from authapp.models.responsible_gambling_models import ResponsibleGamblingSettin
 from authapp.models.support_ticket_models import SupportTicket
 # MULTILINGUAL-CHAT: new import
 from authapp.models.support_settings_models import SupportSettings
+from authapp.models.support_script_models import SupportScript
 
 
 class ResponsibleGamblingSettingsSerializer(serializers.ModelSerializer):
@@ -54,3 +55,25 @@ class SupportSettingsSerializer(serializers.ModelSerializer):
             "fallback_language", "auto_detect_enabled", "updated_at",
         ]
         read_only_fields = ["updated_at"]
+
+
+class SupportScriptSerializer(serializers.ModelSerializer):
+    """Back Office editing of the standard support wording.
+
+    Admin-only; there is no public counterpart. The site never reads these --
+    the one message that is ever sent automatically is posted server-side by
+    services/live_chat_service, so no script text needs to reach the browser
+    before an agent chooses to send it.
+    """
+    is_active = serializers.BooleanField(default=True, required=False)
+    is_auto_send = serializers.BooleanField(default=False, required=False)
+    updated_by_email = serializers.EmailField(source="updated_by.email", read_only=True, default="")
+
+    class Meta:
+        model = SupportScript
+        fields = [
+            "id", "key", "label", "body", "source_section",
+            "is_auto_send", "is_active", "order",
+            "created_at", "updated_at", "updated_by_email",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at", "updated_by_email"]
