@@ -97,16 +97,32 @@ export default function PageScrollButtons() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: 20 }}
+      initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.25 }}
       className="fixed z-40 flex items-center justify-center"
       style={{
-        // Stacked directly above the ChatBot launcher (bottom: clamp(14px,4vw,24px),
-        // height: clamp(50px,12vw,60px), right: clamp(12px,3vw,24px), z-50) with a
-        // clamped gap, so spacing stays correct and they never overlap at any size.
-        bottom: 'calc(clamp(14px, 4vw, 24px) + clamp(50px, 12vw, 60px) + clamp(12px, 3vw, 16px))',
-        right: 'clamp(12px, 3vw, 24px)',
+        // Bottom LEFT, opposite the support launcher.
+        //
+        // This used to stack above the launcher on the right, deriving its
+        // offset from that launcher's measurements written out by hand:
+        //   bottom clamp(14px,4vw,24px) + height clamp(50px,12vw,60px) + a gap
+        // Two things were wrong with it. The height it quoted is the launcher's
+        // *open* state — the small close button — while the closed state is the
+        // concierge mascot, which has always been taller. And the launcher is
+        // not just the mascot: the greeting bubble sits above it in the same
+        // fixed stack, so the whole thing measures ~166px tall on a desktop.
+        // This control landed inside that, and since the launcher carries z-50
+        // against this z-40, it was painted over rather than merely crowded.
+        //
+        // Raising it far enough to clear the bubble would strand it ~200px up
+        // the screen, detached from the corner it belongs to. The other corner
+        // is empty, so it moves there instead — which also ends the coupling
+        // for good. Nothing here needs to know the launcher's dimensions any
+        // more, so the two cannot drift apart again the next time either one
+        // is resized.
+        bottom: 'clamp(20px, 4vw, 26px)',
+        left: 'clamp(20px, 3vw, 26px)',
       }}
     >
       <motion.button
