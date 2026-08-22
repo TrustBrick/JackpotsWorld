@@ -110,8 +110,22 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
   }, [])
 
   // ── Config ────────────────────────────────────────────────────────────────
+  // Gated on `supported` alone, deliberately not on `enabled`.
+  //
+  // This endpoint answers one question -- "can this deployment carry a call at
+  // all" -- and needs no ticket to answer it. Gating it on `enabled` meant a
+  // caller that has no live session yet could never learn the answer, so
+  // `available` stayed false and the call button hid itself. That is what made
+  // calling look absent from the chat widget until the customer had already
+  // clicked through to an agent.
+  //
+  // `enabled` still gates everything that genuinely needs a session: ringing,
+  // answering and the peer connection all key off it below. This is a
+  // capability probe, and it is safe to ask early -- a signed-out visitor gets
+  // a 401, which the catch below turns into available:false, hiding the button
+  // exactly as it should.
   useEffect(() => {
-    if (!enabled || !supported) return
+    if (!supported) return
     let cancelled = false
     ;(async () => {
       try {
@@ -122,7 +136,7 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
       } catch { /* leaves available:false — the button stays hidden */ }
     })()
     return () => { cancelled = true }
-  }, [enabled, supported, apiBase, fetcher])
+  }, [supported, apiBase, fetcher])
 
   // ── Teardown ──────────────────────────────────────────────────────────────
   const cleanup = useCallback(() => {

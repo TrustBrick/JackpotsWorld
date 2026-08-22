@@ -6,7 +6,6 @@ import { asMessageArray, highestRealId } from "../services/liveChatMessages"
 // VOICE-CALL: layered on the live-agent mode below. Everything call-related is
 // inert until `mode === "live"`, so the FAQ bot path is untouched.
 import { useVoiceCall, PHASE } from "../hooks/useVoiceCall"
-import VoiceCallButton from "./support/VoiceCallButton"
 import ActiveCallModal from "./support/ActiveCallModal"
 import CallStatus from "./support/CallStatus"
 
@@ -283,6 +282,17 @@ function SendIcon() {
 }
 
 // SVG close icon
+// Inline rather than imported from lucide: every other icon in this file is a
+// small hand-written SVG (see CloseIcon below), and the header needs one that
+// matches CloseIcon's 14px stroke weight exactly so the two sit level.
+function PhoneIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+    </svg>
+  )
+}
+
 function CloseIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -326,6 +336,18 @@ export default function ChatBot({ portal = "player" }) {
   const tokenKey = PORTAL_TOKEN_KEYS[portal] || PORTAL_TOKEN_KEYS.player
   const reduceMotion            = useReducedMotion()
   const [open, setOpen]         = useState(false)
+  // Laptop and up. Tracked rather than read once so rotating a tablet, or
+  // dragging a window between displays, re-picks the right height instead of
+  // keeping whatever was true at mount.
+  const [isWideScreen, setIsWideScreen] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches
+  )
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)")
+    const onChange = e => setIsWideScreen(e.matches)
+    mq.addEventListener("change", onChange)
+    return () => mq.removeEventListener("change", onChange)
+  }, [])
   const [messages, setMessages] = useState(() => loadStoredMessages(portal))
   const [input, setInput]       = useState("")
   const [loading, setLoading]   = useState(false)
@@ -411,6 +433,64 @@ export default function ChatBot({ portal = "player" }) {
   }, [])
 
   useEffect(() => () => teardownLiveConnection(), [teardownLiveConnection])
+
+  // VOICE-CALL: a call placed from bot mode cannot dial immediately -- there is
+  // no live ticket yet and no open socket for the SDP offer. This flag records
+  // "the customer asked to call" across that handshake; the effect below places
+  // the call the moment the session is genuinely ready.
+  //
+  // Not a timer and not a poll: it is one boolean, consumed once, driven by the
+  // same state changes that already re-render this component. If the session
+  // never becomes ready, nothing dials -- which is the correct outcome, and the
+  // button returns to its normal state rather than spinning forever.
+  const [callRequested, setCallRequested] = useState(false)
+
+  /* VOICE-CALL: "Call Support" from anywhere in the widget.
+     ────────────────────────────────────────────────────────────────────────
+     Calling used to appear only after the customer had already clicked
+     "Talk to a Live Agent", so on opening the widget there was no call action
+     at all and the feature looked missing. It is offered up front now, and the
+     steps it used to require happen for the customer instead of being their
+     job:
+
+       already live  -> dial straight away
+       signed out    -> the existing sign-in prompt, and nothing is queued
+       otherwise     -> open the live session, then dial when it is ready
+
+     The signed-out branch checks the token directly rather than waiting to see
+     whether startLiveChat succeeded: `mode` read after an await is the value
+     from before it, and queuing a call that can never be placed would leave
+     the button stuck. */
+  const requestCall = useCallback(async () => {
+    if (mode === "live" && liveConnStatus === "open") {
+      voiceCall.startCall()
+      return
+    }
+    if (!getToken(tokenKey)) {
+      // Appends the sign-in prompt and stays in bot mode. Deliberately no queue.
+      await startLiveChat()
+      return
+    }
+    setCallRequested(true)
+    await startLiveChat()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, liveConnStatus, voiceCall, tokenKey])
+
+  // Places the queued call once the session is actually usable. Every
+  // condition here is the same one the live-mode button already required, so a
+  // queued call can never dial into a socket that is not open.
+  useEffect(() => {
+    if (!callRequested) return
+    if (mode === "live" && liveConnStatus === "open"
+        && voiceCall.available && voiceCall.phase === PHASE.IDLE) {
+      setCallRequested(false)
+      voiceCall.startCall()
+    }
+  }, [callRequested, mode, liveConnStatus, voiceCall])
+
+  // Closing the widget abandons a queued call rather than having it ring the
+  // next time the panel opens.
+  useEffect(() => { if (!open) setCallRequested(false) }, [open])
 
   const startLiveChat = async () => {
     const token = getToken(tokenKey)
@@ -665,7 +745,18 @@ export default function ChatBot({ portal = "player" }) {
               boxShadow: "0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(212,175,55,0.08)",
               display: "flex",
               flexDirection: "column",
-              height: "min(460px, 70vh)",
+              // Laptops get the extra vertical space; phones keep exactly what
+              // they had. 460px was the cap on every screen, which on a laptop
+              // left the transcript about four messages tall while most of the
+              // window sat empty.
+              //
+              // Gated on viewport WIDTH, not on vh arithmetic. A pure
+              // max(460px, min(78vh, ...)) reads well but is wrong here: a tall
+              // phone has plenty of vh, so it would have grown the mobile panel
+              // too -- measured at 695px on a 375x812 device against the 460px
+              // it shipped with. Below the breakpoint the expression is exactly
+              // the original, so mobile is unchanged rather than merely similar.
+              height: isWideScreen ? "min(78vh, 720px)" : "min(460px, 70vh)",
             }}
           >
             {/* Header */}
@@ -730,6 +821,40 @@ export default function ChatBot({ portal = "player" }) {
                   }}
                 >
                   ← FAQ bot
+                </button>
+              )}
+              {/* VOICE-CALL: calling, reachable from the moment the widget
+                  opens rather than two clicks in. Same round 28px shape as
+                  Close so the pair reads as one control group, gold instead of
+                  white because this one does something and Close dismisses.
+
+                  Hidden entirely -- not disabled -- when the deployment cannot
+                  carry a call (voice_call_service.calling_available) or when a
+                  call is already up, matching how VoiceCallButton behaves
+                  elsewhere. An affordance that would ring into nothing is
+                  worse than no affordance.
+
+                  requestCall handles the rest: dial now if the session is
+                  already live, prompt sign-in if signed out, otherwise open the
+                  session first and dial when it is genuinely ready. */}
+              {voiceCall.available
+                && voiceCall.phase === PHASE.IDLE
+                && (mode !== "live" || liveConnStatus === "open") && (
+                <button
+                  onClick={requestCall}
+                  disabled={voiceCall.isBusy || callRequested}
+                  aria-label="Call Support"
+                  title={callRequested ? "Connecting you to an agent…" : "Call Support"}
+                  style={{
+                    background: "rgba(212,175,55,0.14)", border: "1px solid rgba(212,175,55,0.4)",
+                    borderRadius: "50%", width: 28, height: 28,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    cursor: (voiceCall.isBusy || callRequested) ? "default" : "pointer",
+                    color: "#D4AF37", flexShrink: 0, marginRight: 6,
+                    opacity: (voiceCall.isBusy || callRequested) ? 0.5 : 1,
+                  }}
+                >
+                  <PhoneIcon />
                 </button>
               )}
               <button
@@ -840,7 +965,16 @@ export default function ChatBot({ portal = "player" }) {
               <div ref={bottomRef} />
             </div>
 
-            {/* Quick chips */}
+            {/* The canned suggestion chips -- "My Wallet Balance", "Withdrawal
+                Help", "KYC Status", "Contact Support" -- used to sit here.
+                Removed on request: they put words in the customer's mouth and
+                implied the widget could answer account-specific questions,
+                which the support manual explicitly forbids anyone doing
+                without checking the Admin Portal first.
+
+                What stays is the button below, which is not a canned message:
+                it is the entry point to a real agent. Removing that would take
+                Live Support offline, which is the opposite of the intent. */}
             {mode === "bot" && (
               <div style={{
                 padding: "6px 12px",
@@ -848,19 +982,6 @@ export default function ChatBot({ portal = "player" }) {
                 borderTop: "1px solid rgba(212,175,55,0.08)",
                 flexShrink: 0,
               }}>
-                {["My Wallet Balance", "Withdrawal Help", "KYC Status", "Contact Support"].map(chip => (
-                  <button
-                    key={chip}
-                    onClick={() => { setInput(chip); inputRef.current?.focus() }}
-                    style={{
-                      padding: "4px 10px", borderRadius: 999, fontSize: 10, fontWeight: 600,
-                      background: "rgba(212,175,55,0.08)", border: "1px solid rgba(212,175,55,0.2)",
-                      color: "rgba(212,175,55,0.8)", cursor: "pointer", letterSpacing: "0.04em",
-                    }}
-                  >
-                    {chip}
-                  </button>
-                ))}
                 <button
                   key="live-agent"
                   onClick={startLiveChat}
@@ -877,35 +998,16 @@ export default function ChatBot({ portal = "player" }) {
               </div>
             )}
 
-            {/* VOICE-CALL: the call action sits in its own row above the
-                composer while a live session is open, so it reads as an
-                action on this conversation rather than a chat shortcut.
-                VoiceCallButton renders nothing when calling is unavailable
-                here (unsupported browser, or a host that can't push). */}
-            {mode === "live" && voiceCall.phase === PHASE.IDLE && (
-              <div style={{
-                padding: "8px 12px",
-                display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
-                borderTop: "1px solid rgba(212,175,55,0.08)",
-                flexShrink: 0,
-              }}>
-                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", letterSpacing: "0.04em" }}>
-                  Prefer to talk?
-                </span>
-                {/* Two separate conditions, both required. `available` says
-                    the *server* can carry signaling; liveConnStatus says this
-                    browser's socket is actually open right now. With chat,
-                    "polling" is a fully working state — for a call it is not,
-                    because an SDP offer has nowhere to go, and the call would
-                    ring until it timed out. */}
-                <VoiceCallButton
-                  available={voiceCall.available && liveConnStatus === "open"}
-                  busy={voiceCall.isBusy}
-                  onClick={voiceCall.startCall}
-                  compact
-                />
-              </div>
-            )}
+            {/* The "Prefer to talk? [Call Agent]" row used to sit here, and the
+                header's call icon replaced it. Two identical call buttons about
+                three hundred pixels apart in one 340px panel is noise, and the
+                header is the better home for it: visible in both modes, visible
+                the moment the widget opens, and it costs the transcript no
+                vertical space -- which matters most on the phone layout, where
+                the panel is still capped at 460px.
+
+                VoiceCallButton itself is untouched and still used by
+                ServiceRequestConversation. */}
 
             {/* Input */}
             <div style={{
