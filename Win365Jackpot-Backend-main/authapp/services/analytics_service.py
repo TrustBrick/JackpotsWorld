@@ -17,30 +17,32 @@ Design notes:
     (retention, watch time) are reduced in Python from the (indexed, date- and
     content-scoped) event rows, to stay correct and portable rather than
     leaning on fragile JSON aggregation in the DB.
-  • VIDEO-CLICK-ANALYTICS / LOCATION-ANALYTICS: video_click and video_cta_click
-    are recorded exactly like video_start/progress/complete — no new ingest
-    path. Region/city are resolved server-side in record_event() via the
-    existing utils/geolocation.py IP lookup (see _resolve_region_city below
-    for the caching that makes this safe to call from a public, high-volume
-    endpoint); country stays the free, instant Cloudflare header it always
-    was. All three are attached to the event, never accepted from the client.
+  • VISITOR-ANALYTICS: every ingested event now resolves to a Visitor and a
+    VisitorSession (services/visitor_service.py) carrying the IP and the
+    approximate location, and country/region/city are attached to EVERY event
+    type rather than video ones only. Country no longer depends on a
+    Cloudflare header being present — see the ingestion section below for the
+    three defects that arrangement caused. None of it is ever accepted from
+    the client; all of it is derived server-side.
 """
 from datetime import datetime, time, timedelta
 
-from decouple import config
 from django.core.cache import cache
+from django.db.models import Count, Q
 from django.utils import timezone
 
 from authapp.models.analytics_models import (
-    AnalyticsEvent, Campaign,
-    EVENT_PAGE_VIEW, EVENT_URL_CLICK, EVENT_VIDEO_START, EVENT_VIDEO_PROGRESS,
-    EVENT_VIDEO_COMPLETE, EVENT_VIDEO_CLICK, EVENT_VIDEO_CTA_CLICK,
-    EVENT_SIGNUP, EVENT_LOGIN, VIDEO_MILESTONES,
+    AnalyticsEvent, Campaign, Visitor, VisitorSession,
+    EVENT_PAGE_VIEW, EVENT_URL_CLICK, EVENT_CLICK, EVENT_VIDEO_START,
+    EVENT_VIDEO_PROGRESS, EVENT_VIDEO_COMPLETE, EVENT_VIDEO_CLICK,
+    EVENT_VIDEO_CTA_CLICK, EVENT_VIDEO_IMPRESSION, EVENT_VIDEO_PAUSE,
+    EVENT_VIDEO_EXIT, EVENT_SIGNUP, EVENT_LOGIN, VIDEO_MILESTONES,
+    CLICK_EVENT_TYPES,
+    GEO_STATUS_SUCCESS, GEO_STATUS_PRIVATE_IP,
 )
+from authapp.services import visitor_service
 from authapp.utils.anonymous_id import derive_anonymous_id
 from authapp.utils.bot_detection import is_bot
-from authapp.utils.client_ip import get_client_ip
-from authapp.utils.geolocation import resolve_geo_location
 from authapp.utils.user_agent import classify_user_agent
 
 CONTENT_TYPE_VIDEO = "video"
@@ -50,75 +52,38 @@ VIDEO_CLICK_EVENT_TYPES = (EVENT_VIDEO_CLICK, EVENT_VIDEO_CTA_CLICK)
 # holds, long enough to absorb a dashboard refresh storm.
 _CACHE_TTL_SECONDS = 60
 
-# LOCATION-ANALYTICS: region/city resolution is an operational risk on the
-# public ingest path (see _resolve_region_city) — this is the escape hatch.
-# Flipping it off in an env var takes effect on the next request, no deploy,
-# if the third-party lookup ever misbehaves in production. Country (the
-# Cloudflare header) is unaffected either way — it's free and instant.
-ANALYTICS_RESOLVE_LOCATION = config("ANALYTICS_RESOLVE_LOCATION", default=True, cast=bool)
-
-# How long a session's resolved region/city is cached. Bounds the number of
-# real ip-api.com calls to roughly one per NEW session (not one per event, and
-# not one per returning session within the window) — see _resolve_region_city.
-_GEO_CACHE_TTL_SECONDS = 60 * 60 * 6
+# The ANALYTICS_RESOLVE_LOCATION escape hatch still exists — it moved to
+# utils/geolocation.py (GEO_LOOKUP_ENABLED), next to the call it actually
+# guards, along with the geo cache that used to live here.
 
 
 # ── Ingestion ────────────────────────────────────────────────────────────────
-def _clean_country(request):
-    """Country from Cloudflare's edge header — no IP is read or stored. 'XX'
-    (unknown) and 'T1' (Tor) are Cloudflare's non-country sentinels."""
-    code = (request.META.get("HTTP_CF_IPCOUNTRY", "") or "").strip().upper()[:2]
-    return "" if code in ("", "XX", "T1") else code
+# Location resolution moved to services/visitor_service.py + utils/geolocation.py.
+#
+# WHAT CHANGED AND WHY — the previous implementation resolved region/city here,
+# cached per SESSION, and read country from Cloudflare's CF-IPCountry header
+# alone. Three defects came out of that arrangement and all three are fixed by
+# the move:
+#   1. CF-IPCountry is only sent when a zone has the "Add visitor location
+#      headers" Managed Transform enabled, which is OFF by default. With it
+#      off, country was permanently blank — and location_report then dropped
+#      every row with `.exclude(country="")`, so the whole dashboard read
+#      empty even for visitors whose city HAD resolved.
+#   2. resolve_geo_location() already returned the provider's own country and
+#      this module threw it away, so the one value that could have covered for
+#      (1) was discarded.
+#   3. Caching per session meant a returning visitor, and every visitor behind
+#      a shared NAT, each paid a fresh external call — and a blank session id
+#      disabled the cache entirely. It is now cached per IP, which is what the
+#      provider's rate limit is actually counted against.
+# Location is now resolved for EVERY event type, not just video ones, because
+# a visitor list without locations was the original complaint.
 
 
-def _resolve_region_city(request, session_id):
-    """Best-effort region/city via the existing utils/geolocation.py ip-api.com
-    lookup, cached per session.
-
-    OPERATIONAL NOTE — read before changing the cache TTL or removing the
-    ANALYTICS_RESOLVE_LOCATION gate. The lookup is a *blocking* HTTP call with
-    a 2.5s timeout, and this service runs behind only 3 gunicorn workers (see
-    Procfile). Calling it on every ingested event would let a slow or
-    misbehaving third party stall a third of the app's request capacity, and
-    would blow through the free tier's ~45 req/min limit almost immediately
-    under any real traffic. Two things bound that cost to roughly one real
-    external call per NEW session (not per event, not per returning session):
-    this cache (a session that already resolved its geo returns instantly on
-    every later event for the rest of the TTL), and the fact that the caller
-    (record_event) only invokes this for content_type="video" events, not
-    every event type — page_view is far higher volume and doesn't need it for
-    this feature. If ip-api.com ever degrades in production,
-    ANALYTICS_RESOLVE_LOCATION=False in the environment turns this off on the
-    next request with no deploy; country (the Cloudflare header) is
-    unaffected either way.
-
-    Never raises, never returns a raw IP — the IP is used only as transient
-    input to the lookup (mirrors utils/anonymous_id.py's posture), and a
-    failed/timed-out/unresolvable lookup yields {"region": "", "city": ""},
-    which the read side renders as "Unknown" rather than fabricating a value.
-    """
-    if not ANALYTICS_RESOLVE_LOCATION:
-        return {"region": "", "city": ""}
-
-    cache_key = f"analytics:geo:{session_id}" if session_id else None
-    if cache_key:
-        try:
-            cached = cache.get(cache_key)
-        except Exception:
-            cached = None
-        if cached is not None:
-            return cached
-
-    ip = get_client_ip(request) or ""
-    geo = resolve_geo_location(ip) if ip else {}
-    result = {"region": geo.get("region", ""), "city": geo.get("city", "")}
-
-    if cache_key:
-        try:
-            cache.set(cache_key, result, _GEO_CACHE_TTL_SECONDS)
-        except Exception:
-            pass
-    return result
+def _visitor_key_for(request, provided_anonymous_id):
+    """The opaque id identifying this browser. Client-supplied when valid,
+    otherwise the salted daily IP+UA fallback — unchanged from before."""
+    return derive_anonymous_id(request, provided_anonymous_id)
 
 
 def match_campaign(utm_campaign, utm_source=None):
@@ -144,7 +109,8 @@ def _trim(v, n):
 def record_event(request, *, event_type, content_type="", content_id="", url="",
                  referrer="", source="", utm=None, metadata=None,
                  anonymous_id=None, session_id="", campaign=None,
-                 client_event_id=None):
+                 client_event_id=None, context=None, element_id="",
+                 element_type="", element_label="", destination_url=""):
     """Persist one event with server-derived identity and context. Returns the
     row, or None if the request was filtered as a bot (§32).
 
@@ -162,30 +128,57 @@ def record_event(request, *, event_type, content_type="", content_id="", url="",
         return None
 
     user = request.user if getattr(request, "user", None) and request.user.is_authenticated else None
-    # Anonymous id only matters when there is no authenticated member.
-    anon = "" if user is not None else derive_anonymous_id(request, anonymous_id)
+    # The visitor key identifies the BROWSER and is always derived, whether or
+    # not a member is signed in — a Visitor row is a device, not a person, so
+    # a logged-in visit still belongs to one. `anonymous_id` on the event keeps
+    # its original meaning (only set when there is no member) so every existing
+    # unique-visitor aggregation counts exactly what it always did.
+    visitor_key = _visitor_key_for(request, anonymous_id)
+    anon = "" if user is not None else visitor_key
 
-    device, browser, os_name = classify_user_agent(ua)
     utm = utm or {}
     if campaign is None:
         campaign = match_campaign(utm.get("utm_campaign"), utm.get("utm_source"))
 
-    # LOCATION-ANALYTICS: region/city only for video events — see
-    # _resolve_region_city's operational note on why this isn't every event.
-    region, city = "", ""
-    if content_type == CONTENT_TYPE_VIDEO:
-        geo = _resolve_region_city(request, session_id)
-        region, city = geo["region"], geo["city"]
+    # LOCATION-ANALYTICS: resolved for every event type now, not just video —
+    # see the note above _visitor_key_for. `context` is passed in by
+    # record_batch so one ingest request resolves this once, not once per
+    # event; a lone call (the campaign redirect, signup, login) resolves here.
+    if context is None:
+        context = visitor_service.build_context(
+            request, visitor_key=visitor_key, session_key=_trim(session_id, 64) or visitor_key,
+            referrer=referrer, landing_page=url, utm=utm,
+        )
+
+    if context is not None:
+        device, browser, os_name = context.device_type, context.browser, context.operating_system
+        country, country_name = context.country_code, context.country_name
+        region, city = context.region, context.city
+        visitor, session = context.visitor, context.session
+    else:
+        # Visitor resolution failed (a database problem). Still record the
+        # event with everything we can derive without a write — losing the
+        # location is far better than losing the event.
+        device, browser, os_name = classify_user_agent(ua)
+        country = visitor_service.cf_country(request)
+        country_name, region, city = "", "", ""
+        visitor, session = None, None
 
     fields = dict(
         user=user,
         anonymous_id=anon,
         session_id=_trim(session_id, 64),
+        visitor=visitor,
+        visitor_session=session,
         content_type=_trim(content_type, 40),
         content_id=_trim(str(content_id or ""), 120),
         url=_trim(url, 500),
         referrer=_trim(referrer, 500),
         source=_trim(source, 120),
+        element_id=_trim(element_id, 120),
+        element_type=_trim(element_type, 40),
+        element_label=_trim(element_label, 200),
+        destination_url=_trim(destination_url, 500),
         campaign=campaign,
         utm_source=_trim(utm.get("utm_source"), 100),
         utm_medium=_trim(utm.get("utm_medium"), 100),
@@ -195,7 +188,8 @@ def record_event(request, *, event_type, content_type="", content_id="", url="",
         device_type=_trim(device, 20),
         browser=_trim(browser, 40),
         operating_system=_trim(os_name, 40),
-        country=_clean_country(request),
+        country=_trim(country, 2),
+        country_name=_trim(country_name, 100),
         region=_trim(region, 100),
         city=_trim(city, 100),
         metadata=metadata if isinstance(metadata, dict) else {},
@@ -210,6 +204,83 @@ def record_event(request, *, event_type, content_type="", content_id="", url="",
     return AnalyticsEvent.objects.create(event_type=event_type, client_event_id=None, **fields)
 
 
+def record_batch(request, events):
+    """Record a batch of validated ingest payloads, resolving the visitor and
+    their location exactly ONCE for the whole request.
+
+    This is the difference between one geolocation resolution per browser and
+    one per event. A page load typically ships a page_view plus a handful of
+    video milestones in a single POST; resolving per event would multiply
+    every database write and cache read in visitor_service by the batch size
+    for no new information, since every event in a batch comes from the same
+    browser by construction (see services/analytics.js's baseEvent, which
+    stamps the same visitor/session id on all of them).
+
+    Events that disagree about identity — which should not happen, but a
+    hand-crafted POST could — are grouped, and each distinct identity gets its
+    own resolution. Returns the number of events actually recorded.
+
+    `events` is a list of dicts as produced by AnalyticsEventIngestSerializer.
+    Bots are dropped inside record_event and simply never count.
+    """
+    ua = request.META.get("HTTP_USER_AGENT", "")
+    if is_bot(ua):
+        return 0
+
+    contexts = {}
+    recorded = 0
+
+    for d in events:
+        visitor_key = _visitor_key_for(request, d.get("anonymous_id"))
+        session_key = _trim(d.get("session_id"), 64) or visitor_key
+        cache_key = (visitor_key, session_key)
+
+        if cache_key not in contexts:
+            utm = _utm_of(d)
+            contexts[cache_key] = visitor_service.build_context(
+                request,
+                visitor_key=visitor_key,
+                session_key=session_key,
+                referrer=d.get("referrer", ""),
+                landing_page=d.get("url", ""),
+                utm=utm,
+            )
+
+        ev = record_event(
+            request,
+            event_type=d["event_type"],
+            content_type=d.get("content_type", ""),
+            content_id=d.get("content_id", ""),
+            url=d.get("url", ""),
+            referrer=d.get("referrer", ""),
+            source=d.get("source", ""),
+            utm=_utm_of(d),
+            metadata=d.get("metadata") or {},
+            anonymous_id=d.get("anonymous_id"),
+            session_id=d.get("session_id", ""),
+            client_event_id=d.get("client_event_id"),
+            element_id=d.get("element_id", ""),
+            element_type=d.get("element_type", ""),
+            element_label=d.get("element_label", ""),
+            destination_url=d.get("destination_url", ""),
+            context=contexts[cache_key],
+        )
+        if ev is not None:
+            recorded += 1
+
+    return recorded
+
+
+def _utm_of(d):
+    return {
+        "utm_source": d.get("utm_source", ""),
+        "utm_medium": d.get("utm_medium", ""),
+        "utm_campaign": d.get("utm_campaign", ""),
+        "utm_content": d.get("utm_content", ""),
+        "utm_term": d.get("utm_term", ""),
+    }
+
+
 def record_click(request, campaign, *, session_id="", anonymous_id="", client_event_id=None):
     """Record a url_click for a trackable campaign link (the redirect view
     calls this, then 302s to the campaign's backend-controlled destination)."""
@@ -219,6 +290,13 @@ def record_click(request, campaign, *, session_id="", anonymous_id="", client_ev
         content_type="campaign",
         content_id=str(campaign.id),
         url=campaign.destination_url,
+        # Also recorded as the click's destination so a campaign link shows up
+        # in the click dashboard's element/destination breakdowns alongside
+        # ordinary clicks, rather than only in the campaign report.
+        destination_url=campaign.destination_url,
+        element_id=f"campaign:{campaign.tracking_id}",
+        element_type="campaign_link",
+        element_label=campaign.name,
         source=campaign.utm_source,
         utm={
             "utm_source": campaign.utm_source, "utm_medium": campaign.utm_medium,
@@ -321,10 +399,15 @@ def overview(start_dt, end_dt):
         qs = _events(start_dt, end_dt)
         page_views = qs.filter(event_type=EVENT_PAGE_VIEW)
         clicks = qs.filter(event_type=EVENT_URL_CLICK)
+        # VISITOR-ANALYTICS: every kind of click, not just campaign-redirect
+        # ones. `clicks` above stays scoped to url_click so total_url_clicks
+        # keeps its original meaning for anything already reading it.
+        all_clicks = qs.filter(event_type__in=CLICK_EVENT_TYPES)
         signups = qs.filter(event_type=EVENT_SIGNUP)
 
         unique_visitors, unique_members = _unique_from_qs(qs)
         click_unique_v, _ = _unique_from_qs(clicks)
+        all_click_unique_v, _ = _unique_from_qs(all_clicks)
 
         # VIDEO ANALYTICS summary block. Goes through the same _reduce_video
         # used by videos_report/video_detail (not a second, parallel
@@ -346,6 +429,8 @@ def overview(start_dt, end_dt):
             "total_page_views": page_views.count(),
             "total_url_clicks": clicks.count(),
             "unique_clickers": click_unique_v,
+            "total_clicks": all_clicks.count(),
+            "unique_all_clickers": all_click_unique_v,
             "total_video_views": vm["total_views"],
             "unique_video_viewers": vm["unique_viewers"],
             "video_completion_rate": vm["completion_rate"],
@@ -574,18 +659,28 @@ def location_report(start_dt, end_dt, content_id=None):
     window. content_id=None covers every video (the dashboard's aggregate
     "Viewers by Country"); a specific content_id scopes it to one video (the
     per-video location panel). "Unknown" (never a fabricated value) covers a
-    region/city that could not be resolved — see _resolve_region_city.
+    country/region/city that could not be resolved.
+
+    NOTE — the `.exclude(country="")` that used to be on this query is gone,
+    deliberately. It silently discarded every event whose country had not
+    resolved, which (because country came only from a Cloudflare header that
+    the zone was not sending) meant EVERY event: the report rendered empty
+    even for visitors whose region and city had resolved perfectly well. An
+    unresolved country is now its own "Unknown" bucket, so the numbers add up
+    to the real total and a resolution problem is visible in the UI instead of
+    being hidden as an absence.
 
     One query, Python-reduced — same shape as _reduce_video/videos_report,
     and for the same reason: this can group by however many distinct
     (country, region, city) combinations exist without adding a query per
     group."""
     def produce():
-        qs = _video_events(start_dt, end_dt, content_id).exclude(country="")
+        qs = _video_events(start_dt, end_dt, content_id)
         raw = qs.values_list("country", "region", "city", "event_type", "user_id", "anonymous_id")
 
         tree = {}  # country -> region -> city -> {"viewers": set, "clicks": int, "clickers": set}
         for country, region, city, ev_type, user_id, anon in raw:
+            country = country or "Unknown"
             region = region or "Unknown"
             city = city or "Unknown"
             vk = _visitor_key(user_id, anon)
@@ -670,4 +765,544 @@ def member_engagement(user, start_dt=None, end_dt=None):
         "total_watch_seconds": round(sum(per_video.values()), 1),
         "logins": qs.filter(event_type=EVENT_LOGIN).count(),
         "last_activity": last.isoformat() if last else None,
+    }
+
+
+# ── Visitor analytics ────────────────────────────────────────────────────────
+# Everything below reads Visitor / VisitorSession rows. It is the half the
+# dashboard was missing entirely: the flat event table could count actions but
+# could not answer "who came, from where, and what did they do while here".
+#
+# NOT CACHED, unlike the rollups above. These are filtered, paginated,
+# operator-driven queries — an admin narrowing to one country and paging
+# through the result wants the answer for the filter they just typed, not a
+# 60-second-old answer for a different one. They are indexed instead (see
+# Visitor.Meta / VisitorSession.Meta).
+
+# Bounds every visitor-list page. A dashboard request must never be able to
+# ask for the whole table.
+MAX_PAGE_SIZE = 100
+DEFAULT_PAGE_SIZE = 25
+
+
+def _visitors_in_window(start_dt, end_dt):
+    """Visitors with ANY activity in the window — last_seen inside it, not
+    first_seen. A visitor who arrived last month and came back today belongs
+    in today's report."""
+    return Visitor.objects.filter(last_seen__gte=start_dt, last_seen__lt=end_dt)
+
+
+def _apply_visitor_filters(qs, *, country=None, region=None, city=None,
+                           device=None, source=None, search=None):
+    """Admin filters, applied identically wherever visitors are listed or
+    counted so a filtered list and a filtered total can never disagree."""
+    if country:
+        qs = qs.filter(country_code__iexact=country)
+    if region:
+        qs = qs.filter(region__iexact=region)
+    if city:
+        qs = qs.filter(city__iexact=city)
+    if device:
+        qs = qs.filter(device_type__iexact=device)
+    if source:
+        qs = qs.filter(traffic_source__icontains=source)
+    if search:
+        # Matches the visitor handle the admin actually sees, plus the address.
+        qs = qs.filter(
+            Q(visitor_id__icontains=search) | Q(ip_address__icontains=search)
+        )
+    return qs
+
+
+def visitors_overview(start_dt, end_dt):
+    """Top-line visitor KPIs for the window.
+
+    Every number is a real count over stored rows. There is deliberately no
+    "total visitors vs unique visitors" pair here: a visitor IS unique by
+    definition (one row per browser), so publishing both would mean inventing
+    a difference. The honest decomposition is new vs returning, which is what
+    this returns.
+    """
+    visitors = _visitors_in_window(start_dt, end_dt)
+    sessions = VisitorSession.objects.filter(
+        started_at__gte=start_dt, started_at__lt=end_dt,
+    )
+    events = _events(start_dt, end_dt)
+
+    visitor_count = visitors.count()
+    new_visitors = visitors.filter(first_seen__gte=start_dt).count()
+
+    click_qs = events.filter(event_type__in=CLICK_EVENT_TYPES)
+    video_starts = events.filter(event_type=EVENT_VIDEO_START)
+
+    return {
+        "visitors": visitor_count,
+        "new_visitors": new_visitors,
+        # Derived, not separately counted, so the three can never disagree.
+        "returning_visitors": max(0, visitor_count - new_visitors),
+        "sessions": sessions.count(),
+        "page_views": events.filter(event_type=EVENT_PAGE_VIEW).count(),
+        "clicks": click_qs.count(),
+        "unique_clickers": click_qs.exclude(visitor__isnull=True)
+                                   .order_by().values("visitor_id").distinct().count(),
+        "video_viewers": video_starts.exclude(visitor__isnull=True)
+                                     .order_by().values("visitor_id").distinct().count(),
+        "video_views": video_starts.count(),
+        # Operational honesty: how much of the window's location data actually
+        # resolved. An admin seeing "Unknown" everywhere can tell from this
+        # whether the provider is failing or the traffic is genuinely local.
+        "geo_resolved": visitors.filter(geo_status=GEO_STATUS_SUCCESS).count(),
+        "geo_unresolved": visitors.exclude(geo_status=GEO_STATUS_SUCCESS).count(),
+    }
+
+
+def visitor_list(start_dt, end_dt, *, page=1, page_size=DEFAULT_PAGE_SIZE, **filters):
+    """One page of the Recent Visitors table, newest activity first."""
+    page = max(1, int(page or 1))
+    page_size = min(MAX_PAGE_SIZE, max(1, int(page_size or DEFAULT_PAGE_SIZE)))
+
+    qs = _apply_visitor_filters(_visitors_in_window(start_dt, end_dt), **filters)
+    total = qs.count()
+
+    offset = (page - 1) * page_size
+    rows = list(qs.order_by("-last_seen")[offset:offset + page_size])
+
+    # Per-visitor activity counts in ONE query for the whole page rather than
+    # one query per row — the difference between 3 queries and 3 + 3N.
+    counts = _activity_counts([v.id for v in rows], start_dt, end_dt)
+
+    return {
+        "page": page,
+        "page_size": page_size,
+        "total": total,
+        "total_pages": (total + page_size - 1) // page_size,
+        "results": [_visitor_row(v, counts.get(v.id, {})) for v in rows],
+    }
+
+
+def _activity_counts(visitor_ids, start_dt=None, end_dt=None):
+    """{visitor_id: {page_views, clicks, video_views, ...}} for a set of
+    visitors, in a single grouped query."""
+    if not visitor_ids:
+        return {}
+    qs = AnalyticsEvent.objects.filter(visitor_id__in=visitor_ids)
+    if start_dt and end_dt:
+        qs = qs.filter(created_at__gte=start_dt, created_at__lt=end_dt)
+
+    out = {}
+    rows = (
+        qs.order_by()
+          .values("visitor_id", "event_type")
+          .annotate(n=Count("id"))
+    )
+    for row in rows:
+        bucket = out.setdefault(row["visitor_id"], {})
+        bucket[row["event_type"]] = row["n"]
+    return out
+
+
+def _summarise_counts(by_type):
+    return {
+        "page_views": by_type.get(EVENT_PAGE_VIEW, 0),
+        "clicks": sum(by_type.get(t, 0) for t in CLICK_EVENT_TYPES),
+        "video_views": by_type.get(EVENT_VIDEO_START, 0),
+        "video_completions": by_type.get(EVENT_VIDEO_COMPLETE, 0),
+    }
+
+
+def _visitor_row(v, by_type):
+    """The list-row shape. IP included — this is only ever serialised by an
+    admin-gated endpoint (see analytics_views.py)."""
+    row = {
+        "visitor_id": v.visitor_id,
+        "short_id": v.short_id,
+        "ip_address": v.ip_address,
+        "location": v.location_label(),
+        "country_code": v.country_code,
+        "country_name": v.country_name,
+        "region": v.region,
+        "city": v.city,
+        "geo_status": v.geo_status,
+        "device_type": v.device_type,
+        "browser": v.browser,
+        "operating_system": v.operating_system,
+        "traffic_source": v.traffic_source,
+        "first_seen": v.first_seen.isoformat(),
+        "last_seen": v.last_seen.isoformat(),
+    }
+    row.update(_summarise_counts(by_type))
+    return row
+
+
+# Human-readable labels for the timeline. Kept next to the timeline builder so
+# a new event type shows up as its raw name (honest) rather than silently
+# rendering blank.
+_TIMELINE_LABELS = {
+    EVENT_PAGE_VIEW: "PAGE_VIEW",
+    EVENT_CLICK: "CLICK",
+    EVENT_URL_CLICK: "URL_CLICK",
+    EVENT_VIDEO_IMPRESSION: "VIDEO_IMPRESSION",
+    EVENT_VIDEO_START: "VIDEO_START",
+    EVENT_VIDEO_PROGRESS: "VIDEO_PROGRESS",
+    EVENT_VIDEO_COMPLETE: "VIDEO_COMPLETE",
+    EVENT_VIDEO_PAUSE: "VIDEO_PAUSE",
+    EVENT_VIDEO_EXIT: "VIDEO_EXIT",
+    EVENT_VIDEO_CLICK: "VIDEO_CLICK",
+    EVENT_VIDEO_CTA_CLICK: "VIDEO_CTA_CLICK",
+    EVENT_SIGNUP: "SIGNUP",
+    EVENT_LOGIN: "LOGIN",
+}
+
+# A single visitor's timeline is bounded: a bot-ish or very long-lived visitor
+# could otherwise have tens of thousands of events, and no admin reads that.
+MAX_TIMELINE_EVENTS = 500
+
+
+def visitor_detail(visitor_id, start_dt=None, end_dt=None):
+    """Full profile + chronological timeline for one visitor, or None if no
+    such visitor exists."""
+    v = Visitor.objects.filter(visitor_id=visitor_id).first()
+    if v is None:
+        return None
+
+    events = AnalyticsEvent.objects.filter(visitor=v)
+    if start_dt and end_dt:
+        events = events.filter(created_at__gte=start_dt, created_at__lt=end_dt)
+
+    by_type = {}
+    for row in events.order_by().values("event_type").annotate(n=Count("id")):
+        by_type[row["event_type"]] = row["n"]
+
+    sessions = list(v.sessions.order_by("-started_at")[:50])
+
+    pages = list(
+        events.filter(event_type=EVENT_PAGE_VIEW)
+              .order_by().values("url").annotate(n=Count("id")).order_by("-n")[:50]
+    )
+
+    videos_viewed = (
+        events.filter(event_type=EVENT_VIDEO_START)
+              .order_by().values("content_id").distinct().count()
+    )
+    videos_completed = (
+        events.filter(event_type=EVENT_VIDEO_COMPLETE)
+              .order_by().values("content_id").distinct().count()
+    )
+
+    timeline = _build_timeline(events)
+
+    detail = {
+        "visitor_id": v.visitor_id,
+        "short_id": v.short_id,
+        "ip_address": v.ip_address,
+        # Named so the UI cannot present it as a precise position. The
+        # coordinates are a city centroid from an IP lookup — see
+        # utils/geolocation.py.
+        "approximate_location": v.location_label(),
+        "country_code": v.country_code,
+        "country_name": v.country_name,
+        "region": v.region,
+        "region_code": v.region_code,
+        "city": v.city,
+        "timezone": v.timezone_name,
+        "latitude": v.latitude,
+        "longitude": v.longitude,
+        "isp": v.isp,
+        "geo_status": v.geo_status,
+        "first_seen": v.first_seen.isoformat(),
+        "last_seen": v.last_seen.isoformat(),
+        "device_type": v.device_type,
+        "browser": v.browser,
+        "operating_system": v.operating_system,
+        "traffic_source": v.traffic_source,
+        "referrer": v.first_referrer,
+        "landing_page": v.landing_page,
+        "utm_source": v.utm_source,
+        "utm_medium": v.utm_medium,
+        "utm_campaign": v.utm_campaign,
+        "utm_content": v.utm_content,
+        "utm_term": v.utm_term,
+        "session_count": v.sessions.count(),
+        "sessions": [
+            {
+                "session_id": s.session_id,
+                "started_at": s.started_at.isoformat(),
+                "last_activity_at": s.last_activity_at.isoformat(),
+                "landing_page": s.landing_page,
+                "referrer": s.referrer,
+                "traffic_source": s.traffic_source,
+                "location": s.location_label(),
+                "ip_address": s.ip_address,
+            }
+            for s in sessions
+        ],
+        "pages_viewed": [{"url": p["url"], "views": p["n"]} for p in pages],
+        "timeline": timeline,
+        "timeline_truncated": len(timeline) >= MAX_TIMELINE_EVENTS,
+    }
+    detail.update(_summarise_counts(by_type))
+
+    # Applied AFTER the shared summary, deliberately. _summarise_counts is
+    # event-count based, which is right for the list ("how much activity"),
+    # but on one visitor's profile "Videos Viewed: 3" has to mean three
+    # DISTINCT videos — a viewer who re-watched one video is not three
+    # viewings of three videos. Same for completions.
+    detail["videos_viewed"] = videos_viewed
+    detail["video_completions"] = videos_completed
+    return detail
+
+
+def _build_timeline(events):
+    """Chronological activity for one visitor — what happened, when, where."""
+    rows = events.order_by("-created_at")[:MAX_TIMELINE_EVENTS]
+    out = []
+    for e in rows:
+        meta = e.metadata or {}
+        entry = {
+            "at": e.created_at.isoformat(),
+            "event_type": e.event_type,
+            "label": _TIMELINE_LABELS.get(e.event_type, e.event_type.upper()),
+            "url": e.url,
+            "session_id": e.session_id,
+            # The location AS RECORDED AT THE TIME, from the event's own
+            # columns rather than the visitor's current location — a visitor
+            # who has since moved must not have their history rewritten.
+            "location": _event_location(e),
+        }
+        if e.event_type in CLICK_EVENT_TYPES:
+            entry["element_label"] = e.element_label
+            entry["element_id"] = e.element_id
+            entry["element_type"] = e.element_type
+            entry["destination_url"] = e.destination_url
+        if e.content_type == CONTENT_TYPE_VIDEO:
+            entry["video_id"] = e.content_id
+            entry["video_title"] = meta.get("title", "")
+            if "percent" in meta:
+                entry["percent"] = meta["percent"]
+            if "watched_seconds" in meta:
+                entry["watch_duration"] = meta["watched_seconds"]
+            if "position" in meta:
+                entry["watch_position"] = meta["position"]
+        out.append(entry)
+    return out
+
+
+def _event_location(e):
+    parts = [p for p in (e.city, e.region, e.country_name or e.country) if p]
+    return ", ".join(parts) if parts else "Unknown"
+
+
+# ── Location analytics (site-wide, all visitors) ─────────────────────────────
+def visitor_locations(start_dt, end_dt, **filters):
+    """Visitors by country -> region -> city, over ALL visitors in the window.
+
+    Distinct from location_report() above, which answers a narrower question
+    (where the VIDEO viewers were) and is driven by event rows. This one is
+    driven by Visitor rows, so it covers everyone who came, whether or not
+    they touched a video — which is what the "Visitors by Country" dashboard
+    asks for.
+
+    Unresolved values are bucketed as "Unknown" rather than dropped, so the
+    country totals always add up to the visitor total. A row is never
+    fabricated: if the provider never returned a city, the city is "Unknown",
+    not a plausible one.
+    """
+    qs = _apply_visitor_filters(_visitors_in_window(start_dt, end_dt), **filters)
+
+    rows = (
+        qs.order_by()
+          .values("country_code", "country_name", "region", "city", "geo_status")
+          .annotate(n=Count("id"))
+    )
+
+    tree = {}
+    for r in rows:
+        # A private/local address is its own honest bucket — not "Unknown",
+        # which would imply we tried to look it up and failed.
+        if r["geo_status"] == GEO_STATUS_PRIVATE_IP:
+            code, name = "--", "Local / Private Network"
+        else:
+            code = r["country_code"] or "??"
+            name = r["country_name"] or r["country_code"] or "Unknown"
+        region = r["region"] or "Unknown"
+        city = r["city"] or "Unknown"
+
+        country = tree.setdefault(code, {"country": name, "code": code, "visitors": 0, "regions": {}})
+        country["visitors"] += r["n"]
+        reg = country["regions"].setdefault(region, {"region": region, "visitors": 0, "cities": {}})
+        reg["visitors"] += r["n"]
+        cty = reg["cities"].setdefault(city, {"city": city, "visitors": 0})
+        cty["visitors"] += r["n"]
+
+    out = []
+    for country in tree.values():
+        regions = []
+        for reg in country["regions"].values():
+            cities = sorted(reg["cities"].values(), key=lambda c: c["visitors"], reverse=True)
+            regions.append({"region": reg["region"], "visitors": reg["visitors"], "cities": cities})
+        regions.sort(key=lambda r: r["visitors"], reverse=True)
+        out.append({
+            "country": country["country"],
+            "country_code": country["code"],
+            "visitors": country["visitors"],
+            "regions": regions,
+        })
+    out.sort(key=lambda c: c["visitors"], reverse=True)
+    return out
+
+
+# ── Click analytics ──────────────────────────────────────────────────────────
+def clicks_report(start_dt, end_dt, *, country=None, city=None, device=None, page_path=None):
+    """Clicks broken down by element, page, country, city, device and day.
+
+    "Unique clickers" everywhere means DISTINCT VISITORS, never distinct
+    events — the two differ by exactly the repeat clicks that make a CTA look
+    more popular than it is.
+    """
+    qs = _events(start_dt, end_dt).filter(event_type__in=CLICK_EVENT_TYPES)
+    if country:
+        qs = qs.filter(country__iexact=country)
+    if city:
+        qs = qs.filter(city__iexact=city)
+    if device:
+        qs = qs.filter(device_type__iexact=device)
+    if page_path:
+        qs = qs.filter(url__startswith=page_path)
+
+    def group(field, label_key, limit=50):
+        rows = (
+            qs.order_by()
+              .values(field)
+              .annotate(clicks=Count("id"), unique_clickers=Count("visitor", distinct=True))
+              .order_by("-clicks")[:limit]
+        )
+        return [
+            {label_key: r[field] or "Unknown",
+             "clicks": r["clicks"],
+             "unique_clickers": r["unique_clickers"]}
+            for r in rows
+        ]
+
+    # Clicks per day, for the trend line. Grouped in Python off a single
+    # values_list rather than with TruncDate so the result is identical on
+    # SQLite (tests) and MySQL (production) — database date functions differ
+    # in their timezone handling, and a report that disagrees with itself
+    # between environments is worse than one extra pass over the rows.
+    per_day = {}
+    for created in qs.order_by().values_list("created_at", flat=True):
+        key = timezone.localtime(created).date().isoformat()
+        per_day[key] = per_day.get(key, 0) + 1
+
+    return {
+        "total_clicks": qs.count(),
+        "unique_clickers": qs.exclude(visitor__isnull=True)
+                             .order_by().values("visitor_id").distinct().count(),
+        "by_element": _clicks_by_element(qs),
+        "by_page": group("url", "page"),
+        "by_country": group("country", "country"),
+        "by_city": group("city", "city"),
+        "by_device": group("device_type", "device"),
+        "over_time": [{"date": d, "clicks": n} for d, n in sorted(per_day.items())],
+    }
+
+
+def _clicks_by_element(qs, limit=50):
+    """One row per tracked element, labelled by what the visitor actually saw.
+
+    Grouped on element_id (stable) but displayed by element_label (readable),
+    taking the most recent label seen for an id so a renamed button stays one
+    row instead of splitting into two.
+    """
+    rows = list(
+        qs.exclude(element_id="")
+          .order_by()
+          .values("element_id", "element_type")
+          .annotate(clicks=Count("id"), unique_clickers=Count("visitor", distinct=True))
+          .order_by("-clicks")[:limit]
+    )
+    if not rows:
+        return []
+
+    # Labels for the whole page in ONE query. Doing this per row would be a
+    # query per element on a dashboard endpoint. Ordered oldest-first so that
+    # later assignments win, leaving the MOST RECENT label for each id.
+    labels = {}
+    label_rows = (
+        qs.filter(element_id__in=[r["element_id"] for r in rows])
+          .exclude(element_label="")
+          .order_by("created_at")
+          .values_list("element_id", "element_label")
+    )
+    for element_id, label in label_rows:
+        labels[element_id] = label
+
+    return [
+        {
+            "element_id": r["element_id"],
+            "element_type": r["element_type"],
+            # Falls back to the id, never to a blank cell — an unlabelled
+            # control is still identifiable.
+            "element_label": labels.get(r["element_id"]) or r["element_id"],
+            "clicks": r["clicks"],
+            "unique_clickers": r["unique_clickers"],
+        }
+        for r in rows
+    ]
+
+
+# ── Per-video viewer locations ───────────────────────────────────────────────
+def video_viewers(content_id, start_dt, end_dt, *, country=None, city=None, device=None):
+    """Who watched one video, and from where.
+
+    UNIQUE VIEWERS, explicitly: a viewer is counted ONCE per video no matter
+    how many events their playback produced. video_start / 25 / 50 / 75 /
+    complete are five events describing one person, and counting them as five
+    viewers is exactly the miscount this exists to prevent — every number
+    below counts DISTINCT visitors, never rows.
+    """
+    qs = _video_events(start_dt, end_dt, content_id)
+    if country:
+        qs = qs.filter(country__iexact=country)
+    if city:
+        qs = qs.filter(city__iexact=city)
+    if device:
+        qs = qs.filter(device_type__iexact=device)
+
+    starts = qs.filter(event_type=EVENT_VIDEO_START)
+    completes = qs.filter(event_type=EVENT_VIDEO_COMPLETE)
+
+    def distinct_visitors(queryset):
+        return queryset.exclude(visitor__isnull=True).order_by().values("visitor_id").distinct().count()
+
+    by_country = (
+        starts.order_by()
+              .values("country", "country_name")
+              .annotate(viewers=Count("visitor", distinct=True))
+              .order_by("-viewers")
+    )
+    countries = []
+    for r in by_country:
+        code = r["country"] or ""
+        cities = (
+            starts.filter(country=code)
+                  .order_by().values("city")
+                  .annotate(viewers=Count("visitor", distinct=True))
+                  .order_by("-viewers")[:25]
+        )
+        countries.append({
+            "country_code": code or "??",
+            "country": r["country_name"] or code or "Unknown",
+            "viewers": r["viewers"],
+            "cities": [
+                {"city": c["city"] or "Unknown", "viewers": c["viewers"]}
+                for c in cities
+            ],
+        })
+
+    return {
+        "video_id": content_id,
+        "total_views": starts.count(),
+        "unique_viewers": distinct_visitors(starts),
+        "completed": distinct_visitors(completes),
+        "by_country": countries,
     }

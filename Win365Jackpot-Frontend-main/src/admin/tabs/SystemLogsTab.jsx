@@ -1,16 +1,19 @@
 import React, { useState } from "react";
-import { LineChart, Megaphone, MousePointerClick, PlayCircle, UserCheck } from "lucide-react";
+import { LineChart, Megaphone, MousePointerClick, PlayCircle, UserCheck, Users, Pointer, Stethoscope } from "lucide-react";
 import { useAdminTheme } from "../context/AdminThemeContext";
 import AnalyticsOverviewTab from "./analytics/AnalyticsOverviewTab";
 import CampaignAnalyticsTab from "./analytics/CampaignAnalyticsTab";
 import UrlAnalyticsTab from "./analytics/UrlAnalyticsTab";
 import VideoAnalyticsTab from "./analytics/VideoAnalyticsTab";
 import MemberEngagementTab from "./analytics/MemberEngagementTab";
+import VisitorAnalyticsTab from "./analytics/VisitorAnalyticsTab";
+import ClickAnalyticsTab from "./analytics/ClickAnalyticsTab";
+import AnalyticsDiagnosticTab from "./analytics/AnalyticsDiagnosticTab";
 
 /**
  * SystemLogsTab — one Back Office destination for the platform's own
- * telemetry, with the five analytics views as tabs inside it rather than as
- * five separate sidebar entries.
+ * telemetry, with the analytics views as tabs inside it rather than as
+ * separate sidebar entries.
  *
  * Purely a container: every panel below is the existing analytics component,
  * imported and rendered unchanged. No endpoint, query or table was
@@ -25,7 +28,7 @@ import MemberEngagementTab from "./analytics/MemberEngagementTab";
  * because they are two different questions.
  *
  * The panel is kept mounted-on-demand (only the active tab renders), so
- * switching tabs does not leave four sets of polling requests running behind
+ * switching tabs does not leave every other panel's requests running behind
  * the one being looked at.
  */
 
@@ -35,6 +38,11 @@ const TABS = [
   { id: "urls", label: "URL Analytics", icon: MousePointerClick, Component: UrlAnalyticsTab },
   { id: "videos", label: "Video Analytics", icon: PlayCircle, Component: VideoAnalyticsTab },
   { id: "members", label: "Member Analytics", icon: UserCheck, Component: MemberEngagementTab },
+  // VISITOR-ANALYTICS: who came and from where, what got clicked, and a
+  // diagnostic for when the first two look wrong.
+  { id: "visitors", label: "Visitor Analytics", icon: Users, Component: VisitorAnalyticsTab },
+  { id: "clicks", label: "Click Analytics", icon: Pointer, Component: ClickAnalyticsTab },
+  { id: "diagnostic", label: "Diagnostic", icon: Stethoscope, Component: AnalyticsDiagnosticTab },
 ];
 
 export default function SystemLogsTab(props) {

@@ -196,11 +196,14 @@ export function trackEvent(type, extra) {
 
 // One entry point for the video hook. `metadata` carries only the numeric
 // milestone/watch signals the dashboard needs.
-export function trackVideoEvent(type, { contentId, percent, watchedSeconds, duration, title, contentKind, clientEventId } = {}) {
+export function trackVideoEvent(type, { contentId, percent, watchedSeconds, duration, position, title, contentKind, clientEventId } = {}) {
   const metadata = {};
   if (percent != null) metadata.percent = percent;
   if (watchedSeconds != null && isFinite(watchedSeconds)) metadata.watched_seconds = Math.max(0, Math.round(watchedSeconds));
   if (duration != null && isFinite(duration)) metadata.duration = Math.max(0, Math.round(duration));
+  // Where the playhead was when this happened — the useful half of a pause or
+  // an exit, which are otherwise just "it stopped".
+  if (position != null && isFinite(position)) metadata.position = Math.max(0, Math.round(position));
   if (title) metadata.title = String(title).slice(0, 200);
   if (contentKind) metadata.content_kind = contentKind;
   const extra = { content_type: "video", content_id: String(contentId || ""), metadata };
@@ -225,6 +228,65 @@ export function trackVideoClick(contentId, { title, contentKind } = {}) {
 export function trackVideoCtaClick(contentId, { title, contentKind } = {}) {
   const clientEventId = mintActionId(`video_cta_click:${contentId}`);
   trackVideoEvent("video_cta_click", { contentId, title, contentKind, clientEventId });
+  flush();
+}
+
+// ── General click tracking ───────────────────────────────────────────────────
+// VISITOR-ANALYTICS: the ordinary "a visitor clicked a tracked control" signal.
+//
+// This is the piece the click dashboard was missing entirely: before it, the
+// only click events in the system were the campaign-redirect `url_click` (which
+// only fires from a trackable marketing link) and the two video-specific ones,
+// so almost every button and link on the site produced no click data at all.
+//
+// De-duplication is the whole reason this goes through mintActionId rather than
+// posting directly. All of these collapse into ONE recorded click:
+//   • a physical double-click
+//   • a React re-render that re-fires the same handler
+//   • a component remount that re-attaches a listener
+//   • an event that bubbles through two handlers
+//   • a network retry of the batch that carried it
+// because they all land inside mintActionId's debounce window and therefore
+// share one client_event_id, which the server's UNIQUE(event_type,
+// client_event_id) constraint resolves to a single row. A genuinely separate
+// later click falls outside the window, mints a new id, and is counted — this
+// only ever removes accidental duplicates, never real repeat engagement.
+//
+// `elementId` should be a STABLE identifier for the control (not a generated
+// DOM id that changes per render, which would fragment its click history into
+// one row per render). `label` is what the visitor actually saw.
+export function trackClick(elementId, { label, type = "button", destination, path } = {}) {
+  const id = String(elementId || "").slice(0, 120);
+  if (!id) return;  // an unidentifiable click is not worth a row
+  const clientEventId = mintActionId(`click:${id}`);
+  const loc = typeof window !== "undefined" ? window.location : { pathname: "", search: "" };
+  enqueue(baseEvent("click", {
+    element_id: id,
+    element_type: String(type || "").slice(0, 40),
+    element_label: String(label || "").slice(0, 200),
+    destination_url: String(destination || "").slice(0, 500),
+    url: (path || `${loc.pathname}${loc.search}`).slice(0, 500),
+    client_event_id: clientEventId,
+  }));
+  // Clicks are a direct engagement signal and the visitor may be navigating
+  // away in the next instant — send now rather than waiting for the window.
+  flush();
+}
+
+// ── Video engagement beyond start/progress/complete ──────────────────────────
+// All three are emitted by useVideoAnalytics.js; they are exported here so the
+// hook has a single place to send from, per §26 (no raw fetch() in components).
+export function trackVideoImpression(contentId, { title, contentKind, clientEventId } = {}) {
+  trackVideoEvent("video_impression", { contentId, title, contentKind, clientEventId });
+}
+
+export function trackVideoPause(contentId, { title, contentKind, position, duration } = {}) {
+  trackVideoEvent("video_pause", { contentId, title, contentKind, position, duration });
+}
+
+export function trackVideoExit(contentId, { title, contentKind, position, duration, watchedSeconds } = {}) {
+  trackVideoEvent("video_exit", { contentId, title, contentKind, position, duration, watchedSeconds });
+  // An exit is usually the page going away, so it must not sit in the queue.
   flush();
 }
 

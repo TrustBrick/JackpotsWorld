@@ -10,11 +10,12 @@ types are accepted (url_click is recorded by the redirect endpoint, so it can't
 be spoofed here). metadata is sanitised to bounded JSON scalars so it can't be
 abused as blob storage or to smuggle sensitive data.
 
-There is also NO country/region/city field, and no way to override country/
-region/city already on the row — all three are resolved entirely server-side
-in analytics_service.record_event (Cloudflare's edge header for country, the
-existing ip-api geolocation utility for region/city), so a client cannot claim
-to be somewhere it isn't. Same treatment as identity above.
+There is also NO ip/country/region/city/latitude/longitude field, and no way
+to override any of them — every one is resolved entirely server-side in
+services/visitor_service.py from the address the connection actually came
+from, so a client cannot claim to be somewhere it isn't. Same treatment as
+identity above. This is why the frontend never sends a location and why
+adding such a field here would quietly undo §23.
 """
 from rest_framework import serializers
 
@@ -59,6 +60,16 @@ class AnalyticsEventIngestSerializer(serializers.Serializer):
     # what this does. allow_blank because an older client build simply won't
     # send it; blank means "don't deduplicate", the pre-existing behavior.
     client_event_id = serializers.CharField(required=False, allow_blank=True, max_length=64, default="")
+    # VISITOR-ANALYTICS: what was clicked, for event_type="click". These are
+    # descriptive strings the page already knows about itself (a button's id,
+    # its visible label, where a link points) — none of them affects identity,
+    # location, attribution or any count's denominator, so accepting them from
+    # the client costs nothing that matters. Length-bounded like everything
+    # else here so they can't be used as free storage.
+    element_id = serializers.CharField(required=False, allow_blank=True, max_length=120, default="")
+    element_type = serializers.CharField(required=False, allow_blank=True, max_length=40, default="")
+    element_label = serializers.CharField(required=False, allow_blank=True, max_length=200, default="")
+    destination_url = serializers.CharField(required=False, allow_blank=True, max_length=500, default="")
     utm_source = serializers.CharField(required=False, allow_blank=True, max_length=100, default="")
     utm_medium = serializers.CharField(required=False, allow_blank=True, max_length=100, default="")
     utm_campaign = serializers.CharField(required=False, allow_blank=True, max_length=150, default="")

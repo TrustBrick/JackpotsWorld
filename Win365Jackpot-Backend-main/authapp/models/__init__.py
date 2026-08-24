@@ -78,7 +78,7 @@ from .support_script_models import SupportScript
 
 # ANALYTICS: new module — safe to delete this import block (and the module
 # itself) to remove the feature. See analytics_models.py's docstring.
-from .analytics_models import AnalyticsEvent, Campaign
+from .analytics_models import AnalyticsEvent, Campaign, Visitor, VisitorSession
 
 __all__ = [
     # User models
@@ -131,6 +131,8 @@ __all__ = [
     # ANALYTICS
     "AnalyticsEvent",
     "Campaign",
+    "Visitor",
+    "VisitorSession",
     # SUPPORT-SCRIPT
     "SupportScript",
 ]

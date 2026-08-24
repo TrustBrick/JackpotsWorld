@@ -15,7 +15,10 @@ Detection rules actually implemented (and nothing beyond them):
      the app's own health check (/healthz/) and most scripts send none.
   2. User-Agent matching the known-automation pattern below (crawlers, search
      engines, link unfurlers, headless browsers, HTTP libraries, uptime
-     monitors, performance scanners).
+     monitors, performance scanners, and infrastructure health probes — the
+     load balancer checks every target on a timer, so `ELB-HealthChecker` and
+     friends would otherwise be a large and completely fictional share of a
+     quiet day's "visitors").
 """
 import re
 
@@ -26,7 +29,14 @@ _BOT_RE = re.compile(
     r"curl|wget|python-requests|python-urllib|go-http-client|okhttp|libwww|"
     r"axios/|node-fetch|httpclient|scrapy|apache-httpclient|"
     r"uptime|pingdom|monitor|statuscake|newrelic|datadog|site24x7|"
-    r"lighthouse|gtmetrix|pagespeed|google-inspectiontool",
+    r"lighthouse|gtmetrix|pagespeed|google-inspectiontool|"
+    # Infrastructure health probes. These hit the site constantly — the ALB
+    # checks every target on a timer — and every one of them was previously
+    # recorded as a human visit, which is enough on a quiet day to be most of
+    # the "traffic". None of these strings can appear in a real browser's
+    # User-Agent, so this stays as conservative as the rest of the list.
+    r"elb-healthchecker|healthchecker|health-check|healthcheck|"
+    r"kube-probe|amazon-route53-health-check|updown\.io|hetrixtool",
     re.I,
 )
 

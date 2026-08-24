@@ -404,6 +404,31 @@ else:
         "default": {
             "BACKEND": "django.core.cache.backends.db.DatabaseCache",
             "LOCATION": "django_cache",
+            # MAX_ENTRIES MATTERS HERE, AND THE DEFAULT IS DANGEROUS.
+            #
+            # Django's DatabaseCache defaults to MAX_ENTRIES=300 with
+            # CULL_FREQUENCY=3, meaning that once 300 rows exist, every
+            # subsequent write deletes ONE THIRD OF THE ENTIRE CACHE —
+            # indiscriminately, oldest-expiry first, across all users of it.
+            #
+            # This cache is not just a performance nicety in this project. It
+            # holds the login throttle counters and the 15-minute failed-login
+            # account lockout (see DEPLOYMENT.md and authapp/otp/otp_utils.py),
+            # which were deliberately moved here from LocMemCache precisely so
+            # they would be shared across worker processes. A cull that evicts
+            # those rows silently resets an attacker's failed-attempt count.
+            #
+            # VISITOR-ANALYTICS makes the ceiling much easier to hit: the
+            # geolocation cache stores one entry per distinct visitor IP, so a
+            # few hundred visitors would push the table past 300 and start
+            # culling continuously. Raised well above any plausible working
+            # set, and tunable without a deploy.
+            "OPTIONS": {
+                "MAX_ENTRIES": config("CACHE_MAX_ENTRIES", default=50000, cast=int),
+                # Cull 5% at a time rather than 33%, so even if the ceiling is
+                # ever reached the blast radius is small.
+                "CULL_FREQUENCY": config("CACHE_CULL_FREQUENCY", default=20, cast=int),
+            },
         }
     }
 
@@ -687,6 +712,36 @@ REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["voice-call-start"] = config(
 # purely an abuse cap.
 REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["analytics-ingest"] = config(
     "ANALYTICS_INGEST_RATE", default="120/min",
+)
+
+# ── Visitor analytics: IP storage, retention, session window ──────────────────
+# Visitor IP addresses are personal data in several jurisdictions, so the two
+# knobs that govern them are explicit settings rather than constants buried in
+# a module. See authapp/models/analytics_models.py's privacy posture for the
+# full access/retention story.
+#
+# ANALYTICS_STORE_IP=False keeps the whole location pipeline working — the
+# address is still used transiently to resolve country/region/city — while
+# persisting no address at all. Set it if the site's privacy policy forbids
+# retaining addresses; nothing else in the analytics system depends on the
+# stored value.
+ANALYTICS_STORE_IP = config("ANALYTICS_STORE_IP", default=True, cast=bool)
+
+# How long a stored address is kept before `manage.py prune_analytics_ips`
+# blanks it. The derived country/region/city are NOT touched by pruning, so
+# historical location analytics survive intact. 90 days matches the retention
+# already applied elsewhere in this project's audit trail.
+ANALYTICS_IP_RETENTION_DAYS = config("ANALYTICS_IP_RETENTION_DAYS", default=90, cast=int)
+
+# A visit ends after this much inactivity. The client's sessionStorage id
+# already dies with the tab; this is the server-side half, so a tab left open
+# overnight starts a new session rather than reporting one 14-hour visit.
+# Deliberately independent of SESSION_IDLE_MINUTES for logged-in accounts —
+# that one is a security timeout, this one is a reporting convention, and
+# tying them together would mean a security decision silently reshaping the
+# analytics.
+ANALYTICS_SESSION_IDLE_MINUTES = config(
+    "ANALYTICS_SESSION_IDLE_MINUTES", default=30, cast=int,
 )
 
 # CHATBOT: per-IP ceiling on the public FAQ-bot endpoint (previously

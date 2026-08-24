@@ -89,6 +89,27 @@ def get_client_ip(request):
     """Return the originating client IP as a string, or None if it can't be
     established. See the module docstring for why X-Forwarded-For is read
     right-to-left rather than left-to-right."""
+    return get_client_ip_with_source(request)[0]
+
+
+def get_client_ip_with_source(request):
+    """(ip, source) — the same address get_client_ip() returns, plus WHICH
+    input it actually came from.
+
+    Only the admin analytics diagnostic uses the second element, and only to
+    answer "is the proxy chain wired up the way we think it is?" without
+    anyone having to guess from the outside. `source` is one of:
+
+        "CF-Connecting-IP"  through Cloudflare (the trusted, unforgeable path)
+        "X-Forwarded-For"   a direct-to-origin request; the peer that opened
+                            the connection was taken from the chain
+        "REMOTE_ADDR"       no proxy in front at all (local dev)
+        "unavailable"       the chain was malformed — we refuse to guess
+
+    Naming the header rather than just returning the address is what makes a
+    silent misconfiguration visible: if this ever reads "REMOTE_ADDR" in
+    production, every visitor is being recorded as the load balancer.
+    """
     entries = [
         part.strip()
         for part in request.META.get("HTTP_X_FORWARDED_FOR", "").split(",")
@@ -103,21 +124,21 @@ def get_client_ip(request):
     while entries:
         candidate = _parse(entries.pop())
         if candidate is None:
-            return None
+            return None, "unavailable"
         if not _is_internal(candidate):
             peer = candidate
             break
 
     if peer is None:
         # No XFF at all (local dev, or a request that never crossed a proxy).
-        return request.META.get("REMOTE_ADDR")
+        return request.META.get("REMOTE_ADDR"), "REMOTE_ADDR"
 
     if _is_cloudflare(peer):
         forwarded = request.META.get("HTTP_CF_CONNECTING_IP", "").strip()
         if forwarded and _parse(forwarded) is not None:
-            return forwarded
+            return forwarded, "CF-Connecting-IP"
         # Reached us from Cloudflare but without a usable CF-Connecting-IP.
         # Don't fall further left into caller-controlled territory.
-        return None
+        return None, "unavailable"
 
-    return str(peer)
+    return str(peer), "X-Forwarded-For"

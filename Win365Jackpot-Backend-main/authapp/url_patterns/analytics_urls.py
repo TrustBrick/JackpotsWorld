@@ -18,6 +18,13 @@ from authapp.views.analytics_views import (
     AdminAnalyticsMemberView,
     AdminCampaignListCreateView,
     AdminCampaignDetailView,
+    AdminAnalyticsVisitorsOverviewView,
+    AdminAnalyticsVisitorsView,
+    AdminAnalyticsVisitorDetailView,
+    AdminAnalyticsVisitorLocationsView,
+    AdminAnalyticsClicksView,
+    AdminAnalyticsVideoViewersView,
+    AdminAnalyticsDiagnosticView,
 )
 
 # Public (any visitor) — mounted at api/
@@ -31,8 +38,23 @@ admin_urlpatterns = [
     path("analytics/overview/", AdminAnalyticsOverviewView.as_view()),
     path("analytics/urls/", AdminAnalyticsUrlsView.as_view()),
     path("analytics/videos/", AdminAnalyticsVideosView.as_view()),
+    # VISITOR-ANALYTICS: the more specific /viewers/ route MUST come before
+    # the <content_id> catch-all — Django resolves in order, and a content_id
+    # pattern of <str:...> would otherwise swallow "…/viewers/" first.
+    path("analytics/videos/<str:content_id>/viewers/", AdminAnalyticsVideoViewersView.as_view()),
     path("analytics/videos/<str:content_id>/", AdminAnalyticsVideoDetailView.as_view()),
     path("analytics/locations/", AdminAnalyticsLocationsView.as_view()),
+
+    # VISITOR-ANALYTICS. Note the ordering constraint again: "visitors/overview/"
+    # is declared before "visitors/<visitor_id>/", or the literal would be
+    # captured as a visitor id and always 404.
+    path("analytics/visitors/overview/", AdminAnalyticsVisitorsOverviewView.as_view()),
+    path("analytics/visitors/", AdminAnalyticsVisitorsView.as_view()),
+    path("analytics/visitors/<str:visitor_id>/", AdminAnalyticsVisitorDetailView.as_view()),
+    path("analytics/visitor-locations/", AdminAnalyticsVisitorLocationsView.as_view()),
+    path("analytics/clicks/", AdminAnalyticsClicksView.as_view()),
+    # Admin-only wiring test — see AdminAnalyticsDiagnosticView.
+    path("analytics/diagnostic/", AdminAnalyticsDiagnosticView.as_view()),
     path("analytics/campaigns/", AdminAnalyticsCampaignsView.as_view()),
     path("analytics/members/<int:user_id>/", AdminAnalyticsMemberView.as_view()),
     # Campaign management (create/list/edit/delete) — kept on a distinct path

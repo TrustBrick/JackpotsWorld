@@ -9,6 +9,13 @@
 // `video_complete` fires on `ended`. A click on the player itself (tapping the
 // poster/native controls to start or resume) fires video_click.
 //
+// Also emitted: `video_impression` when the player is at least half on screen
+// (once per video per tab session — the denominator for a view-through rate),
+// `video_pause` on a real pause (never on the pause that `ended` implies), and
+// `video_exit` when playback was under way and the page or component goes
+// away. Pause and exit carry the playhead position and duration, so "where do
+// people drop off" is answerable rather than merely "some people left".
+//
 // Use it ONLY for content videos the user is meant to watch (Featured
 // Destination Showcase, Premium Partner, promotional/landing videos). Do NOT
 // attach it to muted, looping, decorative background videos.
@@ -27,10 +34,21 @@
 // re-watch mints a fresh session and is correctly counted as a new view — the
 // dedup only ever collapses the SAME unfinished playback attempt seen twice.
 import { useEffect, useRef } from "react";
-import { trackVideoEvent, trackVideoClick, mintActionId } from "../services/analytics";
+import {
+  trackVideoEvent, trackVideoClick, mintActionId,
+  trackVideoImpression, trackVideoPause, trackVideoExit,
+} from "../services/analytics";
 
 const MILESTONES = [25, 50, 75, 100];
 const SESSION_KEY_PREFIX = "jw_video_session:";
+// One impression per video per browsing session, tracked separately from the
+// playback session because an impression is not a playback: the viewer may
+// scroll a video into view repeatedly without ever playing it, and counting
+// each of those would make the view-through denominator meaningless.
+const IMPRESSION_KEY_PREFIX = "jw_video_impression:";
+// How much of the player has to be on screen before it counts as seen. Half,
+// so a sliver at the edge of the viewport during a fast scroll doesn't count.
+const IMPRESSION_VISIBILITY = 0.5;
 
 function readSession(contentId) {
   try { return sessionStorage.getItem(SESSION_KEY_PREFIX + contentId) || ""; } catch { return ""; }
@@ -49,7 +67,7 @@ function randomSessionId() {
 }
 
 export function useVideoAnalytics(videoRef, { contentId, title, contentKind = "content", enabled = true } = {}) {
-  const stateRef = useRef({ started: false, milestones: new Set(), completed: false, playbackSessionId: "" });
+  const stateRef = useRef({ started: false, milestones: new Set(), completed: false, exited: false, playbackSessionId: "" });
 
   useEffect(() => {
     const el = videoRef?.current;
@@ -60,7 +78,7 @@ export function useVideoAnalytics(videoRef, { contentId, title, contentKind = "c
     // SESSION (below) is deliberately separate from this — it survives a
     // remount/refresh on purpose; this Set only avoids redundant client-side
     // sends within one mount's lifetime.
-    const s = { started: false, milestones: new Set(), completed: false, playbackSessionId: "" };
+    const s = { started: false, milestones: new Set(), completed: false, exited: false, playbackSessionId: "" };
     stateRef.current = s;
 
     // Resume the existing playback session if one is already in flight for
@@ -130,17 +148,82 @@ export function useVideoAnalytics(videoRef, { contentId, title, contentKind = "c
       s.playbackSessionId = "";
     };
 
+    const onPause = () => {
+      // `ended` also fires a `pause`. A finished video is a completion, not a
+      // pause, and recording both would double-count the same moment.
+      if (el.ended || !s.started) return;
+      trackVideoPause(contentId, {
+        title, contentKind,
+        position: el.currentTime, duration: el.duration,
+      });
+    };
+
+    // An exit is "they were watching and then they weren't" — navigating away,
+    // closing the tab, or this component unmounting mid-playback. Only
+    // meaningful if playback had actually started and had not finished;
+    // otherwise there is nothing to exit from.
+    const exit = () => {
+      if (!s.started || s.completed || s.exited) return;
+      s.exited = true;
+      trackVideoExit(contentId, {
+        title, contentKind,
+        position: el.currentTime, duration: el.duration,
+        watchedSeconds: el.currentTime,
+      });
+    };
+    const onPageHide = () => exit();
+
+    // IMPRESSION: the player was genuinely on screen. Guarded by
+    // sessionStorage so scrolling it in and out repeatedly is still one
+    // impression, and by client_event_id so a refresh isn't a second one.
+    let observer = null;
+    const seenId = () => {
+      try { return sessionStorage.getItem(IMPRESSION_KEY_PREFIX + contentId) || ""; } catch { return ""; }
+    };
+    // The stored value IS the idempotency key, not a bare flag. Storing the id
+    // means a refresh that re-fires the observer reuses the same
+    // client_event_id, so the server collapses it — belt and braces alongside
+    // the "already seen" short-circuit, which a cleared/blocked sessionStorage
+    // would otherwise defeat.
+    const markSeen = (id) => {
+      try { sessionStorage.setItem(IMPRESSION_KEY_PREFIX + contentId, id); } catch { /* degrade quietly */ }
+    };
+
+    if (!seenId() && typeof IntersectionObserver !== "undefined") {
+      observer = new IntersectionObserver((entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          const id = seenId() || randomSessionId();
+          markSeen(id);
+          trackVideoImpression(contentId, {
+            title, contentKind,
+            clientEventId: `${contentId}:${id}:impression`,
+          });
+          if (observer) { observer.disconnect(); observer = null; }
+          break;
+        }
+      }, { threshold: IMPRESSION_VISIBILITY });
+      observer.observe(el);
+    }
+
     el.addEventListener("play", start);
     el.addEventListener("playing", start);
     el.addEventListener("click", onClick);
     el.addEventListener("timeupdate", onTimeUpdate);
     el.addEventListener("ended", onEnded);
+    el.addEventListener("pause", onPause);
+    if (typeof window !== "undefined") window.addEventListener("pagehide", onPageHide);
     return () => {
+      // Unmounting mid-playback is itself an exit.
+      exit();
+      if (observer) observer.disconnect();
       el.removeEventListener("play", start);
       el.removeEventListener("playing", start);
       el.removeEventListener("click", onClick);
       el.removeEventListener("timeupdate", onTimeUpdate);
       el.removeEventListener("ended", onEnded);
+      el.removeEventListener("pause", onPause);
+      if (typeof window !== "undefined") window.removeEventListener("pagehide", onPageHide);
     };
   }, [videoRef, contentId, title, contentKind, enabled]);
 }

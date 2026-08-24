@@ -14,15 +14,34 @@ block in models/__init__.py, analytics_serializers.py, analytics_service.py,
 analytics_views.py and analytics_urls.py to remove the feature entirely.
 
 Privacy posture (see also utils/anonymous_id.py):
-  • No raw IP address is ever stored. IP is used transiently at ingest only to
-    derive a salted, daily-rotating anonymous id when the client can't supply
-    its own first-party id, to read Cloudflare's edge country header, and (for
-    region/city — see services/analytics_service.py's _resolve_region_city) as
-    input to the existing utils/geolocation.py lookup. Never persisted.
-  • No passwords, payment data, tokens, message bodies or GPS/precise location
-    — region/city is coarse (city-level at best, from IP, never device GPS).
+  • IP ADDRESSES ARE STORED, on Visitor and VisitorSession only — never on
+    AnalyticsEvent, which would multiply one visitor's address across every
+    row they generate. This REVERSES the module's original "no raw IP is ever
+    stored" stance, deliberately and on explicit instruction, because the
+    Admin visitor list is required to show the address. What that costs and
+    what bounds it:
+      – Access: admin-only. The address is serialised by the admin analytics
+        endpoints (IsAdminOrSuperAdmin) and by nothing else. No public API,
+        no visitor-facing response, no page, no sitemap or SEO metadata ever
+        includes it — see analytics_views.py, where the public ingest returns
+        a bare {"recorded": n} and the redirect returns a 302 and nothing else.
+      – Retention: ANALYTICS_IP_RETENTION_DAYS (default 90). Addresses older
+        than that are cleared by the `prune_analytics_ips` management command,
+        which blanks Visitor.ip_address/VisitorSession.ip_address in place and
+        leaves every derived country/region/city intact — so the location
+        analytics survive the address being forgotten. Run it from cron; it is
+        idempotent and safe to run repeatedly.
+      – Storage can be switched off entirely with ANALYTICS_STORE_IP=False,
+        which keeps geolocation working (the address is still used transiently
+        for the lookup) while persisting nothing.
+  • No passwords, payment data, tokens, message bodies or GPS/precise location.
+    Location is coarse and IP-derived (city-level at best) and is labelled
+    "Approximate location" in the admin UI. The browser Geolocation API is
+    never called — see utils/geolocation.py.
   • Anonymous activity is never retroactively stitched to a member on login
-    (approved decision): once anonymous, it stays anonymous.
+    (approved decision): once anonymous, it stays anonymous. Visitor therefore
+    has NO foreign key to a user account — it identifies a browser, not a
+    person, and joining the two would undo that decision by the back door.
 """
 from django.conf import settings
 from django.db import models
@@ -52,15 +71,34 @@ EVENT_VIDEO_COMPLETE = "video_complete"
 # redirect-based server recording is needed the way Campaign links require.
 EVENT_VIDEO_CLICK = "video_click"
 EVENT_VIDEO_CTA_CLICK = "video_cta_click"
+# VISITOR-ANALYTICS: the general element click. url_click stays what it always
+# was — a server-recorded campaign-redirect click, never client-ingestable,
+# because it carries ad-spend/attribution stakes. This one is the ordinary
+# "a visitor clicked a tracked button or link" signal the click dashboard
+# counts, and it IS client-ingestable: it has no spend attached, and it is
+# protected against miscounting by client_event_id idempotency rather than by
+# refusing client input.
+EVENT_CLICK = "click"
+# VISITOR-ANALYTICS: video engagement beyond start/progress/complete. An
+# impression is "the player was actually rendered/visible", which is what
+# makes a view-through rate meaningful — without it there is no denominator
+# separating "never saw the video" from "saw it and didn't play it".
+EVENT_VIDEO_IMPRESSION = "video_impression"
+EVENT_VIDEO_PAUSE = "video_pause"
+EVENT_VIDEO_EXIT = "video_exit"
 EVENT_SIGNUP = "signup"
 EVENT_LOGIN = "login"
 
 EVENT_TYPE_CHOICES = [
     (EVENT_PAGE_VIEW, "Page View"),
     (EVENT_URL_CLICK, "URL Click"),
+    (EVENT_CLICK, "Click"),
+    (EVENT_VIDEO_IMPRESSION, "Video Impression"),
     (EVENT_VIDEO_START, "Video Start"),
     (EVENT_VIDEO_PROGRESS, "Video Progress"),
     (EVENT_VIDEO_COMPLETE, "Video Complete"),
+    (EVENT_VIDEO_PAUSE, "Video Pause"),
+    (EVENT_VIDEO_EXIT, "Video Exit"),
     (EVENT_VIDEO_CLICK, "Video Click"),
     (EVENT_VIDEO_CTA_CLICK, "Video CTA Click"),
     (EVENT_SIGNUP, "Signup"),
@@ -73,14 +111,44 @@ EVENT_TYPE_CHOICES = [
 # arbitrary types can be spoofed through the public ingest.
 CLIENT_INGESTABLE_EVENT_TYPES = frozenset({
     EVENT_PAGE_VIEW,
+    EVENT_CLICK,
+    EVENT_VIDEO_IMPRESSION,
     EVENT_VIDEO_START,
     EVENT_VIDEO_PROGRESS,
     EVENT_VIDEO_COMPLETE,
+    EVENT_VIDEO_PAUSE,
+    EVENT_VIDEO_EXIT,
     EVENT_VIDEO_CLICK,
     EVENT_VIDEO_CTA_CLICK,
     EVENT_SIGNUP,
     EVENT_LOGIN,
 })
+
+# Named here rather than inline at each call site so the read side and the
+# write side can never drift apart on what counts as a click.
+# Every kind of click, for "how many clicks did we get" — which means all of
+# them, not just the campaign-redirect ones the dashboard used to count.
+# Video events are NOT listed as a set here: they are already addressed by
+# content_type="video", which is how every video query in this module scopes
+# itself, and a second overlapping definition would be one more thing that can
+# drift out of step.
+CLICK_EVENT_TYPES = frozenset({EVENT_CLICK, EVENT_URL_CLICK, EVENT_VIDEO_CLICK, EVENT_VIDEO_CTA_CLICK})
+
+# Geolocation outcome recorded against a Visitor/VisitorSession. Mirrors
+# utils/geolocation.py's status vocabulary exactly — a blank country with
+# status "private_ip" means something completely different to the admin
+# reading it than a blank country with status "failed", and collapsing both
+# to "Unknown" is what made the current dashboard impossible to debug.
+GEO_STATUS_SUCCESS = "success"
+GEO_STATUS_FAILED = "failed"
+GEO_STATUS_PRIVATE_IP = "private_ip"
+GEO_STATUS_UNAVAILABLE = "unavailable"
+GEO_STATUS_CHOICES = [
+    (GEO_STATUS_SUCCESS, "Success"),
+    (GEO_STATUS_FAILED, "Failed"),
+    (GEO_STATUS_PRIVATE_IP, "Private / local IP"),
+    (GEO_STATUS_UNAVAILABLE, "Unavailable"),
+]
 
 # The milestones a video_progress event may report. 100 is included (not just
 # the separate video_complete/"ended" event) so a viewer who scrubs straight to
@@ -169,6 +237,169 @@ def _unique_tracking_id():
     return tid
 
 
+class GeoSnapshot(models.Model):
+    """The approximate, IP-derived location fields shared by Visitor and
+    VisitorSession. Abstract — it adds no table of its own.
+
+    Both models carry their own copy rather than pointing at a shared row, and
+    that duplication is the point: a visitor who travels (or changes ISP)
+    gets a NEW session with a NEW snapshot, while their earlier sessions keep
+    the location they actually had at the time. A single mutable location on
+    Visitor alone would silently rewrite history — last week's video viewers
+    would appear to have watched from wherever the person is today.
+
+    Every field is blank/NULL when unresolved. Nothing here is ever defaulted
+    to a plausible-looking value: a blank city means the lookup did not return
+    a city, and `geo_status` says why.
+    """
+    # ISO-3166 alpha-2 ("IN"), and the provider's full name ("India"). Both,
+    # because the code is what filters/groups reliably and the name is what an
+    # admin reads — deriving one from the other would need a country table
+    # this project does not have.
+    country_code = models.CharField(max_length=2, blank=True, db_index=True)
+    country_name = models.CharField(max_length=100, blank=True)
+    region = models.CharField(max_length=100, blank=True)
+    region_code = models.CharField(max_length=10, blank=True)
+    city = models.CharField(max_length=100, blank=True)
+    timezone_name = models.CharField(max_length=64, blank=True)
+
+    # City-centroid coordinates from the IP lookup. NOT a device position —
+    # see utils/geolocation.py. Nullable rather than 0.0 so "no fix" is
+    # distinguishable from "the equator".
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+
+    # Network operator, when the provider supplies one. Coarse and often the
+    # transit provider rather than the retail ISP, so it is displayed as
+    # supplementary detail and never used for counting.
+    isp = models.CharField(max_length=120, blank=True)
+
+    geo_status = models.CharField(
+        max_length=16, choices=GEO_STATUS_CHOICES, blank=True, db_index=True,
+    )
+
+    class Meta:
+        abstract = True
+
+    @property
+    def has_location(self):
+        return self.geo_status == GEO_STATUS_SUCCESS
+
+    def location_label(self):
+        """Human-readable location, honest about what is actually known.
+        Never invents a country or city to fill a gap."""
+        if self.geo_status == GEO_STATUS_PRIVATE_IP:
+            return "Local / Private Network"
+        parts = [p for p in (self.city, self.region, self.country_name) if p]
+        return ", ".join(parts) if parts else "Unknown"
+
+
+class Visitor(GeoSnapshot):
+    """One browser, tracked across sessions by its first-party visitor id.
+
+    NOT a person and NOT an IP. Deliberately keyed on the opaque random token
+    the browser stores in localStorage (utils/anonymous_id.py), because the
+    two obvious alternatives are both wrong: an IP is shared by everyone
+    behind a NAT and changes under one person as they move between networks,
+    and a cookie-less server-side fingerprint would be neither stable nor
+    privacy-safe. See services/analytics.js for the client half.
+    """
+    visitor_id = models.CharField(max_length=64, unique=True, db_index=True)
+
+    first_seen = models.DateTimeField(default=timezone.now, db_index=True)
+    last_seen = models.DateTimeField(default=timezone.now, db_index=True)
+
+    # Most recent address seen for this visitor. Admin-only, retention-bounded,
+    # clearable — see the module docstring. NULL means either "never captured"
+    # or "aged out of retention"; the derived location fields stay either way.
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+
+    # Latest device fingerprint-ish context, from the User-Agent only.
+    device_type = models.CharField(max_length=20, blank=True)
+    browser = models.CharField(max_length=40, blank=True)
+    operating_system = models.CharField(max_length=40, blank=True)
+
+    # First-touch acquisition, written once at creation and never overwritten —
+    # the campaign that actually won the visitor must not be rewritten by
+    # wherever they happened to arrive from on a later visit.
+    first_referrer = models.CharField(max_length=500, blank=True)
+    landing_page = models.CharField(max_length=500, blank=True)
+    traffic_source = models.CharField(max_length=60, blank=True, db_index=True)
+    utm_source = models.CharField(max_length=100, blank=True)
+    utm_medium = models.CharField(max_length=100, blank=True)
+    utm_campaign = models.CharField(max_length=150, blank=True)
+    utm_content = models.CharField(max_length=150, blank=True)
+    utm_term = models.CharField(max_length=150, blank=True)
+
+    class Meta:
+        ordering = ["-last_seen"]
+        indexes = [
+            # Backs the "recent visitors" list and every date-window filter.
+            models.Index(fields=["-last_seen"]),
+            # Backs "new visitors in this window".
+            models.Index(fields=["first_seen"]),
+            # Backs the country -> region -> city rollups and admin filters.
+            models.Index(fields=["country_code", "last_seen"]),
+        ]
+
+    def __str__(self):
+        return f"visitor {self.short_id} · {self.location_label()}"
+
+    @property
+    def short_id(self):
+        """The 6-character handle the admin UI shows instead of a 32-char
+        token — matches the brief's "8A92F1" style."""
+        return self.visitor_id[-6:].upper()
+
+
+class VisitorSession(GeoSnapshot):
+    """One browsing session for a Visitor.
+
+    A session is continued rather than recreated while the visitor keeps
+    navigating: the client holds its session id in sessionStorage (so it
+    survives route changes and reloads but not a closed tab), and the server
+    additionally expires one after SESSION_IDLE_MINUTES of inactivity, so a
+    tab left open overnight starts a new session in the morning instead of
+    reporting one 14-hour visit.
+    """
+    session_id = models.CharField(max_length=64, unique=True, db_index=True)
+    visitor = models.ForeignKey(
+        Visitor, on_delete=models.CASCADE, related_name="sessions",
+    )
+
+    started_at = models.DateTimeField(default=timezone.now, db_index=True)
+    last_activity_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+
+    device_type = models.CharField(max_length=20, blank=True)
+    browser = models.CharField(max_length=40, blank=True)
+    operating_system = models.CharField(max_length=40, blank=True)
+
+    # Per-session acquisition — unlike Visitor's, this one describes THIS
+    # visit, so a returning visitor arriving from a different campaign is
+    # attributed correctly for that visit.
+    referrer = models.CharField(max_length=500, blank=True)
+    landing_page = models.CharField(max_length=500, blank=True)
+    traffic_source = models.CharField(max_length=60, blank=True, db_index=True)
+    utm_source = models.CharField(max_length=100, blank=True)
+    utm_medium = models.CharField(max_length=100, blank=True)
+    utm_campaign = models.CharField(max_length=150, blank=True)
+    utm_content = models.CharField(max_length=150, blank=True)
+    utm_term = models.CharField(max_length=150, blank=True)
+
+    class Meta:
+        ordering = ["-last_activity_at"]
+        indexes = [
+            models.Index(fields=["visitor", "-started_at"]),
+            models.Index(fields=["-last_activity_at"]),
+            models.Index(fields=["country_code", "started_at"]),
+        ]
+
+    def __str__(self):
+        return f"session {self.session_id[-6:]} · visitor {self.visitor_id}"
+
+
 class AnalyticsEvent(models.Model):
     """One recorded interaction. Deliberately a single wide table rather than a
     table per event type: every dashboard query is "count/segment events of
@@ -188,6 +419,25 @@ class AnalyticsEvent(models.Model):
     )
     anonymous_id = models.CharField(max_length=64, blank=True, db_index=True)
     session_id = models.CharField(max_length=64, blank=True, db_index=True)
+
+    # VISITOR-ANALYTICS: the resolved rows behind those two string keys.
+    # The strings stay — they are what the client sends and what every
+    # existing aggregation groups on — and these are added alongside so the
+    # admin can walk from an event to the visitor's location/timeline without
+    # a second lookup keyed on a string. SET_NULL rather than CASCADE: pruning
+    # a visitor must never silently delete their events and change historical
+    # counts.
+    visitor = models.ForeignKey(
+        "authapp.Visitor", null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="events",
+    )
+    # Named `visitor_session`, not `session`: a FK called `session` would want
+    # the column `session_id`, which is already taken by the client-supplied
+    # string key above (models.E006).
+    visitor_session = models.ForeignKey(
+        "authapp.VisitorSession", null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="events",
+    )
 
     # VIDEO-CLICK-ANALYTICS: idempotency. A caller-generated key (see
     # services/analytics.js) identifying one logical user action — e.g. "this
@@ -225,6 +475,15 @@ class AnalyticsEvent(models.Model):
     referrer = models.CharField(max_length=500, blank=True)
     source = models.CharField(max_length=120, blank=True)
 
+    # VISITOR-ANALYTICS: what was clicked, for EVENT_CLICK. All blank for every
+    # other event type. element_label is the visible text (trimmed) so the
+    # click dashboard can name a button without the admin having to decode an
+    # id; destination_url is where the click was headed, for links.
+    element_id = models.CharField(max_length=120, blank=True, db_index=True)
+    element_type = models.CharField(max_length=40, blank=True)
+    element_label = models.CharField(max_length=200, blank=True)
+    destination_url = models.CharField(max_length=500, blank=True)
+
     # Campaign attribution. `campaign` is resolved at ingest by matching
     # utm_campaign to a Campaign row (null when the UTM has no formal
     # campaign); the raw utm_* are always kept so grouping by source/campaign
@@ -245,6 +504,10 @@ class AnalyticsEvent(models.Model):
     browser = models.CharField(max_length=40, blank=True)
     operating_system = models.CharField(max_length=40, blank=True)
     country = models.CharField(max_length=2, blank=True)  # ISO-3166 alpha-2
+    # The country's display name, denormalised alongside the code so a rollup
+    # can label a row without joining Visitor. Blank when unresolved — never
+    # back-filled with a guess.
+    country_name = models.CharField(max_length=100, blank=True)
 
     # LOCATION-ANALYTICS: coarse, IP-derived, server-resolved only — never a
     # value the client can set (see analytics_serializers.py) and never GPS.
@@ -280,6 +543,12 @@ class AnalyticsEvent(models.Model):
             models.Index(fields=["session_id", "event_type"]),
             # LOCATION-ANALYTICS: backs the country -> region -> city rollups.
             models.Index(fields=["country", "event_type"]),
+            # VISITOR-ANALYTICS: backs the per-visitor timeline (ordered by
+            # time, scoped to one visitor) and the per-session event lists.
+            models.Index(fields=["visitor", "created_at"]),
+            models.Index(fields=["visitor_session", "created_at"]),
+            # Backs "clicks by element" on the click dashboard.
+            models.Index(fields=["element_id", "event_type"]),
         ]
         constraints = [
             # VIDEO-CLICK-ANALYTICS: the idempotency guarantee described in

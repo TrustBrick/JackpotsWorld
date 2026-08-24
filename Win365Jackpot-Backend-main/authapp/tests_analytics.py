@@ -34,6 +34,43 @@ BROWSER_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
 INGEST_URL = "/api/analytics/event/"
 
 
+def geo_ok(**over):
+    """A full utils.geolocation.resolve_geo() result, for patching.
+
+    Built from the real blank shape so a test can never accidentally assert
+    against a dict that is missing a key the production code reads.
+    """
+    base = {
+        "status": "success", "country_name": "", "country_code": "",
+        "region": "", "region_code": "", "city": "", "timezone": "",
+        "latitude": None, "longitude": None, "isp": "",
+    }
+    base.update(over)
+    return base
+
+
+def geo_none(status="failed"):
+    return geo_ok(status=status)
+
+
+class _FakeGeoResponse:
+    """Minimal stand-in for a requests.Response from the geolocation provider,
+    for tests that need to count real outbound calls rather than stub the
+    function that makes them."""
+
+    def __init__(self, payload, status_code=200, headers=None):
+        self._payload = payload
+        self.status_code = status_code
+        self.headers = headers or {}
+
+    def json(self):
+        return self._payload
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise RuntimeError(f"HTTP {self.status_code}")
+
+
 class AnalyticsTestBase(APITestCase):
     def setUp(self):
         # The dashboard aggregations are cached (60s) keyed by date-range, so
@@ -554,9 +591,10 @@ class LocationAnalyticsTests(AnalyticsTestBase):
         row = AnalyticsEvent.objects.get(anonymous_id="geoanon001")
         self.assertEqual(row.country, "PH")
 
-    @patch("authapp.services.analytics_service.get_client_ip", return_value="203.0.113.9")
-    @patch("authapp.services.analytics_service.resolve_geo_location",
-           return_value={"region": "Telangana", "city": "Hyderabad"})
+    @patch("authapp.services.visitor_service.get_client_ip_with_source",
+           return_value=("203.0.113.9", "CF-Connecting-IP"))
+    @patch("authapp.services.visitor_service.resolve_geo",
+           return_value=geo_ok(region="Telangana", city="Hyderabad"))
     def test_region_and_city_attribution(self, mock_geo, mock_ip):
         self.ingest({"event_type": "video_start", "content_type": "video", "content_id": self.VID,
                      "anonymous_id": "geoanon002", "session_id": "gs2"}, country="IN")
@@ -564,8 +602,9 @@ class LocationAnalyticsTests(AnalyticsTestBase):
         self.assertEqual(row.region, "Telangana")
         self.assertEqual(row.city, "Hyderabad")
 
-    @patch("authapp.services.analytics_service.get_client_ip", return_value="203.0.113.9")
-    @patch("authapp.services.analytics_service.resolve_geo_location", return_value={})
+    @patch("authapp.services.visitor_service.get_client_ip_with_source",
+           return_value=("203.0.113.9", "CF-Connecting-IP"))
+    @patch("authapp.services.visitor_service.resolve_geo", return_value=geo_none())
     def test_unresolvable_location_is_unknown_not_fabricated(self, mock_geo, mock_ip):
         self.ingest({"event_type": "video_start", "content_type": "video", "content_id": self.VID,
                      "anonymous_id": "geoanon003", "session_id": "gs3"}, country="IN")
@@ -578,9 +617,10 @@ class LocationAnalyticsTests(AnalyticsTestBase):
         self.assertEqual(india["regions"][0]["region"], "Unknown")
         self.assertEqual(india["regions"][0]["cities"][0]["city"], "Unknown")
 
-    @patch("authapp.services.analytics_service.get_client_ip", return_value="203.0.113.9")
-    @patch("authapp.services.analytics_service.resolve_geo_location",
-           return_value={"region": "Metro Manila", "city": "Manila"})
+    @patch("authapp.services.visitor_service.get_client_ip_with_source",
+           return_value=("203.0.113.9", "CF-Connecting-IP"))
+    @patch("authapp.services.visitor_service.resolve_geo",
+           return_value=geo_ok(region="Metro Manila", city="Manila"))
     def test_frontend_cannot_spoof_trusted_server_side_location(self, mock_geo, mock_ip):
         # A client trying to claim a location via the request body — the
         # serializer has no such field, so it is silently ignored, and the
@@ -595,15 +635,41 @@ class LocationAnalyticsTests(AnalyticsTestBase):
         self.assertEqual(row.region, "Metro Manila")
         self.assertEqual(row.city, "Manila")
 
-    @patch("authapp.services.analytics_service.get_client_ip", return_value="203.0.113.9")
-    @patch("authapp.services.analytics_service.resolve_geo_location",
-           return_value={"region": "Goa", "city": "Panaji"})
-    def test_geo_lookup_is_cached_per_session_not_called_per_event(self, mock_geo, mock_ip):
+    # A genuinely routable address. NOT 203.0.113.x: Python's `ipaddress`
+    # classifies the TEST-NET/documentation ranges as private, so the lookup
+    # would (correctly) be skipped and this test would prove nothing.
+    @patch("authapp.services.visitor_service.get_client_ip_with_source",
+           return_value=("49.37.128.5", "CF-Connecting-IP"))
+    @patch("authapp.utils.geolocation.requests.get")
+    def test_geo_provider_is_called_once_per_ip_not_once_per_event(self, mock_get, mock_ip):
+        """The external lookup is cached BY IP, so many events — across many
+        requests and many sessions — cost one provider call, not one each.
+
+        Patched at `requests.get` rather than at resolve_geo() on purpose:
+        patching the function under test would bypass the very cache this is
+        meant to prove. This counts real outbound HTTP.
+        """
+        mock_get.return_value = _FakeGeoResponse({
+            "status": "success", "country": "India", "countryCode": "IN",
+            "regionName": "Goa", "region": "GA", "city": "Panaji",
+            "timezone": "Asia/Kolkata", "lat": 15.49, "lon": 73.82, "isp": "Example ISP",
+        })
+
         for i in range(4):
             self.ingest({"event_type": "video_progress", "content_type": "video", "content_id": self.VID,
                          "anonymous_id": "cachetest", "session_id": "cache-session-1",
                          "metadata": {"percent": [25, 50, 75, 100][i]}})
-        self.assertEqual(mock_geo.call_count, 1, "one real geo lookup per session, not one per event")
+        # A different visitor AND a different session, same address — still no
+        # second call, which is what the per-session cache used to get wrong.
+        self.ingest({"event_type": "video_start", "content_type": "video", "content_id": self.VID,
+                     "anonymous_id": "cachetest2", "session_id": "cache-session-2"})
+
+        self.assertEqual(mock_get.call_count, 1,
+                         "one real provider call per IP, not one per event/session")
+
+        row = AnalyticsEvent.objects.filter(anonymous_id="cachetest2").first()
+        self.assertEqual(row.city, "Panaji")
+        self.assertEqual(row.region, "Goa")
 
     def test_country_click_attribution(self):
         self.ingest({"event_type": "video_start", "content_type": "video", "content_id": self.VID,
