@@ -667,3 +667,10 @@ REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["voice-call-start"] = config(
 REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["analytics-ingest"] = config(
     "ANALYTICS_INGEST_RATE", default="120/min",
 )
+
+# CHATBOT: per-IP ceiling on the public FAQ-bot endpoint (previously
+# unthrottled — see authapp/throttles.py's ChatMessageThrottle). Generous: a
+# real typed conversation is nowhere near this rate.
+REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["chat-message"] = config(
+    "CHAT_MESSAGE_RATE", default="60/min",
+)

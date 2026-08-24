@@ -87,3 +87,21 @@ class AnalyticsIngestThrottle(SimpleRateThrottle):
     def get_cache_key(self, request, view):
         ident = request.user.pk if request.user and request.user.is_authenticated else self.get_ident(request)
         return self.cache_format % {"scope": self.scope, "ident": ident}
+
+
+class ChatMessageThrottle(SimpleRateThrottle):
+    """CHATBOT: per-IP cap on the public FAQ-bot endpoint. It had no throttle
+    at all before this — every other public AllowAny POST endpoint in this
+    file does. Beyond the ordinary abuse-ceiling reason, this one matters more
+    than most: an unthrottled, unauthenticated caller could otherwise hammer
+    the escalation categories to mass-create SupportTicket rows. Always keyed
+    by IP, not account — ChatMessageView deliberately runs no
+    authentication_classes (see its own docstring), so request.user is never
+    a real signed-in user by the time DRF's throttle check runs, regardless of
+    the Bearer token the view itself later reads manually. Generous — a real
+    conversation is nowhere near this rate — since a normal user typing
+    quickly must never be blocked."""
+    scope = "chat-message"
+
+    def get_cache_key(self, request, view):
+        return self.cache_format % {"scope": self.scope, "ident": self.get_ident(request)}

@@ -16,8 +16,11 @@ analytics_views.py and analytics_urls.py to remove the feature entirely.
 Privacy posture (see also utils/anonymous_id.py):
   • No raw IP address is ever stored. IP is used transiently at ingest only to
     derive a salted, daily-rotating anonymous id when the client can't supply
-    its own first-party id, and to read Cloudflare's edge country header.
-  • No passwords, payment data, tokens, message bodies or precise location.
+    its own first-party id, to read Cloudflare's edge country header, and (for
+    region/city — see services/analytics_service.py's _resolve_region_city) as
+    input to the existing utils/geolocation.py lookup. Never persisted.
+  • No passwords, payment data, tokens, message bodies or GPS/precise location
+    — region/city is coarse (city-level at best, from IP, never device GPS).
   • Anonymous activity is never retroactively stitched to a member on login
     (approved decision): once anonymous, it stays anonymous.
 """
@@ -35,6 +38,20 @@ EVENT_URL_CLICK = "url_click"
 EVENT_VIDEO_START = "video_start"
 EVENT_VIDEO_PROGRESS = "video_progress"
 EVENT_VIDEO_COMPLETE = "video_complete"
+# VIDEO-CLICK-ANALYTICS: two distinct click signals, both scoped to a video via
+# the same (content_type="video", content_id=<video key>) addressing video_start
+# already uses. Kept apart because they answer different questions and the
+# admin dashboard reports both:
+#   video_click     — a real user gesture on the player itself (tap on the
+#                      poster/native controls to start or resume playback).
+#   video_cta_click  — a click on a call-to-action associated with the video
+#                      (e.g. a promotion's "Claim Bonus" button rendered next
+#                      to its video). Not every video has one.
+# Both are client-ingestable (see below) — unlike url_click, neither carries ad
+# spend/attribution stakes, so there is no incentive to spoof them and no
+# redirect-based server recording is needed the way Campaign links require.
+EVENT_VIDEO_CLICK = "video_click"
+EVENT_VIDEO_CTA_CLICK = "video_cta_click"
 EVENT_SIGNUP = "signup"
 EVENT_LOGIN = "login"
 
@@ -44,6 +61,8 @@ EVENT_TYPE_CHOICES = [
     (EVENT_VIDEO_START, "Video Start"),
     (EVENT_VIDEO_PROGRESS, "Video Progress"),
     (EVENT_VIDEO_COMPLETE, "Video Complete"),
+    (EVENT_VIDEO_CLICK, "Video Click"),
+    (EVENT_VIDEO_CTA_CLICK, "Video CTA Click"),
     (EVENT_SIGNUP, "Signup"),
     (EVENT_LOGIN, "Login"),
 ]
@@ -57,15 +76,20 @@ CLIENT_INGESTABLE_EVENT_TYPES = frozenset({
     EVENT_VIDEO_START,
     EVENT_VIDEO_PROGRESS,
     EVENT_VIDEO_COMPLETE,
+    EVENT_VIDEO_CLICK,
+    EVENT_VIDEO_CTA_CLICK,
     EVENT_SIGNUP,
     EVENT_LOGIN,
 })
 
-# The milestones a video_progress event may report. The client de-dupes these
-# per session (see useVideoAnalytics.js); aggregation also counts DISTINCT
-# (session, video) per milestone, so a stray duplicate can never inflate a
-# retention number even if one slips through.
-VIDEO_MILESTONES = (10, 25, 50, 75, 90)
+# The milestones a video_progress event may report. 100 is included (not just
+# the separate video_complete/"ended" event) so a viewer who scrubs straight to
+# the end without the element ever firing `ended` still counts as complete —
+# aggregation (_reduce_video) unions the two signals. The client de-dupes these
+# per playback session (see useVideoAnalytics.js); aggregation also counts
+# DISTINCT (session, video) per milestone, so a stray duplicate can never
+# inflate a retention number even if one slips through.
+VIDEO_MILESTONES = (25, 50, 75, 100)
 
 
 class Campaign(models.Model):
@@ -165,6 +189,31 @@ class AnalyticsEvent(models.Model):
     anonymous_id = models.CharField(max_length=64, blank=True, db_index=True)
     session_id = models.CharField(max_length=64, blank=True, db_index=True)
 
+    # VIDEO-CLICK-ANALYTICS: idempotency. A caller-generated key (see
+    # services/analytics.js) identifying one logical user action — e.g. "this
+    # exact click", "this playback session's start". A retry, a duplicate
+    # React-effect fire, or a network-level resend of the same request carries
+    # the SAME key, so record_event()'s get_or_create on (event_type,
+    # client_event_id) makes the retry a no-op instead of a second row. A
+    # second, genuinely separate click by the same visitor gets a NEW key
+    # client-side, so it is correctly counted as a second click — this only
+    # collapses accidental duplicates of one action, never real repeat
+    # engagement.
+    #
+    # NULL, not "" — deliberately. The uniqueness guarantee below only works
+    # if the many events that don't supply a key (every event type that
+    # doesn't need one, and any older client build) don't collide with each
+    # other. A blank string is one value, so a plain unique constraint on
+    # thousands of ""s would fail immediately; NULL is standard-SQL "no value"
+    # and is never considered equal to another NULL by a unique constraint, on
+    # MySQL (production), SQLite (tests) or Postgres alike — so any number of
+    # rows may leave this unset with no conflict. This also sidesteps
+    # models.W036: MySQL does not support the *conditional* unique index that
+    # would otherwise be needed to exempt blank strings, so a Q(...)-conditioned
+    # constraint silently creates no constraint at all in production — the
+    # exact failure mode NULL avoids.
+    client_event_id = models.CharField(max_length=64, null=True, blank=True, db_index=True)
+
     # What the event is about. content_type is a coarse bucket ("video",
     # "page", "campaign"); content_id identifies the specific thing (a video
     # key, a route path). Free-form strings so any surface can emit without a
@@ -197,6 +246,15 @@ class AnalyticsEvent(models.Model):
     operating_system = models.CharField(max_length=40, blank=True)
     country = models.CharField(max_length=2, blank=True)  # ISO-3166 alpha-2
 
+    # LOCATION-ANALYTICS: coarse, IP-derived, server-resolved only — never a
+    # value the client can set (see analytics_serializers.py) and never GPS.
+    # Blank means "not resolved" (e.g. a private/local IP, an unrecognised
+    # value, or the lookup failing/timing out) and is rendered as "Unknown" by
+    # the read side — see services/analytics_service.py's _resolve_region_city
+    # for how these are populated and cached.
+    region = models.CharField(max_length=100, blank=True)
+    city = models.CharField(max_length=100, blank=True)
+
     created_at = models.DateTimeField(default=timezone.now, db_index=True)
 
     # Extra per-event detail: video milestone percent, watched seconds,
@@ -216,6 +274,25 @@ class AnalyticsEvent(models.Model):
             # Backs member-engagement lookups.
             models.Index(fields=["user", "event_type"]),
             models.Index(fields=["anonymous_id", "event_type"]),
+            # VIDEO-CLICK-ANALYTICS: backs per-session lookups (e.g. the geo
+            # cache's "has this session already been resolved" path) and
+            # visitor-id-based unique counting keyed by session.
+            models.Index(fields=["session_id", "event_type"]),
+            # LOCATION-ANALYTICS: backs the country -> region -> city rollups.
+            models.Index(fields=["country", "event_type"]),
+        ]
+        constraints = [
+            # VIDEO-CLICK-ANALYTICS: the idempotency guarantee described in
+            # client_event_id's field comment. Deliberately NOT conditioned on
+            # client_event_id being non-blank (MySQL — production — rejects a
+            # conditional unique constraint outright: see that comment). A
+            # plain constraint works because the field is NULL, not "", when
+            # absent, and NULL never collides with NULL in a unique index on
+            # any of MySQL, SQLite or Postgres.
+            models.UniqueConstraint(
+                fields=["event_type", "client_event_id"],
+                name="uniq_analyticsevent_type_client_id",
+            ),
         ]
 
     def __str__(self):

@@ -5,26 +5,29 @@ import React, { useState, useEffect, useCallback } from "react";
 import { adminFetch, API, fmtN } from "../../helpers";
 import { Spinner } from "../../components/SharedUI";
 import { C } from "../../constants";
-import { RangeSelector, StatCard, StatGrid, Panel, BarRow, EmptyState, fmtPct } from "./AnalyticsShared";
+import { RangeSelector, StatCard, StatGrid, Panel, BarRow, EmptyState, LocationTree, fmtPct, fmtSecs } from "./AnalyticsShared";
 
 export default function AnalyticsOverviewTab({ onToast }) {
   const [range, setRange] = useState("30d");
   const [data, setData] = useState(null);
   const [campaigns, setCampaigns] = useState([]);
   const [videos, setVideos] = useState([]);
+  const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [o, c, v] = await Promise.all([
+      const [o, c, v, loc] = await Promise.all([
         adminFetch(`${API}/api/admin-panel/analytics/overview/?range=${range}`),
         adminFetch(`${API}/api/admin-panel/analytics/campaigns/?range=${range}`),
         adminFetch(`${API}/api/admin-panel/analytics/videos/?range=${range}`),
+        adminFetch(`${API}/api/admin-panel/analytics/locations/?range=${range}`),
       ]);
       if (o?.ok) setData(await o.json()); else setData(null);
       setCampaigns(c?.ok ? await c.json() : []);
       setVideos(v?.ok ? await v.json() : []);
+      setLocations(loc?.ok ? await loc.json() : []);
     } catch { onToast?.("Failed to load analytics", false); }
     setLoading(false);
   }, [range, onToast]);
@@ -56,6 +59,18 @@ export default function AnalyticsOverviewTab({ onToast }) {
             <StatCard label="New Members" value={fmtN(data.new_members)} color={C.green} />
           </StatGrid>
 
+          <Panel title="Video Analytics">
+            <StatGrid>
+              <StatCard label="Total Views" value={fmtN(data.total_video_views)} color={C.orange} />
+              <StatCard label="Unique Viewers" value={fmtN(data.unique_video_viewers)} color={C.gold} />
+              <StatCard label="Total Clicks" value={fmtN(data.total_video_clicks)} color={C.purple} />
+              <StatCard label="Unique Clickers" value={fmtN(data.unique_video_clickers)} color={C.purple} />
+              <StatCard label="Average Watch Time" value={fmtSecs(data.avg_video_watch_seconds)} color={C.teal} />
+              <StatCard label="Completion Rate" value={fmtPct(data.video_completion_rate)} color={C.pink} />
+              <StatCard label="CTR" value={fmtPct(data.video_ctr)} color={C.blue} />
+            </StatGrid>
+          </Panel>
+
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 14 }}>
             <Panel title="Top Campaigns (by clicks)">
               {topCampaigns.length === 0 ? <EmptyState text="No campaign traffic yet" /> :
@@ -75,6 +90,10 @@ export default function AnalyticsOverviewTab({ onToast }) {
                 ))}
             </Panel>
           </div>
+
+          <Panel title="Viewers by Country (video)">
+            <LocationTree countries={locations} />
+          </Panel>
         </>
       )}
     </div>

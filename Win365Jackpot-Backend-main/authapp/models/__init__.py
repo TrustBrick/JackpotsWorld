@@ -53,6 +53,20 @@ from .wallet_request_models import (
     WithdrawalRequestStatusHistory,
 )
 
+# SUPPORT-TICKET / LIVE-CHAT: imported here (ahead of call_models below) so
+# the app registry always has SupportTicket registered before CallSession's
+# `ticket` FK to it is evaluated. Every other module in the codebase reaches
+# these two models via the direct `authapp.models.support_ticket_models`
+# path, which is why this gap went unnoticed: SupportTicket only ends up in
+# the registry today if some other imported module happens to pull it in
+# first, so whether `manage.py check` (and Django model resolution in
+# general) succeeds ends up depending on which modules import order puts
+# ahead of call_models — as seen with `manage.py test
+# authapp.tests_analytics` alone, which fails E300 here, versus adding any
+# module that imports support_ticket_models, which makes it pass. Importing
+# it explicitly, unconditionally, removes that order-dependence.
+from .support_ticket_models import SupportTicket, ChatMessage
+
 # VOICE-CALL: new module — safe to delete this import block (and the module
 # itself) to remove the feature. See call_models.py's docstring.
 from .call_models import CallSession, CallEvent
@@ -108,6 +122,9 @@ __all__ = [
     "WithdrawalRequest",
     "DepositRequestStatusHistory",
     "WithdrawalRequestStatusHistory",
+    # SUPPORT-TICKET / LIVE-CHAT
+    "SupportTicket",
+    "ChatMessage",
     # VOICE-CALL
     "CallSession",
     "CallEvent",

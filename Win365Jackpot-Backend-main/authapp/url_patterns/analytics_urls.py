@@ -13,6 +13,7 @@ from authapp.views.analytics_views import (
     AdminAnalyticsUrlsView,
     AdminAnalyticsVideosView,
     AdminAnalyticsVideoDetailView,
+    AdminAnalyticsLocationsView,
     AdminAnalyticsCampaignsView,
     AdminAnalyticsMemberView,
     AdminCampaignListCreateView,
@@ -31,6 +32,7 @@ admin_urlpatterns = [
     path("analytics/urls/", AdminAnalyticsUrlsView.as_view()),
     path("analytics/videos/", AdminAnalyticsVideosView.as_view()),
     path("analytics/videos/<str:content_id>/", AdminAnalyticsVideoDetailView.as_view()),
+    path("analytics/locations/", AdminAnalyticsLocationsView.as_view()),
     path("analytics/campaigns/", AdminAnalyticsCampaignsView.as_view()),
     path("analytics/members/<int:user_id>/", AdminAnalyticsMemberView.as_view()),
     # Campaign management (create/list/edit/delete) — kept on a distinct path

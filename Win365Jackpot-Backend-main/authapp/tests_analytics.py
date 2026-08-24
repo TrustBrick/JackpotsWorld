@@ -16,12 +16,15 @@ the separate affiliate click-tracking system is untouched.
 from itertools import count
 from unittest.mock import patch
 
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
+from django.utils import timezone
 from rest_framework.test import APITestCase
 
 from authapp.models.affiliate_models import AffiliateProfile, AffiliateClickLog
-from authapp.models.analytics_models import AnalyticsEvent, Campaign
+from authapp.models.analytics_models import AnalyticsEvent, Campaign, VIDEO_MILESTONES
 from authapp.throttles import AnalyticsIngestThrottle
 
 User = get_user_model()
@@ -326,6 +329,7 @@ class AdminAnalyticsAccessTests(AnalyticsTestBase):
         "/api/admin-panel/analytics/urls/",
         "/api/admin-panel/analytics/videos/",
         "/api/admin-panel/analytics/campaigns/",
+        "/api/admin-panel/analytics/locations/",
     ]
 
     def test_normal_member_cannot_access_admin_analytics(self):
@@ -416,3 +420,285 @@ class AffiliateIndependenceTests(AnalyticsTestBase):
         self.assertEqual(AffiliateClickLog.objects.filter(affiliate=affiliate).count(), 1)
         # …and the new analytics system was not involved at all.
         self.assertEqual(AnalyticsEvent.objects.count(), before_analytics)
+
+
+# ── VIDEO-CLICK-ANALYTICS: clicks + idempotency ──────────────────────────────
+class VideoClickTests(AnalyticsTestBase):
+    VID = "click_test_video"
+
+    def test_one_click_creates_one_event(self):
+        res = self.ingest({"event_type": "video_click", "content_type": "video", "content_id": self.VID,
+                            "anonymous_id": "clicker001", "session_id": "cs1", "client_event_id": "click-a"})
+        self.assertEqual(res.status_code, 201)
+        self.assertEqual(AnalyticsEvent.objects.filter(event_type="video_click", content_id=self.VID).count(), 1)
+
+    def test_duplicate_click_request_does_not_double_count(self):
+        # Same client_event_id twice — a network retry or a duplicate React
+        # event fire of the SAME physical click.
+        payload = {"event_type": "video_click", "content_type": "video", "content_id": self.VID,
+                   "anonymous_id": "clicker002", "session_id": "cs2", "client_event_id": "click-dup"}
+        self.ingest(dict(payload))
+        self.ingest(dict(payload))
+        self.assertEqual(AnalyticsEvent.objects.filter(event_type="video_click", content_id=self.VID).count(), 1)
+
+    def test_double_click_protection_via_idempotency_key(self):
+        # A literal double-click: the frontend's mintActionId debounce would
+        # hand both physical clicks the SAME id (see services/analytics.js) —
+        # simulated here directly at the layer that actually enforces it.
+        payload = {"event_type": "video_click", "content_type": "video", "content_id": self.VID,
+                   "anonymous_id": "clicker003", "session_id": "cs3", "client_event_id": "double-click-1"}
+        for _ in range(2):
+            self.ingest(dict(payload))
+        self.assertEqual(AnalyticsEvent.objects.filter(event_type="video_click", content_id=self.VID).count(), 1)
+
+    def test_repeated_click_from_same_visitor_with_new_id_counts_again(self):
+        # A GENUINELY separate later click by the same visitor — different id
+        # — must be counted as a second click, not deduplicated away.
+        self.ingest({"event_type": "video_click", "content_type": "video", "content_id": self.VID,
+                     "anonymous_id": "clicker004", "session_id": "cs4", "client_event_id": "first-click"})
+        self.ingest({"event_type": "video_click", "content_type": "video", "content_id": self.VID,
+                     "anonymous_id": "clicker004", "session_id": "cs4", "client_event_id": "second-click"})
+        self.assertEqual(AnalyticsEvent.objects.filter(event_type="video_click", content_id=self.VID).count(), 2)
+        detail = self.admin_get(f"/api/admin-panel/analytics/videos/{self.VID}/", range="30d").data
+        self.assertEqual(detail["total_clicks"], 2)
+        self.assertEqual(detail["unique_clickers"], 1, "same visitor, two real clicks — one unique clicker")
+
+    def test_different_visitors_clicking_same_video(self):
+        for i in range(3):
+            self.ingest({"event_type": "video_click", "content_type": "video", "content_id": self.VID,
+                         "anonymous_id": f"visitor{i:03d}", "session_id": f"s{i}", "client_event_id": f"c{i}"})
+        detail = self.admin_get(f"/api/admin-panel/analytics/videos/{self.VID}/", range="30d").data
+        self.assertEqual(detail["total_clicks"], 3)
+        self.assertEqual(detail["unique_clickers"], 3)
+
+    def test_play_click_and_cta_click_are_tracked_separately(self):
+        self.ingest({"event_type": "video_click", "content_type": "video", "content_id": self.VID,
+                     "anonymous_id": "vplay0001", "session_id": "sp", "client_event_id": "play-1"})
+        self.ingest({"event_type": "video_cta_click", "content_type": "video", "content_id": self.VID,
+                     "anonymous_id": "vcta00001", "session_id": "sc", "client_event_id": "cta-1"})
+        detail = self.admin_get(f"/api/admin-panel/analytics/videos/{self.VID}/", range="30d").data
+        self.assertEqual(detail["play_clicks"], 1)
+        self.assertEqual(detail["cta_clicks"], 1)
+        self.assertEqual(detail["total_clicks"], 2, "the headline metric combines both click kinds")
+
+    def test_ctr_is_unique_clickers_over_unique_viewers(self):
+        # 2 unique viewers, 1 of whom also clicks -> CTR 50%.
+        for anon in ("viewer_a1", "viewer_b1"):
+            self.ingest({"event_type": "video_start", "content_type": "video", "content_id": self.VID,
+                         "anonymous_id": anon, "session_id": anon})
+        self.ingest({"event_type": "video_click", "content_type": "video", "content_id": self.VID,
+                     "anonymous_id": "viewer_a1", "session_id": "va", "client_event_id": "ctr-click"})
+        detail = self.admin_get(f"/api/admin-panel/analytics/videos/{self.VID}/", range="30d").data
+        self.assertEqual(detail["ctr"], 50.0)
+
+    def test_client_event_id_uniqueness_is_a_real_db_constraint(self):
+        # Model-level guarantee, independent of the ingest view — this is
+        # what actually makes the above tests correct under real concurrency,
+        # not just under sequential test-client calls.
+        from django.db import IntegrityError, transaction
+        AnalyticsEvent.objects.create(event_type="video_click", client_event_id="uniq-1")
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                AnalyticsEvent.objects.create(event_type="video_click", client_event_id="uniq-1")
+        # Multiple NULL client_event_id rows must NOT collide with each other.
+        AnalyticsEvent.objects.create(event_type="video_click", client_event_id=None)
+        AnalyticsEvent.objects.create(event_type="video_click", client_event_id=None)
+        self.assertEqual(AnalyticsEvent.objects.filter(event_type="video_click", client_event_id__isnull=True).count(), 2)
+
+
+# ── VIEW-RULES: milestones, completion merging ───────────────────────────────
+class VideoMilestoneTests(AnalyticsTestBase):
+    VID = "milestone_test_video"
+
+    def test_milestone_set_is_exactly_25_50_75_100(self):
+        self.assertEqual(VIDEO_MILESTONES, (25, 50, 75, 100))
+
+    def test_reaching_100_percent_counts_as_completed_without_an_ended_event(self):
+        # A viewer who scrubs straight to the end — the element's `ended`
+        # event never fires, only the 100% progress milestone does.
+        self.ingest({"event_type": "video_start", "content_type": "video", "content_id": self.VID,
+                     "anonymous_id": "scrubber", "session_id": "ss"})
+        self.ingest({"event_type": "video_progress", "content_type": "video", "content_id": self.VID,
+                     "anonymous_id": "scrubber", "session_id": "ss", "metadata": {"percent": 100}})
+        self.assertEqual(AnalyticsEvent.objects.filter(event_type="video_complete", content_id=self.VID).count(), 0,
+                          "no `ended` event was ever sent")
+        detail = self.admin_get(f"/api/admin-panel/analytics/videos/{self.VID}/", range="30d").data
+        self.assertEqual(detail["completion_rate"], 100.0, "the 100% milestone alone must still count as completed")
+
+    def test_refresh_does_not_duplicate_a_milestone(self):
+        # Same session id, same milestone client_event_id, sent twice — what
+        # useVideoAnalytics.js actually sends on a mid-playback refresh.
+        payload = {"event_type": "video_progress", "content_type": "video", "content_id": self.VID,
+                   "anonymous_id": "refresher", "session_id": "rs", "metadata": {"percent": 50},
+                   "client_event_id": f"{self.VID}:rs:progress:50"}
+        self.ingest(dict(payload))
+        self.ingest(dict(payload))
+        self.assertEqual(AnalyticsEvent.objects.filter(event_type="video_progress", content_id=self.VID).count(), 1)
+
+    def test_react_or_network_retry_does_not_duplicate_a_start(self):
+        payload = {"event_type": "video_start", "content_type": "video", "content_id": self.VID,
+                   "anonymous_id": "retryer01", "session_id": "rts", "client_event_id": f"{self.VID}:rts:start"}
+        for _ in range(3):
+            self.ingest(dict(payload))
+        self.assertEqual(AnalyticsEvent.objects.filter(event_type="video_start", content_id=self.VID).count(), 1,
+                          "a refresh must not inflate total_views (see F2 in the inspection report)")
+
+
+# ── LOCATION-ANALYTICS ────────────────────────────────────────────────────────
+class LocationAnalyticsTests(AnalyticsTestBase):
+    VID = "location_test_video"
+
+    def test_country_attribution_from_cloudflare_header(self):
+        self.ingest({"event_type": "video_start", "content_type": "video", "content_id": self.VID,
+                     "anonymous_id": "geoanon001", "session_id": "gs1"}, country="PH")
+        row = AnalyticsEvent.objects.get(anonymous_id="geoanon001")
+        self.assertEqual(row.country, "PH")
+
+    @patch("authapp.services.analytics_service.get_client_ip", return_value="203.0.113.9")
+    @patch("authapp.services.analytics_service.resolve_geo_location",
+           return_value={"region": "Telangana", "city": "Hyderabad"})
+    def test_region_and_city_attribution(self, mock_geo, mock_ip):
+        self.ingest({"event_type": "video_start", "content_type": "video", "content_id": self.VID,
+                     "anonymous_id": "geoanon002", "session_id": "gs2"}, country="IN")
+        row = AnalyticsEvent.objects.get(anonymous_id="geoanon002")
+        self.assertEqual(row.region, "Telangana")
+        self.assertEqual(row.city, "Hyderabad")
+
+    @patch("authapp.services.analytics_service.get_client_ip", return_value="203.0.113.9")
+    @patch("authapp.services.analytics_service.resolve_geo_location", return_value={})
+    def test_unresolvable_location_is_unknown_not_fabricated(self, mock_geo, mock_ip):
+        self.ingest({"event_type": "video_start", "content_type": "video", "content_id": self.VID,
+                     "anonymous_id": "geoanon003", "session_id": "gs3"}, country="IN")
+        row = AnalyticsEvent.objects.get(anonymous_id="geoanon003")
+        self.assertEqual(row.region, "")
+        self.assertEqual(row.city, "")
+        # The read side renders blank as "Unknown" — never invents a place.
+        detail = self.admin_get(f"/api/admin-panel/analytics/videos/{self.VID}/", range="30d").data
+        india = next(c for c in detail["locations"] if c["country"] == "IN")
+        self.assertEqual(india["regions"][0]["region"], "Unknown")
+        self.assertEqual(india["regions"][0]["cities"][0]["city"], "Unknown")
+
+    @patch("authapp.services.analytics_service.get_client_ip", return_value="203.0.113.9")
+    @patch("authapp.services.analytics_service.resolve_geo_location",
+           return_value={"region": "Metro Manila", "city": "Manila"})
+    def test_frontend_cannot_spoof_trusted_server_side_location(self, mock_geo, mock_ip):
+        # A client trying to claim a location via the request body — the
+        # serializer has no such field, so it is silently ignored, and the
+        # real (mocked) server-resolved location wins regardless.
+        self.ingest({
+            "event_type": "video_start", "content_type": "video", "content_id": self.VID,
+            "anonymous_id": "spoofer01", "session_id": "gs4",
+            "country": "US", "region": "California", "city": "Los Angeles",
+        }, country="PH")
+        row = AnalyticsEvent.objects.get(anonymous_id="spoofer01")
+        self.assertEqual(row.country, "PH")
+        self.assertEqual(row.region, "Metro Manila")
+        self.assertEqual(row.city, "Manila")
+
+    @patch("authapp.services.analytics_service.get_client_ip", return_value="203.0.113.9")
+    @patch("authapp.services.analytics_service.resolve_geo_location",
+           return_value={"region": "Goa", "city": "Panaji"})
+    def test_geo_lookup_is_cached_per_session_not_called_per_event(self, mock_geo, mock_ip):
+        for i in range(4):
+            self.ingest({"event_type": "video_progress", "content_type": "video", "content_id": self.VID,
+                         "anonymous_id": "cachetest", "session_id": "cache-session-1",
+                         "metadata": {"percent": [25, 50, 75, 100][i]}})
+        self.assertEqual(mock_geo.call_count, 1, "one real geo lookup per session, not one per event")
+
+    def test_country_click_attribution(self):
+        self.ingest({"event_type": "video_start", "content_type": "video", "content_id": self.VID,
+                     "anonymous_id": "clicker_geo", "session_id": "gs5"}, country="TH")
+        self.ingest({"event_type": "video_click", "content_type": "video", "content_id": self.VID,
+                     "anonymous_id": "clicker_geo", "session_id": "gs5", "client_event_id": "geo-click"}, country="TH")
+        detail = self.admin_get(f"/api/admin-panel/analytics/videos/{self.VID}/", range="30d").data
+        thailand = next(c for c in detail["locations"] if c["country"] == "TH")
+        self.assertEqual(thailand["viewers"], 1)
+        self.assertEqual(thailand["clicks"], 1)
+        self.assertEqual(thailand["unique_clickers"], 1)
+
+
+# ── DATE FILTERING ────────────────────────────────────────────────────────────
+class DateFilterTests(AnalyticsTestBase):
+    """Backdated via direct ORM creation (created_at=...), not the ingest API
+    — ingest always stamps `timezone.now()` by design (a client must never be
+    able to backdate its own analytics), so this is the only correct way to
+    test range boundaries deterministically."""
+    VID = "date_test_video"
+
+    def _event(self, when, anon):
+        return AnalyticsEvent.objects.create(
+            event_type="video_start", content_type="video", content_id=self.VID,
+            anonymous_id=anon, session_id=anon, created_at=when,
+        )
+
+    def setUp(self):
+        super().setUp()
+        now = timezone.now()
+        self._event(now, "today1")
+        self._event(now - timedelta(days=1, hours=1), "yesterday1")
+        self._event(now - timedelta(days=5), "week1")
+        self._event(now - timedelta(days=20), "month1")
+        self._event(now - timedelta(days=45), "old1")
+
+    def _views(self, **params):
+        rows = self.admin_get("/api/admin-panel/analytics/videos/", **params).data
+        row = next((r for r in rows if r["content_id"] == self.VID), None)
+        return row["total_views"] if row else 0
+
+    def test_today(self):
+        self.assertEqual(self._views(range="today"), 1)
+
+    def test_yesterday(self):
+        self.assertEqual(self._views(range="yesterday"), 1)
+
+    def test_last_7_days(self):
+        self.assertEqual(self._views(range="7d"), 3)  # today, yesterday, week1
+
+    def test_last_30_days(self):
+        self.assertEqual(self._views(range="30d"), 4)  # everything except old1 (45d)
+
+    def test_custom_date_range(self):
+        now = timezone.localdate()
+        start = (now - timedelta(days=6)).isoformat()
+        end = now.isoformat()
+        self.assertEqual(self._views(range="custom", start=start, end=end), 3)
+
+    def test_calculations_do_not_use_lifetime_counters(self):
+        # A tighter window must report fewer views than a wider one covering
+        # the same events — proof the numbers are computed from event
+        # timestamps each time, not read off a running total.
+        self.assertLess(self._views(range="today"), self._views(range="30d"))
+
+
+# ── CALCULATION correctness (isolated from the ingest/HTTP layer) ───────────
+class CalculationTests(AnalyticsTestBase):
+    def test_completion_rate_formula(self):
+        from authapp.services import analytics_service as svc
+        m = svc._reduce_video([
+            ("video_start", None, "v1", {}), ("video_start", None, "v2", {}),
+            ("video_complete", None, "v1", {}),
+        ])
+        self.assertEqual(m["completion_rate"], 50.0)
+
+    def test_ctr_formula(self):
+        from authapp.services import analytics_service as svc
+        m = svc._reduce_video([
+            ("video_start", None, "v1", {}), ("video_start", None, "v2", {}),
+            ("video_click", None, "v1", {}),
+        ])
+        self.assertEqual(m["ctr"], 50.0)
+
+    def test_average_watch_time_is_max_per_viewer_not_sum(self):
+        from authapp.services import analytics_service as svc
+        m = svc._reduce_video([
+            ("video_progress", None, "v1", {"watched_seconds": 10}),
+            ("video_progress", None, "v1", {"watched_seconds": 40}),  # same viewer, later ping
+        ])
+        self.assertEqual(m["avg_watch_seconds"], 40.0, "must take the max per viewer, not sum repeated pings")
+
+    def test_zero_viewers_never_divides_by_zero(self):
+        from authapp.services import analytics_service as svc
+        m = svc._reduce_video([])
+        self.assertEqual(m["completion_rate"], 0.0)
+        self.assertEqual(m["ctr"], 0.0)
+        self.assertEqual(m["avg_watch_seconds"], 0.0)

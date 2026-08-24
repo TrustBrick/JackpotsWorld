@@ -81,6 +81,7 @@ class AnalyticsEventIngestView(APIView):
                 metadata=d["metadata"],
                 anonymous_id=d["anonymous_id"],
                 session_id=d["session_id"],
+                client_event_id=d["client_event_id"],
             )
             if ev is not None:
                 recorded += 1
@@ -154,6 +155,16 @@ class AdminAnalyticsVideoDetailView(_AdminAnalyticsBase):
     def get(self, request, content_id):
         s, e = self._range(request)
         return Response(analytics_service.video_detail(s, e, content_id))
+
+
+class AdminAnalyticsLocationsView(_AdminAnalyticsBase):
+    """LOCATION-ANALYTICS: country -> region -> city breakdown across every
+    video combined (the dashboard's aggregate "Viewers by Country" panel).
+    The per-video breakdown is already included in video_detail's response
+    (AdminAnalyticsVideoDetailView) — no separate endpoint needed there."""
+    def get(self, request):
+        s, e = self._range(request)
+        return Response(analytics_service.location_report(s, e))
 
 
 class AdminAnalyticsCampaignsView(_AdminAnalyticsBase):

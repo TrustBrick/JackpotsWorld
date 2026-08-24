@@ -17,26 +17,50 @@ Design notes:
     (retention, watch time) are reduced in Python from the (indexed, date- and
     content-scoped) event rows, to stay correct and portable rather than
     leaning on fragile JSON aggregation in the DB.
+  • VIDEO-CLICK-ANALYTICS / LOCATION-ANALYTICS: video_click and video_cta_click
+    are recorded exactly like video_start/progress/complete — no new ingest
+    path. Region/city are resolved server-side in record_event() via the
+    existing utils/geolocation.py IP lookup (see _resolve_region_city below
+    for the caching that makes this safe to call from a public, high-volume
+    endpoint); country stays the free, instant Cloudflare header it always
+    was. All three are attached to the event, never accepted from the client.
 """
 from datetime import datetime, time, timedelta
 
+from decouple import config
 from django.core.cache import cache
 from django.utils import timezone
 
 from authapp.models.analytics_models import (
     AnalyticsEvent, Campaign,
     EVENT_PAGE_VIEW, EVENT_URL_CLICK, EVENT_VIDEO_START, EVENT_VIDEO_PROGRESS,
-    EVENT_VIDEO_COMPLETE, EVENT_SIGNUP, EVENT_LOGIN, VIDEO_MILESTONES,
+    EVENT_VIDEO_COMPLETE, EVENT_VIDEO_CLICK, EVENT_VIDEO_CTA_CLICK,
+    EVENT_SIGNUP, EVENT_LOGIN, VIDEO_MILESTONES,
 )
 from authapp.utils.anonymous_id import derive_anonymous_id
 from authapp.utils.bot_detection import is_bot
+from authapp.utils.client_ip import get_client_ip
+from authapp.utils.geolocation import resolve_geo_location
 from authapp.utils.user_agent import classify_user_agent
 
 CONTENT_TYPE_VIDEO = "video"
+VIDEO_CLICK_EVENT_TYPES = (EVENT_VIDEO_CLICK, EVENT_VIDEO_CTA_CLICK)
 
 # Dashboard reads are cached briefly. Short enough that "real-time-ish" still
 # holds, long enough to absorb a dashboard refresh storm.
 _CACHE_TTL_SECONDS = 60
+
+# LOCATION-ANALYTICS: region/city resolution is an operational risk on the
+# public ingest path (see _resolve_region_city) — this is the escape hatch.
+# Flipping it off in an env var takes effect on the next request, no deploy,
+# if the third-party lookup ever misbehaves in production. Country (the
+# Cloudflare header) is unaffected either way — it's free and instant.
+ANALYTICS_RESOLVE_LOCATION = config("ANALYTICS_RESOLVE_LOCATION", default=True, cast=bool)
+
+# How long a session's resolved region/city is cached. Bounds the number of
+# real ip-api.com calls to roughly one per NEW session (not one per event, and
+# not one per returning session within the window) — see _resolve_region_city.
+_GEO_CACHE_TTL_SECONDS = 60 * 60 * 6
 
 
 # ── Ingestion ────────────────────────────────────────────────────────────────
@@ -45,6 +69,56 @@ def _clean_country(request):
     (unknown) and 'T1' (Tor) are Cloudflare's non-country sentinels."""
     code = (request.META.get("HTTP_CF_IPCOUNTRY", "") or "").strip().upper()[:2]
     return "" if code in ("", "XX", "T1") else code
+
+
+def _resolve_region_city(request, session_id):
+    """Best-effort region/city via the existing utils/geolocation.py ip-api.com
+    lookup, cached per session.
+
+    OPERATIONAL NOTE — read before changing the cache TTL or removing the
+    ANALYTICS_RESOLVE_LOCATION gate. The lookup is a *blocking* HTTP call with
+    a 2.5s timeout, and this service runs behind only 3 gunicorn workers (see
+    Procfile). Calling it on every ingested event would let a slow or
+    misbehaving third party stall a third of the app's request capacity, and
+    would blow through the free tier's ~45 req/min limit almost immediately
+    under any real traffic. Two things bound that cost to roughly one real
+    external call per NEW session (not per event, not per returning session):
+    this cache (a session that already resolved its geo returns instantly on
+    every later event for the rest of the TTL), and the fact that the caller
+    (record_event) only invokes this for content_type="video" events, not
+    every event type — page_view is far higher volume and doesn't need it for
+    this feature. If ip-api.com ever degrades in production,
+    ANALYTICS_RESOLVE_LOCATION=False in the environment turns this off on the
+    next request with no deploy; country (the Cloudflare header) is
+    unaffected either way.
+
+    Never raises, never returns a raw IP — the IP is used only as transient
+    input to the lookup (mirrors utils/anonymous_id.py's posture), and a
+    failed/timed-out/unresolvable lookup yields {"region": "", "city": ""},
+    which the read side renders as "Unknown" rather than fabricating a value.
+    """
+    if not ANALYTICS_RESOLVE_LOCATION:
+        return {"region": "", "city": ""}
+
+    cache_key = f"analytics:geo:{session_id}" if session_id else None
+    if cache_key:
+        try:
+            cached = cache.get(cache_key)
+        except Exception:
+            cached = None
+        if cached is not None:
+            return cached
+
+    ip = get_client_ip(request) or ""
+    geo = resolve_geo_location(ip) if ip else {}
+    result = {"region": geo.get("region", ""), "city": geo.get("city", "")}
+
+    if cache_key:
+        try:
+            cache.set(cache_key, result, _GEO_CACHE_TTL_SECONDS)
+        except Exception:
+            pass
+    return result
 
 
 def match_campaign(utm_campaign, utm_source=None):
@@ -69,9 +143,20 @@ def _trim(v, n):
 
 def record_event(request, *, event_type, content_type="", content_id="", url="",
                  referrer="", source="", utm=None, metadata=None,
-                 anonymous_id=None, session_id="", campaign=None):
+                 anonymous_id=None, session_id="", campaign=None,
+                 client_event_id=None):
     """Persist one event with server-derived identity and context. Returns the
-    row, or None if the request was filtered as a bot (§32)."""
+    row, or None if the request was filtered as a bot (§32).
+
+    VIDEO-CLICK-ANALYTICS idempotency: when `client_event_id` is given, this
+    is get_or_create rather than create — a retry, a duplicate React-effect
+    fire, or a network-level resend that repeats the same key returns the
+    original row instead of inserting a second one. The uniqueness is a real
+    database constraint (see AnalyticsEvent.Meta), so this is safe even
+    against two near-simultaneous requests, not just sequential ones. Absent
+    (None) — the default, and every event type that doesn't request one —
+    behaves exactly as before: a plain, unconditional insert.
+    """
     ua = request.META.get("HTTP_USER_AGENT", "")
     if is_bot(ua):
         return None
@@ -85,8 +170,14 @@ def record_event(request, *, event_type, content_type="", content_id="", url="",
     if campaign is None:
         campaign = match_campaign(utm.get("utm_campaign"), utm.get("utm_source"))
 
-    return AnalyticsEvent.objects.create(
-        event_type=event_type,
+    # LOCATION-ANALYTICS: region/city only for video events — see
+    # _resolve_region_city's operational note on why this isn't every event.
+    region, city = "", ""
+    if content_type == CONTENT_TYPE_VIDEO:
+        geo = _resolve_region_city(request, session_id)
+        region, city = geo["region"], geo["city"]
+
+    fields = dict(
         user=user,
         anonymous_id=anon,
         session_id=_trim(session_id, 64),
@@ -105,11 +196,21 @@ def record_event(request, *, event_type, content_type="", content_id="", url="",
         browser=_trim(browser, 40),
         operating_system=_trim(os_name, 40),
         country=_clean_country(request),
+        region=_trim(region, 100),
+        city=_trim(city, 100),
         metadata=metadata if isinstance(metadata, dict) else {},
     )
 
+    client_event_id = (client_event_id or "").strip()[:64] or None
+    if client_event_id is not None:
+        obj, _created = AnalyticsEvent.objects.get_or_create(
+            event_type=event_type, client_event_id=client_event_id, defaults=fields,
+        )
+        return obj
+    return AnalyticsEvent.objects.create(event_type=event_type, client_event_id=None, **fields)
 
-def record_click(request, campaign, *, session_id="", anonymous_id=""):
+
+def record_click(request, campaign, *, session_id="", anonymous_id="", client_event_id=None):
     """Record a url_click for a trackable campaign link (the redirect view
     calls this, then 302s to the campaign's backend-controlled destination)."""
     return record_event(
@@ -127,6 +228,7 @@ def record_click(request, campaign, *, session_id="", anonymous_id=""):
         campaign=campaign,
         session_id=session_id,
         anonymous_id=anonymous_id,
+        client_event_id=client_event_id,
     )
 
 
@@ -219,15 +321,20 @@ def overview(start_dt, end_dt):
         qs = _events(start_dt, end_dt)
         page_views = qs.filter(event_type=EVENT_PAGE_VIEW)
         clicks = qs.filter(event_type=EVENT_URL_CLICK)
-        starts = qs.filter(event_type=EVENT_VIDEO_START)
-        completes = qs.filter(event_type=EVENT_VIDEO_COMPLETE)
         signups = qs.filter(event_type=EVENT_SIGNUP)
 
         unique_visitors, unique_members = _unique_from_qs(qs)
-        start_count = starts.count()
-        complete_count = completes.count()
         click_unique_v, _ = _unique_from_qs(clicks)
-        view_unique_v, _ = _unique_from_qs(starts)
+
+        # VIDEO ANALYTICS summary block. Goes through the same _reduce_video
+        # used by videos_report/video_detail (not a second, parallel
+        # computation) so "Completion Rate" and "CTR" mean exactly the same
+        # thing here as they do on the Video Analytics tab — across every
+        # video combined, since this card isn't scoped to one video.
+        video_rows = _video_events(start_dt, end_dt).values_list(
+            "event_type", "user_id", "anonymous_id", "metadata",
+        )
+        vm = _reduce_video(video_rows)
 
         return {
             # "Total Visitors" = distinct sessions (visits); "Unique Visitors"
@@ -239,9 +346,13 @@ def overview(start_dt, end_dt):
             "total_page_views": page_views.count(),
             "total_url_clicks": clicks.count(),
             "unique_clickers": click_unique_v,
-            "total_video_views": start_count,
-            "unique_video_viewers": view_unique_v,
-            "video_completion_rate": round(100.0 * complete_count / start_count, 1) if start_count else 0.0,
+            "total_video_views": vm["total_views"],
+            "unique_video_viewers": vm["unique_viewers"],
+            "video_completion_rate": vm["completion_rate"],
+            "total_video_clicks": vm["total_clicks"],
+            "unique_video_clickers": vm["unique_clickers"],
+            "video_ctr": vm["ctr"],
+            "avg_video_watch_seconds": vm["avg_watch_seconds"],
             "new_members": signups.count(),
         }
 
@@ -312,12 +423,22 @@ def _video_events(start_dt, end_dt, content_id=None):
 
 def _reduce_video(rows):
     """Python-side reduction over one video's events. Returns view/viewer/
-    milestone/watch-time metrics. Milestones count DISTINCT viewers, so a
-    duplicate milestone event (should never happen — the client de-dupes)
-    still cannot inflate anything."""
+    milestone/watch-time/click metrics. Milestones and clicks count DISTINCT
+    viewers, so a duplicate event (should never happen — the client de-dupes,
+    and client_event_id backs that with a real DB constraint for clicks) still
+    cannot inflate anything.
+
+    `rows` is (event_type, user_id, anonymous_id, metadata) tuples — one video
+    scope at a time, so callers batch all of a window's video events in ONE
+    query and group by content_id themselves (see videos_report) rather than
+    calling this per-video-per-query.
+    """
     starters, completers = set(), set()
     milestone_viewers = {m: set() for m in VIDEO_MILESTONES}
+    play_clickers, cta_clickers = set(), set()
     total_views = 0
+    total_play_clicks = 0
+    total_cta_clicks = 0
     watch_by_viewer = {}  # visitor_key -> max watched seconds seen
 
     for ev_type, user_id, anon, meta in rows:
@@ -331,6 +452,12 @@ def _reduce_video(rows):
             pct = (meta or {}).get("percent")
             if pct in milestone_viewers:
                 milestone_viewers[pct].add(vk)
+        elif ev_type == EVENT_VIDEO_CLICK:
+            total_play_clicks += 1
+            play_clickers.add(vk)
+        elif ev_type == EVENT_VIDEO_CTA_CLICK:
+            total_cta_clicks += 1
+            cta_clickers.add(vk)
         secs = (meta or {}).get("watched_seconds")
         if isinstance(secs, (int, float)) and secs >= 0:
             if vk not in watch_by_viewer or secs > watch_by_viewer[vk]:
@@ -338,35 +465,57 @@ def _reduce_video(rows):
 
     unique_viewers = len(starters | completers | {v for s in milestone_viewers.values() for v in s})
     started = len(starters) or unique_viewers
-    completed = len(completers)
+    # "Completed" merges the explicit `ended` signal with reaching the 100%
+    # playback milestone, so a viewer who scrubs straight to the end without
+    # the element ever firing `ended` still counts (see VIDEO_MILESTONES).
+    completed_viewers = completers | milestone_viewers.get(100, set())
+    completed = len(completed_viewers)
+    all_clickers = play_clickers | cta_clickers
+    unique_clickers = len(all_clickers)
+    total_clicks = total_play_clicks + total_cta_clicks
     avg_watch = round(sum(watch_by_viewer.values()) / len(watch_by_viewer), 1) if watch_by_viewer else 0.0
     return {
         "total_views": total_views,
         "unique_viewers": unique_viewers,
         "started": started,
-        "milestones": {str(m): len(milestone_viewers[m]) for m in VIDEO_MILESTONES},
+        # Only the "reached N%" milestones below 100 — 100% is reported as
+        # "completed" (merged with the `ended` event), matching how the
+        # dashboard's own retention table is meant to read: 25/50/75% Reached,
+        # then Completed, not a redundant near-duplicate "100% Reached" row.
+        "milestones": {str(m): len(milestone_viewers[m]) for m in VIDEO_MILESTONES if m != 100},
         "completed": completed,
         "avg_watch_seconds": avg_watch,
         "completion_rate": round(100.0 * completed / started, 1) if started else 0.0,
+        "total_clicks": total_clicks,
+        "unique_clickers": unique_clickers,
+        "play_clicks": total_play_clicks,
+        "unique_play_clickers": len(play_clickers),
+        "cta_clicks": total_cta_clicks,
+        "unique_cta_clickers": len(cta_clickers),
+        # CTR per the agreed definition: unique clickers / unique viewers, not
+        # per-view — a viewer who plays a video three times and clicks once is
+        # one click-through, not a third of one.
+        "ctr": round(100.0 * unique_clickers / unique_viewers, 1) if unique_viewers else 0.0,
     }
 
 
 def videos_report(start_dt, end_dt):
     def produce():
-        # NOTE: the .order_by() before .distinct() is load-bearing, here and in
-        # every other distinct() in this module. AnalyticsEvent orders by
-        # -created_at by default; Django appends an ORDER BY column to the
-        # SELECT list, so a DISTINCT without clearing it de-duplicates
-        # (content_id, created_at) pairs and returns one row per event.
-
+        # Single query over every video event in the window, grouped by
+        # content_id in Python — NOT one query per video. The previous version
+        # issued a query per distinct content_id (fine at a handful of videos,
+        # but it's an N+1 that scales with catalogue size); this reads the
+        # whole (indexed, date- and content_type-scoped) window once.
         qs = _video_events(start_dt, end_dt).exclude(content_id="")
-        video_ids = list(qs.order_by().values_list("content_id", flat=True).distinct())
+        raw = qs.values_list("content_id", "event_type", "user_id", "anonymous_id", "metadata")
+
+        by_video = {}
+        for cid, ev_type, user_id, anon, meta in raw:
+            by_video.setdefault(cid, []).append((ev_type, user_id, anon, meta))
+
         rows = []
-        for vid in video_ids:
-            raw = list(
-                qs.filter(content_id=vid).values_list("event_type", "user_id", "anonymous_id", "metadata")
-            )
-            m = _reduce_video(raw)
+        for vid, video_rows in by_video.items():
+            m = _reduce_video(video_rows)
             rows.append({
                 "content_id": vid,
                 "total_views": m["total_views"],
@@ -375,6 +524,9 @@ def videos_report(start_dt, end_dt):
                 "completed": m["completed"],
                 "avg_watch_seconds": m["avg_watch_seconds"],
                 "completion_rate": m["completion_rate"],
+                "total_clicks": m["total_clicks"],
+                "unique_clickers": m["unique_clickers"],
+                "ctr": m["ctr"],
             })
         rows.sort(key=lambda r: r["total_views"], reverse=True)
         return rows
@@ -392,6 +544,8 @@ def video_detail(start_dt, end_dt, content_id):
     # Retention as a % of everyone who started, from real events.
     retention = [{"stage": "Started", "count": m["started"], "pct": 100.0}]
     for ms in VIDEO_MILESTONES:
+        if ms == 100:
+            continue
         c = m["milestones"][str(ms)]
         retention.append({"stage": f"{ms}%", "count": c, "pct": round(100.0 * c / started, 1)})
     retention.append({"stage": "Completed", "count": m["completed"], "pct": round(100.0 * m["completed"] / started, 1)})
@@ -399,10 +553,94 @@ def video_detail(start_dt, end_dt, content_id):
         "content_id": str(content_id),
         "total_views": m["total_views"],
         "unique_viewers": m["unique_viewers"],
+        "video_starts": m["started"],
         "avg_watch_seconds": m["avg_watch_seconds"],
         "completion_rate": m["completion_rate"],
         "retention": retention,
+        "total_clicks": m["total_clicks"],
+        "unique_clickers": m["unique_clickers"],
+        "play_clicks": m["play_clicks"],
+        "unique_play_clickers": m["unique_play_clickers"],
+        "cta_clicks": m["cta_clicks"],
+        "unique_cta_clickers": m["unique_cta_clickers"],
+        "ctr": m["ctr"],
+        "locations": location_report(start_dt, end_dt, content_id=content_id),
     }
+
+
+# ── Location analytics ───────────────────────────────────────────────────────
+def location_report(start_dt, end_dt, content_id=None):
+    """Country -> region -> city breakdown of video viewers/clicks in the
+    window. content_id=None covers every video (the dashboard's aggregate
+    "Viewers by Country"); a specific content_id scopes it to one video (the
+    per-video location panel). "Unknown" (never a fabricated value) covers a
+    region/city that could not be resolved — see _resolve_region_city.
+
+    One query, Python-reduced — same shape as _reduce_video/videos_report,
+    and for the same reason: this can group by however many distinct
+    (country, region, city) combinations exist without adding a query per
+    group."""
+    def produce():
+        qs = _video_events(start_dt, end_dt, content_id).exclude(country="")
+        raw = qs.values_list("country", "region", "city", "event_type", "user_id", "anonymous_id")
+
+        tree = {}  # country -> region -> city -> {"viewers": set, "clicks": int, "clickers": set}
+        for country, region, city, ev_type, user_id, anon in raw:
+            region = region or "Unknown"
+            city = city or "Unknown"
+            vk = _visitor_key(user_id, anon)
+            node = (
+                tree.setdefault(country, {})
+                    .setdefault(region, {})
+                    .setdefault(city, {"viewers": set(), "clicks": 0, "clickers": set()})
+            )
+            if ev_type == EVENT_VIDEO_START:
+                node["viewers"].add(vk)
+            elif ev_type in VIDEO_CLICK_EVENT_TYPES:
+                node["clicks"] += 1
+                node["clickers"].add(vk)
+
+        countries = []
+        for country, regions in tree.items():
+            country_viewers, country_clickers, country_clicks = set(), set(), 0
+            region_rows = []
+            for region, cities in regions.items():
+                region_viewers, region_clickers, region_clicks = set(), set(), 0
+                city_rows = []
+                for city, d in cities.items():
+                    city_rows.append({
+                        "city": city,
+                        "viewers": len(d["viewers"]),
+                        "clicks": d["clicks"],
+                        "unique_clickers": len(d["clickers"]),
+                    })
+                    region_viewers |= d["viewers"]
+                    region_clickers |= d["clickers"]
+                    region_clicks += d["clicks"]
+                city_rows.sort(key=lambda r: r["viewers"], reverse=True)
+                region_rows.append({
+                    "region": region,
+                    "viewers": len(region_viewers),
+                    "clicks": region_clicks,
+                    "unique_clickers": len(region_clickers),
+                    "cities": city_rows,
+                })
+                country_viewers |= region_viewers
+                country_clickers |= region_clickers
+                country_clicks += region_clicks
+            region_rows.sort(key=lambda r: r["viewers"], reverse=True)
+            countries.append({
+                "country": country,
+                "viewers": len(country_viewers),
+                "clicks": country_clicks,
+                "unique_clickers": len(country_clickers),
+                "regions": region_rows,
+            })
+        countries.sort(key=lambda r: r["viewers"], reverse=True)
+        return countries
+
+    scope = str(content_id) if content_id is not None else "all"
+    return _cache_get_or_set(f"analytics:locations:{scope}:{_rng_key(start_dt, end_dt)}", produce)
 
 
 # ── Member engagement ────────────────────────────────────────────────────────

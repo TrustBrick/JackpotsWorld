@@ -4,6 +4,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from authapp.services.chat_service import get_chat_provider
+from authapp.throttles import ChatMessageThrottle
 
 
 def _optional_authenticated_user(request):
@@ -32,6 +33,7 @@ class ChatMessageView(APIView):
     SupportTicket for escalations. Signed-out callers get generic answers."""
     permission_classes = [AllowAny]
     authentication_classes = []  # handled manually below — never 401 here
+    throttle_classes = [ChatMessageThrottle]
 
     def post(self, request):
         message = (request.data.get("message") or "").strip()

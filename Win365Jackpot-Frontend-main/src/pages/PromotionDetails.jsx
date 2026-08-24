@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Gift as GiftIcon, CheckCircle2, CalendarClock, AlertTriangle, RefreshCw, ImageOff, X, ScrollText } from 'lucide-react'
@@ -11,6 +11,11 @@ import Seo from '../components/Seo'
 import Breadcrumbs from '../components/shared/Breadcrumbs'
 import { promotionSchema, breadcrumbSchema, promotionMetaDescription } from '../utils/seoSchemas'
 import { TITLE_SUFFIX } from '../config/seo'
+// ANALYTICS: this is the one content video in the app that wasn't wired up —
+// see the video-analytics inspection report. Same instrumentation as
+// FeaturedDestinationShowcase / PremiumPartnerHeroMedia.
+import { useVideoAnalytics } from '../hooks/useVideoAnalytics'
+import { trackVideoCtaClick } from '../services/analytics'
 
 export default function PromotionDetails() {
   const { id } = useParams()
@@ -19,6 +24,15 @@ export default function PromotionDetails() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [lightbox, setLightbox] = useState(null)
+  const videoRef = useRef(null)
+  const videoContentId = promo ? `promotion-${promo.id}` : ''
+
+  useVideoAnalytics(videoRef, {
+    contentId: videoContentId,
+    title: promo?.title,
+    contentKind: 'promotion',
+    enabled: !!promo?.video,
+  })
 
   const load = () => {
     setLoading(true)
@@ -142,6 +156,7 @@ export default function PromotionDetails() {
               <div className="px-6 md:px-8 pt-6">
                 <div className="text-xs font-body uppercase tracking-widest text-gold/70 mb-3">Video</div>
                 <video
+                  ref={videoRef}
                   controls
                   preload="metadata"
                   poster={promo.image || undefined}
@@ -188,7 +203,10 @@ export default function PromotionDetails() {
                 </div>
               )}
 
-              <button className="btn-gold w-full rounded-full py-3 text-sm font-bold tracking-widest uppercase">
+              <button
+                className="btn-gold w-full rounded-full py-3 text-sm font-bold tracking-widest uppercase"
+                onClick={promo.video ? () => trackVideoCtaClick(videoContentId, { title: promo.title, contentKind: 'promotion' }) : undefined}
+              >
                 {promo.cta_label || 'Claim Bonus'}
               </button>
             </div>
