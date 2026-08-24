@@ -19,6 +19,7 @@ import ActiveCallModal from "../../components/support/ActiveCallModal";
 import CallStatus from "../../components/support/CallStatus";
 import CallHistoryList from "../../components/support/CallHistoryList";
 import { adminCallTheme } from "../../components/support/callTheme";
+import { openAttachment } from "../../services/attachments";
 
 const SOUND_PREF_KEY = "admin_live_chat_sound";
 
@@ -498,7 +499,45 @@ export default function LiveSupportTab({ onToast }) {
                       background: m.sender_type === "admin" ? `${C.gold}20` : C.hoverBg,
                       color: C.text, border: `1px solid ${C.border}`,
                     }}>
-                      <div>{m.message}</div>
+                      {m.message ? <div>{m.message}</div> : null}
+                      {m.attachment_url && (
+                        // Opens the private object through its presigned link,
+                        // which the API mints per request and which expires --
+                        // the agent's own session is what authorises the fetch,
+                        // so there is no permanent public URL anywhere.
+                        <a
+                          href={m.attachment_url}
+                          onClick={e => {
+                            // Downloaded with the agent's own admin token, so
+                            // the server re-checks their entitlement.
+                            e.preventDefault();
+                            openAttachment(
+                              m.attachment_url,
+                              m.attachment_name,
+                              localStorage.getItem("admin_token"),
+                            ).catch(err => alert(err.message));
+                          }}
+                          style={{
+                            display: "inline-flex", alignItems: "center", gap: 6,
+                            marginTop: m.message ? 6 : 0,
+                            padding: "5px 9px", borderRadius: 8,
+                            border: `1px solid ${C.gold}55`,
+                            background: `${C.gold}14`,
+                            color: C.gold, fontSize: 11.5, fontWeight: 600,
+                            textDecoration: "none", maxWidth: "100%",
+                          }}
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                               stroke="currentColor" strokeWidth="2"
+                               strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                          </svg>
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {m.attachment_name || "Attachment"}
+                          </span>
+                        </a>
+                      )}
                       <div style={{ fontSize: 9.5, color: C.dim, marginTop: 3 }}>{fmtDT(m.created_at)}</div>
                     </div>
                   </div>

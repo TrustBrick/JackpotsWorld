@@ -101,3 +101,66 @@ def validate_uploaded_video(file_obj):
         )
 
     return file_obj
+
+
+# ── Support-chat documents ──────────────────────────────────────────────────
+# What a customer may attach to a support conversation: a scan or photo of a
+# document, and nothing else. Deliberately the image set plus PDF -- no office
+# formats, no archives, no anything that executes. The list is an allow-list
+# rather than a deny-list because a deny-list of dangerous extensions is a
+# losing game.
+ALLOWED_DOCUMENT_EXTENSIONS = {"pdf"} | ALLOWED_IMAGE_EXTENSIONS
+ALLOWED_DOCUMENT_CONTENT_TYPES = {"application/pdf"} | ALLOWED_IMAGE_CONTENT_TYPES
+# Larger than the 5MB image cap because a multi-page scanned PDF legitimately
+# runs bigger, but still small enough that one upload cannot tie up a worker.
+MAX_DOCUMENT_SIZE_BYTES = 10 * 1024 * 1024  # 10MB
+
+# A PDF always begins with these bytes. Checked because both the extension and
+# the Content-Type header are supplied by the client and neither is evidence of
+# anything -- renaming payload.exe to invoice.pdf satisfies both.
+PDF_MAGIC = b"%PDF-"
+
+
+def validate_uploaded_document(file_obj):
+    """
+    Raises serializers.ValidationError unless the upload is a PDF or an allowed
+    image, within the size cap, and its *content* matches its claimed type.
+    Returns the (rewound) file on success.
+
+    Images are handed to validate_uploaded_image, which already opens and
+    verifies them with Pillow. PDFs are checked against their magic number --
+    the point in both cases is that the decision rests on the bytes, not on the
+    filename the browser sent.
+    """
+    if not file_obj:
+        return file_obj
+
+    name = file_obj.name or ""
+    ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
+    if ext not in ALLOWED_DOCUMENT_EXTENSIONS:
+        raise serializers.ValidationError(
+            f"Unsupported file type. Allowed: {', '.join(sorted(ALLOWED_DOCUMENT_EXTENSIONS))}."
+        )
+
+    if file_obj.size > MAX_DOCUMENT_SIZE_BYTES:
+        raise serializers.ValidationError(
+            f"File too large. Max size is {MAX_DOCUMENT_SIZE_BYTES // (1024 * 1024)}MB."
+        )
+
+    content_type = (getattr(file_obj, "content_type", "") or "").lower()
+    if content_type and content_type not in ALLOWED_DOCUMENT_CONTENT_TYPES:
+        raise serializers.ValidationError("Unsupported file content type.")
+
+    if ext == "pdf":
+        try:
+            file_obj.seek(0)
+            head = file_obj.read(len(PDF_MAGIC))
+        finally:
+            file_obj.seek(0)
+        if head != PDF_MAGIC:
+            raise serializers.ValidationError("File is not a valid PDF.")
+        return file_obj
+
+    # Everything else in the allow-list is an image; reuse the existing check
+    # rather than writing a second, drifting copy of it.
+    return validate_uploaded_image(file_obj)

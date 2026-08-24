@@ -8,10 +8,29 @@ from authapp.models.support_ticket_models import (
 
 
 class ChatMessageSerializer(serializers.ModelSerializer):
+    # A link to the attached document, or null. Read through FieldFile.url, so
+    # on S3 this is a presigned link that expires (see PrivateMediaStorage) and
+    # the raw object stays unreadable to anyone without one. Recomputed on every
+    # serialisation rather than stored, which is what keeps the expiry short and
+    # means a link that leaks stops working on its own.
+    attachment_url = serializers.SerializerMethodField()
+
     class Meta:
         model = ChatMessage
-        fields = ["id", "sender_type", "message", "is_read", "client_message_id", "created_at"]
+        fields = [
+            "id", "sender_type", "message", "is_read", "client_message_id",
+            "attachment_url", "attachment_name", "created_at",
+        ]
         read_only_fields = fields
+
+    def get_attachment_url(self, obj):
+        # The authorised download endpoint, never the raw storage URL -- see
+        # LiveChatAttachmentView for why the storage URL must not leave the
+        # server. Relative on purpose: the client resolves it against the API
+        # base it is already authenticated to.
+        if not obj.attachment:
+            return None
+        return "/api/live-chat/attachments/%s/" % obj.pk
 
 
 class LiveChatSessionSerializer(serializers.ModelSerializer):

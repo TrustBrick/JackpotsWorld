@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react"
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 import { getToken } from "../services/authStorage"
+import { openAttachment } from "../services/attachments"
 import { connectLiveChatSocket } from "../services/liveChatSocket"
 import { asMessageArray, highestRealId } from "../services/liveChatMessages"
 // VOICE-CALL: layered on the live-agent mode below. Everything call-related is
@@ -8,6 +9,7 @@ import { asMessageArray, highestRealId } from "../services/liveChatMessages"
 import { useVoiceCall, PHASE } from "../hooks/useVoiceCall"
 import ActiveCallModal from "./support/ActiveCallModal"
 import CallStatus from "./support/CallStatus"
+import { setLauncherHeight } from "./support/launcherMetrics"
 
 const API = import.meta.env.VITE_API_URL || ""
 const INACTIVITY_MS = 3 * 60 * 1000 // 3 minutes
@@ -48,6 +50,27 @@ const WELCOME = { role: "bot", text: "Welcome to Jackpots World Customer Support
 // Height is what the design is specified in; the button derives its width
 // from the 120x138 viewBox.
 const AVATAR_H = "clamp(68px, 11vw, 90px)"
+
+// Mirrors authapp/utils/file_validation.validate_uploaded_document. This copy
+// exists to fail fast with a readable message instead of making the customer
+// wait for a round trip to be told no -- the server is still the authority and
+// re-checks the file's actual bytes, since anything enforced only here is not
+// enforced at all.
+const DOC_EXTENSIONS = ["pdf", "jpg", "jpeg", "png", "webp"]
+const DOC_ACCEPT = ".pdf,.jpg,.jpeg,.png,.webp"
+const DOC_MAX_BYTES = 10 * 1024 * 1024
+
+function describeDocError(file) {
+  if (!file) return ""
+  const ext = file.name.includes(".") ? file.name.split(".").pop().toLowerCase() : ""
+  if (!DOC_EXTENSIONS.includes(ext)) {
+    return `Unsupported file type. Allowed: ${DOC_EXTENSIONS.join(", ")}.`
+  }
+  if (file.size > DOC_MAX_BYTES) {
+    return `File too large. Max size is ${DOC_MAX_BYTES / (1024 * 1024)}MB.`
+  }
+  return ""
+}
 
 // Merges a "real" (server-assigned-id) live-chat message into the list
 // without duplicating it. Needed because a message we just sent can reach
@@ -341,6 +364,25 @@ function SendIcon() {
   )
 }
 
+// Paperclip for the attach control, and a document glyph for sent
+// attachments. Hand-written SVGs like every other icon in this file.
+function ClipIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
+    </svg>
+  )
+}
+
+function DocIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+    </svg>
+  )
+}
+
 // SVG close icon
 // Inline rather than imported from lucide: every other icon in this file is a
 // small hand-written SVG (see CloseIcon below), and the header needs one that
@@ -396,6 +438,42 @@ export default function ChatBot({ portal = "player" }) {
   const tokenKey = PORTAL_TOKEN_KEYS[portal] || PORTAL_TOKEN_KEYS.player
   const reduceMotion            = useReducedMotion()
   const [open, setOpen]         = useState(false)
+
+  // VOICE-CALL / LAYOUT: publish this launcher's real height so anything that
+  // has to sit clear of it can position against the measured box rather than
+  // a hardcoded guess. See support/launcherMetrics.js for why a constant does
+  // not work here -- the greeting bubble wraps differently per viewport, so
+  // the stack is a different height on different screens.
+  const launcherRef = useRef(null)
+  useEffect(() => {
+    const el = launcherRef.current
+    if (!el) return undefined
+    const publish = () => setLauncherHeight(el.getBoundingClientRect().height)
+    publish()
+
+    // Re-measure once the web font is in. The greeting bubble is width-capped
+    // and wraps, so its line count -- and therefore this whole stack's height
+    // -- differs between the fallback face and Manrope. Measured here: 227px
+    // on the fallback, 166px once the real font lands. Without this the first
+    // reading is the one that sticks on any browser that does not deliver a
+    // resize notification for a reflow it considers cosmetic.
+    let cancelled = false
+    if (typeof document !== "undefined" && document.fonts?.ready) {
+      document.fonts.ready.then(() => { if (!cancelled) publish() }).catch(() => {})
+    }
+
+    if (typeof ResizeObserver === "undefined") return () => { cancelled = true }
+    // Observing the element covers every way its size can change -- viewport
+    // resize, the bubble re-wrapping, the panel opening and closing -- with
+    // one subscription instead of a listener per cause.
+    const ro = new ResizeObserver(publish)
+    ro.observe(el)
+    return () => { cancelled = true; ro.disconnect() }
+  // `open` is the dependency because the two states render different elements
+  // -- the concierge when closed, a small close button when open -- so the ref
+  // points at a new node and has to be re-observed. Without it this rebuilt
+  // the observer on every render instead.
+  }, [open])
   // Laptop and up. Tracked rather than read once so rotating a tablet, or
   // dragging a window between displays, re-picks the right height instead of
   // keeping whatever was true at mount.
@@ -504,6 +582,14 @@ export default function ChatBot({ portal = "player" }) {
   // never becomes ready, nothing dials -- which is the correct outcome, and the
   // button returns to its normal state rather than spinning forever.
   const [callRequested, setCallRequested] = useState(false)
+
+  // The document staged for the next send, and the reason the last attempt was
+  // refused. Held here rather than inside the composer so a failed send can put
+  // the file back and offer a retry without the customer re-picking it.
+  const [attachFile, setAttachFile] = useState(null)
+  const [attachError, setAttachError] = useState("")
+  const [attachBusy, setAttachBusy] = useState(false)
+  const fileInputRef = useRef(null)
 
   /* VOICE-CALL: "Call Support" from anywhere in the widget.
      ────────────────────────────────────────────────────────────────────────
@@ -614,7 +700,7 @@ export default function ChatBot({ portal = "player" }) {
     setMode("bot")
   }
 
-  const sendLiveMessage = async (text) => {
+  const sendLiveMessage = async (text, file = null) => {
     const token = getToken(tokenKey)
     if (!token || !liveTicketId) return
     const tempId = `pending-${Date.now()}`
@@ -624,18 +710,52 @@ export default function ChatBot({ portal = "player" }) {
     const clientMessageId = typeof crypto !== "undefined" && crypto.randomUUID
       ? crypto.randomUUID()
       : `${sessionIdRef.current}-${Date.now()}`
-    setLiveMessages(prev => [...prev, { id: tempId, sender_type: "user", message: text, status: "pending", created_at: new Date().toISOString() }])
+    setLiveMessages(prev => [...prev, {
+      id: tempId, sender_type: "user", message: text, status: "pending",
+      // Shown immediately so the customer sees what they attached while it
+      // uploads, rather than an empty bubble.
+      attachment_name: file ? file.name : "",
+      created_at: new Date().toISOString(),
+    }])
 
-    const attempt = () => fetch(`${API}/api/live-chat/${liveTicketId}/messages/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ message: text, client_message_id: clientMessageId }),
-    })
+    // Multipart only when there is a file: a text-only send keeps the exact
+    // JSON request it always made, so nothing about the existing path changes.
+    const attempt = () => {
+      if (!file) {
+        return fetch(`${API}/api/live-chat/${liveTicketId}/messages/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ message: text, client_message_id: clientMessageId }),
+        })
+      }
+      const form = new FormData()
+      form.append("message", text)
+      form.append("client_message_id", clientMessageId)
+      form.append("attachment", file)
+      // No Content-Type header on purpose -- the browser must set it itself so
+      // it can include the multipart boundary.
+      return fetch(`${API}/api/live-chat/${liveTicketId}/messages/`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      })
+    }
 
     try {
+      setAttachBusy(!!file)
       let res = await attempt()
-      if (!res.ok && res.status !== 429) res = await attempt() // one retry on failure
-      if (!res.ok) throw new Error("send failed")
+      // A 400 is the server refusing this specific file; retrying sends the
+      // same bytes and gets the same answer, so only retry transient failures.
+      if (!res.ok && res.status !== 429 && res.status !== 400) res = await attempt()
+      if (!res.ok) {
+        let reason = ""
+        try {
+          const body = await res.json()
+          reason = body?.error || (Array.isArray(body) ? body[0] : "") ||
+                   body?.attachment?.[0] || ""
+        } catch { /* non-JSON error body */ }
+        throw new Error(reason || "send failed")
+      }
       const saved = await res.json()
       // The WS push for this same message can arrive before this response
       // does — reconcile rather than blindly replace-by-tempId, so we don't
@@ -644,8 +764,16 @@ export default function ChatBot({ portal = "player" }) {
       // Sending is the moment an agent is most likely to reply, so pull
       // once immediately instead of waiting out the poll interval.
       liveSocketRef.current?.refresh()
-    } catch {
+    } catch (err) {
       setLiveMessages(prev => prev.map(m => (m.id === tempId ? { ...m, status: "failed" } : m)))
+      if (file) {
+        // Put it back so "retry" means pressing send again, not hunting for
+        // the file a second time.
+        setAttachFile(file)
+        setAttachError(err?.message || "Upload failed. Please try again.")
+      }
+    } finally {
+      setAttachBusy(false)
     }
   }
 
@@ -694,13 +822,18 @@ export default function ChatBot({ portal = "player" }) {
   }, [open, resetInactivity])
 
   const sendMessage = async () => {
-    if (!input.trim() || loading) return
+    // An attachment on its own is a complete message, so an empty box is only
+    // "nothing to send" when there is no file staged either.
+    const file = mode === "live" ? attachFile : null
+    if ((!input.trim() && !file) || loading || attachBusy) return
     const text = input.trim()
     setInput("")
     resetInactivity()
 
     if (mode === "live") {
-      sendLiveMessage(text)
+      setAttachFile(null)
+      setAttachError("")
+      sendLiveMessage(text, file)
       return
     }
 
@@ -754,10 +887,17 @@ export default function ChatBot({ portal = "player" }) {
         text: m.message,
         status: m.status,
         id: m.id,
+        attachmentUrl: m.attachment_url || null,
+        attachmentName: m.attachment_name || "",
       }))
     : messages
 
   const handleKey = e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage() } }
+
+  // Mirrors sendMessage's own guard so the button's look never disagrees with
+  // what pressing it does.
+  const canSend = !loading && !attachBusy &&
+    (!!input.trim() || (mode === "live" && !!attachFile))
 
   return (
     <>
@@ -779,6 +919,7 @@ export default function ChatBot({ portal = "player" }) {
       onDismiss={voiceCall.endCall}
     />
     <div
+      ref={launcherRef}
       style={{
         position: "fixed",
         // Inset from the corner. Floors raised to 20px so the launcher clears
@@ -981,6 +1122,47 @@ export default function ChatBot({ portal = "player" }) {
                       fontWeight: m.role === "user" ? 600 : 400,
                     }}>
                       {m.text}
+                      {(m.attachmentUrl || m.attachmentName) && (
+                        // While the upload is in flight there is no URL yet, so
+                        // the same chip renders un-clickable with the local
+                        // filename -- the customer sees what they attached
+                        // straight away instead of an empty bubble.
+                        <a
+                          href={m.attachmentUrl || undefined}
+                          onClick={e => {
+                            // The endpoint needs the bearer token, which a
+                            // plain navigation would not carry.
+                            e.preventDefault()
+                            if (!m.attachmentUrl) return
+                            openAttachment(m.attachmentUrl, m.attachmentName, getToken(tokenKey))
+                              .catch(err => setAttachError(err.message))
+                          }}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 6,
+                            marginTop: m.text ? 7 : 0,
+                            padding: "6px 9px", borderRadius: 8,
+                            border: m.role === "user"
+                              ? "1px solid rgba(0,0,0,0.18)"
+                              : "1px solid rgba(212,175,55,0.25)",
+                            background: m.role === "user"
+                              ? "rgba(0,0,0,0.10)" : "rgba(212,175,55,0.10)",
+                            color: m.role === "user" ? "#0a0005" : "#D4AF37",
+                            fontSize: 11.5, fontWeight: 600,
+                            textDecoration: "none",
+                            cursor: m.attachmentUrl ? "pointer" : "default",
+                            opacity: m.attachmentUrl ? 1 : 0.7,
+                            maxWidth: "100%",
+                          }}
+                        >
+                          <span style={{ flexShrink: 0, display: "flex" }}><DocIcon /></span>
+                          <span style={{
+                            overflow: "hidden", textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}>
+                            {m.attachmentName || "Attachment"}
+                          </span>
+                        </a>
+                      )}
                     </div>
                   </div>
                   {m.signInPrompt && (
@@ -1076,18 +1258,112 @@ export default function ChatBot({ portal = "player" }) {
 
             {/* Input */}
             <div style={{
-              display: "flex", alignItems: "center", gap: 8,
               padding: "10px 12px",
               borderTop: "1px solid rgba(212,175,55,0.12)",
               background: "rgba(0,0,0,0.3)",
               flexShrink: 0,
             }}>
+              {/* Staged document, shown above the input so the customer can
+                  confirm or drop it before sending, and so a rejection is read
+                  next to the file it refers to. Live chat only -- the FAQ bot
+                  has no conversation to attach anything to. */}
+              {mode === "live" && (attachFile || attachError) && (
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 7,
+                  marginBottom: 8, padding: "6px 9px", borderRadius: 8,
+                  background: attachError ? "rgba(248,113,113,0.10)" : "rgba(212,175,55,0.10)",
+                  border: attachError
+                    ? "1px solid rgba(248,113,113,0.45)"
+                    : "1px solid rgba(212,175,55,0.25)",
+                  fontSize: 11.5,
+                }}>
+                  <span style={{
+                    flexShrink: 0, display: "flex",
+                    color: attachError ? "#f87171" : "#D4AF37",
+                  }}>
+                    <DocIcon />
+                  </span>
+                  <span style={{
+                    flex: 1, minWidth: 0,
+                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    color: attachError ? "#f87171" : "rgba(255,255,255,0.85)",
+                    fontWeight: 600,
+                  }}>
+                    {attachBusy
+                      ? `Uploading ${attachFile?.name || "document"}...`
+                      : attachError || attachFile?.name}
+                  </span>
+                  {!attachBusy && (
+                    <button
+                      onClick={() => { setAttachFile(null); setAttachError("") }}
+                      aria-label="Remove attachment"
+                      style={{
+                        background: "none", border: "none", cursor: "pointer",
+                        color: "rgba(255,255,255,0.55)", fontSize: 15,
+                        lineHeight: 1, padding: 0, flexShrink: 0,
+                      }}
+                    >
+                      &times;
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {mode === "live" && (
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept={DOC_ACCEPT}
+                    style={{ display: "none" }}
+                    onChange={e => {
+                      const picked = e.target.files?.[0]
+                      // Reset the input's value so picking the same file twice
+                      // in a row still fires change (needed for retry).
+                      e.target.value = ""
+                      if (!picked) return
+                      const problem = describeDocError(picked)
+                      if (problem) {
+                        setAttachFile(null)
+                        setAttachError(problem)
+                        return
+                      }
+                      setAttachError("")
+                      setAttachFile(picked)
+                      resetInactivity()
+                    }}
+                  />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={loading || attachBusy}
+                    title="Attach a document"
+                    aria-label="Attach a document"
+                    style={{
+                      width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+                      background: "rgba(212,175,55,0.12)",
+                      border: "1px solid rgba(212,175,55,0.25)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      cursor: (loading || attachBusy) ? "default" : "pointer",
+                      color: "#D4AF37",
+                      opacity: (loading || attachBusy) ? 0.45 : 1,
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    <ClipIcon />
+                  </button>
+                </>
+              )}
               <input
                 ref={inputRef}
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKey}
-                placeholder={mode === "live" ? "Message our support agent..." : "Ask me anything..."}
+                placeholder={
+                  mode === "live"
+                    ? (attachFile ? "Add a note (optional)..." : "Message our support agent...")
+                    : "Ask me anything..."
+                }
                 disabled={loading}
                 style={{
                   flex: 1, borderRadius: 10, border: "1px solid rgba(212,175,55,0.2)",
@@ -1099,21 +1375,22 @@ export default function ChatBot({ portal = "player" }) {
               />
               <button
                 onClick={sendMessage}
-                disabled={loading || !input.trim()}
+                disabled={!canSend}
                 style={{
                   width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-                  background: input.trim() && !loading
+                  background: canSend
                     ? "linear-gradient(135deg, #D4AF37, #c9a227)"
                     : "rgba(212,175,55,0.15)",
                   border: "1px solid rgba(212,175,55,0.3)",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  cursor: input.trim() && !loading ? "pointer" : "default",
-                  color: input.trim() && !loading ? "#0a0005" : "rgba(212,175,55,0.4)",
+                  cursor: canSend ? "pointer" : "default",
+                  color: canSend ? "#0a0005" : "rgba(212,175,55,0.4)",
                   transition: "all 0.2s ease",
                 }}
               >
                 <SendIcon />
               </button>
+              </div>
             </div>
           </motion.div>
         )}

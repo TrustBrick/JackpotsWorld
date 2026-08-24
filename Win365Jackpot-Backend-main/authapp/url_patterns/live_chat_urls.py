@@ -5,6 +5,7 @@ from authapp.views.live_chat_views import (
     LiveChatStartView,
     LiveChatMessageListCreateView,
     LiveChatReadView,
+    LiveChatAttachmentView,
     AdminLiveChatListView,
     AdminLiveChatMessageListCreateView,
     AdminLiveChatReadView,
@@ -18,6 +19,10 @@ public_urlpatterns = [
     path("live-chat/start/", LiveChatStartView.as_view()),
     path("live-chat/<int:ticket_id>/messages/", LiveChatMessageListCreateView.as_view()),
     path("live-chat/<int:ticket_id>/read/", LiveChatReadView.as_view()),
+    # Not nested under a ticket: the view resolves the conversation from the
+    # message itself and authorises against that, so a caller cannot pair
+    # someone else's message id with a ticket they happen to own.
+    path("live-chat/attachments/<int:message_id>/", LiveChatAttachmentView.as_view()),
 ]
 
 # Admin-managed — mounted at api/admin-panel/

@@ -214,8 +214,27 @@ def _message_payload(ticket, msg):
         "message": msg.message,
         "is_read": msg.is_read,
         "client_message_id": msg.client_message_id,
+        # Carried on the socket too, so an attachment appears in the other
+        # side's transcript the moment it is sent rather than only after they
+        # reload. The URL is generated fresh here; on S3 it is presigned and
+        # short-lived, which is why it is computed per broadcast rather than
+        # stored anywhere.
+        "attachment_url": _attachment_url(msg),
+        "attachment_name": msg.attachment_name or "",
         "created_at": msg.created_at.isoformat(),
     }
+
+
+def _attachment_url(msg):
+    """The message's authorised download link, or None.
+
+    Deliberately the API endpoint rather than the storage URL: whoever
+    receives this over the socket still has to authenticate to fetch the
+    bytes. See LiveChatAttachmentView.
+    """
+    if not msg.attachment:
+        return None
+    return "/api/live-chat/attachments/%s/" % msg.pk
 
 
 # Ticket states that still accept new messages. Deliberately the same pair as
@@ -233,12 +252,14 @@ def ticket_accepts_messages(ticket):
     return ticket.status in MESSAGEABLE_TICKET_STATUSES
 
 
-def post_message(ticket, sender_type, sender_user, text, client_message_id=None):
+def post_message(ticket, sender_type, sender_user, text, client_message_id=None, attachment=None):
     # Stored as plain text, not HTML-escaped — every consumer (both chat
     # widgets) renders this as text content, not raw HTML, so escaping here
     # would just show up as literal "&amp;"/"&lt;" to the recipient.
     text = (text or "").strip()
-    if not text:
+    # An attachment with no covering note is a complete message; only a message
+    # that is empty *and* carries no file is nothing at all.
+    if not text and attachment is None:
         return None
 
     client_message_id = (client_message_id or "").strip() or None
@@ -263,6 +284,10 @@ def post_message(ticket, sender_type, sender_user, text, client_message_id=None)
                 sender=sender_user,
                 message=text,
                 client_message_id=client_message_id,
+                attachment=attachment,
+                # Stored separately because storage renames the key on
+                # collision; without this the recipient sees the mangled name.
+                attachment_name=(getattr(attachment, "name", "") or "")[:255] if attachment else "",
             )
     except IntegrityError:
         if not client_message_id:

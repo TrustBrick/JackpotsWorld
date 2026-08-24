@@ -90,7 +90,27 @@ class ChatMessage(models.Model):
     sender      = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
     )
-    message     = models.TextField()
+    message     = models.TextField(blank=True)
+
+    # An attached document, on the same private storage SupportTicket.attachment
+    # already uses: files land under the bucket's `private/` prefix, which the
+    # bucket policy does not expose anonymously, and FieldFile.url hands back a
+    # presigned link that expires. A support attachment is a customer's ID scan
+    # or bank statement as often as not, so it must never be a stable public
+    # URL the way marketing media is.
+    #
+    # `message` becomes blank-able above because an attachment on its own is a
+    # complete message -- the caller sends a file with no covering note. The
+    # view still refuses a message that is empty *and* has no attachment.
+    attachment      = models.FileField(
+        upload_to="support/chat/", max_length=255, storage=get_private_storage,
+        null=True, blank=True,
+    )
+    # The name the customer's file had. Storage mangles the stored key on
+    # collision (Django appends a random suffix), so without this the agent
+    # sees `passport_a8Kd2P.pdf` instead of what was actually sent.
+    attachment_name = models.CharField(max_length=255, blank=True)
+
     is_read     = models.BooleanField(default=False)
     created_at  = models.DateTimeField(auto_now_add=True)
 

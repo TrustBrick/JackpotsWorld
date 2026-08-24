@@ -30,14 +30,19 @@ Two delivery-related notes, both load-bearing for the chat feeling
    to run every couple of seconds (one indexed lookup, usually zero rows)
    instead of re-downloading the whole transcript.
 """
+import logging
+
 from django.conf import settings
+from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from rest_framework import generics
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from authapp.models.support_ticket_models import (
+    ChatMessage,
     SupportTicket,
     PARTICIPANT_AFFILIATE,
     PARTICIPANT_PLAYER,
@@ -49,6 +54,15 @@ from authapp.serializers.live_chat_serializers import (
 )
 from authapp.services import live_chat_service
 from authapp.throttles import LiveChatSendRateThrottle
+from authapp.utils.file_validation import validate_uploaded_document
+
+try:  # botocore is only present when S3 storage is in play
+    from botocore.exceptions import ClientError
+except ImportError:  # pragma: no cover - local filesystem storage
+    class ClientError(Exception):
+        pass
+
+logger = logging.getLogger(__name__)
 
 # How often a client without a live WebSocket should poll for new messages.
 # Kept low because ?after_id= makes each poll a single indexed query that
@@ -116,6 +130,11 @@ class LiveChatMessageListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
     pagination_class = None  # see module docstring, note 1
 
+    # Multipart so a document can ride along with the message. JSON still works
+    # unchanged -- DRF selects the parser from the request's content type, so
+    # every existing text-only client is untouched.
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
     def _ticket(self):
         return get_object_or_404(
             SupportTicket, pk=self.kwargs["ticket_id"], user=self.request.user, is_live_chat=True,
@@ -127,8 +146,18 @@ class LiveChatMessageListCreateView(generics.ListCreateAPIView):
     def create(self, request, *args, **kwargs):
         ticket = self._ticket()
         text = (request.data.get("message") or "").strip()
-        if not text:
-            return Response({"error": "message is required"}, status=400)
+        attachment = request.FILES.get("attachment")
+
+        # An attachment on its own is a complete message; nothing at all is not.
+        if not text and attachment is None:
+            return Response({"error": "message or attachment is required"}, status=400)
+
+        if attachment is not None:
+            # Validated server-side against the file's own bytes -- never the
+            # filename or Content-Type the client claimed, since both are
+            # attacker-controlled. Raises a DRF ValidationError, rendered as a
+            # 400 carrying the reason the sender needs.
+            validate_uploaded_document(attachment)
         # A resolved conversation is finished — see MESSAGEABLE_TICKET_STATUSES.
         if not live_chat_service.ticket_accepts_messages(ticket):
             return Response(
@@ -138,6 +167,7 @@ class LiveChatMessageListCreateView(generics.ListCreateAPIView):
         msg = live_chat_service.post_message(
             ticket, "user", request.user, text,
             client_message_id=request.data.get("client_message_id"),
+            attachment=attachment,
         )
         return Response(ChatMessageSerializer(msg).data, status=201)
 
@@ -146,6 +176,58 @@ class LiveChatMessageListCreateView(generics.ListCreateAPIView):
         if self.request.method == "POST":
             return [LiveChatSendRateThrottle()]
         return []
+
+
+class LiveChatAttachmentView(APIView):
+    """Download one chat attachment, authorising the requester first.
+
+    The file is deliberately NOT handed out as a storage URL. On the local
+    filesystem backend a storage URL is a permanently public, guessable
+    /media/ path; on S3 it is a presigned link that anyone holding it can
+    replay until it expires. Both hand the document to whoever has the
+    string. Routing the bytes through here instead means entitlement is
+    re-checked against the requester's own session on every fetch, which is
+    what verifying authorisation server-side actually requires.
+
+    Entitlement is: the player who owns the conversation, or support staff.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, message_id):
+        msg = get_object_or_404(
+            ChatMessage.objects.select_related("ticket"), pk=message_id,
+        )
+        if not msg.attachment:
+            raise Http404
+
+        user = request.user
+        owns_conversation = msg.ticket.user_id == user.id
+        # The same predicate the admin chat views gate on, so agent access to a
+        # document can never be broader than agent access to the conversation.
+        is_support = IsAdminOrSuperAdmin().has_permission(request, self)
+        if not (owns_conversation or is_support):
+            # 404 rather than 403: a stranger should not even learn that the
+            # message exists.
+            raise Http404
+
+        try:
+            fh = msg.attachment.open("rb")
+        except (FileNotFoundError, OSError, ClientError):
+            logger.warning("chat attachment %s missing from storage", msg.pk)
+            raise Http404
+
+        # as_attachment forces a download rather than an in-origin render, so a
+        # crafted document can never execute against this site's origin, and
+        # nosniff stops the browser second-guessing the declared type.
+        resp = FileResponse(
+            fh,
+            as_attachment=True,
+            filename=msg.attachment_name or "attachment",
+        )
+        resp["X-Content-Type-Options"] = "nosniff"
+        resp["Cache-Control"] = "private, no-store"
+        return resp
 
 
 class LiveChatReadView(APIView):
@@ -182,6 +264,11 @@ class AdminLiveChatMessageListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAdminOrSuperAdmin]
     pagination_class = None  # see module docstring, note 1
 
+    # Multipart so a document can ride along with the message. JSON still works
+    # unchanged -- DRF selects the parser from the request's content type, so
+    # every existing text-only client is untouched.
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
     def _ticket(self):
         return get_object_or_404(SupportTicket, pk=self.kwargs["ticket_id"], is_live_chat=True)
 
@@ -191,8 +278,18 @@ class AdminLiveChatMessageListCreateView(generics.ListCreateAPIView):
     def create(self, request, *args, **kwargs):
         ticket = self._ticket()
         text = (request.data.get("message") or "").strip()
-        if not text:
-            return Response({"error": "message is required"}, status=400)
+        attachment = request.FILES.get("attachment")
+
+        # An attachment on its own is a complete message; nothing at all is not.
+        if not text and attachment is None:
+            return Response({"error": "message or attachment is required"}, status=400)
+
+        if attachment is not None:
+            # Validated server-side against the file's own bytes -- never the
+            # filename or Content-Type the client claimed, since both are
+            # attacker-controlled. Raises a DRF ValidationError, rendered as a
+            # 400 carrying the reason the sender needs.
+            validate_uploaded_document(attachment)
         # Same gate as the customer side — resolving ends it for both.
         if not live_chat_service.ticket_accepts_messages(ticket):
             return Response(
@@ -202,6 +299,7 @@ class AdminLiveChatMessageListCreateView(generics.ListCreateAPIView):
         msg = live_chat_service.post_message(
             ticket, "admin", request.user, text,
             client_message_id=request.data.get("client_message_id"),
+            attachment=attachment,
         )
         return Response(ChatMessageSerializer(msg).data, status=201)
 

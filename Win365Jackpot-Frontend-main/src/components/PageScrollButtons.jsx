@@ -1,8 +1,15 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useLauncherHeight } from './support/launcherMetrics'
 import { ChevronUp, ChevronDown } from 'lucide-react'
 
 const BTN = 'clamp(38px, 8vw, 46px)'
+
+// Matches the launcher's own corner inset so the two read as one column.
+const INSET_BOTTOM = 'clamp(20px, 4vw, 26px)'
+const INSET_SIDE = 'clamp(20px, 3vw, 26px)'
+// Breathing room between this control and the launcher below it.
+const STACK_GAP = 'clamp(10px, 2.5vw, 16px)'
 const NAVBAR_OFFSET = 80 // fixed navbar height — matches the offset the CTA anchors already use
 const LONG_PRESS_MS = 500
 const FIRST_SECTION_FALLBACK_PX = 80 // used only before the DOM has any sections to measure
@@ -26,6 +33,9 @@ export default function PageScrollButtons() {
   // Down arrow for the whole page (top through the last section); only flips
   // to up once the user has actually reached the bottom of the page.
   const [atBottom, setAtBottom] = useState(false)
+  // The launcher's measured height, so this control sits clear of it at
+  // whatever size it actually is. See the positioning note below.
+  const launcherHeight = useLauncherHeight()
   const pressTimer = useRef(null)
   const longPressFired = useRef(false)
 
@@ -97,32 +107,30 @@ export default function PageScrollButtons() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: -20 }}
+      initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.25 }}
       className="fixed z-40 flex items-center justify-center"
       style={{
-        // Bottom LEFT, opposite the support launcher.
+        // Bottom RIGHT, stacked clear of the Live Support launcher.
         //
-        // This used to stack above the launcher on the right, deriving its
-        // offset from that launcher's measurements written out by hand:
-        //   bottom clamp(14px,4vw,24px) + height clamp(50px,12vw,60px) + a gap
-        // Two things were wrong with it. The height it quoted is the launcher's
-        // *open* state — the small close button — while the closed state is the
-        // concierge mascot, which has always been taller. And the launcher is
-        // not just the mascot: the greeting bubble sits above it in the same
-        // fixed stack, so the whole thing measures ~166px tall on a desktop.
-        // This control landed inside that, and since the launcher carries z-50
-        // against this z-40, it was painted over rather than merely crowded.
+        // The offset is the launcher's *measured* height, not a written-out
+        // copy of its CSS. That copy is what broke this twice: it quoted the
+        // launcher's open-state height (the small close button) rather than
+        // the concierge mascot that is there when closed, and it ignored the
+        // greeting bubble stacked above the mascot in the same fixed
+        // container. The control ended up inside the launcher and, on z-40
+        // against the launcher's z-50, painted over by it.
         //
-        // Raising it far enough to clear the bubble would strand it ~200px up
-        // the screen, detached from the corner it belongs to. The other corner
-        // is empty, so it moves there instead — which also ends the coupling
-        // for good. Nothing here needs to know the launcher's dimensions any
-        // more, so the two cannot drift apart again the next time either one
-        // is resized.
-        bottom: 'clamp(20px, 4vw, 26px)',
-        left: 'clamp(20px, 3vw, 26px)',
+        // A constant cannot express this even in principle -- the bubble wraps
+        // to a different number of lines at different widths, so the stack is
+        // a different height on different screens. support/launcherMetrics.js
+        // has the launcher publish what it actually measures, via a
+        // ResizeObserver, and this reads that. It therefore stays correct when
+        // the mascot is resized, when the bubble re-wraps, and when the panel
+        // opens and collapses the launcher to its small close button.
+        bottom: `calc(${INSET_BOTTOM} + ${launcherHeight}px + ${STACK_GAP})`,
+        right: INSET_SIDE,
       }}
     >
       <motion.button
