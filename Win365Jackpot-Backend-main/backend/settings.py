@@ -431,12 +431,33 @@ else:
 # back to short-interval incremental polling, which stays correct either
 # way.
 _redis_url = config('REDIS_URL', default='')
+# `socket_timeout` MUST be strictly greater than channels_redis's own
+# `RedisChannelLayer.brpop_timeout` (hardcoded to 5s — it issues a BRPOP with
+# that block duration while a consumer idles waiting for a push). Passing a
+# bare URL string for "hosts" — the obvious way to write this — leaves
+# redis-py's client-side socket read timeout at ITS OWN default, which is
+# ALSO exactly 5s. Those two 5-second clocks then race on every single idle
+# period: Redis genuinely has nothing to report and is about to reply `nil`
+# at t=5.000s, but redis-py's own socket read gives up at essentially the
+# same instant and raises TimeoutError first, almost every time, since the
+# client's timer has no network round-trip to wait out and typically fires
+# a hair earlier. channels_redis's receive loop does not catch this
+# exception, so it kills the whole ASGI application instance for that
+# connection — which is why this looked like "the WebSocket connects, then
+# dies a few seconds later, forever, for every client" rather than a clean
+# failure: nginx sees "recv() failed... while proxying upgraded connection"
+# because daphne itself crashed handling that connection's receive loop.
+# "hosts" has to move from a bare string to channels_redis's
+# {"address": ...} form to carry this — see decode_hosts()/create_pool() in
+# channels_redis/utils.py, which pop "address" and forward every other key
+# straight into redis.asyncio.ConnectionPool.from_url()'s kwargs.
+_redis_socket_timeout = config('REDIS_SOCKET_TIMEOUT', default=20, cast=int)
 if _redis_url:
     CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels_redis.core.RedisChannelLayer",
             "CONFIG": {
-                "hosts": [_redis_url],
+                "hosts": [{"address": _redis_url, "socket_timeout": _redis_socket_timeout}],
                 # Drop rather than block forever if a consumer stops
                 # reading — a wedged socket must never stall the REST
                 # request that is trying to broadcast.
