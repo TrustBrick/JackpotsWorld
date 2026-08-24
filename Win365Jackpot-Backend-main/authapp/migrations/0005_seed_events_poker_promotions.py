@@ -188,11 +188,6 @@ POKER_TOURNAMENTS = [
 
 PROMOTIONS = [
     # India
-    {"country": "India", "country_code": "IN", "casino_name": "Deltin Royale",
-     "title": "150% Welcome Rolling Bonus", "validity_text": "Valid for new sign-ups, 30 days",
-     "bonus_details": "Get 150% rolling bonus credit on your first cash deposit at Deltin Royale.",
-     "benefits": ["Up to ₹75,000 bonus credit", "Instant activation", "Valid on all table games"],
-     "cta_label": "Claim Bonus", "order": 1},
     {"country": "India", "country_code": "IN", "casino_name": "Casino Pride",
      "title": "Weekend Double Rolling Points", "validity_text": "Every Friday–Sunday",
      "bonus_details": "Earn double rolling points on all weekend play at Casino Pride, Goa.",
