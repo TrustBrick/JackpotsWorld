@@ -475,12 +475,44 @@ class VoiceCallParticipantRoutingTests(VoiceCallTestBase):
         self.assertEqual(CallSession.objects.filter(status=STATUS_RINGING).count(), 2)
 
     def test_payload_carries_caller_identity_for_the_agent_card(self):
+        """Name, UID and registered email — the three an agent needs to know
+        which account is on the line before they speak. The email is here on
+        purpose: a display name is optional on these accounts, and without it
+        the card used to read "Customer" and nothing else."""
         call = self._ringing()
         payload = voice_call_service.call_payload(call)
         self.assertEqual(payload["caller_name"], "Ava Player")
         self.assertEqual(payload["caller_uid"], "TESTCAL1")
-        self.assertNotIn("email", payload)
+        self.assertEqual(payload["caller_email"], "caller@example.com")
+        # A player is not an affiliate, so there is no AFF- reference to show.
+        self.assertIsNone(payload["caller_affiliate_id"])
+        # What stays off the wire: the *agent's* contact details, and anything
+        # beyond identity. The caller's own email reaches only their own
+        # conversation and the staff serving it.
+        self.assertNotIn("receiver_email", payload)
+        self.assertNotIn("agent_email", payload)
         self.assertNotIn("phone", payload)
+        self.assertNotIn("balance", payload)
+
+    def test_an_affiliate_caller_is_referenced_the_way_the_inbox_names_them(self):
+        AffiliateProfile.objects.create(user=self.player, is_active=True)
+        call = self._ringing(ticket=self._ticket(participant_type="affiliate"))
+        payload = voice_call_service.call_payload(call)
+        self.assertEqual(payload["caller_affiliate_id"], "AFF-TESTCAL1")
+        self.assertEqual(payload["caller_email"], "caller@example.com")
+
+    def test_the_rest_representation_matches_the_pushed_payload(self):
+        """The card is fed by a socket push or a REST fetch depending on how
+        the agent arrived, so the two must agree on identity or the same call
+        renders differently in the two paths."""
+        call = self._ringing()
+        # Fetched as the caller: a ringing call has no receiver yet, so the
+        # participant scope is the customer's own until an agent claims it.
+        self._as(self.player)
+        res = self.client.get(f"/api/live-chat/calls/{call.pk}/")
+        payload = voice_call_service.call_payload(call)
+        for field in ("caller_name", "caller_uid", "caller_email", "caller_affiliate_id"):
+            self.assertEqual(res.data[field], payload[field], field)
 
 
 # ── Config / ICE ────────────────────────────────────────────────────────────

@@ -75,7 +75,7 @@ from authapp.models.call_models import (
     STATUS_RINGING,
     TERMINAL_STATUSES,
 )
-from authapp.models.support_ticket_models import SupportTicket
+from authapp.models.support_ticket_models import PARTICIPANT_AFFILIATE, SupportTicket
 
 logger = logging.getLogger(__name__)
 
@@ -208,13 +208,35 @@ def _log_event(call, event, actor=None, detail=""):
         logger.exception("voice-call: failed to record %s for call #%s", event, call.pk)
 
 
+def _caller_affiliate_id(call):
+    """AFF-<uid> for an affiliate's call, None for a player's.
+
+    Same derivation as LiveChatSessionSerializer.get_affiliate_id — the panel
+    identifies an affiliate by this reference everywhere else, so the call card
+    must not invent a second way of naming the same person.
+    """
+    if call.ticket.participant_type != PARTICIPANT_AFFILIATE:
+        return None
+    uid = getattr(call.caller, "user_uid", None)
+    return f"AFF-{uid}" if uid else None
+
+
 def call_payload(call):
     """Wire representation shared by REST responses and every push.
 
-    Deliberately minimal: identifiers, state and timing. No email, no phone
-    number, no token. The caller's display name and UID are included because
-    the agent's incoming-call card must show who is calling — the same fields
-    the live-chat inbox already exposes to the same staff audience.
+    Identifiers, state and timing — plus enough of the caller's identity for an
+    agent to answer knowledgeably: display name, UID/affiliate reference, and
+    registered email. The email is here deliberately. An agent picking up a
+    call needs to know *which account* is on the line before they speak, and a
+    display name is not an identifier — plenty of accounts have none set, which
+    left the card reading "Customer". This is the same trio the live-chat inbox
+    already shows to the same staff audience one screen away.
+
+    Still absent, and to stay that way: phone numbers, tokens, wallet balances,
+    and anything at all about the *agent* beyond their display name. The three
+    groups this payload is pushed to are the call's own endpoints, the ticket's
+    own thread, and staff — so the only person's email on the wire is the
+    caller's, reaching their own conversation and the agents serving it.
     """
     caller = call.caller
     return {
@@ -226,6 +248,8 @@ def call_payload(call):
         "caller_id": call.caller_id,
         "caller_name": (getattr(caller, "name", "") or "").strip(),
         "caller_uid": getattr(caller, "user_uid", "") or "",
+        "caller_email": (getattr(caller, "email", "") or "").strip(),
+        "caller_affiliate_id": _caller_affiliate_id(call),
         "receiver_id": call.receiver_id,
         "receiver_name": (getattr(call.receiver, "name", "") or "").strip() if call.receiver_id else "",
         "started_at": call.started_at.isoformat() if call.started_at else None,

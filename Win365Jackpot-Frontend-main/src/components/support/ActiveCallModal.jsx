@@ -64,6 +64,11 @@ export default function ActiveCallModal({
   speakerOn = true,
   speakerSupported = true,
   recordingEnabled = false,
+  // Agent surfaces only. Flips the identity line from "who is serving me" to
+  // "who am I serving", and adds the caller's registered email under it — an
+  // agent needs the account on the line, and `receiver_name` is their own name
+  // when they are the one who answered.
+  showCallerContact = false,
   error,
   onToggleMute,
   onToggleSpeaker,
@@ -78,6 +83,19 @@ export default function ActiveCallModal({
   const ringing = phase === PHASE.CALLING || phase === PHASE.CONNECTING
   const endedDuration = lastEnded?.duration_seconds || 0
 
+  const callerEmail = (call?.caller_email || "").trim()
+  const callerReference = call?.caller_affiliate_id || call?.caller_uid || ""
+  // On an agent's screen the person on the line is the caller; on a customer's
+  // it is the agent who answered.
+  const counterparty = showCallerContact
+    ? (call?.caller_name || callerEmail || "Customer")
+    : (call?.receiver_name || call?.caller_name || "Support")
+  // The agent sees who they answered from the moment they answer, not once
+  // the peer connection settles: the phase headline above already says
+  // "Connecting…", so repeating it here in place of the caller's identity
+  // spends the most useful line on the screen saying nothing.
+  const showCallerEmail = showCallerContact && !!callerEmail && !finished
+
   return (
     <div
       role="dialog"
@@ -86,6 +104,7 @@ export default function ActiveCallModal({
       style={{
         position: "fixed", inset: 0, zIndex: 9998,
         background: theme.overlay,
+        backdropFilter: "blur(3px)",
         display: "flex", alignItems: "center", justifyContent: "center",
         padding: 16,
       }}
@@ -143,13 +162,25 @@ export default function ActiveCallModal({
               )}
         </div>
 
-        <p style={{ margin: "0 0 18px", fontSize: 12.5, color: theme.sub, minHeight: 18 }}>
+        <p style={{
+          margin: showCallerEmail ? "0 0 3px" : "0 0 18px",
+          fontSize: 12.5, color: theme.sub, minHeight: 18,
+        }}>
           {finished
             ? (endedDuration > 0 ? `Duration: ${formatCallDuration(endedDuration)}` : "No conversation took place")
-            : ringing
+            : (ringing && !showCallerContact)
               ? "Connecting…"
-              : (call?.receiver_name || call?.caller_name || "Support")}
+              : counterparty}
         </p>
+        {showCallerEmail && (
+          <p style={{
+            margin: "0 0 16px", fontSize: 11.5, color: theme.muted,
+            wordBreak: "break-all",
+          }}>
+            {callerEmail}
+            {callerReference ? ` · ${callerReference}` : ""}
+          </p>
+        )}
 
         {/* Recording notice. Shown from the moment the call is placed rather
             than once it connects, so it is on screen before anyone has said

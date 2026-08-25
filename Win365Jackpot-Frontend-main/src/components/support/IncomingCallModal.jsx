@@ -1,9 +1,15 @@
 // src/components/support/IncomingCallModal.jsx
 //
-// VOICE-CALL: the agent's incoming-call card. Identifies the customer well
-// enough to answer knowledgeably — display name, user UID, ticket number —
-// and nothing more; email and any other account detail stay in the panel where
-// they already live.
+// VOICE-CALL: the agent's incoming-call card. Identifies the caller well
+// enough to answer knowledgeably: display name, registered email, UID (or the
+// AFF- reference for an affiliate) and ticket number — the same identity the
+// live-chat inbox shows the same staff audience one screen away. The email
+// earns its place because a display name is optional on these accounts: with
+// only a name to go on, an account that has none rendered as "Customer" and
+// left the agent answering a stranger.
+//
+// Nothing beyond identity belongs here — no balances, no phone number. The
+// panel is one click away for the rest.
 
 import React from "react"
 import { motion } from "framer-motion"
@@ -25,7 +31,15 @@ export default function IncomingCallModal({
   if (!call) return null
 
   const isAffiliate = call.participant_type === "affiliate"
-  const displayName = call.caller_name || "Customer"
+  const email = (call.caller_email || "").trim()
+  // Falls back through identity, most human first. The email is a far better
+  // last resort than "Customer": it is who the agent is actually about to
+  // talk to.
+  const displayName = call.caller_name || email || "Customer"
+  // Suppressed when the headline is already the email — the account has no
+  // name set, and printing it twice reads like a rendering bug.
+  const showEmail = !!email && email !== displayName
+  const reference = call.caller_affiliate_id || call.caller_uid
 
   return (
     <div
@@ -35,6 +49,9 @@ export default function IncomingCallModal({
       style={{
         position: "fixed", inset: 0, zIndex: 9998,
         background: theme.overlay,
+        // The dashboard behind a ringing call is noise; blurring it stops the
+        // card having to fight numbers and tables for legibility.
+        backdropFilter: "blur(3px)",
         display: "flex", alignItems: "center", justifyContent: "center",
         padding: 16,
       }}
@@ -88,8 +105,16 @@ export default function IncomingCallModal({
           margin: "0 0 3px", fontSize: 12.5, color: theme.sub,
           fontVariantNumeric: "tabular-nums",
         }}>
-          {call.caller_uid || "—"}
+          {reference || "—"}
         </p>
+        {showEmail && (
+          <p style={{
+            margin: "0 0 4px", fontSize: 12.5, color: theme.text,
+            wordBreak: "break-all", opacity: 0.88,
+          }}>
+            {email}
+          </p>
+        )}
         <p style={{ margin: "0 0 18px", fontSize: 12, color: theme.muted }}>
           Ticket #{call.ticket_id}
           {isAffiliate && (

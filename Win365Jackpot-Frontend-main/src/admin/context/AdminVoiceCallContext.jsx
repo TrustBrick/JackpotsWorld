@@ -119,6 +119,8 @@ export function AdminVoiceCallProvider({ children }) {
         onReject={() => voiceCall.rejectCall(voiceCall.call)}
         theme={callTheme}
       />
+      {/* showCallerContact: this is the agent's own screen, so the identity
+          on it is the caller's — `receiver_name` here is the agent. */}
       <ActiveCallModal
         phase={voiceCall.phase}
         call={voiceCall.call}
@@ -128,6 +130,7 @@ export function AdminVoiceCallProvider({ children }) {
         speakerOn={voiceCall.speakerOn}
         speakerSupported={voiceCall.speakerSupported}
         recordingEnabled={voiceCall.recordingEnabled}
+        showCallerContact
         error={voiceCall.error}
         onToggleMute={voiceCall.toggleMute}
         onToggleSpeaker={voiceCall.toggleSpeaker}
