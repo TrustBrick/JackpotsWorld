@@ -10,7 +10,7 @@
 // and filters nothing itself.
 
 import React, { useCallback, useEffect, useRef, useState } from "react"
-import { Download, Loader2, PhoneOff, PhoneIncoming, PhoneMissed, Play } from "lucide-react"
+import { Download, Loader2, PhoneOff, PhoneIncoming, PhoneMissed, Play, Trash2 } from "lucide-react"
 import { formatCallDuration } from "../../services/voiceCallService"
 import { PUBLIC_CALL_THEME } from "./callTheme"
 
@@ -88,6 +88,11 @@ export default function CallHistoryList({
   // playback anywhere else would render a control that can only ever 403 —
   // the customer's own history says a call happened, not what was said in it.
   canPlayRecordings = false,
+  // Super Admin only, and off by default. Deleting a call destroys the record
+  // of what happened on it — the server enforces that; hiding the control is
+  // courtesy, not the check.
+  canDeleteCalls = false,
+  onDeleted,
 }) {
   const [calls, setCalls] = useState([])
   const [loading, setLoading] = useState(true)
@@ -96,6 +101,12 @@ export default function CallHistoryList({
   const [audio, setAudio] = useState(null)
   const [busyId, setBusyId] = useState(null)
   const [audioError, setAudioError] = useState("")
+  // The row currently asking "are you sure", and the one being deleted. A
+  // second click on the same row is the confirmation: an irreversible action
+  // reached in one click, on a list where the rows look alike, is a mis-click
+  // waiting to happen.
+  const [confirmId, setConfirmId] = useState(null)
+  const [deletingId, setDeletingId] = useState(null)
   const audioRef = useRef(null)
   useEffect(() => { audioRef.current = audio }, [audio])
 
@@ -132,6 +143,35 @@ export default function CallHistoryList({
       setBusyId(null)
     }
   }, [fetcher, apiBase])
+
+  const deleteCall = useCallback(async (call) => {
+    if (deletingId) return
+    setAudioError("")
+    setDeletingId(call.id)
+    try {
+      const res = await fetcher(`${apiBase}/api/admin-panel/live-chat/calls/${call.id}/`, {
+        method: "DELETE",
+      })
+      if (!res?.ok) {
+        const body = await res?.json().catch(() => null)
+        throw new Error(body?.error || "unavailable")
+      }
+      // Drop it locally rather than re-fetching: the row is gone, and a
+      // refetch would make a deliberate action look like a flicker.
+      setCalls(prev => prev.filter(c => c.id !== call.id))
+      setAudio(prev => {
+        if (prev?.id !== call.id) return prev
+        URL.revokeObjectURL(prev.url)
+        return null
+      })
+      onDeleted?.(call)
+    } catch (err) {
+      setAudioError(err?.message || "That call could not be deleted.")
+    } finally {
+      setDeletingId(null)
+      setConfirmId(null)
+    }
+  }, [fetcher, apiBase, deletingId, onDeleted])
 
   const load = useCallback(async () => {
     if (!endpoint) return
@@ -236,6 +276,60 @@ export default function CallHistoryList({
                   </div>
                 )}
               </div>
+
+              {canDeleteCalls && (
+                confirmId === c.id ? (
+                  <span style={{ display: "inline-flex", gap: 5, flexShrink: 0 }}>
+                    <button
+                      type="button"
+                      onClick={() => deleteCall(c)}
+                      disabled={deletingId === c.id}
+                      title={c.has_recording
+                        ? "Delete this call and its recording, permanently"
+                        : "Delete this call permanently"}
+                      style={{
+                        display: "inline-flex", alignItems: "center", gap: 4,
+                        padding: "5px 9px", borderRadius: 7,
+                        border: `1px solid ${theme.red}66`, background: `${theme.red}18`,
+                        color: theme.red, fontSize: 10.5, fontWeight: 700,
+                        cursor: deletingId === c.id ? "wait" : "pointer",
+                      }}
+                    >
+                      {deletingId === c.id
+                        ? <Loader2 size={12} style={{ animation: "jwSpin 0.9s linear infinite" }} />
+                        : <Trash2 size={12} />}
+                      {c.has_recording ? "Delete + audio" : "Delete"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmId(null)}
+                      disabled={deletingId === c.id}
+                      style={{
+                        padding: "5px 9px", borderRadius: 7,
+                        border: `1px solid ${theme.border}`, background: "transparent",
+                        color: theme.sub, fontSize: 10.5, fontWeight: 600, cursor: "pointer",
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmId(c.id)}
+                    title="Delete this call from history"
+                    aria-label="Delete this call from history"
+                    style={{
+                      flexShrink: 0, display: "inline-flex", alignItems: "center",
+                      padding: "5px 7px", borderRadius: 7,
+                      border: `1px solid ${theme.border}`, background: "transparent",
+                      color: theme.muted, cursor: "pointer",
+                    }}
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                )
+              )}
 
               {canPlayRecordings && c.has_recording && audio?.id !== c.id && (
                 <button

@@ -79,6 +79,7 @@ from authapp.models.call_models import (
     VoiceCallSettings,
 )
 from authapp.models.support_ticket_models import PARTICIPANT_AFFILIATE, SupportTicket
+from authapp.models.user_model import ActivityLog
 
 logger = logging.getLogger(__name__)
 
@@ -750,3 +751,71 @@ def attach_recording(agent, call, upload):
         call.pk, call.ticket_id, size, content_type,
     )
     return call
+
+def delete_call(actor, call):
+    """Erase one call from history, audio included.
+
+    Restricted to a super admin. Call history is the audit trail of what
+    happened on a call — who spoke to whom, how long, why it failed, and the
+    ICE summary that says whether a relay was involved — so removing it is an
+    operator decision, not something the agent who handled the call can do to
+    their own record of it.
+
+    Three things happen in order, and the order matters:
+
+    1. The recording file is deleted first. Django has never removed the
+       underlying file when a row goes, so deleting the row alone would leave
+       the customer's recorded voice in the bucket with nothing left pointing
+       at it — the worst of both worlds, since it is then invisible to the
+       panel and impossible to find deliberately.
+    2. An ActivityLog row is written *before* the delete, because CallEvent
+       cascades: once the call is gone, this row is the only durable evidence
+       that it ever existed or that anyone removed it.
+    3. Then the call itself, taking its events with it.
+
+    A live call is refused. Deleting one mid-signaling leaves both browsers
+    holding a call id the server no longer knows, which they can neither end
+    nor recover from.
+    """
+    if not getattr(actor, "is_staff", False) or not getattr(actor, "is_superuser", False):
+        raise CallError(
+            "not_authorized", "Only a Super Admin can delete call history.", status=403,
+        )
+    if call.is_active:
+        raise CallError(
+            "call_in_progress",
+            "This call is still in progress. End it before deleting it.",
+            status=409,
+        )
+
+    had_recording = bool(call.recording)
+    if had_recording:
+        try:
+            call.recording.delete(save=False)
+        except Exception:
+            # A storage object that has already gone (or a bucket hiccup) must
+            # not strand the row: the operator asked for this call to be gone,
+            # and leaving it listed because a file was missing helps nobody.
+            logger.exception("voice-call: could not delete recording for call %s", call.pk)
+
+    call_pk, ticket_id = call.pk, call.ticket_id
+    try:
+        ActivityLog.objects.create(
+            actor=actor,
+            target_user=call.caller,
+            action="call_history_deleted",
+            description=(
+                f"Deleted call #{call_pk} on ticket #{ticket_id} "
+                f"(status={call.status}, duration={call.duration_seconds}s, "
+                f"recording={'deleted' if had_recording else 'none'})"
+            ),
+        )
+    except Exception:
+        logger.exception("voice-call: failed to log deletion of call %s", call_pk)
+
+    call.delete()
+    logger.warning(
+        "voice-call: call=%s ticket=%s DELETED by user=%s recording=%s",
+        call_pk, ticket_id, getattr(actor, "pk", None), had_recording,
+    )
+    return {"id": call_pk, "recording_deleted": had_recording}

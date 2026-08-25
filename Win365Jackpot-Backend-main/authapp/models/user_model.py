@@ -270,6 +270,10 @@ class ActivityLog(models.Model):
         ("notification_sent", "Notification Sent"),
         ("staff_created", "Staff Created"),
         ("settings_changed", "Settings Changed"),
+        # VOICE-CALL: a deleted call takes its own CallEvent log with it
+        # (cascade), so the only durable record that it ever existed is this
+        # row. Written by voice_call_service.delete_call.
+        ("call_history_deleted", "Call History Deleted"),
         ("two_factor_enabled", "Two-Factor Enabled"),
         ("two_factor_disabled", "Two-Factor Disabled"),
         # AFFILIATE-WITHDRAWALS: new choices — safe to remove along with the

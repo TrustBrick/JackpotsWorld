@@ -102,6 +102,10 @@ export default function LiveSupportTab({ onToast }) {
   const recBusyRef = useRef(false);
   useEffect(() => { recBusyRef.current = recBusy; }, [recBusy]);
   const canSwitchRecording = useMemo(() => isSuperAdmin(), []);
+  // Same role, separate name: these are two different powers that happen to
+  // sit with the same person, and reading one variable for both would hide
+  // that if either ever moves.
+  const canDeleteCalls = canSwitchRecording;
   const recordingHint = !recording
     ? ""
     : !recording.recording_available
@@ -578,6 +582,8 @@ export default function LiveSupportTab({ onToast }) {
                   refreshKey={(voiceCall?.lastEnded?.id || 0) + (voiceCall?.recordingSavedAt || 0)}
                   emptyText="No voice calls on this conversation yet"
                   canPlayRecordings
+                  canDeleteCalls={canDeleteCalls}
+                  onDeleted={() => onToast?.("Call deleted from history", true)}
                 />
               </div>
 

@@ -24,6 +24,7 @@ scoping, same "customer routes at api/, agent routes at api/admin-panel/" split.
     GET  /api/admin-panel/live-chat/calls/       agent-visible history
     POST /api/admin-panel/live-chat/calls/<call_id>/recording/   upload audio
     GET  /api/admin-panel/live-chat/calls/<call_id>/recording/   play it back
+    DELETE /api/admin-panel/live-chat/calls/<call_id>/  erase one call
     GET  /api/admin-panel/voice-call-settings/   read the recording switch
     PATCH /api/admin-panel/voice-call-settings/  flip it (super admin only)
 
@@ -427,3 +428,30 @@ class AdminVoiceCallSettingsView(APIView):
             request.user, request.data.get("recording_enabled"),
         )
         return Response(VoiceCallSettingsSerializer(row).data)
+
+
+class AdminCallDeleteView(APIView):
+    """Erase one call from history — the row, its events, and its audio.
+
+    Super Admin only, enforced in voice_call_service.delete_call rather than
+    by the permission class, so the rule lives next to the deletion it guards
+    and applies however the service is reached. Disabling the button for
+    everyone else is courtesy; this is the control.
+
+    DELETE and nothing else: there is deliberately no admin GET on this route.
+    A call's detail is already served by the history list and the participant
+    route, and adding a second read path would be one more place for the
+    scoping rules to drift.
+    """
+
+    permission_classes = [IsAdminOrSuperAdmin]
+
+    def delete(self, request, call_id):
+        call = get_object_or_404(
+            CallSession.objects.select_related("ticket", "caller"), pk=call_id,
+        )
+        try:
+            result = voice_call_service.delete_call(request.user, call)
+        except CallError as exc:
+            return _error(exc)
+        return Response(result, status=200)

@@ -23,6 +23,7 @@ from django.utils import timezone
 from rest_framework.test import APITestCase
 
 from authapp.models.affiliate_models import AffiliateProfile
+from authapp.models.user_model import ActivityLog
 from authapp.models.call_models import (
     VoiceCallSettings,
     CallEvent,
@@ -1200,3 +1201,116 @@ class VoiceCallIceServerTests(VoiceCallTestBase):
         self.assertGreater(expiry, int(time.time()))
         # And never the secret itself.
         self.assertNotIn("s3cret", str(servers))
+
+
+# ── Deleting call history ───────────────────────────────────────────────────
+
+@override_settings(
+    LIVE_CHAT_REALTIME=True,
+    VOICE_CALL_RECORDING_ENABLED=True,
+    MEDIA_ROOT=tempfile.mkdtemp(prefix="jw-media-del-"),
+    VOICE_CALL_RECORDING_ROOT=tempfile.mkdtemp(prefix="jw-rec-del-"),
+)
+class VoiceCallDeleteTests(VoiceCallTestBase):
+    """Deleting a call destroys the audit trail of what happened on it, so
+    these are mostly tests about who may not do it, and about what must not be
+    left behind."""
+
+    def setUp(self):
+        super().setUp()
+        self.plain_agent = User.objects.create_user(
+            email="agent5@example.com", password="pw-Test-1", user_uid="TESTAGT5",
+            is_staff=True, name="Dana Agent",
+        )
+        self.addCleanup(shutil.rmtree, settings.VOICE_CALL_RECORDING_ROOT, True)
+        self.addCleanup(shutil.rmtree, settings.MEDIA_ROOT, True)
+
+    def _url(self, call):
+        return "/api/admin-panel/live-chat/calls/{}/".format(call.pk)
+
+    def _finished_call(self, agent=None):
+        agent = agent or self.agent
+        call = self._ringing()
+        call = voice_call_service.accept_call(agent, call)
+        call = voice_call_service.mark_connected(agent, call)
+        return voice_call_service.end_call(agent, call)
+
+    def test_a_super_admin_can_erase_a_call(self):
+        call = self._finished_call()
+        self._as(self.agent2)  # superuser
+        res = self.client.delete(self._url(call))
+        self.assertEqual(res.status_code, 200)
+        self.assertFalse(CallSession.objects.filter(pk=call.pk).exists())
+
+    def test_the_events_go_with_it(self):
+        call = self._finished_call()
+        self.assertTrue(CallEvent.objects.filter(call_id=call.pk).exists())
+        self._as(self.agent2)
+        self.client.delete(self._url(call))
+        self.assertFalse(CallEvent.objects.filter(call_id=call.pk).exists())
+
+    def test_the_audio_is_deleted_too_not_orphaned_in_storage(self):
+        """The one that is easy to get wrong: Django does not delete the file
+        when the row goes, which would leave the customer's recorded voice in
+        storage with nothing pointing at it."""
+        call = self._finished_call()
+        self._as(self.agent)
+        self.client.post(
+            "/api/admin-panel/live-chat/calls/{}/recording/".format(call.pk),
+            {"file": SimpleUploadedFile("blob", bytes([0x1A, 0x45, 0xDF, 0xA3]) + bytes(2044), "audio/webm")},
+            format="multipart",
+        )
+        call.refresh_from_db()
+        path = call.recording.path
+        self.assertTrue(os.path.exists(path))
+
+        self._as(self.agent2)
+        res = self.client.delete(self._url(call))
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(res.data["recording_deleted"])
+        self.assertFalse(os.path.exists(path), "the recording was left behind in storage")
+
+    def test_the_deletion_outlives_the_call_in_the_account_log(self):
+        """CallEvent cascades, so without this row nothing would record that
+        the call ever existed or that anyone removed it."""
+        call = self._finished_call()
+        self._as(self.agent2)
+        self.client.delete(self._url(call))
+        entry = ActivityLog.objects.filter(action="call_history_deleted").last()
+        self.assertIsNotNone(entry)
+        self.assertEqual(entry.actor_id, self.agent2.id)
+        self.assertEqual(entry.target_user_id, self.player.id)
+        self.assertIn("#{}".format(call.pk), entry.description)
+
+    def test_the_agent_who_handled_the_call_cannot_erase_it(self):
+        """Handled by an ordinary agent on purpose: VoiceCallTestBase makes
+        self.agent a superuser, so using it here would pass for the wrong
+        reason — the property under test is that handling a call gives you no
+        power to erase your own record of it."""
+        call = self._finished_call(agent=self.plain_agent)
+        self._as(self.plain_agent)
+        self.assertEqual(self.client.delete(self._url(call)).status_code, 403)
+        self.assertTrue(CallSession.objects.filter(pk=call.pk).exists())
+
+    def test_an_ordinary_staff_member_cannot_erase_it(self):
+        call = self._finished_call()
+        self._as(self.plain_agent)
+        self.assertEqual(self.client.delete(self._url(call)).status_code, 403)
+        self.assertTrue(CallSession.objects.filter(pk=call.pk).exists())
+
+    def test_the_customer_cannot_erase_their_own_call(self):
+        call = self._finished_call()
+        self._as(self.player)
+        self.assertIn(self.client.delete(self._url(call)).status_code, (401, 403, 404))
+        self.assertTrue(CallSession.objects.filter(pk=call.pk).exists())
+
+    def test_a_live_call_is_refused_rather_than_pulled_out_from_under_it(self):
+        call = self._ringing()
+        self._as(self.agent2)
+        res = self.client.delete(self._url(call))
+        self.assertEqual(res.status_code, 409)
+        self.assertTrue(CallSession.objects.filter(pk=call.pk).exists())
+
+    def test_deleting_something_that_is_not_there_is_a_404(self):
+        self._as(self.agent2)
+        self.assertEqual(self.client.delete("/api/admin-panel/live-chat/calls/999999/").status_code, 404)
