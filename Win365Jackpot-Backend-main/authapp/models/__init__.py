@@ -69,7 +69,7 @@ from .support_ticket_models import SupportTicket, ChatMessage
 
 # VOICE-CALL: new module — safe to delete this import block (and the module
 # itself) to remove the feature. See call_models.py's docstring.
-from .call_models import CallSession, CallEvent
+from .call_models import CallSession, CallEvent, VoiceCallSettings
 
 # SUPPORT-SCRIPT: the standard live-chat wording from the Call & Live Chat
 # Script Manual. Imported here so the app registry sees the model at load

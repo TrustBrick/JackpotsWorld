@@ -9,6 +9,7 @@ decision is a database question, not a transport one.
 import os
 import shutil
 import tempfile
+import time
 from datetime import timedelta
 from itertools import count
 from unittest.mock import patch
@@ -23,6 +24,7 @@ from rest_framework.test import APITestCase
 
 from authapp.models.affiliate_models import AffiliateProfile
 from authapp.models.call_models import (
+    VoiceCallSettings,
     CallEvent,
     CallSession,
     STATUS_ACCEPTED,
@@ -989,3 +991,212 @@ class VoiceCallRecordingTests(VoiceCallTestBase):
             self.assertFalse(
                 self.client.get("/api/live-chat/calls/config/").data["recording_enabled"],
             )
+
+
+# ── The Back Office recording switch ────────────────────────────────────────
+
+@override_settings(LIVE_CHAT_REALTIME=True, VOICE_CALL_RECORDING_ENABLED=True)
+class VoiceCallRecordingSwitchTests(VoiceCallTestBase):
+    """One switch drives the recorder and the customer's notice, so these are
+    really tests that the two can never be told different things."""
+
+    ENDPOINT = "/api/admin-panel/voice-call-settings/"
+
+    def setUp(self):
+        super().setUp()
+        VoiceCallSettings.objects.all().delete()
+        self.plain_agent = User.objects.create_user(
+            email="agent4@example.com", password="pw-Test-1", user_uid="TESTAGT4",
+            is_staff=True, name="Sam Agent",
+        )
+
+    def test_recording_is_on_until_someone_turns_it_off(self):
+        """Adding the switch must not change how a deployment already behaves."""
+        self._as(self.agent)
+        res = self.client.get(self.ENDPOINT)
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(res.data["recording_enabled"])
+        self.assertTrue(res.data["recording_effective"])
+        self.assertTrue(voice_call_service.recording_enabled())
+
+    def test_a_super_admin_can_switch_it_off_and_back_on(self):
+        self._as(self.agent2)  # superuser
+        res = self.client.patch(self.ENDPOINT, {"recording_enabled": False}, format="json")
+        self.assertEqual(res.status_code, 200)
+        self.assertFalse(res.data["recording_enabled"])
+        self.assertFalse(voice_call_service.recording_enabled())
+
+        res = self.client.patch(self.ENDPOINT, {"recording_enabled": True}, format="json")
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(voice_call_service.recording_enabled())
+
+    def test_the_switch_records_who_moved_it(self):
+        self._as(self.agent2)
+        self.client.patch(self.ENDPOINT, {"recording_enabled": False}, format="json")
+        row = VoiceCallSettings.load()
+        self.assertEqual(row.updated_by_id, self.agent2.id)
+
+    def test_an_ordinary_agent_may_look_but_not_touch(self):
+        """An agent silently switching off the recording of their own calls —
+        and with it the notice the customer sees — is the hole this switch is
+        supposed to be, so writes are the operator's alone."""
+        self._as(self.plain_agent)
+        self.assertEqual(self.client.get(self.ENDPOINT).status_code, 200)
+
+        res = self.client.patch(self.ENDPOINT, {"recording_enabled": False}, format="json")
+        self.assertEqual(res.status_code, 403)
+        self.assertTrue(voice_call_service.recording_enabled())
+
+    def test_a_customer_cannot_reach_the_switch_at_all(self):
+        self._as(self.player)
+        self.assertIn(self.client.get(self.ENDPOINT).status_code, (401, 403))
+        self.assertIn(
+            self.client.patch(self.ENDPOINT, {"recording_enabled": False}, format="json").status_code,
+            (401, 403),
+        )
+
+    def test_the_config_endpoint_follows_the_switch(self):
+        """What the switch changes is what both browsers are told — the agent's
+        recorder and the customer's notice come from this one answer."""
+        self._as(self.agent2)
+        self.client.patch(self.ENDPOINT, {"recording_enabled": False}, format="json")
+
+        self._as(self.player)
+        self.assertFalse(self.client.get("/api/live-chat/calls/config/").data["recording_enabled"])
+
+        self._as(self.agent2)
+        self.client.patch(self.ENDPOINT, {"recording_enabled": True}, format="json")
+        self._as(self.player)
+        self.assertTrue(self.client.get("/api/live-chat/calls/config/").data["recording_enabled"])
+
+    @override_settings(VOICE_CALL_RECORDING_ENABLED=False)
+    def test_the_environment_flag_outranks_the_button(self):
+        """A deployment that must not record at all sets the env var, and no
+        Back Office click can override it."""
+        VoiceCallSettings.objects.update_or_create(pk=1, defaults={"recording_enabled": True})
+        self.assertFalse(voice_call_service.recording_enabled())
+
+        self._as(self.agent2)
+        res = self.client.get(self.ENDPOINT)
+        self.assertFalse(res.data["recording_available"])
+        self.assertFalse(res.data["recording_effective"])
+        # The row still says what it says; the environment simply outranks it,
+        # so the panel can show "on, but blocked here" rather than lying.
+        self.assertTrue(res.data["recording_enabled"])
+
+    def test_a_patch_without_the_field_is_refused_rather_than_guessed(self):
+        self._as(self.agent2)
+        self.assertEqual(self.client.patch(self.ENDPOINT, {}, format="json").status_code, 400)
+
+    def test_nothing_is_stored_while_the_switch_is_off(self):
+        """The end-to-end consequence: switch off, and an upload is refused."""
+        self._as(self.agent2)
+        self.client.patch(self.ENDPOINT, {"recording_enabled": False}, format="json")
+
+        call = self._ringing()
+        call = voice_call_service.accept_call(self.agent, call)
+        call = voice_call_service.mark_connected(self.agent, call)
+        call = voice_call_service.end_call(self.agent, call)
+
+        self._as(self.agent)
+        res = self.client.post(
+            f"/api/admin-panel/live-chat/calls/{call.pk}/recording/",
+            {"file": SimpleUploadedFile("blob", bytes([0x1a, 0x45, 0xdf, 0xa3]) + bytes(2044), "audio/webm")},
+            format="multipart",
+        )
+        self.assertEqual(res.status_code, 409)
+        call.refresh_from_db()
+        self.assertFalse(call.recording)
+
+
+# ── Failure diagnosis ───────────────────────────────────────────────────────
+
+class VoiceCallFailureDiagnosisTests(VoiceCallTestBase):
+    """A cross-network call that fails looks identical in history to any other
+    failure unless the browser says what it managed to gather. These cover the
+    detail surviving to the audit row, and not being trusted on the way."""
+
+    def _failed_call(self, detail, reason="connection_failed"):
+        call = self._ringing()
+        self._as(self.player)
+        self.client.post(
+            "/api/live-chat/calls/{}/failed/".format(call.pk),
+            {"reason": reason, "detail": detail},
+            format="json",
+        )
+        call.refresh_from_db()
+        return call
+
+    def test_the_ice_summary_lands_on_the_audit_row(self):
+        call = self._failed_call("ice:l=host+srflx,r=host,turn=0")
+        self.assertEqual(call.status, STATUS_FAILED)
+        self.assertEqual(call.end_reason, "connection_failed")
+
+        event = CallEvent.objects.filter(call=call, event="failed").latest("id")
+        self.assertIn("ice:l=host+srflx,r=host,turn=0", event.detail)
+        # The category still reads exactly as before, so anything keying on
+        # end_reason is unaffected by the extra context.
+        self.assertIn("connection_failed", event.detail)
+
+    def test_a_failure_without_a_summary_still_records_normally(self):
+        call = self._failed_call("")
+        self.assertEqual(call.status, STATUS_FAILED)
+        event = CallEvent.objects.filter(call=call, event="failed").latest("id")
+        self.assertIn("connection_failed", event.detail)
+
+    def test_the_summary_is_filtered_not_trusted(self):
+        """It is a string a browser controls, landing in a row a human reads."""
+        call = self._failed_call("<script>alert(1)</script> ice:l=relay")
+        event = CallEvent.objects.filter(call=call, event="failed").latest("id")
+        # Note the server writes its own "ringing->failed:" prefix, so assert
+        # against the injected markup itself rather than bare punctuation.
+        self.assertNotIn("<script", event.detail)
+        self.assertNotIn("</script", event.detail)
+        self.assertNotIn("alert(1)", event.detail)
+        # The useful part survives the filter.
+        self.assertIn("ice:l=relay", event.detail)
+
+    def test_an_overlong_summary_cannot_fill_the_detail_column(self):
+        call = self._failed_call("ice:" + ("x" * 500))
+        event = CallEvent.objects.filter(call=call, event="failed").latest("id")
+        self.assertLessEqual(len(event.detail), 120)
+
+    def test_the_reason_vocabulary_is_still_closed(self):
+        """detail is free-ish text; reason is not. A browser must not be able
+        to invent an end_reason by routing it through the new field."""
+        call = self._failed_call("ice:l=host", reason="totally_made_up")
+        self.assertEqual(call.end_reason, "connection_failed")
+
+
+class VoiceCallIceServerTests(VoiceCallTestBase):
+    def test_several_stun_servers_are_offered_by_default(self):
+        """One STUN host is a single point of failure for learning your own
+        public address — and a peer with no server-reflexive candidate cannot
+        reach anyone outside its own LAN."""
+        self._as(self.player)
+        servers = self.client.get("/api/live-chat/calls/config/").data["ice_servers"]
+        stun = [u for s in servers for u in s["urls"] if str(u).startswith("stun:")]
+        self.assertGreater(len(stun), 1, "expected more than one STUN server")
+
+    @override_settings(
+        WEBRTC_TURN_URLS=["turn:turn.example.com:3478"],
+        WEBRTC_TURN_STATIC_AUTH_SECRET="s3cret",
+        WEBRTC_TURN_CREDENTIAL_TTL=600,
+    )
+    def test_turn_is_offered_with_a_time_limited_credential(self):
+        """The relay is what makes a call work between two networks that have
+        no direct path. Credentials are minted per request and expire."""
+        self._as(self.player)
+        servers = self.client.get("/api/live-chat/calls/config/").data["ice_servers"]
+        turn = next(
+            (s for s in servers if any(str(u).startswith("turn:") for u in s["urls"])),
+            None,
+        )
+        self.assertIsNotNone(turn, "no TURN entry was served")
+        self.assertTrue(turn["username"])
+        self.assertTrue(turn["credential"])
+        # coturn's use-auth-secret form: "<unix-expiry>:<label>".
+        expiry = int(str(turn["username"]).split(":")[0])
+        self.assertGreater(expiry, int(time.time()))
+        # And never the secret itself.
+        self.assertNotIn("s3cret", str(servers))

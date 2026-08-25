@@ -18,6 +18,7 @@ from authapp.views.voice_call_views import (
     AdminCallHistoryView,
     AdminCallRecordingView,
     AdminCallRejectView,
+    AdminVoiceCallSettingsView,
     CallConnectedView,
     CallDetailView,
     CallEndView,
@@ -49,4 +50,7 @@ admin_urlpatterns = [
     # POST uploads the agent-side recording, GET plays it back. One route,
     # because both verbs act on the same object and share its authorization.
     path("live-chat/calls/<int:call_id>/recording/", AdminCallRecordingView.as_view()),
+    # The recording switch. Not under live-chat/: it is a deployment-wide
+    # setting, not a property of one conversation.
+    path("voice-call-settings/", AdminVoiceCallSettingsView.as_view()),
 ]

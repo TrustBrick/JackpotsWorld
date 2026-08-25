@@ -47,6 +47,8 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
+from django.db.utils import OperationalError, ProgrammingError
+
 from authapp.models.call_models import (
     ACTIVE_STATUSES,
     CallEvent,
@@ -74,6 +76,7 @@ from authapp.models.call_models import (
     STATUS_REJECTED,
     STATUS_RINGING,
     TERMINAL_STATUSES,
+    VoiceCallSettings,
 )
 from authapp.models.support_ticket_models import PARTICIPANT_AFFILIATE, SupportTicket
 
@@ -598,9 +601,18 @@ def end_call(user, call, reason=None):
     return call
 
 
-def fail_call(user, call, reason):
+def fail_call(user, call, reason, detail=""):
     """Negotiation or transport died. Distinct from end_call so the failure
-    category survives in history instead of looking like a normal hangup."""
+    category survives in history instead of looking like a normal hangup.
+
+    `detail` is an already-sanitised ICE summary from the browser (see
+    sanitize_failure_detail) recording which candidate types each side
+    gathered. It goes on the audit row rather than into end_reason, because
+    end_reason is a fixed vocabulary the admin UI and analytics both key on —
+    but "why did that fail" needs more resolution than a category. With it, a
+    cross-network failure says `ice:l=host+srflx,r=host,turn=0`, which names
+    the cause; without it every failure looks the same.
+    """
     expire_if_due(call)
     if call.status in TERMINAL_STATUSES:
         return call
@@ -620,7 +632,10 @@ def fail_call(user, call, reason):
     )
     call.refresh_from_db()
     if updated:
-        _log_event(call, EVENT_FAILED, user, f"{before}->failed:{reason}")
+        note = f"{before}->failed:{reason}"
+        if detail:
+            note = f"{note} {detail}"
+        _log_event(call, EVENT_FAILED, user, note)
         logger.warning(
             "voice-call: call=%s ticket=%s transition=%s->failed reason=%s",
             call.pk, call.ticket_id, before, reason,
@@ -632,14 +647,48 @@ def fail_call(user, call, reason):
 # ── Recording ───────────────────────────────────────────────────────────────
 
 def recording_enabled():
-    """Whether calls on this deployment are recorded.
+    """Whether calls on this deployment are recorded, right now.
+
+    Two levels, and both must say yes. `settings.VOICE_CALL_RECORDING_ENABLED`
+    is the hard master switch an operator sets per environment; the
+    VoiceCallSettings row is the day-to-day one the Back Office flips. Env
+    False means no button anywhere can turn recording on — which is what a
+    deployment in a jurisdiction requiring explicit consent needs.
 
     Reported to both browsers by the config endpoint so the agent's recorder
-    and the customer's "this call is recorded" notice are driven by one flag.
+    and the customer's "this call is recorded" notice are driven by one answer.
     They must never disagree — a recording made without the notice showing is
-    the failure mode this single source of truth exists to prevent.
+    the failure mode this single source of truth exists to prevent. That is
+    also why this is not cached: a stale answer is exactly a disagreement.
     """
-    return bool(getattr(settings, "VOICE_CALL_RECORDING_ENABLED", False))
+    if not bool(getattr(settings, "VOICE_CALL_RECORDING_ENABLED", False)):
+        return False
+    try:
+        return bool(VoiceCallSettings.load().recording_enabled)
+    except (OperationalError, ProgrammingError):
+        # The row's table not existing yet (mid-migration, or a deploy that has
+        # not run 0076) must not take calling down with it. Fall back to the
+        # environment's answer, which is what the flag meant before the switch
+        # existed.
+        logger.warning("voice-call: VoiceCallSettings unavailable; using the env flag")
+        return True
+
+
+def set_recording_enabled(actor, enabled):
+    """Flip the day-to-day switch, recording who did it.
+
+    Returns the settings row. Does not touch the master env flag, so this can
+    only ever narrow what the environment already permits.
+    """
+    row = VoiceCallSettings.load()
+    row.recording_enabled = bool(enabled)
+    row.updated_by = actor if getattr(actor, "pk", None) else None
+    row.save(update_fields=["recording_enabled", "updated_by", "updated_at"])
+    logger.info(
+        "voice-call: recording switched %s by user=%s",
+        "on" if row.recording_enabled else "off", getattr(actor, "pk", None),
+    )
+    return row
 
 
 def attach_recording(agent, call, upload):

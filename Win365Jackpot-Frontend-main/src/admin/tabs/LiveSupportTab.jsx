@@ -3,7 +3,7 @@
 // SupportTicket model; this one only shows is_live_chat=True sessions and
 // talks over authapp's live-chat REST + WebSocket API.
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { LifeBuoy, Send, RefreshCw, CheckCircle2, Volume2, VolumeX } from "lucide-react";
+import { LifeBuoy, Send, RefreshCw, CheckCircle2, Volume2, VolumeX, Disc, CircleSlash } from "lucide-react";
 import { API, adminFetch, fmtDT } from "../helpers";
 import { Card, Btn, Spinner } from "../components/SharedUI";
 import { useAdminTheme } from "../context/AdminThemeContext";
@@ -20,6 +20,16 @@ import { adminCallTheme } from "../../components/support/callTheme";
 import { openAttachment } from "../../services/attachments";
 
 const SOUND_PREF_KEY = "admin_live_chat_sound";
+
+// VOICE-CALL: the deployment-wide recording switch. Server-side state, not a
+// local preference like the chime above — it governs whether *customers* are
+// recorded and whether they are told so, which is not a per-browser choice.
+const RECORDING_ENDPOINT = "/api/admin-panel/voice-call-settings/";
+
+function isSuperAdmin() {
+  try { return !!JSON.parse(localStorage.getItem("admin_user") || "null")?.is_superuser; }
+  catch { return false; }
+}
 
 // Player and affiliate conversations share the SupportTicket table and are
 // told apart by participant_type (set server-side from the portal the chat
@@ -70,6 +80,21 @@ export default function LiveSupportTab({ onToast }) {
   const [connStatus, setConnStatus] = useState("connecting");
   const [soundOn, setSoundOn] = useState(() => localStorage.getItem(SOUND_PREF_KEY) !== "off");
   const [filter, setFilter] = useState("all");
+  // null until loaded; the button renders nothing rather than guessing a state
+  // it does not know — showing "Recording off" while the server says on would
+  // be worse than showing nothing.
+  const [recording, setRecording] = useState(null);
+  const [recBusy, setRecBusy] = useState(false);
+  const canSwitchRecording = useMemo(() => isSuperAdmin(), []);
+  const recordingHint = !recording
+    ? ""
+    : !recording.recording_available
+      ? "Recording is switched off for this whole environment (VOICE_CALL_RECORDING_ENABLED). No button here can turn it on."
+      : !canSwitchRecording
+        ? "Only a Super Admin can change call recording."
+        : recording.recording_effective
+          ? "Recording is ON — customers are told so while the call rings. Click to turn it off."
+          : "Recording is OFF — nothing is stored and no notice is shown. Click to turn it on.";
 
   const socketRef = useRef(null);
   const selectedIdRef = useRef(null);
@@ -99,6 +124,50 @@ export default function LiveSupportTab({ onToast }) {
       return next;
     });
   };
+
+  // ── Recording switch ──────────────────────────────────────────────────────
+  // Read on mount by every agent (the state is not a secret from the people
+  // making the calls) and writable only by a Super Admin — the server enforces
+  // that; disabling the button is courtesy, not the control.
+  const loadRecording = useCallback(async () => {
+    try {
+      const r = await adminFetch(`${API}${RECORDING_ENDPOINT}`);
+      const j = await r?.json();
+      if (j && typeof j.recording_enabled === "boolean") setRecording(j);
+    } catch { /* the tab still works without the switch */ }
+  }, []);
+
+  useEffect(() => { loadRecording(); }, [loadRecording]);
+
+  const toggleRecording = useCallback(async () => {
+    if (!recording || recBusy) return;
+    const next = !recording.recording_effective;
+    setRecBusy(true);
+    try {
+      const r = await adminFetch(`${API}${RECORDING_ENDPOINT}`, {
+        method: "PATCH",
+        body: JSON.stringify({ recording_enabled: next }),
+      });
+      const j = await r?.json().catch(() => null);
+      if (r?.ok && j) {
+        setRecording(j);
+        // Says what changed for *customers*, not just what the flag now reads:
+        // switching this off also removes the notice they are shown.
+        onToast?.(
+          j.recording_effective
+            ? "Call recording on — customers are notified while the call rings"
+            : "Call recording off — no audio stored, and no notice shown",
+          true,
+        );
+      } else {
+        onToast?.(j?.error || "Could not change call recording", false);
+      }
+    } catch {
+      onToast?.("Could not change call recording", false);
+    } finally {
+      setRecBusy(false);
+    }
+  }, [recording, recBusy, onToast]);
 
   const loadSessions = useCallback(async () => {
     try {
@@ -303,6 +372,27 @@ export default function LiveSupportTab({ onToast }) {
           </span>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
+          {recording && (
+            /* The tooltip lives on a wrapper, not on the button: a disabled
+               button receives no pointer events, so a title on it is invisible
+               in exactly the two cases that need explaining — not a Super
+               Admin, or switched off for the whole environment. */
+            <span title={recordingHint} style={{ display: "inline-flex" }}>
+              <Btn
+                outline
+                small
+                onClick={toggleRecording}
+                disabled={recBusy || !canSwitchRecording || !recording.recording_available}
+                style={{
+                  color: recording.recording_effective ? C.red : C.muted,
+                  borderColor: recording.recording_effective ? `${C.red}66` : C.border,
+                }}
+              >
+                {recording.recording_effective ? <Disc size={12} /> : <CircleSlash size={12} />}
+                {" "}Recording {recording.recording_effective ? "on" : "off"}
+              </Btn>
+            </span>
+          )}
           <Btn outline small onClick={toggleSound}>
             {soundOn ? <Volume2 size={12} /> : <VolumeX size={12} />} Sound {soundOn ? "on" : "off"}
           </Btn>

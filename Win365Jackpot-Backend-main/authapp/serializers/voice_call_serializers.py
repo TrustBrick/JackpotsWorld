@@ -5,9 +5,10 @@ are decided by voice_call_service alone — there is no endpoint anywhere that
 lets a client write them, so exposing a writable serializer would only create
 a way to get that wrong later.
 """
+from django.conf import settings as django_settings
 from rest_framework import serializers
 
-from authapp.models.call_models import CallSession
+from authapp.models.call_models import CallSession, VoiceCallSettings
 from authapp.models.support_ticket_models import PARTICIPANT_AFFILIATE
 
 
@@ -66,3 +67,40 @@ class CallSessionSerializer(serializers.ModelSerializer):
         if not obj.recording:
             return None
         return f"/api/admin-panel/live-chat/calls/{obj.pk}/recording/"
+
+
+class VoiceCallSettingsSerializer(serializers.ModelSerializer):
+    """What the Back Office switch reads and writes.
+
+    `recording_available` is the environment's master flag, read-only: where
+    it is False the switch cannot turn recording on, and the panel needs to
+    say so rather than offer a button that silently does nothing.
+    `recording_effective` is the answer the browsers actually get, i.e. both
+    levels combined — the same value the config endpoint reports, so the panel
+    and the call surfaces can never appear to disagree.
+    """
+    recording_available = serializers.SerializerMethodField()
+    recording_effective = serializers.SerializerMethodField()
+    updated_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = VoiceCallSettings
+        fields = [
+            "recording_enabled", "recording_available", "recording_effective",
+            "updated_at", "updated_by_name",
+        ]
+        read_only_fields = [
+            "recording_available", "recording_effective", "updated_at", "updated_by_name",
+        ]
+
+    def get_recording_available(self, obj):
+        return bool(getattr(django_settings, "VOICE_CALL_RECORDING_ENABLED", False))
+
+    def get_recording_effective(self, obj):
+        return self.get_recording_available(obj) and bool(obj.recording_enabled)
+
+    def get_updated_by_name(self, obj):
+        if not obj.updated_by_id:
+            return ""
+        who = obj.updated_by
+        return (getattr(who, "name", "") or getattr(who, "email", "") or "").strip()

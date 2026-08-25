@@ -30,6 +30,11 @@ const PORTAL_TOKEN_KEYS = { player: "access", affiliate: "affiliate_token" }
 // /api/live-chat/start/ and that value wins.
 const LIVE_POLL_MS = 2000
 
+// How long a queued call waits for the socket before giving up and saying so.
+// Generous enough for a slow mobile handshake, short enough that nobody is left
+// staring at a button that already swallowed their tap.
+const CALL_QUEUE_TIMEOUT_MS = 12000
+
 const WELCOME = { role: "bot", text: "Welcome to Jackpots World Customer Support! 🎰\nI'm here to help with your account, deposits, withdrawals, KYC, gameplay and more. Ask me anything — and if I can't resolve it, I'll get our team on it." }
 
 // Rendered height of the floating concierge avatar. Deliberately small: it is
@@ -607,6 +612,11 @@ export default function ChatBot({ portal = "player" }) {
      whether startLiveChat succeeded: `mode` read after an await is the value
      from before it, and queuing a call that can never be placed would leave
      the button stuck. */
+  // Calling needs a genuinely open socket; chat does not. Kept as one named
+  // condition so the button's disabled state and the dial gate below cannot
+  // drift apart.
+  const callBlockedByTransport = mode === "live" && liveConnStatus !== "open"
+
   const requestCall = useCallback(async () => {
     if (mode === "live" && liveConnStatus === "open") {
       voiceCall.startCall()
@@ -617,8 +627,12 @@ export default function ChatBot({ portal = "player" }) {
       await startLiveChat()
       return
     }
+    // Queued rather than refused even when the socket is not open yet: on a
+    // slow mobile handshake it very often comes up a second or two later and
+    // the call simply connects. If it does not, the bounded queue above says
+    // so. Refusing outright here would fail the recoverable case too.
     setCallRequested(true)
-    await startLiveChat()
+    if (mode !== "live") await startLiveChat()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, liveConnStatus, voiceCall, tokenKey])
 
@@ -633,6 +647,29 @@ export default function ChatBot({ portal = "player" }) {
       voiceCall.startCall()
     }
   }, [callRequested, mode, liveConnStatus, voiceCall])
+
+  // A queued call that never dials used to sit there silently forever. The
+  // dial condition below requires an *open* WebSocket, because signaling has
+  // nowhere to go while the transport is polling - but polling is a perfectly
+  // good state for chat, so the header goes green and the player is told
+  // everything is fine while their call quietly never happens. On a mobile
+  // network that falls back to polling, that was the whole experience: tap the
+  // button, watch it disappear, no ring, no error.
+  //
+  // So the queue is bounded. If the socket has not come up by now it is not
+  // going to in a useful timeframe, and saying so is far better than a control
+  // that ate the tap.
+  useEffect(() => {
+    if (!callRequested) return undefined
+    const timer = setTimeout(() => {
+      setCallRequested(false)
+      setMessages(prev => [...prev, {
+        role: "bot",
+        text: "I couldn't start a voice call on this connection. Chat is working normally, so send a message here and an agent will reply - or try calling again on Wi-Fi.",
+      }])
+    }, CALL_QUEUE_TIMEOUT_MS)
+    return () => clearTimeout(timer)
+  }, [callRequested])
 
   // Closing the widget abandons a queued call rather than having it ring the
   // next time the panel opens.
@@ -1044,14 +1081,18 @@ export default function ChatBot({ portal = "player" }) {
                   requestCall handles the rest: dial now if the session is
                   already live, prompt sign-in if signed out, otherwise open the
                   session first and dial when it is genuinely ready. */}
-              {voiceCall.available
-                && voiceCall.phase === PHASE.IDLE
-                && (mode !== "live" || liveConnStatus === "open") && (
+              {voiceCall.available && voiceCall.phase === PHASE.IDLE && (
                 <button
                   onClick={requestCall}
                   disabled={voiceCall.isBusy || callRequested}
                   aria-label="Call Support"
-                  title={callRequested ? "Connecting you to an agent…" : "Call Support"}
+                  title={
+                    callRequested
+                      ? "Connecting you to an agent…"
+                      : callBlockedByTransport
+                        ? "Reconnecting - calling may not be available yet. Chat still works."
+                        : "Call Support"
+                  }
                   style={{
                     background: "rgba(212,175,55,0.14)", border: "1px solid rgba(212,175,55,0.4)",
                     borderRadius: "50%", width: 28, height: 28,

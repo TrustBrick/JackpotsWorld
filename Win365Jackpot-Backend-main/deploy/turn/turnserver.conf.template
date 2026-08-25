@@ -1,0 +1,92 @@
+# coturn configuration for JackpotsWorld in-app voice calls.
+#
+# Placeholders are filled in by install-coturn.sh:
+#   __PUBLIC_IP__   the instance's Elastic IP
+#   __PRIVATE_IP__  the instance's VPC address
+#   __SECRET__      the value also set as WEBRTC_TURN_STATIC_AUTH_SECRET on EB
+#   __REALM__       e.g. jackpotsworld.vip
+#
+# ── Why a relay exists at all ────────────────────────────────────────────────
+# WebRTC prefers a direct peer-to-peer path and only falls back to relaying
+# when it has to. It has to whenever neither side can be reached directly —
+# symmetric NAT, carrier-grade NAT (the norm on mobile data), and locked-down
+# corporate firewalls. Without this server those calls ring, connect, and carry
+# no audio at all. With it, they simply work; the cost is that the audio for
+# those calls flows through this box.
+
+# ── Network ─────────────────────────────────────────────────────────────────
+listening-port=3478
+# TLS. 443 rather than the standard 5349 on purpose: restrictive networks that
+# block everything else almost always still allow outbound 443, so this is the
+# port that rescues the hardest cases. Nothing else runs on this instance, so
+# there is no conflict to avoid.
+tls-listening-port=443
+
+listening-ip=__PRIVATE_IP__
+relay-ip=__PRIVATE_IP__
+# Essential on EC2. The instance only ever sees its private address, so without
+# this coturn advertises an unreachable candidate and every relayed call fails
+# in a way that looks exactly like having no relay at all.
+external-ip=__PUBLIC_IP__/__PRIVATE_IP__
+
+# One UDP port per active relay allocation. This range is far more than a
+# support desk needs and keeps the security-group rule narrow; widen both
+# together if you ever exhaust it.
+min-port=49152
+max-port=49500
+
+# ── Authentication ──────────────────────────────────────────────────────────
+# Time-limited credentials (coturn's use-auth-secret / the WebRTC REST scheme).
+# The backend mints username="<unix-expiry>:jackpotsworld" and
+# password=base64(HMAC-SHA1(secret, username)) per config request — see
+# authapp/services/voice_call_service._turn_credentials. Both sides derive the
+# same password from this shared secret, so a credential scraped out of a
+# browser stops working within the TTL instead of being a permanent key.
+use-auth-secret
+static-auth-secret=__SECRET__
+realm=__REALM__
+
+# ── TLS ─────────────────────────────────────────────────────────────────────
+# Filled in by certbot; see README.md. Comment these two out to run without
+# TLS — plain turn: on 3478 still works for most networks, it just loses the
+# fallback that gets through the strictest ones.
+cert=/etc/letsencrypt/live/__TURN_HOST__/fullchain.pem
+pkey=/etc/letsencrypt/live/__TURN_HOST__/privkey.pem
+no-tlsv1
+no-tlsv1_1
+
+# ── Hardening ───────────────────────────────────────────────────────────────
+# A TURN server relays traffic on behalf of strangers, so an unrestricted one
+# is both a bandwidth donation to whoever finds it and a way to reach anything
+# this instance can reach. These denials are what stop it being used as a
+# route into the VPC, the metadata service, or localhost.
+denied-peer-ip=0.0.0.0-0.255.255.255
+denied-peer-ip=10.0.0.0-10.255.255.255
+denied-peer-ip=100.64.0.0-100.127.255.255
+denied-peer-ip=127.0.0.0-127.255.255.255
+denied-peer-ip=169.254.0.0-169.254.255.255
+denied-peer-ip=172.16.0.0-172.31.255.255
+denied-peer-ip=192.168.0.0-192.168.255.255
+denied-peer-ip=224.0.0.0-255.255.255.255
+denied-peer-ip=::1
+denied-peer-ip=fc00::-fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff
+denied-peer-ip=fe80::-febf:ffff:ffff:ffff:ffff:ffff:ffff:ffff
+
+no-multicast-peers
+# The admin CLI listens on loopback with a weak default; nothing here needs it.
+no-cli
+# Caps how much one client can hold open, so a single abuser cannot exhaust
+# the relay port range for everyone else.
+user-quota=12
+total-quota=600
+stale-nonce=600
+fingerprint
+
+# ── Logging ─────────────────────────────────────────────────────────────────
+# syslog keeps this in journalctl with the rest of the instance rather than
+# growing an unrotated file.
+syslog
+# Per-session logs are large and contain peer addresses; the summary is enough
+# to confirm allocations are happening.
+no-stdout-log
+simple-log

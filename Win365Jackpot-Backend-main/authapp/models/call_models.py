@@ -168,6 +168,49 @@ RECORDING_CONTENT_TYPES = {
 }
 
 
+class VoiceCallSettings(models.Model):
+    """Singleton (pk=1) holding the switches an operator flips day to day.
+
+    Same shape as SupportSettings/LandingSettings, and the same two-level
+    arrangement: `settings.VOICE_CALL_RECORDING_ENABLED` (env) is the hard
+    master switch and this row is the day-to-day one. A deployment that must
+    not record at all — a jurisdiction requiring explicit consent, say — sets
+    the env var False and no Back Office button can override it. Where the env
+    var permits recording, this row decides.
+
+    The default is True so that adding the switch changed nothing about how a
+    deployment already behaves; turning it off is a deliberate act, and one
+    worth attributing, hence updated_by.
+
+    Read on every config request rather than cached: the whole point is that
+    flipping it takes effect on the next call, and the alternative — a stale
+    cache — means the agent's recorder and the customer's notice can disagree,
+    which is the one thing this feature must never do.
+    """
+    recording_enabled = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="+",
+    )
+
+    class Meta:
+        verbose_name = "Voice call settings"
+        verbose_name_plural = "Voice call settings"
+
+    def __str__(self):
+        return "Voice Call Settings"
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def load(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+
 class CallSession(models.Model):
     ticket = models.ForeignKey(
         "authapp.SupportTicket", on_delete=models.CASCADE, related_name="call_sessions",

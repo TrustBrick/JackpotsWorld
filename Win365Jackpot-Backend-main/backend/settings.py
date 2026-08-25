@@ -672,23 +672,46 @@ POKER_RSS_FEEDS = [u.strip() for u in config("POKER_RSS_FEEDS", default="").spli
 # firewalls, where a direct peer-to-peer path cannot be established at all;
 # without it those users get a call that rings, connects and then carries no
 # audio. Configure it in production.
+# Several STUN hosts, not one. A browser only needs a single reachable server
+# to learn its own public address, but if that one host is blocked, rate
+# limited or slow on the caller's network it gathers no server-reflexive
+# candidate at all — and a peer with only host candidates can never connect to
+# anyone outside its own LAN. Extra entries cost nothing (ICE queries them in
+# parallel and uses whichever answers) and remove that single point of failure.
+_DEFAULT_STUN_URLS = (
+    "stun:stun.l.google.com:19302,"
+    "stun:stun1.l.google.com:19302,"
+    "stun:stun2.l.google.com:19302,"
+    "stun:stun.cloudflare.com:3478"
+)
+# A blank value means "unset", not "no STUN servers". Without this, copying
+# .env.example's empty `WEBRTC_STUN_URLS=` into a real .env would leave every
+# browser with host candidates only — calls would work on a shared LAN and fail
+# everywhere else, which is a miserable thing to debug from the symptom.
 WEBRTC_STUN_URLS = [
-    u.strip() for u in config(
-        "WEBRTC_STUN_URLS", default="stun:stun.l.google.com:19302",
-    ).split(",") if u.strip()
+    u.strip()
+    for u in (config("WEBRTC_STUN_URLS", default="").strip() or _DEFAULT_STUN_URLS).split(",")
+    if u.strip()
 ]
 WEBRTC_TURN_URLS = [
     u.strip() for u in config("WEBRTC_TURN_URLS", default="").split(",") if u.strip()
 ]
-WEBRTC_TURN_USERNAME = config("WEBRTC_TURN_USERNAME", default="")
-WEBRTC_TURN_CREDENTIAL = config("WEBRTC_TURN_CREDENTIAL", default="")
+# .strip() is load-bearing, not tidiness. These are pasted into a console by
+# hand, and a credential copied from a terminal line like "username: jwturn"
+# very easily carries a leading space. coturn then rejects it as a different
+# user entirely, and the symptom is a relay that authenticates from the server
+# but not from the app - which reads as a broken relay rather than a stray
+# character. The URL list below is already stripped per entry; this is the
+# other half of that.
+WEBRTC_TURN_USERNAME = config("WEBRTC_TURN_USERNAME", default="").strip()
+WEBRTC_TURN_CREDENTIAL = config("WEBRTC_TURN_CREDENTIAL", default="").strip()
 
 # Optional shared secret for time-limited TURN credentials (coturn's
 # `use-auth-secret` / RFC 5766 REST API). When set, the ICE endpoint mints a
 # short-lived username/password per request instead of handing out the static
 # WEBRTC_TURN_USERNAME/CREDENTIAL pair, so a credential scraped from one
 # browser stops working within the TTL. Leave blank to use static credentials.
-WEBRTC_TURN_STATIC_AUTH_SECRET = config("WEBRTC_TURN_STATIC_AUTH_SECRET", default="")
+WEBRTC_TURN_STATIC_AUTH_SECRET = config("WEBRTC_TURN_STATIC_AUTH_SECRET", default="").strip()
 WEBRTC_TURN_CREDENTIAL_TTL = config("WEBRTC_TURN_CREDENTIAL_TTL", default=3600, cast=int)
 
 # How long an unanswered call rings before the backend marks it "missed".
@@ -728,9 +751,12 @@ VOICE_CALL_RECORDING_ENABLED = config(
 # enumerable by anyone. Sitting next to it (rather than under BASE_DIR) also
 # keeps recordings outside /var/app/current on Elastic Beanstalk, so a deploy
 # does not delete them. See authapp/storage_backends.get_call_recording_storage.
-VOICE_CALL_RECORDING_ROOT = config(
-    "VOICE_CALL_RECORDING_ROOT",
-    default=os.path.join(os.path.dirname(MEDIA_ROOT.rstrip(os.sep)), "call-recordings"),
+# Blank means "unset" here too: an empty value would otherwise resolve to the
+# process's working directory, scattering call audio wherever the app happens
+# to have been started from.
+VOICE_CALL_RECORDING_ROOT = (
+    config("VOICE_CALL_RECORDING_ROOT", default="").strip()
+    or os.path.join(os.path.dirname(MEDIA_ROOT.rstrip(os.sep)), "call-recordings")
 )
 # Opus at MediaRecorder's default bitrate runs ~1 MB per 10 minutes, so this is
 # roughly a two-hour ceiling — generous for a support call, and a hard stop on

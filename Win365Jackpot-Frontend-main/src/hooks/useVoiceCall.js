@@ -223,8 +223,13 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
   // call as an ordinary hangup and throws the category away. Call history is
   // how "calls fail on some networks" gets counted, so it has to record what
   // actually happened.
-  const reportFailed = useCallback((id, reason) => {
-    post(`${adminPrefix}/live-chat/calls/${id}/failed/`, { reason }).catch(() => {})
+  const reportFailed = useCallback((id, reason, detail) => {
+    // `detail` is the ICE summary (see voiceCallService.iceSummary) — which
+    // candidate types each side managed to gather. It is what turns "the call
+    // failed" in history into "neither side had a relay candidate", which is
+    // the difference between a config problem and a missing TURN server.
+    post(`${adminPrefix}/live-chat/calls/${id}/failed/`, { reason, detail })
+      .catch(() => {})
   }, [post, adminPrefix])
 
   // ── Recording upload ──────────────────────────────────────────────────────
@@ -270,7 +275,7 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
         audioRef.current.play?.().catch(() => {})
       }
     },
-    onState: (s) => {
+    onState: (s, detail) => {
       const current = callRef.current
       if (s === "connected") {
         applyPhase(PHASE.CONNECTED)
@@ -279,7 +284,7 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
         setError("Connection lost. Trying to reconnect...")
       } else if (s === "failed") {
         setError("The call could not be maintained. Please try again.")
-        if (current?.id) reportFailed(current.id, "connection_failed")
+        if (current?.id) reportFailed(current.id, "connection_failed", detail)
         finish(current, PHASE.FAILED)
       }
     },
@@ -340,7 +345,9 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
       if (phaseRef.current !== PHASE.CONNECTING) return
       const current = callRef.current
       setError("The call could not be connected. Please try again.")
-      if (current?.id) reportFailed(current.id, "connection_failed")
+      if (current?.id) {
+        reportFailed(current.id, "connection_failed", engineRef.current?.iceDiagnosis)
+      }
       finish(current, PHASE.FAILED)
     }, NEGOTIATION_TIMEOUT_MS)
     return () => clearTimeout(timer)
@@ -352,7 +359,21 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
       setError("Your browser doesn't support voice calls. Try the latest Chrome, Edge, Firefox or Safari.")
       return
     }
-    if (!config.available || !ticketId) return
+    // Previously a bare `return`. Both of these are reachable from a real tap
+    // - a deployment that cannot carry calls, and a session whose ticket has
+    // not landed yet - and both looked identical to the player: the button
+    // consumed the tap and nothing happened, with nothing on screen to explain
+    // it. Routing through FAILED means the modal actually renders the reason
+    // and then dismisses itself, instead of the tap vanishing.
+    if (!config.available || !ticketId) {
+      setError(
+        !config.available
+          ? "Voice calling isn't available right now. Please send a message and an agent will reply."
+          : "Your support session isn't ready yet. Please try again in a moment.",
+      )
+      finish(null, PHASE.FAILED)
+      return
+    }
     setError("")
     applyPhase(PHASE.CALLING)
 
@@ -521,7 +542,7 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
         // want to show a "muted" badge for the other party.
       } catch {
         setError("The call could not be maintained. Please try again.")
-        reportFailed(current.id, "connection_failed")
+        reportFailed(current.id, "connection_failed", engineRef.current?.iceDiagnosis)
         finish(current, PHASE.FAILED)
       }
       return

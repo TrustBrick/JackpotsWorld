@@ -142,7 +142,40 @@ export function createCallEngine({
   let recordingCtx = null
   let recordingSink = null
 
-  const emitState = (s) => { if (!closed) onState?.(s) }
+  // ── ICE diagnosis ─────────────────────────────────────────────────────────
+  // Which *kinds* of candidate each side managed to gather is the whole
+  // difference between "STUN is misconfigured" and "this pair of networks
+  // needs a relay", and after a call has failed it is the only way to tell
+  // them apart. Without it every cross-network failure looks identical in
+  // history and the next question is always a guess.
+  //
+  //   host  — a LAN address. Two peers on the same network need nothing else,
+  //           which is exactly why same-office calls work when nothing else does.
+  //   srflx — the peer's public address, learned from STUN. No srflx on either
+  //           side means STUN never answered, and no call can leave the LAN.
+  //   relay — a TURN relay. The only candidate that still works when both
+  //           sides are behind symmetric or carrier-grade NAT.
+  const iceSeen = { local: new Set(), remote: new Set() }
+
+  const candidateType = (candidate) => {
+    if (!candidate) return null
+    if (candidate.type) return candidate.type
+    const m = /(?:^| )typ (\w+)/.exec(candidate.candidate || "")
+    return m ? m[1] : null
+  }
+
+  const hasTurnConfigured = () => (iceServers || []).some(server =>
+    [].concat(server?.urls || []).some(u => String(u).toLowerCase().startsWith("turn")),
+  )
+
+  /** Compact, non-sensitive summary for the call record. No addresses — only
+   *  which categories were available, which is what the diagnosis turns on. */
+  const iceSummary = () => {
+    const fmt = (set) => [...set].sort().join("+") || "none"
+    return `ice:l=${fmt(iceSeen.local)},r=${fmt(iceSeen.remote)},turn=${hasTurnConfigured() ? 1 : 0}`
+  }
+
+  const emitState = (s) => { if (!closed) onState?.(s, s === "failed" ? iceSummary() : undefined) }
 
   /**
    * Mixes both sides of the conversation into one track and records it.
@@ -238,6 +271,8 @@ export function createCallEngine({
 
     conn.onicecandidate = (evt) => {
       if (evt.candidate && callId) {
+        const type = candidateType(evt.candidate)
+        if (type) iceSeen.local.add(type)
         send?.("call.ice_candidate", { call_id: callId, data: evt.candidate.toJSON() })
       }
     }
@@ -335,6 +370,8 @@ export function createCallEngine({
   return {
     get callId() { return callId },
     get localStream() { return localStream },
+    /** Non-sensitive ICE summary for diagnosing a failed call. */
+    get iceDiagnosis() { return iceSummary() },
 
     /**
      * Caller side: mic → peer connection → *wait*. The offer comes from the
@@ -427,6 +464,8 @@ export function createCallEngine({
 
     async handleCandidate(candidate) {
       if (closed || !candidate) return
+      const type = candidateType(candidate)
+      if (type) iceSeen.remote.add(type)
       if (!pc || !hasRemoteDescription) {
         pendingCandidates.push(candidate)
         return

@@ -24,6 +24,8 @@ scoping, same "customer routes at api/, agent routes at api/admin-panel/" split.
     GET  /api/admin-panel/live-chat/calls/       agent-visible history
     POST /api/admin-panel/live-chat/calls/<call_id>/recording/   upload audio
     GET  /api/admin-panel/live-chat/calls/<call_id>/recording/   play it back
+    GET  /api/admin-panel/voice-call-settings/   read the recording switch
+    PATCH /api/admin-panel/voice-call-settings/  flip it (super admin only)
 
 No endpoint accepts a caller id, receiver id, agent id or signaling room id
 from the request body. The caller is always request.user; the receiver is
@@ -48,10 +50,14 @@ from authapp.models.call_models import (
     END_PERMISSION_DENIED,
     STATUS_RINGING,
     CallSession,
+    VoiceCallSettings,
 )
 from authapp.models.support_ticket_models import SupportTicket
 from authapp.permissions.super_admin_permissions import IsAdminOrSuperAdmin
-from authapp.serializers.voice_call_serializers import CallSessionSerializer
+from authapp.serializers.voice_call_serializers import (
+    CallSessionSerializer,
+    VoiceCallSettingsSerializer,
+)
 from authapp.services import voice_call_service
 from authapp.services.voice_call_service import CallError
 from authapp.throttles import VoiceCallStartRateThrottle
@@ -66,6 +72,23 @@ CLIENT_FAILURE_REASONS = {
     END_NETWORK_FAILURE,
     END_PERMISSION_DENIED,
 }
+
+
+# The browser attaches a short ICE summary to a failure so history can say
+# *why* a call died (see voiceCallService.iceSummary). It is client-supplied,
+# so it is filtered to a tight character set and truncated rather than trusted:
+# it lands in an audit row a human reads, and free text a browser controls has
+# no business there.
+_FAILURE_DETAIL_ALLOWED = set(
+    "abcdefghijklmnopqrstuvwxyz0123456789+=:,._-"
+)
+_FAILURE_DETAIL_MAX = 60
+
+
+def _sanitize_failure_detail(raw):
+    text = (str(raw or "")).strip().lower()
+    kept = "".join(ch for ch in text if ch in _FAILURE_DETAIL_ALLOWED)
+    return kept[:_FAILURE_DETAIL_MAX]
 
 
 def _error(exc):
@@ -170,7 +193,10 @@ class CallFailedView(_CallActionView):
     def act(self, request, call):
         raw = (request.data.get("reason") or "").strip()
         reason = raw if raw in CLIENT_FAILURE_REASONS else END_CONNECTION_FAILED
-        return voice_call_service.fail_call(request.user, call, reason)
+        return voice_call_service.fail_call(
+            request.user, call, reason,
+            detail=_sanitize_failure_detail(request.data.get("detail")),
+        )
 
 
 class MyCallHistoryView(generics.ListAPIView):
@@ -232,7 +258,10 @@ class AdminCallFailedView(_CallActionView):
     def act(self, request, call):
         raw = (request.data.get("reason") or "").strip()
         reason = raw if raw in CLIENT_FAILURE_REASONS else END_CONNECTION_FAILED
-        return voice_call_service.fail_call(request.user, call, reason)
+        return voice_call_service.fail_call(
+            request.user, call, reason,
+            detail=_sanitize_failure_detail(request.data.get("detail")),
+        )
 
 
 class AdminCallHistoryView(generics.ListAPIView):
@@ -359,3 +388,42 @@ def _recording_content_type(name):
         "mp4": "audio/mp4",
         "m4a": "audio/mp4",
     }.get(ext, "application/octet-stream")
+
+
+class AdminVoiceCallSettingsView(APIView):
+    """The Back Office's recording switch.
+
+    Readable by any staff member — an agent's own call surfaces already tell
+    them whether calls are recorded, so hiding the state from them would be
+    theatre. Writable only by a super admin: an agent who could silently stop
+    recording their own calls is a hole in the control this switch exists to
+    be, and turning it off also removes the notice the *customer* sees. That
+    is an operator decision, not an agent one.
+
+    PATCH takes effect on the next call. In-flight calls keep the answer they
+    started with, because the customer was shown a notice based on it — the
+    recorder and the notice must agree for the whole of a call, not just at
+    the moment it began.
+    """
+
+    permission_classes = [IsAdminOrSuperAdmin]
+
+    def get(self, request):
+        return Response(VoiceCallSettingsSerializer(VoiceCallSettings.load()).data)
+
+    def patch(self, request):
+        if not request.user.is_superuser:
+            return Response(
+                {"error": "Only a Super Admin can change call recording.",
+                 "code": "not_authorized"},
+                status=403,
+            )
+        if "recording_enabled" not in request.data:
+            return Response(
+                {"error": "recording_enabled is required.", "code": "invalid"},
+                status=400,
+            )
+        row = voice_call_service.set_recording_enabled(
+            request.user, request.data.get("recording_enabled"),
+        )
+        return Response(VoiceCallSettingsSerializer(row).data)
