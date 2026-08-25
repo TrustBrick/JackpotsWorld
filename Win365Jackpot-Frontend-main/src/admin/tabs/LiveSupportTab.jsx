@@ -51,6 +51,20 @@ const participantOf = s => s.participant_type || "player";
 // it refreshes on a slower cadence than the open conversation does.
 const SESSIONS_REFRESH_EVERY_N_POLLS = 5;
 
+// The recording switch is deployment-wide, so another Super Admin can move it
+// while this panel sits open — and a panel showing "Recording on" when the
+// server says off is worse than showing nothing, because it is a claim about
+// what customers are being told.
+//
+// It gets a timer of its own rather than riding the tick counter above,
+// because that loop only runs while the WebSocket is NOT delivering (see
+// liveChatSocket.startPolling/stopPolling). On any host where realtime works
+// — which is production — hanging this off it would mean never refreshing at
+// all, i.e. exactly the staleness this is meant to remove. Slow, because one
+// row that changes a few times a year does not deserve the 2s inbox cadence;
+// the visibility catch-up below is what makes it feel immediate in practice.
+const RECORDING_REFRESH_MS = 60000;
+
 // Short two-tone chime via the Web Audio API — no binary asset needed.
 function playChime() {
   try {
@@ -85,6 +99,8 @@ export default function LiveSupportTab({ onToast }) {
   // be worse than showing nothing.
   const [recording, setRecording] = useState(null);
   const [recBusy, setRecBusy] = useState(false);
+  const recBusyRef = useRef(false);
+  useEffect(() => { recBusyRef.current = recBusy; }, [recBusy]);
   const canSwitchRecording = useMemo(() => isSuperAdmin(), []);
   const recordingHint = !recording
     ? ""
@@ -138,6 +154,24 @@ export default function LiveSupportTab({ onToast }) {
   }, []);
 
   useEffect(() => { loadRecording(); }, [loadRecording]);
+
+  useEffect(() => {
+    const tick = () => {
+      // Not on a hidden tab — same reasoning as the transport's poll loop,
+      // and the visibility handler catches up the moment it is looked at.
+      // Not mid-write either: a response landing between our PATCH and its
+      // reply would paint the value we are in the middle of replacing.
+      if (document.hidden || recBusyRef.current) return;
+      loadRecording();
+    };
+    const id = setInterval(tick, RECORDING_REFRESH_MS);
+    const onVisible = () => { if (!document.hidden) tick(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [loadRecording]);
 
   const toggleRecording = useCallback(async () => {
     if (!recording || recBusy) return;
