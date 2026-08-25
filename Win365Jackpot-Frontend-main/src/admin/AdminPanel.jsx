@@ -53,6 +53,7 @@ import { C, ADMIN_TABS, ADMIN_NAV_GROUPS } from "./constants";
 
 import AdminWalletBanner from "./AdminWalletBanner";
 import { AdminThemeProvider, useAdminTheme } from "./context/AdminThemeContext";
+import { AdminVoiceCallProvider } from "./context/AdminVoiceCallContext";  // VOICE-CALL
 import AdminThemeToggle from "./components/AdminThemeToggle";
 import Logo from "../components/shared/Logo";
 import BrandMark from "../components/shared/BrandMark";
@@ -427,186 +428,190 @@ function AdminPanelInner() {
     }
   };
 
+  // Calls ring at panel level, so an agent is reachable on every tab — not
+  // only while Live Support happens to be open. See AdminVoiceCallContext.
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Manrope', sans-serif", display: "flex" }}>
+    <AdminVoiceCallProvider>
+      <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Manrope', sans-serif", display: "flex" }}>
 
-      {/* Mobile hamburger — only rendered below the drawer breakpoint */}
-      {isMobile && (
-        <button onClick={() => setSidebarOpen(true)} aria-label="Open menu"
-          style={{
-            position: "fixed", top: 16, left: 16, zIndex: 30,
-            width: 38, height: 38, borderRadius: 10,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            background: C.panelBg, border: `1px solid ${C.border}`, color: C.text, cursor: "pointer",
-          }}>
-          <Menu size={17} />
-        </button>
-      )}
-
-      {/* Backdrop — closes the drawer on click, mobile only */}
-      {isMobile && sidebarOpen && (
-        <div onClick={() => setSidebarOpen(false)}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 35 }} />
-      )}
-
-      {/* ── Sidebar ── */}
-      <aside style={{
-        width: 228, flexShrink: 0,
-        borderRight: `1px solid ${C.border}`,
-        background: C.panelBg,
-        padding: "22px 14px",
-        display: "flex", flexDirection: "column",
-        position: "fixed", top: 0, left: 0, height: "100vh",
-        zIndex: 40, overflow: "hidden",
-        transition: "transform 0.2s ease",
-        transform: isMobile && !sidebarOpen ? "translateX(-100%)" : "translateX(0)",
-      }}>
-        {/* Logo — stays fixed above the scrolling nav below */}
-        <div style={{ flexShrink: 0, marginBottom: 22, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-          <div>
-            <BrandMark size={40} />
-    <Logo size="md" />
-            <div style={{ fontSize: 10, color: C.muted, letterSpacing: "0.3em", textTransform: "uppercase" }}>Admin Panel</div>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <AdminThemeToggle size={28} />
-            {isMobile && (
-              <button onClick={() => setSidebarOpen(false)} aria-label="Close menu"
-                style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 4 }}>
-                <X size={18} />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Admin user badge — also fixed */}
-        {adminUser && (
-          <div style={{ flexShrink: 0, marginBottom: 16, padding: "10px 12px", borderRadius: 10, background: `${C.gold}10`, border: `1px solid ${C.gold}20` }}>
-            <div style={{ fontSize: 11, color: C.gold, fontWeight: 700 }}>{adminUser.email}</div>
-            <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>{adminUser.role || "Admin"}</div>
-          </div>
+        {/* Mobile hamburger — only rendered below the drawer breakpoint */}
+        {isMobile && (
+          <button onClick={() => setSidebarOpen(true)} aria-label="Open menu"
+            style={{
+              position: "fixed", top: 16, left: 16, zIndex: 30,
+              width: 38, height: 38, borderRadius: 10,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              background: C.panelBg, border: `1px solid ${C.border}`, color: C.text, cursor: "pointer",
+            }}>
+            <Menu size={17} />
+          </button>
         )}
 
-        {/* Nav groups — the only part that scrolls, so logo/badge above and
-            Logout below stay put regardless of how many items are in view.
-            Each group is collapsible; the group containing the active tab
-            is force-opened by setTab(). */}
-        <nav className="admin-sidebar-nav" style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 2, marginRight: -6, paddingRight: 6 }}>
-          {ADMIN_NAV_GROUPS.map(g => {
-            const open = isGroupOpen(g.group);
-            return (
-              <div key={g.group} style={{ marginBottom: 2 }}>
-                <button onClick={() => toggleGroup(g.group)}
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "space-between",
-                    width: "100%", padding: "10px 10px 6px", background: "none", border: "none",
-                    cursor: "pointer", textAlign: "left",
-                  }}>
-                  <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: C.dim }}>
-                    {g.group}
-                  </span>
-                  <ChevronDown size={11} style={{ color: C.dim, transform: open ? "none" : "rotate(-90deg)", transition: "transform 0.15s", flexShrink: 0 }} />
+        {/* Backdrop — closes the drawer on click, mobile only */}
+        {isMobile && sidebarOpen && (
+          <div onClick={() => setSidebarOpen(false)}
+            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 35 }} />
+        )}
+
+        {/* ── Sidebar ── */}
+        <aside style={{
+          width: 228, flexShrink: 0,
+          borderRight: `1px solid ${C.border}`,
+          background: C.panelBg,
+          padding: "22px 14px",
+          display: "flex", flexDirection: "column",
+          position: "fixed", top: 0, left: 0, height: "100vh",
+          zIndex: 40, overflow: "hidden",
+          transition: "transform 0.2s ease",
+          transform: isMobile && !sidebarOpen ? "translateX(-100%)" : "translateX(0)",
+        }}>
+          {/* Logo — stays fixed above the scrolling nav below */}
+          <div style={{ flexShrink: 0, marginBottom: 22, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+            <div>
+              <BrandMark size={40} />
+      <Logo size="md" />
+              <div style={{ fontSize: 10, color: C.muted, letterSpacing: "0.3em", textTransform: "uppercase" }}>Admin Panel</div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <AdminThemeToggle size={28} />
+              {isMobile && (
+                <button onClick={() => setSidebarOpen(false)} aria-label="Close menu"
+                  style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 4 }}>
+                  <X size={18} />
                 </button>
-                {open && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                    {g.items.map(t => {
-                      const Icon = ICON_MAP[t.icon];
-                      const active = tab === t.id;
-                      return (
-                        <button key={t.id} onClick={() => setTab(t.id)}
-                          style={{
-                            display: "flex", alignItems: "center", gap: 10,
-                            padding: "9px 12px", borderRadius: 10,
-                            fontSize: 12, fontWeight: active ? 700 : 500,
-                            textAlign: "left", width: "100%", cursor: "pointer",
-                            border: active ? `1px solid ${C.gold}30` : "1px solid transparent",
-                            background: active ? `${C.gold}12` : "transparent",
-                            color: active ? C.gold : C.muted,
-                            transition: "all 0.15s",
-                          }}
-                          onMouseEnter={e => { if (!active) { e.currentTarget.style.background = C.hoverBg; e.currentTarget.style.color = C.text; } }}
-                          onMouseLeave={e => { if (!active) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.muted; } }}
-                        >
-                          {Icon && <Icon size={13} />}
-                          {t.label}
-                          {t.id === "wallet" && (
-                            <span style={{ marginLeft: "auto", fontSize: 9, fontWeight: 900, padding: "1px 5px", borderRadius: 20, background: C.orange, color: "white" }}>NEW</span>
-                          )}
-                          {t.id === "live-support" && liveSupportUnread > 0 && (
-                            <span style={{ marginLeft: "auto", fontSize: 9.5, fontWeight: 800, minWidth: 16, height: 16, borderRadius: 8, padding: "0 4px", background: "#ff3366", color: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                              {liveSupportUnread}
-                            </span>
-                          )}
-                          {t.id === "notifications" && adminNotifUnread > 0 && (
-                            <span style={{ marginLeft: "auto", fontSize: 9.5, fontWeight: 800, minWidth: 16, height: 16, borderRadius: 8, padding: "0 4px", background: "#ff3366", color: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                              {adminNotifUnread}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </nav>
-
-        {/* Logout — stays fixed at the bottom */}
-        <button onClick={logout}
-          style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", borderRadius: 10, fontSize: 12, fontWeight: 600, background: "none", border: "none", color: "rgba(248,113,113,0.7)", cursor: "pointer", width: "100%", marginTop: 8 }}>
-          <LogOut size={13} /> Logout
-        </button>
-      </aside>
-      <style>{`
-        .admin-sidebar-nav::-webkit-scrollbar { width: 5px; }
-        .admin-sidebar-nav::-webkit-scrollbar-thumb { background: rgba(212,175,55,0.25); border-radius: 10px; }
-        .admin-sidebar-nav::-webkit-scrollbar-track { background: transparent; }
-      `}</style>
-
-      {/* ── Main content ── */}
-      {/* <AdminWalletBanner /> */}
-      <main style={{ flex: 1, marginLeft: isMobile ? 0 : 228, padding: 26, paddingTop: isMobile ? 70 : 26, minHeight: "100vh", overflowX: "hidden" }}>
-        {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 22 }}>
-          <div style={{ fontSize: 18, fontWeight: 900, color: C.text }}>
-            {ADMIN_TABS.find(t => t.id === tab)?.label || "Overview"}
+              )}
+            </div>
           </div>
-          <div style={{ marginLeft: "auto", fontSize: 11, color: C.muted, fontFamily: "monospace" }}>
-            {adminUser?.user_uid || adminUser?.email || ""}
+
+          {/* Admin user badge — also fixed */}
+          {adminUser && (
+            <div style={{ flexShrink: 0, marginBottom: 16, padding: "10px 12px", borderRadius: 10, background: `${C.gold}10`, border: `1px solid ${C.gold}20` }}>
+              <div style={{ fontSize: 11, color: C.gold, fontWeight: 700 }}>{adminUser.email}</div>
+              <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>{adminUser.role || "Admin"}</div>
+            </div>
+          )}
+
+          {/* Nav groups — the only part that scrolls, so logo/badge above and
+              Logout below stay put regardless of how many items are in view.
+              Each group is collapsible; the group containing the active tab
+              is force-opened by setTab(). */}
+          <nav className="admin-sidebar-nav" style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 2, marginRight: -6, paddingRight: 6 }}>
+            {ADMIN_NAV_GROUPS.map(g => {
+              const open = isGroupOpen(g.group);
+              return (
+                <div key={g.group} style={{ marginBottom: 2 }}>
+                  <button onClick={() => toggleGroup(g.group)}
+                    style={{
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      width: "100%", padding: "10px 10px 6px", background: "none", border: "none",
+                      cursor: "pointer", textAlign: "left",
+                    }}>
+                    <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: C.dim }}>
+                      {g.group}
+                    </span>
+                    <ChevronDown size={11} style={{ color: C.dim, transform: open ? "none" : "rotate(-90deg)", transition: "transform 0.15s", flexShrink: 0 }} />
+                  </button>
+                  {open && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                      {g.items.map(t => {
+                        const Icon = ICON_MAP[t.icon];
+                        const active = tab === t.id;
+                        return (
+                          <button key={t.id} onClick={() => setTab(t.id)}
+                            style={{
+                              display: "flex", alignItems: "center", gap: 10,
+                              padding: "9px 12px", borderRadius: 10,
+                              fontSize: 12, fontWeight: active ? 700 : 500,
+                              textAlign: "left", width: "100%", cursor: "pointer",
+                              border: active ? `1px solid ${C.gold}30` : "1px solid transparent",
+                              background: active ? `${C.gold}12` : "transparent",
+                              color: active ? C.gold : C.muted,
+                              transition: "all 0.15s",
+                            }}
+                            onMouseEnter={e => { if (!active) { e.currentTarget.style.background = C.hoverBg; e.currentTarget.style.color = C.text; } }}
+                            onMouseLeave={e => { if (!active) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.muted; } }}
+                          >
+                            {Icon && <Icon size={13} />}
+                            {t.label}
+                            {t.id === "wallet" && (
+                              <span style={{ marginLeft: "auto", fontSize: 9, fontWeight: 900, padding: "1px 5px", borderRadius: 20, background: C.orange, color: "white" }}>NEW</span>
+                            )}
+                            {t.id === "live-support" && liveSupportUnread > 0 && (
+                              <span style={{ marginLeft: "auto", fontSize: 9.5, fontWeight: 800, minWidth: 16, height: 16, borderRadius: 8, padding: "0 4px", background: "#ff3366", color: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                {liveSupportUnread}
+                              </span>
+                            )}
+                            {t.id === "notifications" && adminNotifUnread > 0 && (
+                              <span style={{ marginLeft: "auto", fontSize: 9.5, fontWeight: 800, minWidth: 16, height: 16, borderRadius: 8, padding: "0 4px", background: "#ff3366", color: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                {adminNotifUnread}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </nav>
+
+          {/* Logout — stays fixed at the bottom */}
+          <button onClick={logout}
+            style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", borderRadius: 10, fontSize: 12, fontWeight: 600, background: "none", border: "none", color: "rgba(248,113,113,0.7)", cursor: "pointer", width: "100%", marginTop: 8 }}>
+            <LogOut size={13} /> Logout
+          </button>
+        </aside>
+        <style>{`
+          .admin-sidebar-nav::-webkit-scrollbar { width: 5px; }
+          .admin-sidebar-nav::-webkit-scrollbar-thumb { background: rgba(212,175,55,0.25); border-radius: 10px; }
+          .admin-sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+        `}</style>
+
+        {/* ── Main content ── */}
+        {/* <AdminWalletBanner /> */}
+        <main style={{ flex: 1, marginLeft: isMobile ? 0 : 228, padding: 26, paddingTop: isMobile ? 70 : 26, minHeight: "100vh", overflowX: "hidden" }}>
+          {/* Header */}
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 22 }}>
+            <div style={{ fontSize: 18, fontWeight: 900, color: C.text }}>
+              {ADMIN_TABS.find(t => t.id === tab)?.label || "Overview"}
+            </div>
+            <div style={{ marginLeft: "auto", fontSize: 11, color: C.muted, fontFamily: "monospace" }}>
+              {adminUser?.user_uid || adminUser?.email || ""}
+            </div>
           </div>
-        </div>
 
-        {/* Tab content */}
-        <motion.div key={tab}
-          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.15 }}>
-          {renderTab()}
-        </motion.div>
-      </main>
+          {/* Tab content */}
+          <motion.div key={tab}
+            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.15 }}>
+            {renderTab()}
+          </motion.div>
+        </main>
 
-      {/* Toast */}
-      <AnimatePresence>
-        {toast && <Toast msg={toast.msg} ok={toast.ok} onDone={() => setToast(null)} />}
-      </AnimatePresence>
+        {/* Toast */}
+        <AnimatePresence>
+          {toast && <Toast msg={toast.msg} ok={toast.ok} onDone={() => setToast(null)} />}
+        </AnimatePresence>
 
-      {/* New-affiliate-registration popup — separate from Toast above since
-          it needs structured fields + an action button, not just a one-line
-          message (see SharedUI.NotificationPopup). */}
-      <AnimatePresence>
-        {notifPopup && (
-          <NotificationPopup
-            notif={notifPopup}
-            onReview={() => {
-              adminFetch(`${API}/api/user/notifications/${notifPopup.id}/read/`, { method: "POST" }).catch(() => {});
-              setAdminNotifUnread(n => Math.max(0, n - 1));
-              setNotifPopup(null);
-              setTab("affiliates");
-            }}
-            onDismiss={() => setNotifPopup(null)}
-          />
-        )}
-      </AnimatePresence>
-    </div>
+        {/* New-affiliate-registration popup — separate from Toast above since
+            it needs structured fields + an action button, not just a one-line
+            message (see SharedUI.NotificationPopup). */}
+        <AnimatePresence>
+          {notifPopup && (
+            <NotificationPopup
+              notif={notifPopup}
+              onReview={() => {
+                adminFetch(`${API}/api/user/notifications/${notifPopup.id}/read/`, { method: "POST" }).catch(() => {});
+                setAdminNotifUnread(n => Math.max(0, n - 1));
+                setNotifPopup(null);
+                setTab("affiliates");
+              }}
+              onDismiss={() => setNotifPopup(null)}
+            />
+          )}
+        </AnimatePresence>
+      </div>
+    </AdminVoiceCallProvider>
   );
 }

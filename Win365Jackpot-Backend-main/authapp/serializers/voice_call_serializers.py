@@ -15,6 +15,8 @@ class CallSessionSerializer(serializers.ModelSerializer):
     caller_name = serializers.SerializerMethodField()
     caller_uid = serializers.CharField(source="caller.user_uid", read_only=True)
     receiver_name = serializers.SerializerMethodField()
+    has_recording = serializers.BooleanField(read_only=True)
+    recording_url = serializers.SerializerMethodField()
 
     class Meta:
         model = CallSession
@@ -25,6 +27,7 @@ class CallSessionSerializer(serializers.ModelSerializer):
             "status", "end_reason",
             "started_at", "ring_expires_at", "connected_at", "ended_at",
             "duration_seconds",
+            "has_recording", "recording_bytes", "recording_url",
         ]
         read_only_fields = fields
 
@@ -35,3 +38,15 @@ class CallSessionSerializer(serializers.ModelSerializer):
         if not obj.receiver_id:
             return ""
         return (getattr(obj.receiver, "name", "") or "").strip()
+
+    def get_recording_url(self, obj):
+        """The *authorised endpoint* for the audio, never a storage URL.
+
+        Same contract as chat attachments: possessing this path is not the
+        same as being allowed to read it — the view re-checks entitlement on
+        every fetch. Returning `recording.url` here would hand out a permanent
+        public /media/ path locally, or a replayable presigned link on S3.
+        """
+        if not obj.recording:
+            return None
+        return f"/api/admin-panel/live-chat/calls/{obj.pk}/recording/"

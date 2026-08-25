@@ -9,13 +9,11 @@ import { Card, Btn, Spinner } from "../components/SharedUI";
 import { useAdminTheme } from "../context/AdminThemeContext";
 import { connectLiveChatSocket } from "../../services/liveChatSocket";
 import { asMessageArray, highestRealId, mergeById } from "../../services/liveChatMessages";
-// VOICE-CALL: the agent end of in-app support calls. Rings over this tab's
-// existing admin-inbox socket — the same channel that already carries
-// new-message notifications — so an agent is reachable without having the
-// relevant conversation open.
-import { useVoiceCall, PHASE } from "../../hooks/useVoiceCall";
-import IncomingCallModal from "../../components/support/IncomingCallModal";
-import ActiveCallModal from "../../components/support/ActiveCallModal";
+// VOICE-CALL: the agent end of in-app support calls. The call lives in
+// AdminVoiceCallProvider at panel level so it rings on every tab; this tab
+// only reflects it — status badge and per-conversation history.
+import { PHASE } from "../../hooks/useVoiceCall";
+import { useAdminVoiceCall } from "../context/AdminVoiceCallContext";
 import CallStatus from "../../components/support/CallStatus";
 import CallHistoryList from "../../components/support/CallHistoryList";
 import { adminCallTheme } from "../../components/support/callTheme";
@@ -85,22 +83,14 @@ export default function LiveSupportTab({ onToast }) {
   useEffect(() => { soundOnRef.current = soundOn }, [soundOn]);
 
   // ── Voice call (VOICE-CALL) ──────────────────────────────────────────────
-  // Signaling goes out on the inbox socket created below rather than a second
-  // connection. The ref indirection is needed because that socket is created
-  // after this hook runs, and is replaced on every reconnect.
+  // The call itself is owned by AdminVoiceCallProvider, one level up, so that
+  // an agent keeps ringing on every tab rather than only this one. What is
+  // left here is read-only: the inline status badge beside the header and the
+  // per-conversation call history below. Nothing in this tab answers, ends or
+  // negotiates a call any more — that all follows the agent around the panel.
+  const voiceCall = useAdminVoiceCall();
   const callTheme = useMemo(() => adminCallTheme(C), [C]);
-  const sendCallSignal = useCallback(
-    (action, payload) => socketRef.current?.send?.(action, payload) ?? false,
-    [],
-  );
-  const voiceCall = useVoiceCall({
-    role: "agent",
-    apiBase: API,
-    fetcher: adminFetch,
-    sendSignal: sendCallSignal,
-  });
-  const voiceCallRef = useRef(voiceCall);
-  useEffect(() => { voiceCallRef.current = voiceCall }, [voiceCall]);
+  const callPhase = voiceCall?.phase ?? PHASE.IDLE;
 
   const toggleSound = () => {
     setSoundOn(prev => {
@@ -217,11 +207,11 @@ export default function LiveSupportTab({ onToast }) {
               if (payload.ticket_id !== selectedIdRef.current && soundOnRef.current) playChime();
               loadSessionsRef.current();
             }
-          } else {
-            // VOICE-CALL: call frames share this socket. The hook ignores
-            // anything it doesn't recognise, so chat is unaffected.
-            voiceCallRef.current?.onSocketEvent?.(event, payload);
           }
+          // VOICE-CALL frames also arrive on this socket, because it joins the
+          // same livechat_admins group. They are ignored here on purpose:
+          // AdminVoiceCallProvider holds the only call hook in the panel, on
+          // its own socket, so handling them here too would ring twice.
         },
         onStatusChange: setConnStatus,
       });
@@ -292,40 +282,15 @@ export default function LiveSupportTab({ onToast }) {
 
   return (
     <div>
-      {/* VOICE-CALL: both surfaces are fixed-position overlays, so they sit
-          outside the tab's layout and stay centred on any viewport. The
-          incoming card only renders while a call is actually ringing. */}
-      <IncomingCallModal
-        call={voiceCall.phase === PHASE.INCOMING ? voiceCall.call : null}
-        onAccept={() => voiceCall.acceptCall(voiceCall.call)}
-        onReject={() => voiceCall.rejectCall(voiceCall.call)}
-        theme={callTheme}
-      />
-      <ActiveCallModal
-        phase={voiceCall.phase}
-        call={voiceCall.call}
-        lastEnded={voiceCall.lastEnded}
-        seconds={voiceCall.seconds}
-        muted={voiceCall.muted}
-        speakerOn={voiceCall.speakerOn}
-        speakerSupported={voiceCall.speakerSupported}
-        error={voiceCall.error}
-        onToggleMute={voiceCall.toggleMute}
-        onToggleSpeaker={voiceCall.toggleSpeaker}
-        onEnd={voiceCall.endCall}
-        onDismiss={voiceCall.endCall}
-        theme={callTheme}
-      />
-
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <LifeBuoy size={15} style={{ color: C.gold }} />
           <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Live Support Chat</div>
-          {voiceCall.phase !== PHASE.IDLE && (
+          {callPhase !== PHASE.IDLE && (
             <CallStatus
-              phase={voiceCall.phase}
-              seconds={voiceCall.seconds}
-              lastEnded={voiceCall.lastEnded}
+              phase={callPhase}
+              seconds={voiceCall?.seconds || 0}
+              lastEnded={voiceCall?.lastEnded}
               theme={callTheme}
             />
           )}
@@ -486,8 +451,9 @@ export default function LiveSupportTab({ onToast }) {
                   apiBase={API}
                   endpoint={`/api/admin-panel/live-chat/calls/?ticket_id=${selectedId}`}
                   theme={callTheme}
-                  refreshKey={voiceCall.lastEnded?.id || 0}
+                  refreshKey={(voiceCall?.lastEnded?.id || 0) + (voiceCall?.recordingSavedAt || 0)}
                   emptyText="No voice calls on this conversation yet"
+                  canPlayRecordings
                 />
               </div>
 

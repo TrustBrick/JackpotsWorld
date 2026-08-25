@@ -31,8 +31,10 @@ file under the same MEDIA_ROOT today:
     receives now expires (default 1 hour) instead of being a permanent
     public link.
 """
+import os
+
 from django.conf import settings
-from django.core.files.storage import default_storage
+from django.core.files.storage import FileSystemStorage, default_storage
 
 try:
     from storages.backends.s3boto3 import S3Boto3Storage
@@ -59,6 +61,13 @@ if S3Boto3Storage is not None:
         file_overwrite = False
         custom_domain = False
 
+    class CallRecordingS3Storage(PrivateMediaStorage):
+        # Same private, presigned posture as its parent; the only difference
+        # is a prefix of its own, so recordings are separable from KYC
+        # documents in the bucket (listing, lifecycle rules, retention) even
+        # though both are foldered by month underneath.
+        location = "private/call-recordings"
+
 
 def get_private_storage():
     """Storage for a FileField/ImageField that must never be publicly
@@ -74,3 +83,46 @@ def get_private_storage():
     if _s3_configured() and S3Boto3Storage is not None:
         return PrivateMediaStorage()
     return default_storage
+
+
+class CallRecordingStorage(FileSystemStorage):
+    """Local-disk storage for call recordings, rooted OUTSIDE MEDIA_ROOT.
+
+    This root is the local counterpart of CallRecordingS3Storage's prefix, so
+    the layout below it is identical on both backends (YYYY/MM/call-<pk>.ext)
+    and a stored `name` means the same thing whichever one is configured.
+
+    `location` and `base_location` are live properties rather than Django's
+    cached ones so that overriding VOICE_CALL_RECORDING_ROOT in a test actually
+    moves the files.
+    """
+
+    @property
+    def base_location(self):
+        return settings.VOICE_CALL_RECORDING_ROOT
+
+    @property
+    def location(self):
+        return os.path.abspath(self.base_location)
+
+
+def get_call_recording_storage():
+    """Storage for CallSession.recording.
+
+    Deliberately NOT get_private_storage(). That falls back to `default_storage`
+    when S3 is unconfigured — i.e. MEDIA_ROOT — and MEDIA_ROOT is handed out by
+    authapp/views/media_serve_views.serve_media with **no permission check of
+    any kind**. A recording's filename is derived from a sequential call id, so
+    that fallback would publish customer call audio at a trivially enumerable
+    URL (`/media/2026/08/call-42.webm` — try the next integer), which is
+    materially worse than the same weakness on a randomly-suffixed KYC
+    filename.
+
+    So recordings get their own directory that no public view is rooted at.
+    They remain reachable only through AdminCallRecordingView, which
+    re-authorises every request. Once S3 is configured this returns the same
+    private, presigned backend everything else sensitive uses.
+    """
+    if _s3_configured() and S3Boto3Storage is not None:
+        return CallRecordingS3Storage()
+    return CallRecordingStorage()

@@ -22,6 +22,8 @@ scoping, same "customer routes at api/, agent routes at api/admin-panel/" split.
     POST /api/admin-panel/live-chat/calls/<call_id>/end/
     POST /api/admin-panel/live-chat/calls/<call_id>/failed/
     GET  /api/admin-panel/live-chat/calls/       agent-visible history
+    POST /api/admin-panel/live-chat/calls/<call_id>/recording/   upload audio
+    GET  /api/admin-panel/live-chat/calls/<call_id>/recording/   play it back
 
 No endpoint accepts a caller id, receiver id, agent id or signaling room id
 from the request body. The caller is always request.user; the receiver is
@@ -32,8 +34,10 @@ import logging
 
 from django.conf import settings
 from django.db.models import Q
+from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from rest_framework import generics
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -82,6 +86,11 @@ class VoiceCallConfigView(APIView):
             "available": voice_call_service.calling_available(),
             "ice_servers": voice_call_service.ice_servers(),
             "ring_timeout_seconds": getattr(settings, "VOICE_CALL_RING_TIMEOUT_SECONDS", 30),
+            # Drives two things from one flag: the agent's recorder, and the
+            # notice the customer is shown before they speak. Both browsers ask
+            # this endpoint, so they cannot disagree about whether the call is
+            # being recorded.
+            "recording_enabled": voice_call_service.recording_enabled(),
         })
 
 
@@ -280,3 +289,73 @@ class AdminCallHistoryView(generics.ListAPIView):
                 # posture as live_chat_views._after_id_filter.
                 pass
         return qs
+
+
+class AdminCallRecordingView(APIView):
+    """Upload (POST) or play back (GET) one call's recording.
+
+    Both verbs live on one route because they are two halves of the same
+    object: the agent's browser PUTs the audio it captured when the call ends,
+    and the panel reads it back later.
+
+    The bytes are deliberately NOT handed out as a storage URL — the same
+    reasoning as LiveChatAttachmentView, which this mirrors. A local /media/
+    path is permanently public and guessable; an S3 presigned link is
+    replayable by anyone holding the string until it expires. Routing playback
+    through here means entitlement is re-checked against the requester's own
+    session on every fetch, which is what authorising a recording of a
+    customer's conversation actually requires.
+    """
+
+    permission_classes = [IsAdminOrSuperAdmin]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request, call_id):
+        try:
+            call = voice_call_service.get_call_for_participant(request.user, call_id)
+            call = voice_call_service.attach_recording(
+                request.user, call, request.FILES.get("file"),
+            )
+        except CallError as exc:
+            return _error(exc)
+        return Response(
+            CallSessionSerializer(call, context={"request": request}).data, status=201,
+        )
+
+    def get(self, request, call_id):
+        call = get_object_or_404(
+            CallSession.objects.select_related("ticket"), pk=call_id,
+        )
+        # Staff-only route already, but scope it the same way the history view
+        # does: an agent sees the calls they handled, a superuser sees all.
+        # Anything else 404s rather than 403s — a recording someone may not
+        # hear should not confirm its own existence.
+        if not request.user.is_superuser and call.receiver_id != request.user.id:
+            raise Http404
+        if not call.recording:
+            raise Http404
+
+        try:
+            fh = call.recording.open("rb")
+        except Exception:
+            # Storage-layer failures here are "the object is gone" as far as
+            # the caller is concerned; the specific boto/OS error is for the log.
+            logger.warning("voice-call: recording for call %s missing from storage", call.pk)
+            raise Http404
+
+        resp = FileResponse(fh, content_type=_recording_content_type(call.recording.name))
+        # Inline, not as_attachment: the panel plays this in an <audio> element
+        # rather than downloading it. nosniff still pins the declared type.
+        resp["X-Content-Type-Options"] = "nosniff"
+        resp["Cache-Control"] = "private, no-store"
+        return resp
+
+
+def _recording_content_type(name):
+    ext = (name or "").rsplit(".", 1)[-1].lower()
+    return {
+        "webm": "audio/webm",
+        "ogg": "audio/ogg",
+        "mp4": "audio/mp4",
+        "m4a": "audio/mp4",
+    }.get(ext, "application/octet-stream")

@@ -913,6 +913,7 @@ export default function ChatBot({ portal = "player" }) {
       speakerOn={voiceCall.speakerOn}
       speakerSupported={voiceCall.speakerSupported}
       error={voiceCall.error}
+      recordingEnabled={voiceCall.recordingEnabled}
       onToggleMute={voiceCall.toggleMute}
       onToggleSpeaker={voiceCall.toggleSpeaker}
       onEnd={voiceCall.endCall}

@@ -289,6 +289,7 @@ export default function ServiceRequestConversation({ ticket, onBack, onToast }) 
         speakerOn={voiceCall.speakerOn}
         speakerSupported={voiceCall.speakerSupported}
         error={voiceCall.error}
+        recordingEnabled={voiceCall.recordingEnabled}
         onToggleMute={voiceCall.toggleMute}
         onToggleSpeaker={voiceCall.toggleSpeaker}
         onEnd={voiceCall.endCall}

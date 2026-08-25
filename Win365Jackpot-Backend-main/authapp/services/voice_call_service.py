@@ -60,8 +60,11 @@ from authapp.models.call_models import (
     EVENT_ENDED,
     EVENT_FAILED,
     EVENT_INITIATED,
+    EVENT_RECORDED,
     EVENT_REJECTED,
     EVENT_TIMEOUT,
+    RECORDING_CONTENT_TYPES,
+    RECORDING_EXTENSIONS,
     STATUS_ACCEPTED,
     STATUS_CANCELLED,
     STATUS_CONNECTED,
@@ -599,4 +602,78 @@ def fail_call(user, call, reason):
             call.pk, call.ticket_id, before, reason,
         )
         _push_state(call)
+    return call
+
+
+# ── Recording ───────────────────────────────────────────────────────────────
+
+def recording_enabled():
+    """Whether calls on this deployment are recorded.
+
+    Reported to both browsers by the config endpoint so the agent's recorder
+    and the customer's "this call is recorded" notice are driven by one flag.
+    They must never disagree — a recording made without the notice showing is
+    the failure mode this single source of truth exists to prevent.
+    """
+    return bool(getattr(settings, "VOICE_CALL_RECORDING_ENABLED", False))
+
+
+def attach_recording(agent, call, upload):
+    """Store the agent-side recording of a finished call.
+
+    Only the agent who actually handled the call may upload one (a superuser
+    included, matching how the rest of the panel treats the two roles). That
+    is stricter than CallSession.is_participant on purpose: any staff member
+    can *see* a call, but audio for a conversation someone else handled has no
+    business arriving from their browser.
+
+    Refuses to replace an existing recording. The upload is a one-shot
+    post-call action, so a second one is either a duplicate from a retry or an
+    attempt to overwrite the record of what was said — neither should win.
+    """
+    if not recording_enabled():
+        raise CallError("recording_disabled", "Call recording is not enabled.", status=409)
+    if not getattr(agent, "is_staff", False):
+        raise CallError("not_authorized", "Only support agents can upload recordings.", status=403)
+    if call.receiver_id != agent.id and not getattr(agent, "is_superuser", False):
+        raise CallError("not_authorized", "This call was handled by another agent.", status=403)
+    if call.recording:
+        raise CallError("recording_exists", "This call already has a recording.", status=409)
+    if upload is None:
+        raise CallError("recording_missing", "No audio was uploaded.", status=400)
+
+    max_bytes = int(getattr(settings, "VOICE_CALL_RECORDING_MAX_BYTES", 25 * 1024 * 1024))
+    size = getattr(upload, "size", 0) or 0
+    if size <= 0:
+        raise CallError("recording_empty", "The uploaded audio was empty.", status=400)
+    if size > max_bytes:
+        raise CallError("recording_too_large", "That recording is too large to store.", status=413)
+
+    # Content type is checked against a fixed set rather than sniffed: the only
+    # producer is MediaRecorder, whose container set is known and small. The
+    # stored extension comes from this too — see call_recording_path, which
+    # never uses the client's filename.
+    content_type = (getattr(upload, "content_type", "") or "").split(";")[0].strip().lower()
+    if content_type not in RECORDING_CONTENT_TYPES:
+        raise CallError(
+            "recording_unsupported",
+            "That audio format is not supported.",
+            status=415,
+        )
+    ext = {"audio/mp4": "mp4", "audio/x-m4a": "m4a", "audio/aac": "m4a", "audio/ogg": "ogg"}.get(
+        content_type, "webm",
+    )
+    if ext not in RECORDING_EXTENSIONS:
+        ext = "webm"
+
+    call.recording.save(f"call-{call.pk}.{ext}", upload, save=False)
+    call.recording_bytes = size
+    call.recording_uploaded_at = timezone.now()
+    call.save(update_fields=["recording", "recording_bytes", "recording_uploaded_at", "updated_at"])
+
+    _log_event(call, EVENT_RECORDED, agent, f"{size}B:{content_type}")
+    logger.info(
+        "voice-call: call=%s ticket=%s recording stored bytes=%s type=%s",
+        call.pk, call.ticket_id, size, content_type,
+    )
     return call

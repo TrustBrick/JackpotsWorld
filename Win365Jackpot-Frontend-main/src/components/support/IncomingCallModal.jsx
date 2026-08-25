@@ -5,51 +5,14 @@
 // and nothing more; email and any other account detail stay in the panel where
 // they already live.
 
-import React, { useEffect, useRef } from "react"
+import React from "react"
 import { motion } from "framer-motion"
 import { Phone, PhoneOff, User } from "lucide-react"
 import { PUBLIC_CALL_THEME } from "./callTheme"
-
-// Short repeating ring, synthesised rather than shipped as a binary — the
-// same approach LiveSupportTab already uses for its new-message chime.
-function useRingtone(active) {
-  const ctxRef = useRef(null)
-  const timerRef = useRef(null)
-
-  useEffect(() => {
-    if (!active) return
-    let cancelled = false
-
-    const beep = () => {
-      if (cancelled) return
-      try {
-        const ctx = ctxRef.current || new (window.AudioContext || window.webkitAudioContext)()
-        ctxRef.current = ctx
-        ;[660, 880].forEach((freq, i) => {
-          const osc = ctx.createOscillator()
-          const gain = ctx.createGain()
-          osc.type = "sine"
-          osc.frequency.value = freq
-          gain.gain.setValueAtTime(0.12, ctx.currentTime + i * 0.18)
-          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.18 + 0.3)
-          osc.connect(gain).connect(ctx.destination)
-          osc.start(ctx.currentTime + i * 0.18)
-          osc.stop(ctx.currentTime + i * 0.18 + 0.3)
-        })
-      } catch { /* audio is a courtesy, never a requirement */ }
-    }
-
-    beep()
-    timerRef.current = setInterval(beep, 2400)
-    return () => {
-      cancelled = true
-      clearInterval(timerRef.current)
-      timerRef.current = null
-      try { ctxRef.current?.close() } catch { /* already closed */ }
-      ctxRef.current = null
-    }
-  }, [active])
-}
+// The ring itself now lives with the customer's ringback tone, so the two
+// halves of the call's audio identity are designed against each other rather
+// than in separate files. Same notes, same cadence as before.
+import { useRingtone } from "../../hooks/useCallTones"
 
 export default function IncomingCallModal({
   call,

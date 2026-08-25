@@ -10,7 +10,7 @@
 
 import React from "react"
 import { motion } from "framer-motion"
-import { AlertCircle, Mic, MicOff, Phone, PhoneOff, Volume2, VolumeX } from "lucide-react"
+import { AlertCircle, Disc, Mic, MicOff, Phone, PhoneOff, Volume2, VolumeX } from "lucide-react"
 import { formatCallDuration } from "../../services/voiceCallService"
 import { PUBLIC_CALL_THEME } from "./callTheme"
 import { PHASE } from "../../hooks/useVoiceCall"
@@ -63,6 +63,7 @@ export default function ActiveCallModal({
   muted,
   speakerOn = true,
   speakerSupported = true,
+  recordingEnabled = false,
   error,
   onToggleMute,
   onToggleSpeaker,
@@ -144,11 +145,26 @@ export default function ActiveCallModal({
 
         <p style={{ margin: "0 0 18px", fontSize: 12.5, color: theme.sub, minHeight: 18 }}>
           {finished
-            ? (endedDuration > 0 ? `Duration: ${formatCallDuration(endedDuration)}` : "No conversation recorded")
+            ? (endedDuration > 0 ? `Duration: ${formatCallDuration(endedDuration)}` : "No conversation took place")
             : ringing
               ? "Connecting…"
               : (call?.receiver_name || call?.caller_name || "Support")}
         </p>
+
+        {/* Recording notice. Shown from the moment the call is placed rather
+            than once it connects, so it is on screen before anyone has said
+            anything — a notice that appears after the customer starts talking
+            is not a notice. Driven by the server's flag, the same one that
+            turns the agent's recorder on, so the two cannot disagree. */}
+        {recordingEnabled && !finished && (
+          <p style={{
+            margin: "0 0 14px", display: "inline-flex", alignItems: "center", gap: 6,
+            fontSize: 11, color: theme.muted, lineHeight: 1.4,
+          }}>
+            <Disc size={12} style={{ flexShrink: 0, color: theme.red }} aria-hidden="true" />
+            This call is recorded for quality and security.
+          </p>
+        )}
 
         {error && (
           <div style={{

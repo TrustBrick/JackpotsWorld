@@ -707,6 +707,38 @@ REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["voice-call-start"] = config(
     "VOICE_CALL_START_RATE", default="6/min",
 )
 
+# ── Call recording ───────────────────────────────────────────────────────────
+# The agent's browser mixes both sides of the audio and uploads it when the
+# call ends; there is no media server in the path to record from. This flag is
+# reported to both browsers by the config endpoint, so turning it off stops the
+# agent recording *and* removes the "this call is recorded" notice the customer
+# sees — the two must never disagree.
+#
+# Recordings are stored on the private backend (see CallSession.recording) and
+# are only ever served through CallRecordingView, which re-authorises per
+# request. Operators in jurisdictions that require explicit consent rather than
+# notice should keep this off until that consent flow exists.
+VOICE_CALL_RECORDING_ENABLED = config(
+    "VOICE_CALL_RECORDING_ENABLED", default=True, cast=bool,
+)
+# Where recordings land when S3 is not configured. A SIBLING of MEDIA_ROOT, not
+# a subdirectory of it: authapp/views/media_serve_views.serve_media publishes
+# everything under MEDIA_ROOT with no permission check, and a recording's path
+# contains a sequential call id, so anything inside MEDIA_ROOT would be
+# enumerable by anyone. Sitting next to it (rather than under BASE_DIR) also
+# keeps recordings outside /var/app/current on Elastic Beanstalk, so a deploy
+# does not delete them. See authapp/storage_backends.get_call_recording_storage.
+VOICE_CALL_RECORDING_ROOT = config(
+    "VOICE_CALL_RECORDING_ROOT",
+    default=os.path.join(os.path.dirname(MEDIA_ROOT.rstrip(os.sep)), "call-recordings"),
+)
+# Opus at MediaRecorder's default bitrate runs ~1 MB per 10 minutes, so this is
+# roughly a two-hour ceiling — generous for a support call, and a hard stop on
+# a browser trying to push something large through an authenticated endpoint.
+VOICE_CALL_RECORDING_MAX_BYTES = config(
+    "VOICE_CALL_RECORDING_MAX_BYTES", default=25 * 1024 * 1024, cast=int,
+)
+
 # ANALYTICS: per-IP/account ceiling on the public event-ingest endpoint. The
 # client batches and only sends on milestones/intervals, so this is generous —
 # purely an abuse cap.

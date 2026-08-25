@@ -25,6 +25,7 @@ import {
   describeMediaError,
   isWebRTCSupported,
 } from "../services/voiceCallService"
+import { useRingbackTone } from "./useCallTones"
 
 // Local UI phases. Distinct from the server's CallSession.status, which is the
 // record of what happened; these describe what this browser is showing.
@@ -43,6 +44,12 @@ const TERMINAL_SERVER_STATUSES = new Set([
   "ended", "rejected", "missed", "failed", "cancelled",
 ])
 
+// How long a call may sit in CONNECTING before it is declared failed. Generous
+// — offer/answer plus ICE on a slow mobile connection is a couple of seconds,
+// so anything past this is a negotiation that is not going to complete rather
+// than one that is taking its time.
+const NEGOTIATION_TIMEOUT_MS = 25000
+
 /**
  * @param {object}   opts
  * @param {"customer"|"agent"} opts.role
@@ -57,7 +64,9 @@ const TERMINAL_SERVER_STATUSES = new Set([
  * @param {boolean}  opts.enabled    false ⇒ do nothing at all (e.g. signed out)
  */
 export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, enabled = true }) {
-  const [config, setConfig] = useState({ available: false, ice_servers: [], ring_timeout_seconds: 30 })
+  const [config, setConfig] = useState({
+    available: false, ice_servers: [], ring_timeout_seconds: 30, recording_enabled: false,
+  })
   const [phase, setPhase] = useState(PHASE.IDLE)
   const [call, setCall] = useState(null)
   const [error, setError] = useState("")
@@ -65,6 +74,9 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
   const [speakerOn, setSpeakerOn] = useState(true)
   const [seconds, setSeconds] = useState(0)
   const [lastEnded, setLastEnded] = useState(null)
+  // Bumped when a recording finishes uploading, so a call-history list that
+  // already rendered re-fetches and picks the audio up.
+  const [recordingSavedAt, setRecordingSavedAt] = useState(0)
 
   const engineRef = useRef(null)
   const callRef = useRef(null)
@@ -75,6 +87,22 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
   const dismissTimerRef = useRef(null)
 
   const supported = useMemo(() => isWebRTCSupported(), [])
+
+  // ── Ringback ──────────────────────────────────────────────────────────────
+  // The customer's half of the call's audio: a ring going out, matching the
+  // ring coming in on the agent's card. Without it the caller presses Call and
+  // gets silence for up to thirty seconds, which is indistinguishable from a
+  // button that did nothing.
+  //
+  // Customer only. The agent has their own ringtone on the incoming card and
+  // enters this hook's CONNECTING phase by pressing Accept, where a second
+  // tone would just play over the call they are joining. It runs through
+  // CONNECTING as well as CALLING so the tone stops on the *first audible
+  // moment* — when media is actually flowing — rather than at pickup, leaving
+  // a gap where the caller cannot tell whether anything happened.
+  useRingbackTone(
+    role === "customer" && (phase === PHASE.CALLING || phase === PHASE.CONNECTING)
+  )
 
   useEffect(() => { callRef.current = call }, [call])
   useEffect(() => { phaseRef.current = phase }, [phase])
@@ -187,13 +215,51 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
     post(`${adminPrefix}/live-chat/calls/${id}/connected/`).catch(() => {})
   }, [post, adminPrefix])
 
+  // Reports the failure *and* closes the call out — fail_call is terminal in
+  // its own right (status, end_reason, ended_at, active_key all set), so this
+  // is not paired with an /end/ call. Order matters and is easy to get wrong:
+  // end_call runs first-writer-wins and fail_call returns an already-terminal
+  // call untouched, so ending first and then reporting the failure files the
+  // call as an ordinary hangup and throws the category away. Call history is
+  // how "calls fail on some networks" gets counted, so it has to record what
+  // actually happened.
   const reportFailed = useCallback((id, reason) => {
     post(`${adminPrefix}/live-chat/calls/${id}/failed/`, { reason }).catch(() => {})
   }, [post, adminPrefix])
 
+  // ── Recording upload ──────────────────────────────────────────────────────
+  // Fires once, after the call has already ended and the recorder has flushed.
+  // Sent as multipart rather than through post() above, which JSON-encodes:
+  // the browser has to set its own multipart boundary or the backend cannot
+  // parse the body at all.
+  //
+  // A failure here is logged by the server and otherwise silent on purpose —
+  // the call itself is over and successful, and there is no action a support
+  // agent could take about a lost upload in the moment.
+  const uploadRecording = useCallback(async (blob, mimeType, id) => {
+    if (!blob || !id) return
+    const ext = { "audio/mp4": "mp4", "audio/ogg": "ogg" }[mimeType] || "webm"
+    try {
+      const form = new FormData()
+      form.append("file", blob, `call-${id}.${ext}`)
+      const res = await fetcher(
+        `${apiBase}/api/admin-panel/live-chat/calls/${id}/recording/`,
+        { method: "POST", body: form },
+      )
+      // Bumping this is what makes a history list that rendered while the
+      // upload was still in flight pick the recording up.
+      if (res?.ok) setRecordingSavedAt(Date.now())
+    } catch { /* the conversation still happened; the audio just didn't land */ }
+  }, [fetcher, apiBase])
+
   // ── Engine wiring ─────────────────────────────────────────────────────────
   const buildEngine = useCallback(() => createCallEngine({
     iceServers: config.ice_servers || [],
+    // Agent side only: one browser records, and it is the one that is not a
+    // customer's phone on mobile data. The flag comes from the server so the
+    // recorder and the customer's "recorded" notice can never disagree.
+    record: role === "agent" && !!config.recording_enabled,
+    onRecording: uploadRecording,
     send: (action, payload) => sendSignal?.(action, payload),
     onRemoteStream: (stream) => {
       if (audioRef.current) {
@@ -218,7 +284,10 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
       }
     },
     onError: (friendly) => setError(friendly),
-  }), [config.ice_servers, sendSignal, reportConnected, reportFailed, finish])
+  }), [
+    config.ice_servers, config.recording_enabled, role, uploadRecording,
+    sendSignal, reportConnected, reportFailed, finish,
+  ])
 
   // ── Timer ─────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -233,6 +302,11 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
   // ── Ring expiry (display only; the backend decides for real) ──────────────
   useEffect(() => {
     if (phase !== PHASE.CALLING && phase !== PHASE.INCOMING) return
+    // The deadline only applies while the call is still ringing. Once an agent
+    // claims it the server leaves ring_expires_at on the record as history,
+    // and firing on it anyway would hang up on a call that was answered a
+    // second before the deadline.
+    if (call?.status && call.status !== "ringing") return
     const expiresAt = call?.ring_expires_at ? new Date(call.ring_expires_at).getTime() : null
     if (!expiresAt) return
     const ms = Math.max(0, expiresAt - Date.now()) + 500
@@ -245,7 +319,32 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
       }
     }, ms)
     return () => { clearTimeout(ringTimerRef.current); ringTimerRef.current = null }
-  }, [phase, call?.ring_expires_at, finish, role])
+    // call?.status is a dependency, not just a read: a call that gets answered
+    // keeps the same ring_expires_at, so without it here the guard above would
+    // never be re-evaluated and the armed timer would outlive the ring.
+  }, [phase, call?.ring_expires_at, call?.status, finish, role])
+
+  // ── Negotiation watchdog ──────────────────────────────────────────────────
+  // CONNECTING is the one phase with no deadline of its own: the ring timeout
+  // has stopped applying and the peer connection only reports `failed` once it
+  // has candidates to fail on, so a negotiation that never starts — a lost
+  // offer, a socket that dropped between accept and offer — leaves both
+  // screens sitting on "Connecting…" indefinitely.
+  //
+  // This bounds it, and it records *why*: the call lands in history as
+  // connection_failed rather than vanishing, which is the difference between
+  // "calls sometimes don't work" and a row someone can count.
+  useEffect(() => {
+    if (phase !== PHASE.CONNECTING) return
+    const timer = setTimeout(() => {
+      if (phaseRef.current !== PHASE.CONNECTING) return
+      const current = callRef.current
+      setError("The call could not be connected. Please try again.")
+      if (current?.id) reportFailed(current.id, "connection_failed")
+      finish(current, PHASE.FAILED)
+    }, NEGOTIATION_TIMEOUT_MS)
+    return () => clearTimeout(timer)
+  }, [phase, reportFailed, finish])
 
   // ── Actions ───────────────────────────────────────────────────────────────
   const startCall = useCallback(async () => {
@@ -279,7 +378,8 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
       const reason = describeMediaError(err).includes("Microphone access is required")
         ? "permission_denied"
         : "connection_failed"
-      await post(`/api/live-chat/calls/${data.id}/end/`).catch(() => {})
+      // Reporting the failure ends the call too — see reportFailed. Ending it
+      // separately first would file a denied microphone as a normal hangup.
       reportFailed(data.id, reason)
       finish(data, PHASE.FAILED)
     }
@@ -311,7 +411,6 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
       const reason = describeMediaError(err).includes("Microphone access is required")
         ? "permission_denied"
         : "connection_failed"
-      await post(`/api/admin-panel/live-chat/calls/${data.id}/end/`).catch(() => {})
       reportFailed(data.id, reason)
       finish(data, PHASE.FAILED)
     }
@@ -398,6 +497,13 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
         applyPhase(PHASE.IDLE)
         return
       }
+      // An agent picked up. Move the caller off "Calling…" and onto
+      // "Connecting…", which is what is actually happening now: the agent is
+      // about to offer and media is being negotiated. The agent is already
+      // past this point — acceptCall sets CONNECTING before it awaits.
+      if (role === "customer" && phaseRef.current === PHASE.CALLING && server.status === "accepted") {
+        applyPhase(PHASE.CONNECTING)
+      }
       if (current) setCall(server)
       return
     }
@@ -458,6 +564,8 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
     supported,
     available: !!config.available && supported,
     iceServers: config.ice_servers,
+    recordingEnabled: !!config.recording_enabled,
+    recordingSavedAt,
     phase,
     call,
     lastEnded,

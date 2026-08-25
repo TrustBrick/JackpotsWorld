@@ -17,6 +17,10 @@ env/
 logs/
 staticfiles/
 media/
+# Local-dev call recordings. VOICE_CALL_RECORDING_ROOT defaults to a
+# sibling of MEDIA_ROOT, which lands inside the project on a dev box —
+# these are recordings of conversations and must never be committed.
+call-recordings/
 db.sqlite3
 
 # IDE

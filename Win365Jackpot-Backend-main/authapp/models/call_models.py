@@ -38,15 +38,26 @@ database-level guarantee of at most one live call per ticket that survives
 concurrent requests, rather than a check-then-insert two racing clients can
 both pass.
 
-NO RECORDING
-────────────
-Only metadata is stored: who called, who answered, which ticket, timestamps,
-duration, status and end reason. No audio ever reaches the server — media is
-peer-to-peer (or relayed by TURN, which this application does not read) and
-Django Channels carries signaling only.
+RECORDING
+─────────
+Live audio still never flows through this server: media is peer-to-peer (or
+relayed by TURN, which this application does not read) and Django Channels
+carries signaling only. What is stored is an *after the fact* recording — the
+agent's browser mixes both sides and uploads the file once the call has ended,
+because a peer-to-peer call has no other point where both halves of the audio
+exist together.
+
+That upload is opt-in per deployment (VOICE_CALL_RECORDING_ENABLED) and the
+same flag puts a "this call is recorded" notice in front of the customer before
+they speak, so the two can never disagree. The file itself never sits anywhere
+publicly readable — see get_call_recording_storage — and is only ever served by
+AdminCallRecordingView, which re-authorises every request.
 """
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
+
+from authapp.storage_backends import get_call_recording_storage
 
 # ── Status vocabulary ───────────────────────────────────────────────────────
 # The live states are the ones that hold `active_key`; the terminal states
@@ -108,6 +119,7 @@ EVENT_UNMUTE = "unmute"
 EVENT_ENDED = "ended"
 EVENT_FAILED = "failed"
 EVENT_TIMEOUT = "timeout"
+EVENT_RECORDED = "recorded"
 
 CALL_EVENT_CHOICES = [
     (EVENT_INITIATED, "Initiated"),
@@ -120,7 +132,40 @@ CALL_EVENT_CHOICES = [
     (EVENT_ENDED,     "Ended"),
     (EVENT_FAILED,    "Failed"),
     (EVENT_TIMEOUT,   "Timeout"),
+    (EVENT_RECORDED,  "Recorded"),
 ]
+
+
+def call_recording_path(instance, filename):
+    """Where a call recording lands *within* its storage root.
+
+    Relative to that root only: the "call-recordings" segment lives on the
+    backend itself (a dedicated directory locally, a bucket prefix on S3 — see
+    get_call_recording_storage), so it is not repeated here.
+
+    Foldered by month so a listing stays navigable once there are thousands,
+    and named from the call's own primary key rather than anything the
+    uploading browser supplied — the client picks the container format, never
+    the path. The extension is taken from the recorded mime type via
+    RECORDING_EXTENSIONS, so an agent's browser cannot smuggle a filename
+    through `filename` at all.
+    """
+    ext = (filename or "").rsplit(".", 1)[-1].lower()
+    if ext not in RECORDING_EXTENSIONS:
+        ext = "webm"
+    stamp = instance.started_at or timezone.now()
+    return f"{stamp:%Y/%m}/call-{instance.pk}.{ext}"
+
+
+# Container formats a browser may hand us. Chrome/Edge/Firefox record
+# WebM/Opus; Safari records MP4/AAC. Anything else is rejected rather than
+# stored under a guessed extension.
+RECORDING_EXTENSIONS = {"webm", "ogg", "mp4", "m4a"}
+RECORDING_CONTENT_TYPES = {
+    "audio/webm", "audio/ogg", "audio/mp4", "audio/x-m4a", "audio/aac",
+    # MediaRecorder reports the full codec string on some builds.
+    "video/webm",
+}
 
 
 class CallSession(models.Model):
@@ -154,6 +199,26 @@ class CallSession(models.Model):
     # a 30-second unanswered ring records 0 rather than 30.
     duration_seconds = models.PositiveIntegerField(default=0)
 
+    # ── Recording ───────────────────────────────────────────────────────────
+    # The audio of the conversation, mixed and uploaded by the agent's browser
+    # once the call ends (there is no media server in the path — the call is
+    # peer-to-peer, so the only place both sides of the audio exist together is
+    # in a participant's browser).
+    #
+    # Private storage, deliberately: this is a recording of a customer, in the
+    # same class as a KYC document. On S3 that means presigned URLs rather than
+    # public ones, and with S3 unconfigured it means a directory outside
+    # MEDIA_ROOT — because MEDIA_ROOT is served publicly with no permission
+    # check and these filenames are sequential. Either way the bytes are only
+    # ever handed out by AdminCallRecordingView, which re-checks entitlement per
+    # request rather than trusting whoever holds a link.
+    recording = models.FileField(
+        upload_to=call_recording_path, storage=get_call_recording_storage,
+        null=True, blank=True, max_length=255,
+    )
+    recording_bytes = models.PositiveIntegerField(default=0)
+    recording_uploaded_at = models.DateTimeField(null=True, blank=True)
+
     # Duplicate guard — see the module docstring. Never set from client input.
     active_key = models.PositiveBigIntegerField(null=True, blank=True, default=None)
 
@@ -181,6 +246,12 @@ class CallSession(models.Model):
     @property
     def is_active(self):
         return self.status in ACTIVE_STATUSES
+
+    @property
+    def has_recording(self):
+        # `bool(FieldFile)` is False for an empty field without touching
+        # storage — no network call to S3 just to render a history row.
+        return bool(self.recording)
 
     def is_participant(self, user):
         """May this user *see and act on* this call through the REST layer?

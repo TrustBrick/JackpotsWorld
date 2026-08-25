@@ -6,11 +6,16 @@ plumbing. The WebSocket cases exercise the consumer's validation helper
 directly: the relay's whole job is deciding who may send what, and that
 decision is a database question, not a transport one.
 """
+import os
+import shutil
+import tempfile
 from datetime import timedelta
 from itertools import count
 from unittest.mock import patch
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
 from django.test import override_settings
 from django.utils import timezone
@@ -712,7 +717,243 @@ class VoiceCallTurnCredentialTests(VoiceCallTestBase):
         body = str(res.data)
         self.assertNotIn("never-leaves-the-server", body)
         self.assertNotIn("STATIC_AUTH_SECRET", body)
-        # And the response carries only what RTCPeerConnection needs.
+        # And the response carries only what the browser needs to set a call
+        # up — nothing about credentials, other users, or storage. This is an
+        # allowlist on purpose: a new key here is a deliberate decision to
+        # publish something, not an accident.
         self.assertEqual(
-            set(res.data.keys()), {"available", "ice_servers", "ring_timeout_seconds"},
+            set(res.data.keys()),
+            {"available", "ice_servers", "ring_timeout_seconds", "recording_enabled"},
         )
+
+
+# ── Recording ───────────────────────────────────────────────────────────────
+
+@override_settings(
+    LIVE_CHAT_REALTIME=True,
+    VOICE_CALL_RECORDING_ENABLED=True,
+    MEDIA_ROOT=tempfile.mkdtemp(prefix="jw-media-test-"),
+    VOICE_CALL_RECORDING_ROOT=tempfile.mkdtemp(prefix="jw-call-rec-test-"),
+)
+class VoiceCallRecordingTests(VoiceCallTestBase):
+    """The recording is audio of a customer, so these are mostly authorization
+    tests. The property that matters above all: possessing a link is never the
+    same as being allowed to listen."""
+
+    def setUp(self):
+        super().setUp()
+        # The base class makes both of its agents superusers, which would mask
+        # the "handled by someone else" rule — every check below would pass for
+        # the wrong reason. This one is ordinary staff.
+        self.other_agent = User.objects.create_user(
+            email="agent3@example.com", password="pw-Test-1", user_uid="TESTAGT3",
+            is_staff=True, name="Robin Agent",
+        )
+        self.addCleanup(shutil.rmtree, settings.VOICE_CALL_RECORDING_ROOT, True)
+        self.addCleanup(shutil.rmtree, settings.MEDIA_ROOT, True)
+
+    def _audio(self, size=2048, content_type="audio/webm"):
+        body = b"\x1a\x45\xdf\xa3" + b"\x00" * (size - 4)
+        return SimpleUploadedFile("blob", body, content_type)
+
+    def _handled_call(self, agent=None):
+        """A call that ran its course: rang, answered, connected, hung up."""
+        agent = agent or self.agent
+        call = self._ringing()
+        call = voice_call_service.accept_call(agent, call)
+        call = voice_call_service.mark_connected(agent, call)
+        return voice_call_service.end_call(agent, call)
+
+    def _upload(self, call, upload=None):
+        return self.client.post(
+            "/api/admin-panel/live-chat/calls/{}/recording/".format(call.pk),
+            {"file": upload if upload is not None else self._audio()},
+            format="multipart",
+        )
+
+    def _playback(self, call):
+        return self.client.get(
+            "/api/admin-panel/live-chat/calls/{}/recording/".format(call.pk),
+        )
+
+    # ── Upload ──────────────────────────────────────────────────────────────
+
+    def test_the_agent_who_handled_the_call_can_upload_its_recording(self):
+        call = self._handled_call()
+        self._as(self.agent)
+        self.assertEqual(self._upload(call).status_code, 201)
+
+        call.refresh_from_db()
+        self.assertTrue(call.recording)
+        self.assertEqual(call.recording_bytes, 2048)
+        self.assertIsNotNone(call.recording_uploaded_at)
+        # Stored under the call's own id, never a client-supplied filename.
+        self.assertIn("call-{}.webm".format(call.pk), call.recording.name)
+        self.assertTrue(
+            CallEvent.objects.filter(call=call, event="recorded").exists(),
+            "the upload should leave an audit row",
+        )
+
+    def test_the_audio_never_lands_anywhere_public(self):
+        """The load-bearing one.
+
+        media_serve_views.serve_media publishes everything under MEDIA_ROOT
+        with no permission check whatsoever, and a recording's filename is
+        derived from a sequential call id — so a recording inside MEDIA_ROOT
+        would be downloadable by anyone who can count. It has to live
+        somewhere that view is not rooted at.
+        """
+        call = self._handled_call()
+        self._as(self.agent)
+        self._upload(call)
+        call.refresh_from_db()
+
+        on_disk = os.path.abspath(call.recording.path)
+        media_root = os.path.abspath(settings.MEDIA_ROOT)
+        self.assertFalse(
+            on_disk.startswith(media_root + os.sep),
+            f"recording {on_disk} is inside the publicly served MEDIA_ROOT",
+        )
+        self.assertTrue(os.path.exists(on_disk))
+
+    def test_a_staff_member_who_did_not_handle_the_call_cannot_upload(self):
+        call = self._handled_call()
+        self._as(self.other_agent)
+        self.assertEqual(self._upload(call).status_code, 403)
+        call.refresh_from_db()
+        self.assertFalse(call.recording)
+
+    def test_a_second_upload_never_replaces_the_first(self):
+        call = self._handled_call()
+        self._as(self.agent)
+        self.assertEqual(self._upload(call).status_code, 201)
+        call.refresh_from_db()
+        first = call.recording.name
+
+        self.assertEqual(self._upload(call, self._audio(size=4096)).status_code, 409)
+        call.refresh_from_db()
+        self.assertEqual(call.recording.name, first)
+        self.assertEqual(call.recording_bytes, 2048)
+
+    def test_an_oversized_recording_is_refused(self):
+        call = self._handled_call()
+        self._as(self.agent)
+        with override_settings(VOICE_CALL_RECORDING_MAX_BYTES=1024):
+            self.assertEqual(self._upload(call, self._audio(size=4096)).status_code, 413)
+        call.refresh_from_db()
+        self.assertFalse(call.recording)
+
+    def test_an_empty_recording_is_refused(self):
+        call = self._handled_call()
+        self._as(self.agent)
+        empty = SimpleUploadedFile("blob", b"", "audio/webm")
+        self.assertEqual(self._upload(call, empty).status_code, 400)
+
+    def test_an_unsupported_container_is_refused(self):
+        call = self._handled_call()
+        self._as(self.agent)
+        bad = self._audio(content_type="application/zip")
+        self.assertEqual(self._upload(call, bad).status_code, 415)
+        call.refresh_from_db()
+        self.assertFalse(call.recording)
+
+    def test_the_codec_parameter_on_the_mime_type_is_tolerated(self):
+        """MediaRecorder reports "audio/webm;codecs=opus" and the browser puts
+        that whole string on the multipart part."""
+        call = self._handled_call()
+        self._as(self.agent)
+        opus = self._audio(content_type="audio/webm;codecs=opus")
+        self.assertEqual(self._upload(call, opus).status_code, 201)
+
+    def test_nothing_is_stored_while_recording_is_switched_off(self):
+        call = self._handled_call()
+        self._as(self.agent)
+        with override_settings(VOICE_CALL_RECORDING_ENABLED=False):
+            self.assertEqual(self._upload(call).status_code, 409)
+        call.refresh_from_db()
+        self.assertFalse(call.recording)
+
+    # ── Playback ────────────────────────────────────────────────────────────
+
+    def test_the_agent_who_handled_the_call_can_play_it_back(self):
+        call = self._handled_call()
+        self._as(self.agent)
+        self._upload(call)
+
+        res = self._playback(call)
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res["Content-Type"], "audio/webm")
+        self.assertEqual(res["Cache-Control"], "private, no-store")
+        self.assertEqual(res["X-Content-Type-Options"], "nosniff")
+        self.assertEqual(len(b"".join(res.streaming_content)), 2048)
+
+    def test_a_staff_member_who_did_not_handle_the_call_cannot_play_it_back(self):
+        call = self._handled_call()
+        self._as(self.agent)
+        self._upload(call)
+
+        self._as(self.other_agent)
+        # 404 rather than 403 — a recording someone may not hear should not
+        # confirm that it exists.
+        self.assertEqual(self._playback(call).status_code, 404)
+
+    def test_a_superuser_can_play_back_any_call(self):
+        call = self._handled_call(agent=self.other_agent)
+        self._as(self.other_agent)
+        self._upload(call)
+
+        self._as(self.agent2)  # superuser, handled nothing
+        self.assertEqual(self._playback(call).status_code, 200)
+
+    def test_a_customer_cannot_reach_the_recording_endpoint_at_all(self):
+        call = self._handled_call()
+        self._as(self.agent)
+        self._upload(call)
+
+        self._as(self.player)
+        self.assertIn(self._playback(call).status_code, (401, 403, 404))
+
+    def test_a_call_with_no_recording_is_404_not_an_empty_body(self):
+        call = self._handled_call()
+        self._as(self.agent)
+        self.assertEqual(self._playback(call).status_code, 404)
+
+    # ── How it surfaces ─────────────────────────────────────────────────────
+
+    def test_history_advertises_an_authorised_path_never_a_storage_url(self):
+        call = self._handled_call()
+        self._as(self.agent)
+        self._upload(call)
+
+        res = self.client.get("/api/admin-panel/live-chat/calls/")
+        rows = res.data if isinstance(res.data, list) else res.data["results"]
+        row = next(r for r in rows if r["id"] == call.pk)
+        self.assertTrue(row["has_recording"])
+        self.assertEqual(row["recording_bytes"], 2048)
+        self.assertEqual(
+            row["recording_url"],
+            "/api/admin-panel/live-chat/calls/{}/recording/".format(call.pk),
+        )
+        # Never the raw file location, which is public on disk and replayable
+        # on S3.
+        self.assertNotIn("/media/", str(row["recording_url"]))
+        self.assertNotIn("call-recordings/", str(row["recording_url"]))
+
+    def test_a_call_without_a_recording_says_so(self):
+        call = self._handled_call()
+        self._as(self.agent)
+        res = self.client.get("/api/live-chat/calls/{}/".format(call.pk))
+        self.assertFalse(res.data["has_recording"])
+        self.assertIsNone(res.data["recording_url"])
+
+    def test_config_tells_both_browsers_whether_calls_are_recorded(self):
+        """One flag drives the agent's recorder and the customer's notice, so a
+        recording can never be made without the notice being shown."""
+        self._as(self.player)
+        self.assertTrue(
+            self.client.get("/api/live-chat/calls/config/").data["recording_enabled"],
+        )
+        with override_settings(VOICE_CALL_RECORDING_ENABLED=False):
+            self.assertFalse(
+                self.client.get("/api/live-chat/calls/config/").data["recording_enabled"],
+            )
