@@ -54,7 +54,7 @@ from authapp.models.call_models import (
     VoiceCallSettings,
 )
 from authapp.models.support_ticket_models import SupportTicket
-from authapp.permissions.super_admin_permissions import IsAdminOrSuperAdmin
+from authapp.permissions.super_admin_permissions import IsAdminOrSuperAdmin, IsSuperAdmin
 from authapp.serializers.voice_call_serializers import (
     CallSessionSerializer,
     VoiceCallSettingsSerializer,
@@ -405,20 +405,25 @@ class AdminVoiceCallSettingsView(APIView):
     started with, because the customer was shown a notice based on it — the
     recorder and the notice must agree for the whole of a call, not just at
     the moment it began.
+
+    GET stays on IsAdminOrSuperAdmin (any staff member); PATCH is gated by
+    IsSuperAdmin instead of a manual is_superuser check, so it also picks up
+    that permission's SUPERADMIN_IP_ALLOWLIST enforcement — the same
+    protection every other super-admin-only mutation in this app gets against
+    a stolen/exfiltrated super-admin token used from an unexpected IP.
     """
 
     permission_classes = [IsAdminOrSuperAdmin]
+
+    def get_permissions(self):
+        if self.request.method == "PATCH":
+            return [IsSuperAdmin()]
+        return super().get_permissions()
 
     def get(self, request):
         return Response(VoiceCallSettingsSerializer(VoiceCallSettings.load()).data)
 
     def patch(self, request):
-        if not request.user.is_superuser:
-            return Response(
-                {"error": "Only a Super Admin can change call recording.",
-                 "code": "not_authorized"},
-                status=403,
-            )
         if "recording_enabled" not in request.data:
             return Response(
                 {"error": "recording_enabled is required.", "code": "invalid"},
@@ -433,10 +438,11 @@ class AdminVoiceCallSettingsView(APIView):
 class AdminCallDeleteView(APIView):
     """Erase one call from history — the row, its events, and its audio.
 
-    Super Admin only, enforced in voice_call_service.delete_call rather than
-    by the permission class, so the rule lives next to the deletion it guards
-    and applies however the service is reached. Disabling the button for
-    everyone else is courtesy; this is the control.
+    Super Admin only. IsSuperAdmin gates the route itself (including its
+    SUPERADMIN_IP_ALLOWLIST check, same as every other super-admin-only
+    mutation in this app), and voice_call_service.delete_call repeats the
+    is_superuser check next to the deletion it guards, so the rule holds
+    however the service is reached — belt and suspenders, not either/or.
 
     DELETE and nothing else: there is deliberately no admin GET on this route.
     A call's detail is already served by the history list and the participant
@@ -444,7 +450,7 @@ class AdminCallDeleteView(APIView):
     scoping rules to drift.
     """
 
-    permission_classes = [IsAdminOrSuperAdmin]
+    permission_classes = [IsSuperAdmin]
 
     def delete(self, request, call_id):
         call = get_object_or_404(
