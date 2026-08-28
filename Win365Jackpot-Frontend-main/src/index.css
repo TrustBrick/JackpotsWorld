@@ -324,7 +324,3 @@ select:disabled {
 
 /* Flag emoji sizing */
 .flag { font-size: 2rem; }
-
-/* Swiper custom */
-.swiper-pagination-bullet { background: #D4AF37 !important; }
-.swiper-pagination-bullet-active { background: #F5D060 !important; box-shadow: 0 0 10px #D4AF37; }
