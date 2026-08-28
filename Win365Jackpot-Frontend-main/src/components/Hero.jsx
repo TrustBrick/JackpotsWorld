@@ -481,7 +481,7 @@ useEffect(() => {
   const FALLBACK_STATS = [
     { label:'Players',   value:'20K+' },
     { label:'Won Today', value:dailyCr.display },
-    { label:'Countries', value:'10+' },
+    { label:'Countries', value:'15+' },
     { label:'Support',   value:'24/7' },
   ]
   const stats = (Array.isArray(heroStatsData) && heroStatsData.length > 0 ? heroStatsData : FALLBACK_STATS)

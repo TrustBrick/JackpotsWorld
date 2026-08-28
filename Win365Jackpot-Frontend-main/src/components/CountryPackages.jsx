@@ -443,6 +443,18 @@ function VIPServicesGallery() {
   </div>
   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%,280px),1fr))', gap: 12, justifyContent: 'center', maxWidth: 920, margin: '0 auto' }}>
     {[
+      // vip-lounge.mp4 is trimmed to 55.16s. The source was a third-party
+      // nightclub promo whose last 13s were end cards — a venue address, phone
+      // and socials, a spirits-brand logo, and a videographer credit — none of
+      // which belong on this page. The cut lands on the keyframe at 55.12s,
+      // right after the fade to black completes and before the first end card
+      // at 55.28s; the kept frames are stream-copied, so bit-identical to the
+      // original. Audio dropped too: every element that plays this file is
+      // hard-muted, so the 128kbps AAC was 891KB of pure waste. The Teen Patti
+      // hero watermark reads the same file (see config/heroWatermarks.js).
+      // The full-length original is in git history at 8f2c80c; re-cut with:
+      //   ffmpeg -i <original> -t 55.16 -an -c copy -movflags +faststart
+      //     vip-lounge.mp4
       { src: '/assets/videos/vip-lounge.mp4',   label: 'VIP Lounge Experience' },
       { src: '/assets/videos/casino-floor.mp4', label: 'Casino Floor Nights' },
       { src: '/assets/videos/spa-retreat.mp4',  label: 'Luxury Spa Retreat' },

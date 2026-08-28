@@ -8,7 +8,6 @@ import EventsPreviewSection from '../components/EventsPreviewSection'
 import PromotionsPreviewSection from '../components/PromotionsPreviewSection'
 import GlobalReachCard from '../components/GlobalReachCard'
 import WhyChooseUs from '../components/WhyChooseUs'
-import Testimonials from '../components/Testimonials'
 import Footer from '../components/Footer'
 import ParticleStars from '../components/ParticleStars'
 import GiftsSection from '../components/Giftssection'
@@ -67,7 +66,6 @@ export default function LandingPage() {
         <VIPLevels />
         <WhyChooseUs />
         <Register />
-        <Testimonials />
       </main>
       <Footer />
       <PageScrollButtons />

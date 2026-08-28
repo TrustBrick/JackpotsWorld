@@ -7,7 +7,7 @@ import {
   CheckCircle, Lock, BadgeCheck, MapPin, Star,
 } from 'lucide-react'
 import { useAutoFetch } from '../hooks/useAutoFetch'
-import { fetchWhyChooseUsFeatures, fetchTrustBadges, fetchLandingSettings } from '../services/landingService'
+import { fetchWhyChooseUsFeatures } from '../services/landingService'
 
 // Maps the admin-editable `icon_name` string to its Lucide component —
 // same string-keyed lookup pattern already used by AdminPanel.jsx's ICON_MAP.
@@ -18,21 +18,13 @@ const ICON_MAP = {
 
 const FALLBACK_FEATURES = [
   { color: '#34d399', icon_name: 'ShieldCheck', title: 'Secure & Licensed', description: 'All casino partners are fully licensed and regulated. Your safety and privacy are our top priority.' },
-  { color: '#fbbf24', icon_name: 'Zap', title: 'Instant Payments', description: 'Deposit and withdraw seamlessly across all types of currencies at casinos.' },
-  { color: '#f472b6', icon_name: 'Gift', title: 'Exclusive Bonuses', description: 'Special welcome bonuses, reload offers, and cashback deals available only on Jackpots World.' },
-  { color: '#60a5fa', icon_name: 'Globe', title: '10+ Country Access', description: 'One registration unlocks casino opportunities in Vietnam, Macau, India, Sri Lanka, Philippines and more.' },
+  { color: '#fbbf24', icon_name: 'Zap', title: 'Seamless Buying', description: 'Deposit and withdraw seamlessly across all types of currencies at casinos.' },
+  { color: '#f472b6', icon_name: 'Gift', title: 'Exclusive VIP Privilege', description: 'Special welcome bonuses, reload offers, and cashback deals available only on Jackpots World.' },
+  { color: '#60a5fa', icon_name: 'Globe', title: '15+ Countries Access', description: 'One registration unlocks casino opportunities in Vietnam, Macau, India, Sri Lanka, Philippines and more.' },
   { color: '#a78bfa', icon_name: 'HeadphonesIcon', title: '24/7 Live Support', description: 'Our multilingual support team is available round the clock via WhatsApp, chat, and call.' },
   { color: '#22d3ee', icon_name: 'PlaneTakeoff', title: 'Full Trip Packages', description: 'We handle flights, hotels, transfers, and casino entry. Hassle-free from home to high-stakes table.' },
-  { color: '#D4AF37', icon_name: 'Crown', title: 'VIP Membership', description: 'Earn loyalty points on every booking. Unlock exclusive perks, private rooms, and concierge service.' },
-  { color: '#fb923c', icon_name: 'BarChart3', title: 'Win Rate Analytics', description: 'Smart tools to track your sessions, analyse performance, and optimise your gaming strategy.' },
-]
-
-const FALLBACK_TRUST_BADGES = [
-  { icon_name: 'CheckCircle', label: 'Licensed Partners',  color: '#34d399' },
-  { icon_name: 'Lock',        label: 'SSL Secured',         color: '#60a5fa' },
-  { icon_name: 'BadgeCheck',  label: 'Fair Play Certified', color: '#a78bfa' },
-  { icon_name: 'MapPin',      label: 'Pan-Asia Coverage',   color: '#fbbf24' },
-  { icon_name: 'Star',        label: '5 Star Rated',        color: '#D4AF37' },
+  { color: '#D4AF37', icon_name: 'Crown', title: 'Every Booking to Every Bet', description: 'Earn loyalty points on every booking. Unlock exclusive perks, private rooms, and concierge service.' },
+  { color: '#fb923c', icon_name: 'BarChart3', title: 'Smart Tools to Track Your Betting Sessions', description: 'Smart tools to track your sessions, analyse your results, and optimise your gaming strategy.' },
 ]
 
 const FeatureCard = memo(({ Icon, color, bg, border, title, desc }) => (
@@ -101,8 +93,6 @@ export default function WhyChooseUs() {
   const { ref, inView } = useInView({ threshold: 0.08, triggerOnce: true })
 
   const { data: featuresData } = useAutoFetch(fetchWhyChooseUsFeatures, {}, { intervalMs: 60_000 })
-  const { data: trustBadgesData } = useAutoFetch(fetchTrustBadges, {}, { intervalMs: 60_000 })
-  const { data: settings } = useAutoFetch(fetchLandingSettings, {}, { intervalMs: 60_000 })
 
   const features = (Array.isArray(featuresData) && featuresData.length > 0 ? featuresData : FALLBACK_FEATURES).map(f => ({
     Icon: ICON_MAP[f.icon_name] || ShieldCheck,
@@ -111,12 +101,6 @@ export default function WhyChooseUs() {
     border: `${f.color}2e`,
     title: f.title,
     desc: f.description,
-  }))
-
-  const TRUST_BADGES = (Array.isArray(trustBadgesData) && trustBadgesData.length > 0 ? trustBadgesData : FALLBACK_TRUST_BADGES).map(b => ({
-    Icon: ICON_MAP[b.icon_name] || CheckCircle,
-    label: b.label,
-    color: b.color,
   }))
 
   return (
@@ -181,58 +165,6 @@ export default function WhyChooseUs() {
           }}
         >
           {features.map((f, i) => <FeatureCard key={i} {...f} />)}
-        </motion.div>
-
-        {/* ── Trust Banner ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          style={{
-            marginTop: 48,
-            borderRadius: 18,
-            border: '1px solid rgba(212,175,55,0.18)',
-            background: 'rgba(212,175,55,0.03)',
-            padding: 'clamp(28px,6vw,48px) clamp(20px,5vw,40px)',
-            textAlign: 'center',
-          }}
-        >
-          <div className="font-bold gold-text" style={{
-            fontSize: 'clamp(1.2rem,5vw,1.8rem)',
-            fontWeight: 900, marginBottom: 10, lineHeight: 1.2,
-          }}>
-            {settings?.trust_banner_heading || 'Join 50,000+ Winning Players Across Asia'}
-          </div>
-          <p className="font-body font-light" style={{
-            color: 'rgba(var(--w365-text-rgb),0.45)',
-            marginBottom: 28, maxWidth: 480,
-            margin: '0 auto 28px',
-            fontSize: 'clamp(0.82rem,3vw,0.95rem)',
-            lineHeight: 1.6,
-          }}>
-            {settings?.trust_banner_subtext || 'From first-time casino visitors to high-rollers — Jackpots World is your trusted partner for every bet.'}
-          </p>
-
-          {/* Badges */}
-          <div style={{
-            display: 'flex', flexWrap: 'wrap',
-            justifyContent: 'center', gap: 10,
-          }}>
-            {TRUST_BADGES.map(({ Icon, label, color }, i) => (
-              <div key={i} style={{
-                display: 'inline-flex', alignItems: 'center', gap: 7,
-                padding: '7px 14px', borderRadius: 50,
-                background: `${color}0d`,
-                border: `1px solid ${color}30`,
-                fontSize: 'clamp(0.68rem,2.5vw,0.78rem)',
-                fontWeight: 600, color: color,
-                letterSpacing: '0.02em',
-              }}>
-                <Icon size={13} color={color} strokeWidth={2} />
-                {label}
-              </div>
-            ))}
-          </div>
         </motion.div>
 
       </div>
