@@ -1,1 +1,0 @@
-import{j as n,R as l}from"./index-DbfP60a6.js";function c({text:a,as:r="span",goldClassName:t="gold-emphasis"}){if(!a)return null;const i=a.split(/\*\*(.+?)\*\*/g);return n.jsx(r,{children:i.map((e,s)=>s%2===1?n.jsx("span",{className:t,children:e},s):n.jsx(l.Fragment,{children:e},s))})}export{c as H};
