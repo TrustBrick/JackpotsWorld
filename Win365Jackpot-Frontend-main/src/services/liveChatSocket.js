@@ -29,6 +29,18 @@
 const MAX_BACKOFF_MS = 15000;
 const DEFAULT_POLL_MS = 2000;
 
+// How long to wait for a WebSocket handshake before giving up on that attempt.
+//
+// The fallback below is driven entirely by `onclose`, which assumes a socket
+// either opens or fails. A network that accepts the TCP connection but never
+// completes the upgrade - proxies and captive portals do this - gives neither:
+// the handshake simply hangs. Without this timeout that leaves the channel
+// reporting "connecting" forever, which is worse than reporting failure. Chat
+// still works (polling starts before the socket does), but anything gated on a
+// genuinely open socket - voice calling - stays silently unavailable, and the
+// UI says "Connecting..." indefinitely rather than admitting it fell back.
+const HANDSHAKE_TIMEOUT_MS = 8000;
+
 function wsBase() {
   const api = import.meta.env.VITE_API_URL || window.location.origin;
   return api.replace(/^http/, "ws");
@@ -110,7 +122,17 @@ export function connectLiveChatSocket(path, token, handlers = {}) {
       return;
     }
 
+    // Abandon a handshake that neither opens nor closes. close() on a socket
+    // still in CONNECTING fires onclose, so the existing fallback path handles
+    // the rest: polling resumes and a retry is scheduled with backoff.
+    const handshakeTimer = setTimeout(() => {
+      if (socket && socket.readyState === WebSocket.CONNECTING) {
+        try { socket.close(); } catch { /* onclose still runs */ }
+      }
+    }, HANDSHAKE_TIMEOUT_MS);
+
     socket.onopen = () => {
+      clearTimeout(handshakeTimer);
       attempt = 0;
       notify("open");
       // Catch up on anything sent while we were disconnected, *then* hand
@@ -129,6 +151,7 @@ export function connectLiveChatSocket(path, token, handlers = {}) {
     };
 
     socket.onclose = () => {
+      clearTimeout(handshakeTimer);
       socket = null;
       if (closedByCaller) { notify("closed"); return; }
       // Resume polling immediately — never leave a gap where neither

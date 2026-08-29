@@ -388,7 +388,24 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
 
     // Subscribe *before* negotiating, so the answer cannot arrive before this
     // socket has joined the call's group.
-    sendSignal?.("call.subscribe", { call_id: data.id })
+    //
+    // The return value is load-bearing, not decoration: send() reports false
+    // whenever the WebSocket is not OPEN. On a network where the socket never
+    // comes up - mobile data behind a proxy that blocks the upgrade, say -
+    // this frame goes nowhere, this browser never joins the call's group, and
+    // the agent's offer is relayed to a room it is not in. The call then sits
+    // on "Connecting..." for the full negotiation timeout before dying, with
+    // nothing on screen to say why. Ignoring this was how a signaling problem
+    // came to look like a broken microphone.
+    const subscribed = sendSignal?.("call.subscribe", { call_id: data.id })
+    if (!subscribed) {
+      setError(
+        "We couldn't set up the call on this connection. Chat still works - send a message here and an agent will reply.",
+      )
+      reportFailed(data.id, "network_failure")
+      finish(data, PHASE.FAILED)
+      return
+    }
 
     const engine = buildEngine()
     engineRef.current = engine
@@ -422,7 +439,16 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
     }
     setCall(data)
     callRef.current = data
-    sendSignal?.("call.subscribe", { call_id: data.id })
+    // Same reasoning as startCall: without this frame landing, this browser is
+    // not in the call's group, and the offer it is about to send would be the
+    // only thing it ever contributes to a conversation it cannot hear.
+    const subscribed = sendSignal?.("call.subscribe", { call_id: data.id })
+    if (!subscribed) {
+      setError("The support connection dropped. Please reload the panel and try again.")
+      reportFailed(data.id, "network_failure")
+      finish(data, PHASE.FAILED)
+      return
+    }
 
     const engine = buildEngine()
     engineRef.current = engine
