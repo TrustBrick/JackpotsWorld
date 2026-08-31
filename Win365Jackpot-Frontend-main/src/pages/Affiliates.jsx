@@ -9,7 +9,6 @@ import { useTheme } from '../context/ThemeContext'
 import Navbar from '../components/Navbar'
 import PageHeader from '../components/shared/PageHeader'
 import PageScrollButtons from '../components/PageScrollButtons'
-import AffiliateFloatingCards from '../components/AffiliateFloatingCards'
 
 // ── Static content ───────────────────────────────────────────────────────────
 // This is copy-only content for now. If you later want this editable from an
@@ -136,11 +135,6 @@ export default function Affiliates() {
           ))}
         </div>
       </section>
-
-      {/* Floating affiliate cards */}
-      <div className="pb-20">
-        <AffiliateFloatingCards />
-      </div>
 
       {/* How it works */}
       <section className="max-w-6xl mx-auto px-4 pb-20">
