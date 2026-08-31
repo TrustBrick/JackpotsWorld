@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, memo } from 'react'
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { Link } from 'react-scroll'
 import { useNavigate } from 'react-router-dom'
 import { Gem, CalendarDays, MapPinned, Gift, MapPin } from 'lucide-react'
@@ -97,17 +97,6 @@ function injectCSS() {
   document.head.appendChild(s)
 }
 
-// ─── Names ─────────────────────────────────────────────────────────────────
-const NAMES = [
-  'James Mitchell','Emma Clarke','Lucas Hernandez','Sofia Reyes','Liam O\'Brien',
-  'Olivia Bennett','Noah Andersson','Ava Thompson','Ethan Kowalski','Isabella Ferreira',
-  'Mason Turner','Mia Johansson','Logan Campbell','Charlotte Davies','Aiden Murphy',
-  'Priya Nair','Rohan Mehta','Arjun Sharma','Carlos Mendez','Maria Delgado',
-  'Omar Khalil','Fatima Hassan','Tariq Rahman','Layla Mansour','Aisha Diallo',
-  'Kasun Perera','Ivan Volkov','Nadia Sokolova','Marco','Elena','Zoe','Felix',
-]
-function randomName() { return NAMES[Math.floor(Math.random() * NAMES.length)] }
-
 // ─── Floating Cards ────────────────────────────────────────────────────────
 const floatingCards = [
   { suit:'♠', val:'A',  pos:{ left:'5%',   top:'30%' }, delay:0,   red:false },
@@ -149,7 +138,7 @@ const FloatingCard = memo(({ suit, val, pos, delay, red }) => (
 // Rolex kept in its own list — it renders on every breakpoint (see the two
 // render sites below), unlike the rest of luxuryItems which stay desktop
 // -only (narrow viewports have no margin room outside the centered text
-// column for these without overlapping the winner feed / hero title / CTAs).
+// column for these without overlapping the hero title / CTAs).
 //
 // Cache-busted with ?v=2 — this file is served with a 1-year Cache-Control
 // (see public/assets/images/logos/), so updating the image bytes at the same URL
@@ -233,130 +222,6 @@ function getDailyWinnings() {
   }
 }
 
-// ─── Winner Feed ──────────────────────────────────────────────────────────
-const PLACES   = ['Mumbai','Delhi','Bangalore','Hyderabad','Goa','Colombo','Manila','Hanoi','Macau']
-const GAMES    = ['Baccarat','Roulette','Blackjack','Poker','Slots','Sic Bo']
-// Amount won is always USD, formatted one consistent way.
-const WIN_MIN = 500
-const WIN_MAX = 200000
-function makeWinner(id) {
-  const amt = Math.floor(Math.random() * (WIN_MAX - WIN_MIN) + WIN_MIN)
-  return {
-    id, name:randomName(),
-    place:PLACES[~~(Math.random()*PLACES.length)],
-    game:GAMES[~~(Math.random()*GAMES.length)],
-    amount:`$${amt.toLocaleString()}`,
-  }
-}
-
-function useWinnerFeed(max, interval) {
-  const [entries, setEntries] = useState([])
-  const counter = useRef(0)
-  useEffect(() => {
-    const spawn = () => {
-      counter.current++
-      setEntries(p => [...p, makeWinner(counter.current)].slice(-max))
-    }
-    spawn()
-    const id = setInterval(spawn, interval)
-    return () => clearInterval(id)
-  }, [max, interval])
-  return entries
-}
-
-function WinnerFeedDesktop() {
-  const entries = useWinnerFeed(3, 3500)
-  return (
-    <div className="hidden md:flex" style={{
-      position:'absolute', bottom:88, left:16, zIndex:20,
-      flexDirection:'column', gap:7, width:256, pointerEvents:'none',
-    }}>
-      <AnimatePresence mode="popLayout">
-        {entries.map((w, i) => {
-          const isFading = entries.length >= 3 && i === 0
-          return (
-            <motion.div key={w.id} layout
-              initial={{ opacity:0, y:18, x:-10 }}
-              animate={{ opacity: isFading ? 0.18 : i === entries.length-1 ? 1 : 0.6, y:0, x:0 }}
-              exit={{ opacity:0, y:-14, transition:{ duration:0.3 } }}
-              transition={{ duration:0.38 }}
-              style={{
-                display:'flex', alignItems:'center', gap:9,
-                borderRadius:10, padding:'10px 12px',
-                background:'rgba(10,0,8,0.85)',
-                border:'1px solid rgba(212,175,55,0.22)',
-              }}
-            >
-              <span style={{ width:8, height:8, borderRadius:'50%', background:'#4ade80', flexShrink:0, animation:'pulse-dot 2s infinite' }} />
-              <div style={{ minWidth:0 }}>
-                <div style={{
-                  fontFamily:"'Manrope', sans-serif", fontSize:12,
-                  color:'rgba(255,255,255,0.9)', fontWeight:600,
-                  overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
-                }}>
-                  🏆 <span style={{ color:'#D4AF37' }}>{w.amount}</span> — {w.name}
-                </div>
-                <div style={{
-                  fontFamily:"'Manrope', sans-serif", fontSize:10,
-                  color:'rgba(255,255,255,0.4)', marginTop:2,
-                  overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
-                }}>
-                  {w.place} · {w.game}
-                </div>
-              </div>
-            </motion.div>
-          )
-        })}
-      </AnimatePresence>
-    </div>
-  )
-}
-
-function WinnerFeedMobile() {
-  const entries = useWinnerFeed(2, 4000)
-  return (
-    <div className="md:hidden" style={{
-      position:'absolute', top:58, left:8, zIndex:10,
-      display:'flex', flexDirection:'column', gap:5,
-      width:'clamp(144px,42vw,180px)', pointerEvents:'none',
-    }}>
-      <AnimatePresence mode="popLayout">
-        {entries.map(w => (
-          <motion.div key={w.id} layout
-            initial={{ opacity:0, y:-10 }} animate={{ opacity:1, y:0 }}
-            exit={{ opacity:0, transition:{ duration:0.2 } }}
-            transition={{ duration:0.25 }}
-            style={{
-              display:'flex', alignItems:'center', gap:6, borderRadius:8,
-              padding:'6px 8px',
-              background:'rgba(10,0,8,0.9)',
-              border:'1px solid rgba(212,175,55,0.22)',
-            }}
-          >
-            <span style={{ width:6, height:6, borderRadius:'50%', background:'#4ade80', flexShrink:0, animation:'pulse-dot 2s infinite' }} />
-            <div style={{ minWidth:0 }}>
-              <div style={{
-                fontFamily:"'Manrope', sans-serif", fontWeight:700,
-                fontSize:'clamp(8px,2.2vw,9.5px)', color:'#fff',
-                overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
-              }}>
-                🏆 <span style={{ color:'#D4AF37' }}>{w.amount}</span> {w.name}
-              </div>
-              <div style={{
-                fontFamily:"'Manrope', sans-serif",
-                fontSize:'clamp(7px,1.9vw,8px)', color:'rgba(255,255,255,0.45)',
-                overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
-              }}>
-                {w.place} · {w.game}
-              </div>
-            </div>
-          </motion.div>
-        ))}
-      </AnimatePresence>
-    </div>
-  )
-}
-
 // ─── Countries ribbon fallback (used only until the API responds) ─────────
 const FALLBACK_LOCATIONS = [
   { id: 'vn', name: 'Vietnam', country_code: 'VN' },
@@ -376,8 +241,6 @@ const FALLBACK_LOCATIONS = [
 export default function Hero() {
   const navigate = useNavigate()
   const [dailyCr, setDailyCr] = useState(getDailyWinnings)
-
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
 
   // ─── Hero intro ──────────────────────────────────────────────────────────
   // `compact` false = the oversized stacked wordmark the visitor lands on.
@@ -463,15 +326,6 @@ export default function Hero() {
     }
   }, [])
 
-useEffect(() => {
-  const handleResize = () => {
-    setIsMobile(window.innerWidth < 768)
-  }
-
-  window.addEventListener('resize', handleResize)
-  return () => window.removeEventListener('resize', handleResize)
-}, [])
-
   useEffect(() => {
     injectCSS()
     const id = setInterval(() => setDailyCr(getDailyWinnings()), 60_000)
@@ -547,7 +401,7 @@ useEffect(() => {
 
       {/* Floating cards — desktop only: on narrow viewports there's no margin
           room outside the centered text column, so these would otherwise
-          overlap the winner feed / hero title / CTAs (see Dice desktop below,
+          overlap the hero title / CTAs (see Dice desktop below,
           which already used this same guard) */}
       <div className="hidden md:contents">
         {floatingCards.map((c, i) => <FloatingCard key={i} {...c} />)}
@@ -559,12 +413,12 @@ useEffect(() => {
       </div>
 
       {/* Rolex, right badge — shown on every breakpoint, including mobile;
-          its position sits clear of the mobile winner feed / hero pill. */}
+          its position sits clear of the hero pill. */}
       <FloatingLuxury key="rolex-0" {...rolexItems[0]} />
 
       {/* Rolex, left badge — desktop only: at mobile widths this position
-          overlaps WinnerFeedMobile's ticker (top:58, left:8, up to 180px
-          wide), so it stays grouped with the other desktop-only items. */}
+          crowds the top-left of the hero, so it stays grouped with the
+          other desktop-only items. */}
       <div className="hidden md:contents">
         <FloatingLuxury key="rolex-1" {...rolexItems[1]} />
       </div>
@@ -628,9 +482,6 @@ useEffect(() => {
           background:'radial-gradient(ellipse at 75% 100%, rgba(212,175,55,0.4) 0%, rgba(46,0,36,0.3) 45%, transparent 75%)',
         }} />
       </div>
-
-      {/* Winner feeds */}
-      {isMobile ? <WinnerFeedMobile /> : <WinnerFeedDesktop />}
 
       {/* Main Content — badge */}
       <div style={{
