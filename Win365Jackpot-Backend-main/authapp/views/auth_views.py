@@ -527,9 +527,22 @@ class AdminLoginView(APIView):
 
         reset_attempts(email)
 
-        # Admin login = is_staff=True (super admins also have is_staff=True, so this allows both)
+        # Admin login = is_staff=True.
         if not user.is_staff:
             return Response({"error": "Only admins are allowed to log in here."}, status=403)
+
+        # Super admins belong in the Super Admin Portal and nowhere else.
+        # Refusing here - before any token is minted - is what makes the
+        # separation real: every /api/admin-panel/ route is then closed to them
+        # by construction rather than by hiding buttons in the UI. They also
+        # carry is_staff=True, which is precisely why this cannot be left to
+        # the is_staff check above. SuperAdminLoginView is untouched and still
+        # requires is_superuser AND is_staff.
+        if user.is_superuser:
+            return Response(
+                {"error": "Superadmin accounts must use the Super Admin Portal."},
+                status=403,
+            )
 
         if not user.is_active:
             return Response({"error": "This account has been disabled."}, status=403)

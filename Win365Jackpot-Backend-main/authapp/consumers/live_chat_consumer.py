@@ -87,6 +87,29 @@ RELAYABLE_SIGNALS = {
 
 
 @database_sync_to_async
+def _is_call_eligible(user):
+    """May this staff member receive incoming player calls? Role-based; see
+    voice_call_service.is_call_eligible_agent."""
+    from authapp.services.voice_call_service import is_call_eligible_agent
+
+    return is_call_eligible_agent(user)
+
+
+@database_sync_to_async
+def _mark_present(user, channel_name):
+    from authapp.services.voice_call_service import mark_agent_present
+
+    mark_agent_present(user, channel_name)
+
+
+@database_sync_to_async
+def _mark_absent(channel_name):
+    from authapp.services.voice_call_service import mark_agent_absent
+
+    mark_agent_absent(channel_name)
+
+
+@database_sync_to_async
 def _load_call_for_endpoint(user, call_id):
     """Async adapter only. The actual authorization rule lives in
     voice_call_service.load_call_for_endpoint — see its docstring for why it is
@@ -275,11 +298,31 @@ class LiveChatAdminInboxConsumer(CallSignalingMixin, AsyncJsonWebsocketConsumer)
             return
 
         self._call_groups = set()
+        # Chat notifications are unchanged for every staff member.
         await self.channel_layer.group_add(self.GROUP_NAME, self.channel_name)
+
+        # Ringing is not. Only staff whose AdminProfile role actually handles
+        # calls join the ring group, so a player calling support no longer
+        # rings finance, KYC officers or super admins. Their presence is also
+        # recorded, because the channel layer cannot be asked "is anyone
+        # there?" - and without that answer an unstaffed desk rings into
+        # nothing for the full timeout instead of saying so.
+        from authapp.services.voice_call_service import CALL_AGENTS_GROUP
+
+        self._is_call_agent = await _is_call_eligible(self.user)
+        if self._is_call_agent:
+            await self.channel_layer.group_add(CALL_AGENTS_GROUP, self.channel_name)
+            await _mark_present(self.user, self.channel_name)
+
         await self.accept()
 
     async def disconnect(self, close_code):
+        from authapp.services.voice_call_service import CALL_AGENTS_GROUP
+
         await self.channel_layer.group_discard(self.GROUP_NAME, self.channel_name)
+        if getattr(self, "_is_call_agent", False):
+            await self.channel_layer.group_discard(CALL_AGENTS_GROUP, self.channel_name)
+            await _mark_absent(self.channel_name)
         await self.discard_call_groups()
 
     async def receive_json(self, content, **kwargs):

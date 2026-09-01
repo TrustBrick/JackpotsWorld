@@ -33,7 +33,7 @@ class CallSessionSerializer(serializers.ModelSerializer):
             "caller_id", "caller_name", "caller_uid", "caller_email",
             "caller_affiliate_id",
             "receiver_id", "receiver_name",
-            "status", "end_reason",
+            "status", "direction", "end_reason",
             "started_at", "ring_expires_at", "connected_at", "ended_at",
             "duration_seconds",
             "has_recording", "recording_bytes", "recording_url",

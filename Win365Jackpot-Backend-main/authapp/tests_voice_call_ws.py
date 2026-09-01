@@ -25,6 +25,8 @@ from django.test import TransactionTestCase, override_settings
 from rest_framework_simplejwt.tokens import AccessToken
 
 from authapp.models.support_ticket_models import SupportTicket
+from authapp.models.call_models import SupportAgentPresence
+from authapp.models.user_model import AdminProfile
 from authapp.routing import websocket_urlpatterns
 from authapp.services import voice_call_service
 
@@ -56,9 +58,24 @@ class VoiceCallWebSocketTests(TransactionTestCase):
         self.other = User.objects.create_user(
             email="ws-other@example.com", password="pw-Test-1", user_uid="WSOTHR01",
         )
+        # An ordinary support agent, not a super admin. Ringing is now routed
+        # by AdminProfile role: super admins are deliberately excluded (they
+        # hold no Admin Panel session at all), so a superuser here would no
+        # longer join the ring group and these tests would be asserting against
+        # a user the feature is designed to skip.
         self.agent = User.objects.create_user(
             email="ws-agent@example.com", password="pw-Test-1", user_uid="WSAGNT01",
-            is_staff=True, is_superuser=True, name="Sam",
+            is_staff=True, name="Sam",
+        )
+        AdminProfile.objects.update_or_create(
+            user=self.agent, defaults={"role": "support", "is_active": True},
+        )
+        # On duty. initiate_call now refuses an unstaffed desk, and most tests
+        # here start a call without opening an inbox socket first - the ones
+        # that do open one get a second row from the consumer itself, which is
+        # the real code path and exactly what should happen.
+        SupportAgentPresence.objects.create(
+            user=self.agent, channel_name="ws-test-presence",
         )
         self.ticket = SupportTicket.objects.create(
             user=self.player, subject="Live Chat Session", message="(live chat session)",

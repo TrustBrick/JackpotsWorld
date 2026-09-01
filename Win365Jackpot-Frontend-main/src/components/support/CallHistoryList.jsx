@@ -10,7 +10,7 @@
 // and filters nothing itself.
 
 import React, { useCallback, useEffect, useRef, useState } from "react"
-import { Download, Loader2, PhoneOff, PhoneIncoming, PhoneMissed, Play, Trash2 } from "lucide-react"
+import { Download, Loader2, PhoneOff, PhoneIncoming, PhoneMissed, PhoneOutgoing, Play, Trash2 } from "lucide-react"
 import { formatCallDuration } from "../../services/voiceCallService"
 import { PUBLIC_CALL_THEME } from "./callTheme"
 
@@ -50,6 +50,9 @@ const END_REASON_LABEL = {
   connection_failed: "Connection failed",
   permission_denied: "Microphone blocked",
   network_failure: "Network failure",
+  // Nobody was on duty when the player called - distinct from "No answer",
+  // which means agents were rung and did not pick up.
+  no_agents: "No agents available",
 }
 
 // Only three shapes matter at a glance: it connected, nobody answered, or it
@@ -60,7 +63,8 @@ function statusTone(status, theme) {
   return theme.sub
 }
 
-function StatusIcon({ status, size = 13 }) {
+function StatusIcon({ status, direction, size = 13 }) {
+  if (direction === "outbound") return <PhoneOutgoing size={size} />
   if (status === "missed" || status === "cancelled") return <PhoneMissed size={size} />
   if (status === "rejected" || status === "failed") return <PhoneOff size={size} />
   return <PhoneIncoming size={size} />
@@ -92,6 +96,8 @@ export default function CallHistoryList({
   // of what happened on it — the server enforces that; hiding the control is
   // courtesy, not the check.
   canDeleteCalls = false,
+  canCallBack = false,
+  onCallBack,
   onDeleted,
 }) {
   const [calls, setCalls] = useState([])
@@ -222,7 +228,7 @@ export default function CallHistoryList({
               }}
             >
               <span style={{ color: tone, display: "flex", flexShrink: 0 }}>
-                <StatusIcon status={c.status} />
+                <StatusIcon status={c.status} direction={c.direction} />
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{
@@ -277,6 +283,28 @@ export default function CallHistoryList({
                 )}
               </div>
 
+              {/* Returning a missed call. Only offered where it means
+                  something: an inbound call nobody answered. Reuses the
+                  existing call machinery - there is no second calling
+                  system here. */}
+              {canCallBack
+                && c.direction !== "outbound"
+                && (c.status === "missed" || c.status === "cancelled") && (
+                <button
+                  type="button"
+                  onClick={() => onCallBack?.(c)}
+                  title={`Call ${c.caller_name || "this player"} back`}
+                  aria-label="Call back"
+                  style={{
+                    flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 5,
+                    padding: "5px 9px", borderRadius: 7,
+                    border: `1px solid ${theme.green}66`, background: `${theme.green}18`,
+                    color: theme.green, fontSize: 10.5, fontWeight: 700, cursor: "pointer",
+                  }}
+                >
+                  <PhoneOutgoing size={12} /> Call back
+                </button>
+              )}
               {canDeleteCalls && (
                 confirmId === c.id ? (
                   <span style={{ display: "inline-flex", gap: 5, flexShrink: 0 }}>

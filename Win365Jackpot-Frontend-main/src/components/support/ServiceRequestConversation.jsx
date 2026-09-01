@@ -34,6 +34,7 @@ import { asMessageArray, highestRealId } from "../../services/liveChatMessages";
 import { useVoiceCall, PHASE } from "../../hooks/useVoiceCall";
 import VoiceCallButton from "./VoiceCallButton";
 import ActiveCallModal from "./ActiveCallModal";
+import IncomingCallModal from "./IncomingCallModal";
 import CallStatus from "./CallStatus";
 
 const LIVE_POLL_MS = 2000;
@@ -280,6 +281,15 @@ export default function ServiceRequestConversation({ ticket, onBack, onToast }) 
 
   return (
     <>
+      {/* VOICE-CALL: a support callback rings *here* now, so the player needs
+          the same incoming card the agent has. Rendered alongside the active
+          call surface and outside the launcher's own stacking context, so it
+          is centred on the viewport rather than pinned to the corner widget. */}
+      <IncomingCallModal
+        call={voiceCall.phase === PHASE.INCOMING ? voiceCall.call : null}
+        onAccept={() => voiceCall.acceptCall(voiceCall.call)}
+        onReject={() => voiceCall.rejectCall(voiceCall.call)}
+      />
       <ActiveCallModal
         phase={voiceCall.phase}
         call={voiceCall.call}

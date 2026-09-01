@@ -175,13 +175,27 @@ class User(AbstractBaseUser, PermissionsMixin):
 # ─────────────────────────────────────────────────────────────────────────────
 
 class AdminProfile(models.Model):
+    # ── Roles ────────────────────────────────────────────────────────────
+    # `support_manager` is the Customer Support Manager tier: everything a
+    # support admin can do, plus managing call recordings and deleting call
+    # history. Added as a new choice rather than reusing `admin`, because the
+    # existing `admin` rows ARE the ordinary Back Office support staff and must
+    # not silently gain deletion rights.
+    #
+    # CALL_ELIGIBLE_ROLES below is the set that receives incoming player calls.
+    # It deliberately excludes finance and kyc_officer (unrelated staff) and
+    # superadmin (which must not touch the Admin Panel at all).
     ROLE_CHOICES = [
-        ("superadmin",  "Super Admin"),
-        ("admin",       "Admin"),
-        ("support",     "Support"),
-        ("finance",     "Finance"),
-        ("kyc_officer", "KYC Officer"),
+        ("superadmin",      "Super Admin"),
+        ("admin",           "Admin"),
+        ("support",         "Support"),
+        ("support_manager", "Customer Support Manager"),
+        ("finance",         "Finance"),
+        ("kyc_officer",     "KYC Officer"),
     ]
+
+    ROLE_SUPPORT_MANAGER = "support_manager"
+    CALL_ELIGIBLE_ROLES = ("admin", "support", "support_manager")
 
     user         = models.OneToOneField(User, on_delete=models.CASCADE, related_name="admin_profile")
     role         = models.CharField(max_length=20, choices=ROLE_CHOICES, default="admin")

@@ -56,3 +56,33 @@ class HasVIPAccess(BasePermission):
 
     def has_permission(self, request, view):
         return _has_capability(request.user, "can_manage_vip")
+
+
+class IsSupportManager(BasePermission):
+    """Customer Support Manager only.
+
+    Deliberately does NOT grant the super-admin bypass that _has_capability()
+    above gives every other class in this file. A Super Admin has no business
+    acting through the Admin Panel at all - AdminLoginView refuses to mint them
+    an admin token - so honouring is_superuser here would quietly reopen the
+    exact door that was closed. If you are ever tempted to "fix" this class by
+    adding the bypass for consistency, read AdminLoginView first.
+
+    Also requires an active profile: a deactivated manager keeps their login
+    but loses the destructive powers, which is the point of deactivating them.
+    """
+
+    message = "Customer Support Manager access required."
+
+    def has_permission(self, request, view):
+        user = request.user
+        if not (user and user.is_authenticated and user.is_staff):
+            return False
+        if user.is_superuser:
+            return False
+        profile = AdminProfile.objects.filter(user=user).first()
+        return bool(
+            profile
+            and profile.is_active
+            and profile.role == AdminProfile.ROLE_SUPPORT_MANAGER
+        )

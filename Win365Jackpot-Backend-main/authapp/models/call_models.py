@@ -53,6 +53,8 @@ they speak, so the two can never disagree. The file itself never sits anywhere
 publicly readable — see get_call_recording_storage — and is only ever served by
 AdminCallRecordingView, which re-authorises every request.
 """
+from datetime import timedelta
+
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
@@ -89,6 +91,21 @@ TERMINAL_STATUSES = (
     STATUS_REJECTED, STATUS_ENDED, STATUS_MISSED, STATUS_FAILED, STATUS_CANCELLED,
 )
 
+# ── Direction ───────────────────────────────────────────────────────────────
+# Which way the call was placed. `caller` and `receiver` have always meant
+# "who started it" and "who answered it" rather than "customer" and "agent" -
+# the WebRTC engine already calls them initiator and acceptor - so a callback
+# fits the existing model without inverting anything. What direction changes is
+# *who gets rung*: inbound rings the support desk, outbound rings one player.
+DIRECTION_INBOUND = "inbound"
+DIRECTION_OUTBOUND = "outbound"
+
+DIRECTION_CHOICES = [
+    (DIRECTION_INBOUND,  "Player to support"),
+    (DIRECTION_OUTBOUND, "Support callback"),
+]
+
+
 # ── End reasons ─────────────────────────────────────────────────────────────
 END_CALLER_ENDED = "caller_ended"
 END_RECEIVER_ENDED = "receiver_ended"
@@ -97,6 +114,10 @@ END_TIMEOUT = "timeout"
 END_CONNECTION_FAILED = "connection_failed"
 END_PERMISSION_DENIED = "permission_denied"
 END_NETWORK_FAILURE = "network_failure"
+# The support desk was unstaffed when the player called. Distinct from
+# `timeout`, which means agents were rung and nobody picked up - a manager
+# reading history needs to tell "we were closed" from "we ignored it".
+END_NO_AGENTS = "no_agents"
 
 END_REASON_CHOICES = [
     (END_CALLER_ENDED,      "Caller ended"),
@@ -106,6 +127,7 @@ END_REASON_CHOICES = [
     (END_CONNECTION_FAILED, "Connection failed"),
     (END_PERMISSION_DENIED, "Permission denied"),
     (END_NETWORK_FAILURE,   "Network failure"),
+    (END_NO_AGENTS,         "No agents available"),
 ]
 
 # ── Audit event types ───────────────────────────────────────────────────────
@@ -226,6 +248,11 @@ class CallSession(models.Model):
 
     status = models.CharField(
         max_length=12, choices=CALL_STATUS_CHOICES, default=STATUS_RINGING, db_index=True,
+    )
+    # Defaults to inbound so every existing row keeps its meaning without a
+    # data migration: until callbacks existed, every call was player-to-support.
+    direction = models.CharField(
+        max_length=10, choices=DIRECTION_CHOICES, default=DIRECTION_INBOUND, db_index=True,
     )
     end_reason = models.CharField(
         max_length=20, choices=END_REASON_CHOICES, blank=True, default="",
@@ -348,3 +375,46 @@ class CallEvent(models.Model):
 
     def __str__(self):
         return f"{self.event} · call #{self.call_id}"
+
+
+class SupportAgentPresence(models.Model):
+    """One row per open admin-inbox WebSocket belonging to a call-eligible agent.
+
+    "Available" means exactly what it already meant in practice - the agent has
+    the Back Office open - but written down so the *server* can ask the
+    question. Channel-layer groups cannot be enumerated or counted, so without
+    this table a call to an empty support desk rings into nothing for the full
+    ring timeout and the player is told only that it was "missed". With it,
+    initiate_call can refuse immediately and say why.
+
+    Keyed by channel_name, which Channels guarantees unique per connection:
+
+      * two browser tabs are two rows, so closing one does not mark the agent
+        offline;
+      * connect INSERTs and disconnect DELETEs - never read-modify-write - so
+        two connections racing cannot corrupt each other's state.
+
+    Rows are removed on disconnect. A hard process crash can strand one, so
+    readers ignore anything older than PRESENCE_MAX_AGE; a reconnect (which
+    happens on every reload and every network blip) writes a fresh row, so in
+    practice a genuinely-present agent is never treated as absent.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="support_presence",
+    )
+    channel_name = models.CharField(max_length=255, unique=True)
+    connected_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["user", "-connected_at"])]
+        verbose_name = "Support agent presence"
+        verbose_name_plural = "Support agent presence"
+
+    def __str__(self):
+        return f"{self.user_id} @ {self.channel_name[:24]}"
+
+
+# A stranded row (process killed without disconnect) must not make a desk look
+# staffed forever. Long enough that a genuinely open panel is never missed.
+PRESENCE_MAX_AGE = timedelta(hours=12)

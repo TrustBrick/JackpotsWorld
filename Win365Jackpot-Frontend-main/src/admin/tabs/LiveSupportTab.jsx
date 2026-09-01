@@ -26,9 +26,18 @@ const SOUND_PREF_KEY = "admin_live_chat_sound";
 // recorded and whether they are told so, which is not a per-browser choice.
 const RECORDING_ENDPOINT = "/api/admin-panel/voice-call-settings/";
 
-function isSuperAdmin() {
-  try { return !!JSON.parse(localStorage.getItem("admin_user") || "null")?.is_superuser; }
-  catch { return false; }
+// Managing recordings and deleting call history is the Customer Support
+// Manager's job, not a super admin's - super admins hold no Admin Panel
+// session at all. AdminLoginView already returns AdminProfile.role in its
+// response, so this needs no extra request.
+//
+// Fails closed: a session that predates the role being returned reads as
+// undefined and gets the read-only view, which is the safe default. The
+// backend is the real gate either way (IsSupportManager).
+function isSupportManager() {
+  try {
+    return JSON.parse(localStorage.getItem("admin_user") || "null")?.role === "support_manager";
+  } catch { return false; }
 }
 
 // Player and affiliate conversations share the SupportTicket table and are
@@ -101,7 +110,7 @@ export default function LiveSupportTab({ onToast }) {
   const [recBusy, setRecBusy] = useState(false);
   const recBusyRef = useRef(false);
   useEffect(() => { recBusyRef.current = recBusy; }, [recBusy]);
-  const canSwitchRecording = useMemo(() => isSuperAdmin(), []);
+  const canSwitchRecording = useMemo(() => isSupportManager(), []);
   // Same role, separate name: these are two different powers that happen to
   // sit with the same person, and reading one variable for both would hide
   // that if either ever moves.
@@ -111,7 +120,7 @@ export default function LiveSupportTab({ onToast }) {
     : !recording.recording_available
       ? "Recording is switched off for this whole environment (VOICE_CALL_RECORDING_ENABLED). No button here can turn it on."
       : !canSwitchRecording
-        ? "Only a Super Admin can change call recording."
+        ? "Only a Customer Support Manager can change call recording."
         : recording.recording_effective
           ? "Recording is ON — customers are told so while the call rings. Click to turn it off."
           : "Recording is OFF — nothing is stored and no notice is shown. Click to turn it on.";
@@ -583,6 +592,8 @@ export default function LiveSupportTab({ onToast }) {
                   emptyText="No voice calls on this conversation yet"
                   canPlayRecordings
                   canDeleteCalls={canDeleteCalls}
+                  canCallBack={!!voiceCall?.available && voiceCall?.phase === PHASE.IDLE}
+                  onCallBack={(c) => voiceCall?.startCallback?.(c.ticket_id)}
                   onDeleted={() => onToast?.("Call deleted from history", true)}
                 />
               </div>

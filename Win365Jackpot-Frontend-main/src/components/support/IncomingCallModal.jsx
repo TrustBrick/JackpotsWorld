@@ -30,6 +30,13 @@ export default function IncomingCallModal({
   useRingtone(!!call)
   if (!call) return null
 
+  // A callback rings the *player*, so the card has to identify the other end
+  // correctly in both directions. Inbound it names the person calling the
+  // desk; outbound it must read as the business calling, never as the
+  // individual agent - the player has no idea who "Sam" is, and showing a
+  // staff member's name and UID to a customer is not something to do by
+  // accident.
+  const isCallback = call.direction === "outbound"
   const isAffiliate = call.participant_type === "affiliate"
   const email = (call.caller_email || "").trim()
   // Falls back through identity, most human first. The email is a far better
@@ -91,23 +98,29 @@ export default function IncomingCallModal({
           margin: "0 0 3px", fontSize: 11, letterSpacing: "0.13em",
           textTransform: "uppercase", color: theme.gold, fontWeight: 600,
         }}>
-          Incoming support call
+          {isCallback ? "Incoming call" : "Incoming support call"}
         </p>
 
         <h3 style={{
           margin: "0 0 4px", fontSize: 19, fontWeight: 700,
           color: theme.text, wordBreak: "break-word",
         }}>
-          {displayName}
+          {isCallback ? "Customer Support" : displayName}
         </h3>
 
-        <p style={{
-          margin: "0 0 3px", fontSize: 12.5, color: theme.sub,
-          fontVariantNumeric: "tabular-nums",
-        }}>
-          {reference || "—"}
-        </p>
-        {showEmail && (
+        {isCallback ? (
+          <p style={{ margin: "0 0 3px", fontSize: 12.5, color: theme.sub }}>
+            Jackpots World is returning your call
+          </p>
+        ) : (
+          <p style={{
+            margin: "0 0 3px", fontSize: 12.5, color: theme.sub,
+            fontVariantNumeric: "tabular-nums",
+          }}>
+            {reference || "—"}
+          </p>
+        )}
+        {!isCallback && showEmail && (
           <p style={{
             margin: "0 0 4px", fontSize: 12.5, color: theme.text,
             wordBreak: "break-all", opacity: 0.88,

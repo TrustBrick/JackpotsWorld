@@ -24,10 +24,15 @@ WHAT RIDES WHERE
 
 GROUPS
 ──────
-  livechat_admins      pre-existing. Carries the ring notification, so an
-                       agent is alerted the same way they already are for a
-                       new chat message, without needing the conversation
-                       open. Metadata only — never SDP or ICE.
+  livechat_admins      pre-existing. Chat notifications for every staff
+                       member, unchanged.
+  livechat_call_agents new. The ring group: only staff whose AdminProfile role
+                       actually handles calls (see is_call_eligible_agent)
+                       join it. Split out from livechat_admins because that
+                       group also carries chat notifications for finance, KYC
+                       and everyone else — restricting *it* to silence their
+                       ringing would have taken their chat alerts with it.
+                       Metadata only — never SDP or ICE.
   livechat_<ticket>    pre-existing. Carries call state changes back to the
                        customer, whose socket is already on it.
   voicecall_<call_id>  new, per call. Only the two claimed endpoints are ever
@@ -55,6 +60,8 @@ from authapp.models.call_models import (
     CallSession,
     END_CALLER_ENDED,
     END_RECEIVER_ENDED,
+    DIRECTION_OUTBOUND,
+    END_NO_AGENTS,
     END_REJECTED,
     END_TIMEOUT,
     EVENT_ACCEPTED,
@@ -75,10 +82,13 @@ from authapp.models.call_models import (
     STATUS_MISSED,
     STATUS_REJECTED,
     STATUS_RINGING,
+    SupportAgentPresence,
+    PRESENCE_MAX_AGE,
     TERMINAL_STATUSES,
     VoiceCallSettings,
 )
 from authapp.models.support_ticket_models import PARTICIPANT_AFFILIATE, SupportTicket
+from authapp.models.user_model import AdminProfile
 from authapp.models.user_model import ActivityLog
 
 logger = logging.getLogger(__name__)
@@ -87,6 +97,9 @@ logger = logging.getLogger(__name__)
 # is over — reopening it by phone would bypass the status machine the chat and
 # ticket tabs both rely on.
 CALLABLE_TICKET_STATUSES = ("open", "in_progress")
+
+# Ring channel. See the GROUPS note above for why this is not livechat_admins.
+CALL_AGENTS_GROUP = "livechat_call_agents"
 
 
 class CallError(Exception):
@@ -248,6 +261,7 @@ def call_payload(call):
         "ticket_id": call.ticket_id,
         "participant_type": call.ticket.participant_type,
         "status": call.status,
+        "direction": call.direction,
         "end_reason": call.end_reason,
         "caller_id": call.caller_id,
         "caller_name": (getattr(caller, "name", "") or "").strip(),
@@ -269,7 +283,7 @@ def _push_state(call, to_admins=True):
     _broadcast(call_group(call.pk), "call.event", {"event": "call_state", "call": payload})
     _broadcast(f"livechat_{call.ticket_id}", "call.event", {"event": "call_state", "call": payload})
     if to_admins:
-        _broadcast("livechat_admins", "call.event", {"event": "call_state", "call": payload})
+        _broadcast(CALL_AGENTS_GROUP, "call.event", {"event": "call_state", "call": payload})
 
 
 # ── Expiry ──────────────────────────────────────────────────────────────────
@@ -420,6 +434,88 @@ def active_call_for_ticket(ticket):
 
 # ── Transitions ─────────────────────────────────────────────────────────────
 
+# ── Who may answer ──────────────────────────────────────────────────────────
+
+def is_call_eligible_agent(user):
+    """Whether this staff member should receive incoming player calls.
+
+    Ringing used to key off `is_staff` alone, which meant a player calling
+    support also rang finance, KYC officers and super admins. Eligibility is
+    now the actual AdminProfile role, so the desk that gets called is the desk
+    that handles calls.
+
+    Super admins are excluded outright: they belong in the Super Admin Portal
+    and hold no Admin Panel session at all.
+    """
+    if not (user and getattr(user, "is_authenticated", False) and user.is_staff):
+        return False
+    if user.is_superuser:
+        return False
+    profile = AdminProfile.objects.filter(user=user).first()
+    return bool(
+        profile
+        and profile.is_active
+        and profile.role in AdminProfile.CALL_ELIGIBLE_ROLES
+    )
+
+
+def is_support_manager(user):
+    """Customer Support Manager: the tier that may delete call history and
+    recordings, and switch recording on or off.
+
+    Mirrors permissions.admin_role_permissions.IsSupportManager, including its
+    deliberate refusal of super admins.
+    """
+    if not (user and getattr(user, "is_authenticated", False) and user.is_staff):
+        return False
+    if user.is_superuser:
+        return False
+    profile = AdminProfile.objects.filter(user=user).first()
+    return bool(
+        profile
+        and profile.is_active
+        and profile.role == AdminProfile.ROLE_SUPPORT_MANAGER
+    )
+
+
+def available_agent_count():
+    """How many call-eligible agents currently have the Back Office open.
+
+    Counts distinct users rather than sockets, so an agent with three tabs is
+    one agent. Rows older than PRESENCE_MAX_AGE are ignored - see
+    SupportAgentPresence for why one can be stranded.
+    """
+    cutoff = timezone.now() - PRESENCE_MAX_AGE
+    return (
+        SupportAgentPresence.objects
+        .filter(
+            connected_at__gte=cutoff,
+            # Re-checked here rather than trusted from connect time: a row is
+            # only written for an eligible agent, but a role can be changed or
+            # a profile deactivated while that socket is still open. Reading
+            # the role now means a demoted agent stops counting as staffed
+            # without anyone having to hunt down their session.
+            user__is_superuser=False,
+            user__admin_profile__is_active=True,
+            user__admin_profile__role__in=AdminProfile.CALL_ELIGIBLE_ROLES,
+        )
+        .values("user_id")
+        .distinct()
+        .count()
+    )
+
+
+def mark_agent_present(user, channel_name):
+    """Record an open inbox socket. Idempotent on channel_name."""
+    SupportAgentPresence.objects.update_or_create(
+        channel_name=channel_name, defaults={"user": user},
+    )
+
+
+def mark_agent_absent(channel_name):
+    SupportAgentPresence.objects.filter(channel_name=channel_name).delete()
+
+
 def initiate_call(user, ticket):
     """Customer starts a call. Returns (call, created)."""
     if not calling_available():
@@ -460,13 +556,41 @@ def initiate_call(user, ticket):
         raise CallError("call_failed", "Could not start the call. Please try again.", status=500) from exc
 
     _log_event(call, EVENT_INITIATED, user)
+
+    # Nobody on duty. The row is created first and then closed out, rather than
+    # refusing before it exists, because the requirement is that the attempt is
+    # *visible*: a manager needs to see that a player tried to reach an empty
+    # desk. Marked with its own end reason so history distinguishes "we were
+    # closed" from "we were rung and did not answer".
+    #
+    # Raising after the write is deliberate - the caller gets a message instead
+    # of a call that rings into nothing for the full timeout.
+    if available_agent_count() == 0:
+        now = timezone.now()
+        CallSession.objects.filter(pk=call.pk, status=STATUS_RINGING).update(
+            status=STATUS_MISSED, end_reason=END_NO_AGENTS, ended_at=now,
+            active_key=None,
+        )
+        call.refresh_from_db()
+        _log_event(call, EVENT_TIMEOUT, None, "ringing->missed:no_agents")
+        logger.info(
+            "voice-call: call=%s ticket=%s transition=ringing->missed reason=no_agents",
+            call.pk, ticket.pk,
+        )
+        _push_state(call)
+        raise CallError(
+            "no_agents_available",
+            "Customer Support is currently unavailable. Please try again later.",
+            status=503,
+        )
+
     logger.info(
         "voice-call: call=%s ticket=%s transition=none->ringing caller=%s",
         call.pk, ticket.pk, user.pk,
     )
     payload = call_payload(call)
     # Ring the on-duty agents the same way a new chat message reaches them.
-    _broadcast("livechat_admins", "call.event", {"event": "call_incoming", "call": payload})
+    _broadcast(CALL_AGENTS_GROUP, "call.event", {"event": "call_incoming", "call": payload})
     _broadcast(f"livechat_{ticket.pk}", "call.event", {"event": "call_state", "call": payload})
     return call, True
 
@@ -755,7 +879,8 @@ def attach_recording(agent, call, upload):
 def delete_call(actor, call):
     """Erase one call from history, audio included.
 
-    Restricted to a super admin. Call history is the audit trail of what
+    Restricted to a Customer Support Manager. Call history is the audit trail
+    of what
     happened on a call — who spoke to whom, how long, why it failed, and the
     ICE summary that says whether a relay was involved — so removing it is an
     operator decision, not something the agent who handled the call can do to
@@ -777,7 +902,12 @@ def delete_call(actor, call):
     holding a call id the server no longer knows, which they can neither end
     nor recover from.
     """
-    if not getattr(actor, "is_staff", False) or not getattr(actor, "is_superuser", False):
+    # Repeated next to the deletion it guards, so the rule holds however this
+    # service is reached - not only through the permission class on the route.
+    # Super admins are excluded rather than exempted: they hold no Admin Panel
+    # session at all (see AdminLoginView), so treating is_superuser as an
+    # override here would contradict that.
+    if not is_support_manager(actor):
         raise CallError(
             "not_authorized", "Only a Super Admin can delete call history.", status=403,
         )
@@ -819,3 +949,147 @@ def delete_call(actor, call):
         call_pk, ticket_id, getattr(actor, "pk", None), had_recording,
     )
     return {"id": call_pk, "recording_deleted": had_recording}
+
+
+# ── Callback: support calls the player ──────────────────────────────────────
+
+def get_callback_ticket(agent, ticket_id):
+    """Resolve the conversation a support agent may call back on.
+
+    Deliberately not get_callable_ticket: that one scopes to the requester's
+    OWN ticket, which is right for a customer and meaningless for an agent.
+    The scoping here is the agent's role instead - support staff already read
+    and reply to every live-chat conversation, so a callback is not new reach.
+
+    The same status rule applies as for inbound: a resolved or closed
+    conversation is over, and reopening it by phone would bypass the status
+    machine the chat and ticket tabs both rely on.
+    """
+    if not is_call_eligible_agent(agent):
+        raise CallError(
+            "not_authorized", "Only customer support staff can call a player back.", status=403,
+        )
+    try:
+        ticket = SupportTicket.objects.select_related("user").get(
+            pk=int(ticket_id), is_live_chat=True,
+        )
+    except (SupportTicket.DoesNotExist, ValueError, TypeError):
+        raise CallError("ticket_not_found", "Conversation not found.", status=404)
+    if ticket.status not in CALLABLE_TICKET_STATUSES:
+        raise CallError(
+            "ticket_not_callable",
+            "That conversation is closed. Reopen it before calling back.",
+            status=409,
+        )
+    return ticket
+
+
+def initiate_callback(agent, ticket):
+    """A support agent calls a player back. Returns (call, created).
+
+    Structurally the mirror of initiate_call, and deliberately a separate
+    function rather than a flag on it: the two differ in who may start one, who
+    gets rung, and who is allowed to answer. Folding them together would put
+    three branches inside the one piece of code that must not get this wrong.
+
+    `receiver` is set at creation, unlike an inbound call. An inbound call
+    rings a whole desk and the receiver is whoever wins the claim; a callback
+    has exactly one possible answerer, so there is no race to resolve and the
+    endpoint pair is known immediately - which also lets the agent join the
+    signaling group straight away.
+    """
+    if not calling_available():
+        raise CallError(
+            "calling_unavailable",
+            "Voice calling is not available on this server right now.",
+            status=503,
+        )
+    if not is_call_eligible_agent(agent):
+        raise CallError(
+            "not_authorized", "Only customer support staff can call a player back.", status=403,
+        )
+
+    player = ticket.user
+    if player is None or player.id == agent.id:
+        raise CallError("invalid_callback", "That conversation has no player to call.", status=400)
+
+    existing = active_call_for_ticket(ticket)
+    if existing is not None:
+        # Their own still-live callback - hand it back rather than erroring, so
+        # a double-click rejoins instead of being told no. Same behaviour
+        # initiate_call gives a customer.
+        if existing.caller_id == agent.id:
+            return existing, False
+        raise CallError("call_in_progress", "A call is already in progress.", status=409)
+
+    timeout = int(getattr(settings, "VOICE_CALL_RING_TIMEOUT_SECONDS", 30) or 30)
+    try:
+        with transaction.atomic():
+            call = CallSession.objects.create(
+                ticket=ticket,
+                caller=agent,
+                receiver=player,
+                direction=DIRECTION_OUTBOUND,
+                status=STATUS_RINGING,
+                ring_expires_at=timezone.now() + timedelta(seconds=timeout),
+                active_key=ticket.pk,
+            )
+    except Exception as exc:
+        # The unique constraint on active_key is the real duplicate guard, same
+        # as inbound: two concurrent starts both pass the check above and
+        # exactly one survives the insert.
+        existing = active_call_for_ticket(ticket)
+        if existing is not None:
+            if existing.caller_id == agent.id:
+                return existing, False
+            raise CallError("call_in_progress", "A call is already in progress.", status=409)
+        logger.exception("voice-call: failed to create callback for ticket=%s", ticket.pk)
+        raise CallError("call_failed", "Could not start the call. Please try again.", status=500) from exc
+
+    _log_event(call, EVENT_INITIATED, agent, "outbound")
+    logger.info(
+        "voice-call: call=%s ticket=%s transition=none->ringing direction=outbound agent=%s player=%s",
+        call.pk, ticket.pk, agent.pk, player.pk,
+    )
+
+    payload = call_payload(call)
+    # Rings the player's own session socket, not the support desk. This is the
+    # whole difference between the two directions.
+    _broadcast(f"livechat_{ticket.pk}", "call.event", {"event": "call_incoming", "call": payload})
+    # And tells the desk, so a second agent sees the line is busy rather than
+    # starting a competing callback.
+    _broadcast(CALL_AGENTS_GROUP, "call.event", {"event": "call_state", "call": payload})
+    return call, True
+
+
+def accept_callback(user, call):
+    """The player answers a callback.
+
+    Separate from accept_call, which exists to resolve a race between several
+    agents claiming one ringing call. A callback has a single known answerer,
+    so there is nothing to claim - the only question is whether this really is
+    that person, and whether the call is still ringing. The conditional UPDATE
+    is still used, because two taps on the same phone are a race too.
+    """
+    expire_if_due(call)
+    if call.direction != DIRECTION_OUTBOUND:
+        raise CallError("not_a_callback", "That call is not a callback.", status=400)
+    if call.receiver_id != getattr(user, "id", None):
+        raise CallError("call_not_found", "Call not found.", status=404)
+    if call.status != STATUS_RINGING:
+        raise CallError("call_not_ringing", "This call is no longer ringing.", status=409)
+
+    claimed = CallSession.objects.filter(pk=call.pk, status=STATUS_RINGING).update(
+        status=STATUS_ACCEPTED,
+    )
+    if not claimed:
+        raise CallError("call_not_ringing", "This call is no longer ringing.", status=409)
+
+    call.refresh_from_db()
+    _log_event(call, EVENT_ACCEPTED, user)
+    logger.info(
+        "voice-call: call=%s ticket=%s transition=ringing->accepted direction=outbound",
+        call.pk, call.ticket_id,
+    )
+    _push_state(call)
+    return call

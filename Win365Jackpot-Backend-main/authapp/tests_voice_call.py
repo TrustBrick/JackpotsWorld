@@ -25,6 +25,8 @@ from rest_framework.test import APITestCase
 from authapp.models.affiliate_models import AffiliateProfile
 from authapp.models.user_model import ActivityLog
 from authapp.models.call_models import (
+    PRESENCE_MAX_AGE,
+    SupportAgentPresence,
     VoiceCallSettings,
     CallEvent,
     CallSession,
@@ -38,6 +40,7 @@ from authapp.models.call_models import (
     STATUS_RINGING,
 )
 from authapp.models.support_ticket_models import SupportTicket
+from authapp.models.user_model import AdminProfile
 from authapp.services import voice_call_service
 from authapp.services.voice_call_service import CallError
 from authapp.throttles import VoiceCallStartRateThrottle
@@ -82,6 +85,25 @@ class VoiceCallTestBase(APITestCase):
             email="agent2@example.com", password="pw-Test-1", user_uid="TESTAGT2",
             is_staff=True, is_superuser=True,
         )
+
+        # An on-duty support agent. initiate_call now refuses when nobody is
+        # available, so without this every existing test would fail on the new
+        # guard rather than on what it is actually testing. The empty-desk path
+        # gets its own tests below.
+        self.duty_agent = User.objects.create_user(
+            email="onduty@example.com", password="pw-Test-1", user_uid="TESTDUTY",
+            is_staff=True, name="On Duty",
+        )
+        AdminProfile.objects.update_or_create(
+            user=self.duty_agent, defaults={"role": "support", "is_active": True},
+        )
+        SupportAgentPresence.objects.create(
+            user=self.duty_agent, channel_name="test-channel-duty",
+        )
+
+    def _go_off_duty(self):
+        """Empty the support desk for a test that needs an unstaffed one."""
+        SupportAgentPresence.objects.all().delete()
 
     def _as(self, user):
         self.client.force_authenticate(user=user)
@@ -1005,6 +1027,16 @@ class VoiceCallRecordingSwitchTests(VoiceCallTestBase):
 
     def setUp(self):
         super().setUp()
+        # Deleting history and switching recording moved from super admin to
+        # Customer Support Manager, so the privileged actor in these tests is a
+        # manager now. Super admins are covered by their own denial tests.
+        self.manager = User.objects.create_user(
+            email="mgr-S@example.com", password="pw-Test-1", user_uid="TESTMGS",
+            is_staff=True, name="Mia Manager",
+        )
+        AdminProfile.objects.update_or_create(
+            user=self.manager, defaults={"role": "support_manager", "is_active": True},
+        )
         VoiceCallSettings.objects.all().delete()
         self.plain_agent = User.objects.create_user(
             email="agent4@example.com", password="pw-Test-1", user_uid="TESTAGT4",
@@ -1013,15 +1045,15 @@ class VoiceCallRecordingSwitchTests(VoiceCallTestBase):
 
     def test_recording_is_on_until_someone_turns_it_off(self):
         """Adding the switch must not change how a deployment already behaves."""
-        self._as(self.agent)
+        self._as(self.manager)
         res = self.client.get(self.ENDPOINT)
         self.assertEqual(res.status_code, 200)
         self.assertTrue(res.data["recording_enabled"])
         self.assertTrue(res.data["recording_effective"])
         self.assertTrue(voice_call_service.recording_enabled())
 
-    def test_a_super_admin_can_switch_it_off_and_back_on(self):
-        self._as(self.agent2)  # superuser
+    def test_a_support_manager_can_switch_it_off_and_back_on(self):
+        self._as(self.manager)
         res = self.client.patch(self.ENDPOINT, {"recording_enabled": False}, format="json")
         self.assertEqual(res.status_code, 200)
         self.assertFalse(res.data["recording_enabled"])
@@ -1032,10 +1064,10 @@ class VoiceCallRecordingSwitchTests(VoiceCallTestBase):
         self.assertTrue(voice_call_service.recording_enabled())
 
     def test_the_switch_records_who_moved_it(self):
-        self._as(self.agent2)
+        self._as(self.manager)
         self.client.patch(self.ENDPOINT, {"recording_enabled": False}, format="json")
         row = VoiceCallSettings.load()
-        self.assertEqual(row.updated_by_id, self.agent2.id)
+        self.assertEqual(row.updated_by_id, self.manager.id)
 
     def test_an_ordinary_agent_may_look_but_not_touch(self):
         """An agent silently switching off the recording of their own calls —
@@ -1059,13 +1091,13 @@ class VoiceCallRecordingSwitchTests(VoiceCallTestBase):
     def test_the_config_endpoint_follows_the_switch(self):
         """What the switch changes is what both browsers are told — the agent's
         recorder and the customer's notice come from this one answer."""
-        self._as(self.agent2)
+        self._as(self.manager)
         self.client.patch(self.ENDPOINT, {"recording_enabled": False}, format="json")
 
         self._as(self.player)
         self.assertFalse(self.client.get("/api/live-chat/calls/config/").data["recording_enabled"])
 
-        self._as(self.agent2)
+        self._as(self.manager)
         self.client.patch(self.ENDPOINT, {"recording_enabled": True}, format="json")
         self._as(self.player)
         self.assertTrue(self.client.get("/api/live-chat/calls/config/").data["recording_enabled"])
@@ -1077,7 +1109,7 @@ class VoiceCallRecordingSwitchTests(VoiceCallTestBase):
         VoiceCallSettings.objects.update_or_create(pk=1, defaults={"recording_enabled": True})
         self.assertFalse(voice_call_service.recording_enabled())
 
-        self._as(self.agent2)
+        self._as(self.manager)
         res = self.client.get(self.ENDPOINT)
         self.assertFalse(res.data["recording_available"])
         self.assertFalse(res.data["recording_effective"])
@@ -1086,12 +1118,12 @@ class VoiceCallRecordingSwitchTests(VoiceCallTestBase):
         self.assertTrue(res.data["recording_enabled"])
 
     def test_a_patch_without_the_field_is_refused_rather_than_guessed(self):
-        self._as(self.agent2)
+        self._as(self.manager)
         self.assertEqual(self.client.patch(self.ENDPOINT, {}, format="json").status_code, 400)
 
     def test_nothing_is_stored_while_the_switch_is_off(self):
         """The end-to-end consequence: switch off, and an upload is refused."""
-        self._as(self.agent2)
+        self._as(self.manager)
         self.client.patch(self.ENDPOINT, {"recording_enabled": False}, format="json")
 
         call = self._ringing()
@@ -1099,7 +1131,7 @@ class VoiceCallRecordingSwitchTests(VoiceCallTestBase):
         call = voice_call_service.mark_connected(self.agent, call)
         call = voice_call_service.end_call(self.agent, call)
 
-        self._as(self.agent)
+        self._as(self.manager)
         res = self.client.post(
             f"/api/admin-panel/live-chat/calls/{call.pk}/recording/",
             {"file": SimpleUploadedFile("blob", bytes([0x1a, 0x45, 0xdf, 0xa3]) + bytes(2044), "audio/webm")},
@@ -1218,6 +1250,16 @@ class VoiceCallDeleteTests(VoiceCallTestBase):
 
     def setUp(self):
         super().setUp()
+        # Deleting history and switching recording moved from super admin to
+        # Customer Support Manager, so the privileged actor in these tests is a
+        # manager now. Super admins are covered by their own denial tests.
+        self.manager = User.objects.create_user(
+            email="mgr-D@example.com", password="pw-Test-1", user_uid="TESTMGD",
+            is_staff=True, name="Mia Manager",
+        )
+        AdminProfile.objects.update_or_create(
+            user=self.manager, defaults={"role": "support_manager", "is_active": True},
+        )
         self.plain_agent = User.objects.create_user(
             email="agent5@example.com", password="pw-Test-1", user_uid="TESTAGT5",
             is_staff=True, name="Dana Agent",
@@ -1235,9 +1277,9 @@ class VoiceCallDeleteTests(VoiceCallTestBase):
         call = voice_call_service.mark_connected(agent, call)
         return voice_call_service.end_call(agent, call)
 
-    def test_a_super_admin_can_erase_a_call(self):
+    def test_a_support_manager_can_erase_a_call(self):
         call = self._finished_call()
-        self._as(self.agent2)  # superuser
+        self._as(self.manager)
         res = self.client.delete(self._url(call))
         self.assertEqual(res.status_code, 200)
         self.assertFalse(CallSession.objects.filter(pk=call.pk).exists())
@@ -1245,7 +1287,7 @@ class VoiceCallDeleteTests(VoiceCallTestBase):
     def test_the_events_go_with_it(self):
         call = self._finished_call()
         self.assertTrue(CallEvent.objects.filter(call_id=call.pk).exists())
-        self._as(self.agent2)
+        self._as(self.manager)
         self.client.delete(self._url(call))
         self.assertFalse(CallEvent.objects.filter(call_id=call.pk).exists())
 
@@ -1254,6 +1296,9 @@ class VoiceCallDeleteTests(VoiceCallTestBase):
         when the row goes, which would leave the customer's recorded voice in
         storage with nothing pointing at it."""
         call = self._finished_call()
+        # Uploaded by the agent who actually handled the call - attach_recording
+        # only accepts audio from that call's receiver. The manager deletes it
+        # below; that is the part this test is about.
         self._as(self.agent)
         self.client.post(
             "/api/admin-panel/live-chat/calls/{}/recording/".format(call.pk),
@@ -1264,7 +1309,7 @@ class VoiceCallDeleteTests(VoiceCallTestBase):
         path = call.recording.path
         self.assertTrue(os.path.exists(path))
 
-        self._as(self.agent2)
+        self._as(self.manager)
         res = self.client.delete(self._url(call))
         self.assertEqual(res.status_code, 200)
         self.assertTrue(res.data["recording_deleted"])
@@ -1274,11 +1319,11 @@ class VoiceCallDeleteTests(VoiceCallTestBase):
         """CallEvent cascades, so without this row nothing would record that
         the call ever existed or that anyone removed it."""
         call = self._finished_call()
-        self._as(self.agent2)
+        self._as(self.manager)
         self.client.delete(self._url(call))
         entry = ActivityLog.objects.filter(action="call_history_deleted").last()
         self.assertIsNotNone(entry)
-        self.assertEqual(entry.actor_id, self.agent2.id)
+        self.assertEqual(entry.actor_id, self.manager.id)
         self.assertEqual(entry.target_user_id, self.player.id)
         self.assertIn("#{}".format(call.pk), entry.description)
 
@@ -1306,11 +1351,490 @@ class VoiceCallDeleteTests(VoiceCallTestBase):
 
     def test_a_live_call_is_refused_rather_than_pulled_out_from_under_it(self):
         call = self._ringing()
-        self._as(self.agent2)
+        self._as(self.manager)
         res = self.client.delete(self._url(call))
         self.assertEqual(res.status_code, 409)
         self.assertTrue(CallSession.objects.filter(pk=call.pk).exists())
 
     def test_deleting_something_that_is_not_there_is_a_404(self):
-        self._as(self.agent2)
+        self._as(self.manager)
         self.assertEqual(self.client.delete("/api/admin-panel/live-chat/calls/999999/").status_code, 404)
+
+
+# ── Call routing: who rings ─────────────────────────────────────────────────
+
+class SupportCallRoutingTests(VoiceCallTestBase):
+    """Ringing used to key off is_staff alone, so a player calling support also
+    rang finance, KYC officers and super admins. Eligibility is now the actual
+    AdminProfile role."""
+
+    def _staff(self, uid, role, is_active=True, superuser=False):
+        user = User.objects.create_user(
+            email=f"{uid.lower()}@example.com", password="pw-Test-1", user_uid=uid,
+            is_staff=True, is_superuser=superuser,
+        )
+        AdminProfile.objects.update_or_create(
+            user=user, defaults={"role": role, "is_active": is_active},
+        )
+        return user
+
+    def test_support_facing_roles_receive_calls(self):
+        # Distinct uid per role: "support" and "support_manager" share a prefix.
+        for i, role in enumerate(("admin", "support", "support_manager")):
+            with self.subTest(role=role):
+                user = self._staff(f"ELIGIBL{i}", role)
+                self.assertTrue(voice_call_service.is_call_eligible_agent(user))
+
+    def test_unrelated_staff_roles_do_not_receive_calls(self):
+        """The whole point: a player calling support must not ring accounting."""
+        for i, role in enumerate(("finance", "kyc_officer")):
+            with self.subTest(role=role):
+                user = self._staff(f"INELIGB{i}", role)
+                self.assertFalse(voice_call_service.is_call_eligible_agent(user))
+
+    def test_a_super_admin_never_receives_support_calls(self):
+        boss = self._staff("SUPERELG", "superadmin", superuser=True)
+        self.assertFalse(voice_call_service.is_call_eligible_agent(boss))
+
+    def test_a_deactivated_profile_stops_receiving_calls(self):
+        user = self._staff("DEACTIV1", "support", is_active=False)
+        self.assertFalse(voice_call_service.is_call_eligible_agent(user))
+
+    def test_staff_with_no_profile_at_all_receives_nothing(self):
+        """Fail closed rather than open."""
+        naked = User.objects.create_user(
+            email="naked@example.com", password="pw-Test-1", user_uid="NAKED001", is_staff=True,
+        )
+        self.assertFalse(voice_call_service.is_call_eligible_agent(naked))
+
+    # ── Availability ────────────────────────────────────────────────────────
+
+    def test_an_open_panel_counts_as_available(self):
+        self.assertEqual(voice_call_service.available_agent_count(), 1)
+
+    def test_two_tabs_are_still_one_agent(self):
+        SupportAgentPresence.objects.create(
+            user=self.duty_agent, channel_name="test-channel-duty-2",
+        )
+        self.assertEqual(voice_call_service.available_agent_count(), 1)
+
+    def test_a_demoted_agent_stops_counting_even_with_the_socket_open(self):
+        """Role is re-read at query time, so a demotion takes effect without
+        anyone hunting down the open session."""
+        AdminProfile.objects.filter(user=self.duty_agent).update(role="finance")
+        self.assertEqual(voice_call_service.available_agent_count(), 0)
+
+    def test_a_stale_presence_row_does_not_staff_the_desk_forever(self):
+        SupportAgentPresence.objects.all().update(
+            connected_at=timezone.now() - (PRESENCE_MAX_AGE + timedelta(minutes=5)),
+        )
+        self.assertEqual(voice_call_service.available_agent_count(), 0)
+
+    # ── Nobody on duty ──────────────────────────────────────────────────────
+
+    def test_calling_an_unstaffed_desk_is_refused_immediately(self):
+        """Not left ringing for the full timeout - the player is told."""
+        self._go_off_duty()
+        ticket = self._ticket()
+        self._as(self.player)
+        res = self.client.post(f"/api/live-chat/{ticket.id}/calls/")
+        self.assertEqual(res.status_code, 503)
+        self.assertEqual(res.data["code"], "no_agents_available")
+        self.assertIn("currently unavailable", res.data["error"])
+
+    def test_a_call_to_an_unstaffed_desk_is_still_recorded_as_missed(self):
+        """A manager needs to see that someone tried to reach an empty desk."""
+        self._go_off_duty()
+        ticket = self._ticket()
+        self._as(self.player)
+        self.client.post(f"/api/live-chat/{ticket.id}/calls/")
+
+        call = CallSession.objects.get(ticket=ticket)
+        self.assertEqual(call.status, STATUS_MISSED)
+        self.assertEqual(call.end_reason, "no_agents")
+        self.assertEqual(call.duration_seconds, 0)
+        self.assertIsNone(call.receiver_id)
+        # Released the ticket's active slot, so the player can try again.
+        self.assertIsNone(call.active_key)
+
+    def test_no_agents_is_distinguishable_from_nobody_picking_up(self):
+        """Two different failures that must not look the same in history."""
+        self._go_off_duty()
+        ticket = self._ticket()
+        self._as(self.player)
+        self.client.post(f"/api/live-chat/{ticket.id}/calls/")
+        unstaffed = CallSession.objects.get(ticket=ticket)
+        self.assertEqual(unstaffed.end_reason, "no_agents")
+
+    def test_a_staffed_desk_still_rings_normally(self):
+        ticket = self._ticket()
+        self._as(self.player)
+        res = self.client.post(f"/api/live-chat/{ticket.id}/calls/")
+        self.assertEqual(res.status_code, 201)
+        self.assertEqual(res.data["status"], STATUS_RINGING)
+
+    def test_the_atomic_claim_still_prevents_a_second_acceptance(self):
+        """Pre-existing behaviour, re-asserted because routing changed around it."""
+        call = self._ringing()
+        self._as(self.agent)
+        first = self.client.post(f"/api/admin-panel/live-chat/calls/{call.id}/accept/")
+        self.assertEqual(first.status_code, 200)
+
+        self._as(self.agent2)
+        second = self.client.post(f"/api/admin-panel/live-chat/calls/{call.id}/accept/")
+        self.assertEqual(second.status_code, 409)
+        call.refresh_from_db()
+        self.assertEqual(call.receiver_id, self.agent.id)
+
+
+# ── Manager-only management ─────────────────────────────────────────────────
+
+class SupportManagerPermissionTests(VoiceCallTestBase):
+    def setUp(self):
+        super().setUp()
+        self.manager = User.objects.create_user(
+            email="manager@example.com", password="pw-Test-1", user_uid="TESTMGR1",
+            is_staff=True, name="Mia Manager",
+        )
+        AdminProfile.objects.update_or_create(
+            user=self.manager, defaults={"role": "support_manager", "is_active": True},
+        )
+        self.support = User.objects.create_user(
+            email="support@example.com", password="pw-Test-1", user_uid="TESTSUP1",
+            is_staff=True, name="Sid Support",
+        )
+        AdminProfile.objects.update_or_create(
+            user=self.support, defaults={"role": "support", "is_active": True},
+        )
+
+    def _handled_call(self, agent=None):
+        agent = agent or self.support
+        call = self._ringing()
+        call = voice_call_service.accept_call(agent, call)
+        return voice_call_service.end_call(agent, call)
+
+    # ── Deleting call history ───────────────────────────────────────────────
+
+    def test_a_manager_can_delete_a_call(self):
+        call = self._handled_call()
+        self._as(self.manager)
+        res = self.client.delete(f"/api/admin-panel/live-chat/calls/{call.pk}/")
+        self.assertIn(res.status_code, (200, 204))
+        self.assertFalse(CallSession.objects.filter(pk=call.pk).exists())
+
+    def test_a_support_admin_cannot_delete_their_own_call(self):
+        """The exact hole this restriction exists to close."""
+        call = self._handled_call()
+        self._as(self.support)
+        res = self.client.delete(f"/api/admin-panel/live-chat/calls/{call.pk}/")
+        self.assertEqual(res.status_code, 403)
+        self.assertTrue(CallSession.objects.filter(pk=call.pk).exists())
+
+    def test_a_super_admin_cannot_delete_through_the_admin_panel(self):
+        call = self._handled_call()
+        self._as(self.agent)  # is_superuser=True
+        res = self.client.delete(f"/api/admin-panel/live-chat/calls/{call.pk}/")
+        self.assertEqual(res.status_code, 403)
+        self.assertTrue(CallSession.objects.filter(pk=call.pk).exists())
+
+    def test_a_deactivated_manager_loses_deletion(self):
+        AdminProfile.objects.filter(user=self.manager).update(is_active=False)
+        call = self._handled_call()
+        self._as(self.manager)
+        res = self.client.delete(f"/api/admin-panel/live-chat/calls/{call.pk}/")
+        self.assertEqual(res.status_code, 403)
+
+    def test_the_service_refuses_too_not_just_the_route(self):
+        """Belt and suspenders: the rule holds however delete_call is reached."""
+        call = self._handled_call()
+        with self.assertRaises(CallError):
+            voice_call_service.delete_call(self.support, call)
+
+    # ── Recording switch ────────────────────────────────────────────────────
+
+    def test_a_manager_can_switch_recording_off_and_on(self):
+        self._as(self.manager)
+        off = self.client.patch(
+            "/api/admin-panel/voice-call-settings/", {"recording_enabled": False}, format="json",
+        )
+        self.assertEqual(off.status_code, 200)
+        self.assertFalse(voice_call_service.recording_enabled())
+
+        on = self.client.patch(
+            "/api/admin-panel/voice-call-settings/", {"recording_enabled": True}, format="json",
+        )
+        self.assertEqual(on.status_code, 200)
+        self.assertTrue(voice_call_service.recording_enabled())
+
+    def test_a_support_admin_cannot_switch_recording(self):
+        self._as(self.support)
+        res = self.client.patch(
+            "/api/admin-panel/voice-call-settings/", {"recording_enabled": False}, format="json",
+        )
+        self.assertEqual(res.status_code, 403)
+        self.assertTrue(voice_call_service.recording_enabled())
+
+    def test_a_super_admin_cannot_switch_recording_from_the_admin_panel(self):
+        self._as(self.agent)
+        res = self.client.patch(
+            "/api/admin-panel/voice-call-settings/", {"recording_enabled": False}, format="json",
+        )
+        self.assertEqual(res.status_code, 403)
+
+    def test_any_support_staff_may_read_the_recording_state(self):
+        """Agents are told on their own call surfaces anyway; hiding it would
+        be theatre."""
+        self._as(self.support)
+        res = self.client.get("/api/admin-panel/voice-call-settings/")
+        self.assertEqual(res.status_code, 200)
+        self.assertIn("recording_enabled", res.data)
+
+    def test_disabling_recording_does_not_delete_existing_recordings(self):
+        call = self._handled_call()
+        CallSession.objects.filter(pk=call.pk).update(recording_bytes=2048)
+        self._as(self.manager)
+        self.client.patch(
+            "/api/admin-panel/voice-call-settings/", {"recording_enabled": False}, format="json",
+        )
+        call.refresh_from_db()
+        self.assertEqual(call.recording_bytes, 2048)
+
+
+# ── Admin Panel / Super Admin Portal separation ─────────────────────────────
+
+class AdminPanelRoleSeparationTests(VoiceCallTestBase):
+    """A Super Admin must never hold an Admin Panel session. Enforced at the
+    token source, so every /api/admin-panel/ route is closed to them by
+    construction rather than by hiding buttons."""
+
+    def setUp(self):
+        super().setUp()
+        self.ordinary = User.objects.create_user(
+            email="ordinary@example.com", password="pw-Test-1", user_uid="TESTORD1",
+            is_staff=True, name="Ora Admin",
+        )
+        AdminProfile.objects.update_or_create(
+            user=self.ordinary, defaults={"role": "admin", "is_active": True},
+        )
+        self.boss = User.objects.create_user(
+            email="boss@example.com", password="pw-Test-1", user_uid="TESTBOSS",
+            is_staff=True, is_superuser=True, name="Bo Boss",
+        )
+
+    def test_a_super_admin_is_refused_by_the_admin_panel_login(self):
+        res = self.client.post(
+            "/api/auth/admin-login/",
+            {"email": "boss@example.com", "password": "pw-Test-1"},
+            format="json",
+        )
+        self.assertEqual(res.status_code, 403)
+        self.assertIn("Super Admin Portal", res.data["error"])
+
+    def test_no_admin_token_is_minted_for_a_super_admin(self):
+        """The refusal must happen before tokens exist, or the separation is
+        cosmetic."""
+        res = self.client.post(
+            "/api/auth/admin-login/",
+            {"email": "boss@example.com", "password": "pw-Test-1"},
+            format="json",
+        )
+        self.assertNotIn("tokens", res.data)
+
+    def test_an_ordinary_admin_can_still_log_in(self):
+        res = self.client.post(
+            "/api/auth/admin-login/",
+            {"email": "ordinary@example.com", "password": "pw-Test-1"},
+            format="json",
+        )
+        self.assertEqual(res.status_code, 200)
+        self.assertIn("tokens", res.data)
+        self.assertEqual(res.data["user"]["role"], "admin")
+
+    def test_the_login_response_carries_the_role_for_ui_gating(self):
+        User.objects.filter(pk=self.ordinary.pk).update(is_staff=True)
+        AdminProfile.objects.filter(user=self.ordinary).update(role="support_manager")
+        res = self.client.post(
+            "/api/auth/admin-login/",
+            {"email": "ordinary@example.com", "password": "pw-Test-1"},
+            format="json",
+        )
+        self.assertEqual(res.data["user"]["role"], "support_manager")
+
+    def test_a_non_staff_user_is_still_refused(self):
+        res = self.client.post(
+            "/api/auth/admin-login/",
+            {"email": "caller@example.com", "password": "pw-Test-1"},
+            format="json",
+        )
+        self.assertEqual(res.status_code, 403)
+
+
+# ── Callback: support calls the player ──────────────────────────────────────
+
+class VoiceCallCallbackTests(VoiceCallTestBase):
+    """A callback reuses the whole inbound machinery - same CallSession, same
+    signaling groups, same engine. These pin the two things that genuinely
+    differ: who may start one, and who may answer it."""
+
+    CALLBACK = "/api/admin-panel/live-chat/{}/callback/"
+
+    def setUp(self):
+        super().setUp()
+        self.support = User.objects.create_user(
+            email="cbsupport@example.com", password="pw-Test-1", user_uid="TESTCBS1",
+            is_staff=True, name="Cy Support",
+        )
+        AdminProfile.objects.update_or_create(
+            user=self.support, defaults={"role": "support", "is_active": True},
+        )
+        self.finance = User.objects.create_user(
+            email="cbfinance@example.com", password="pw-Test-1", user_uid="TESTCBF1",
+            is_staff=True, name="Fin Ance",
+        )
+        AdminProfile.objects.update_or_create(
+            user=self.finance, defaults={"role": "finance", "is_active": True},
+        )
+
+    # ── Who may place one ───────────────────────────────────────────────────
+
+    def test_a_support_agent_can_call_a_player_back(self):
+        ticket = self._ticket()
+        self._as(self.support)
+        res = self.client.post(self.CALLBACK.format(ticket.id))
+        self.assertEqual(res.status_code, 201)
+        self.assertEqual(res.data["direction"], "outbound")
+        self.assertEqual(res.data["status"], STATUS_RINGING)
+        # Initiator and answerer, not customer and agent.
+        self.assertEqual(res.data["caller_id"], self.support.id)
+        self.assertEqual(res.data["receiver_id"], self.player.id)
+
+    def test_the_receiver_is_known_immediately_unlike_an_inbound_call(self):
+        """No desk-wide race to resolve: a callback has one possible answerer,
+        which is also what lets the agent join the signaling group at once."""
+        ticket = self._ticket()
+        self._as(self.support)
+        self.client.post(self.CALLBACK.format(ticket.id))
+        call = CallSession.objects.get(ticket=ticket)
+        self.assertEqual(call.receiver_id, self.player.id)
+
+    def test_unrelated_staff_cannot_call_a_player(self):
+        ticket = self._ticket()
+        self._as(self.finance)
+        res = self.client.post(self.CALLBACK.format(ticket.id))
+        self.assertEqual(res.status_code, 403)
+        self.assertFalse(CallSession.objects.filter(ticket=ticket).exists())
+
+    def test_a_super_admin_cannot_call_a_player(self):
+        ticket = self._ticket()
+        self._as(self.agent)  # is_superuser
+        res = self.client.post(self.CALLBACK.format(ticket.id))
+        self.assertEqual(res.status_code, 403)
+
+    def test_a_player_cannot_place_a_callback(self):
+        ticket = self._ticket()
+        self._as(self.player)
+        res = self.client.post(self.CALLBACK.format(ticket.id))
+        self.assertIn(res.status_code, (403, 404))
+
+    def test_a_closed_conversation_cannot_be_called_back(self):
+        ticket = self._ticket(status="resolved")
+        self._as(self.support)
+        res = self.client.post(self.CALLBACK.format(ticket.id))
+        self.assertEqual(res.status_code, 409)
+        self.assertEqual(res.data["code"], "ticket_not_callable")
+
+    # ── Duplicate guard ─────────────────────────────────────────────────────
+
+    def test_a_second_callback_by_the_same_agent_rejoins_rather_than_erroring(self):
+        ticket = self._ticket()
+        self._as(self.support)
+        first = self.client.post(self.CALLBACK.format(ticket.id))
+        second = self.client.post(self.CALLBACK.format(ticket.id))
+        self.assertEqual(first.status_code, 201)
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(first.data["id"], second.data["id"])
+        self.assertEqual(CallSession.objects.filter(ticket=ticket).count(), 1)
+
+    def test_a_callback_is_refused_while_the_player_is_already_on_a_call(self):
+        ticket = self._ticket()
+        self._ringing(ticket=ticket)          # inbound call in progress
+        self._as(self.support)
+        res = self.client.post(self.CALLBACK.format(ticket.id))
+        self.assertEqual(res.status_code, 409)
+        self.assertEqual(res.data["code"], "call_in_progress")
+
+    # ── Who may answer ──────────────────────────────────────────────────────
+
+    def _ringing_callback(self):
+        ticket = self._ticket()
+        self._as(self.support)
+        res = self.client.post(self.CALLBACK.format(ticket.id))
+        return CallSession.objects.get(pk=res.data["id"])
+
+    def test_the_player_can_answer_their_callback(self):
+        call = self._ringing_callback()
+        self._as(self.player)
+        res = self.client.post(f"/api/live-chat/calls/{call.pk}/accept/")
+        self.assertEqual(res.status_code, 200)
+        call.refresh_from_db()
+        self.assertEqual(call.status, STATUS_ACCEPTED)
+
+    def test_another_player_cannot_answer_someone_elses_callback(self):
+        call = self._ringing_callback()
+        self._as(self.other_player)
+        res = self.client.post(f"/api/live-chat/calls/{call.pk}/accept/")
+        self.assertEqual(res.status_code, 404)
+        call.refresh_from_db()
+        self.assertEqual(call.status, STATUS_RINGING)
+
+    def test_answering_twice_is_refused(self):
+        """Two taps on the same phone are a race too."""
+        call = self._ringing_callback()
+        self._as(self.player)
+        self.client.post(f"/api/live-chat/calls/{call.pk}/accept/")
+        second = self.client.post(f"/api/live-chat/calls/{call.pk}/accept/")
+        self.assertEqual(second.status_code, 409)
+
+    def test_the_player_accept_route_refuses_an_inbound_call(self):
+        """The two accept paths answer different questions and must not be
+        interchangeable."""
+        call = self._ringing()          # inbound
+        self._as(self.player)
+        res = self.client.post(f"/api/live-chat/calls/{call.pk}/accept/")
+        self.assertEqual(res.status_code, 400)
+        self.assertEqual(res.data["code"], "not_a_callback")
+
+    def test_a_lapsed_callback_is_missed_not_answerable(self):
+        call = self._ringing_callback()
+        CallSession.objects.filter(pk=call.pk).update(
+            ring_expires_at=timezone.now() - timedelta(seconds=1),
+        )
+        self._as(self.player)
+        res = self.client.post(f"/api/live-chat/calls/{call.pk}/accept/")
+        self.assertEqual(res.status_code, 409)
+        call.refresh_from_db()
+        self.assertEqual(call.status, STATUS_MISSED)
+
+    # ── History ─────────────────────────────────────────────────────────────
+
+    def test_an_inbound_call_is_still_recorded_as_inbound(self):
+        """The new column must not change what existing calls mean."""
+        call = self._ringing()
+        self.assertEqual(call.direction, "inbound")
+
+    def test_a_callback_appears_in_the_agents_history(self):
+        call = self._ringing_callback()
+        self._as(self.support)
+        res = self.client.get("/api/admin-panel/live-chat/calls/")
+        rows = res.data if isinstance(res.data, list) else res.data["results"]
+        row = next(r for r in rows if r["id"] == call.pk)
+        self.assertEqual(row["direction"], "outbound")
+
+    def test_a_callback_does_not_need_an_agent_to_be_on_duty(self):
+        """The unstaffed-desk guard is about inbound calls. An agent placing a
+        callback is, by definition, present."""
+        self._go_off_duty()
+        ticket = self._ticket()
+        self._as(self.support)
+        res = self.client.post(self.CALLBACK.format(ticket.id))
+        self.assertEqual(res.status_code, 201)

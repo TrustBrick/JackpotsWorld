@@ -19,6 +19,9 @@ from itertools import count
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+
+from authapp.models.call_models import SupportAgentPresence
+from authapp.models.user_model import AdminProfile
 from django.test import override_settings
 from rest_framework.test import APITestCase
 
@@ -67,6 +70,17 @@ class OpenConversationTests(APITestCase):
             email="agent@example.com", password="pw-Test-1", user_uid="TESTAGT1",
             is_staff=True, is_superuser=True,
         )
+        # An on-duty support agent. Starting a call now requires one - an
+        # unstaffed desk is refused outright rather than left ringing - and
+        # these tests are about the request lifecycle, not about staffing.
+        duty = User.objects.create_user(
+            email="duty-sr@example.com", password="pw-Test-1", user_uid="SRDUTY01",
+            is_staff=True,
+        )
+        AdminProfile.objects.update_or_create(
+            user=duty, defaults={"role": "support", "is_active": True},
+        )
+        SupportAgentPresence.objects.create(user=duty, channel_name="sr-test-presence")
 
     # ── helpers ────────────────────────────────────────────────────────────
     def _as(self, user):

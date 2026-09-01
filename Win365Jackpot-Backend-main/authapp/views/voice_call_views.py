@@ -24,9 +24,9 @@ scoping, same "customer routes at api/, agent routes at api/admin-panel/" split.
     GET  /api/admin-panel/live-chat/calls/       agent-visible history
     POST /api/admin-panel/live-chat/calls/<call_id>/recording/   upload audio
     GET  /api/admin-panel/live-chat/calls/<call_id>/recording/   play it back
-    DELETE /api/admin-panel/live-chat/calls/<call_id>/  erase one call
+    DELETE /api/admin-panel/live-chat/calls/<call_id>/  erase one call (manager)
     GET  /api/admin-panel/voice-call-settings/   read the recording switch
-    PATCH /api/admin-panel/voice-call-settings/  flip it (super admin only)
+    PATCH /api/admin-panel/voice-call-settings/  flip it (manager only)
 
 No endpoint accepts a caller id, receiver id, agent id or signaling room id
 from the request body. The caller is always request.user; the receiver is
@@ -54,6 +54,7 @@ from authapp.models.call_models import (
     VoiceCallSettings,
 )
 from authapp.models.support_ticket_models import SupportTicket
+from authapp.permissions.admin_role_permissions import IsSupportManager
 from authapp.permissions.super_admin_permissions import IsAdminOrSuperAdmin, IsSuperAdmin
 from authapp.serializers.voice_call_serializers import (
     CallSessionSerializer,
@@ -200,6 +201,27 @@ class CallFailedView(_CallActionView):
         )
 
 
+class CallAcceptView(APIView):
+    """The player answers a support callback.
+
+    The customer-side counterpart of AdminCallAcceptView. Kept as its own route
+    rather than widening the admin one, because the two answer different
+    questions: the admin route resolves a race between agents claiming a
+    ringing call, this one only asks whether the requester is the single person
+    that callback was placed to.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, call_id):
+        try:
+            call = voice_call_service.get_call_for_participant(request.user, call_id)
+            call = voice_call_service.accept_callback(request.user, call)
+        except CallError as exc:
+            return _error(exc)
+        return Response(CallSessionSerializer(call).data)
+
+
 class MyCallHistoryView(generics.ListAPIView):
     """The signed-in customer's own calls, newest first."""
     serializer_class = CallSessionSerializer
@@ -262,6 +284,28 @@ class AdminCallFailedView(_CallActionView):
         return voice_call_service.fail_call(
             request.user, call, reason,
             detail=_sanitize_failure_detail(request.data.get("detail")),
+        )
+
+
+class AdminCallbackView(APIView):
+    """Call a player back on a conversation - typically one they missed.
+
+    Reuses the whole existing call machinery: same CallSession, same signaling
+    groups, same WebRTC engine, same recording path. Only the direction and who
+    gets rung differ. There is deliberately no second calling system here.
+    """
+
+    permission_classes = [IsAdminOrSuperAdmin]
+    throttle_classes = [VoiceCallStartRateThrottle]
+
+    def post(self, request, ticket_id):
+        try:
+            ticket = voice_call_service.get_callback_ticket(request.user, ticket_id)
+            call, created = voice_call_service.initiate_callback(request.user, ticket)
+        except CallError as exc:
+            return _error(exc)
+        return Response(
+            CallSessionSerializer(call).data, status=201 if created else 200,
         )
 
 
@@ -406,18 +450,18 @@ class AdminVoiceCallSettingsView(APIView):
     recorder and the notice must agree for the whole of a call, not just at
     the moment it began.
 
-    GET stays on IsAdminOrSuperAdmin (any staff member); PATCH is gated by
-    IsSuperAdmin instead of a manual is_superuser check, so it also picks up
-    that permission's SUPERADMIN_IP_ALLOWLIST enforcement — the same
-    protection every other super-admin-only mutation in this app gets against
-    a stolen/exfiltrated super-admin token used from an unexpected IP.
+    GET stays on IsAdminOrSuperAdmin (any staff member can see whether calls
+    are recorded — their own call surfaces tell them anyway). PATCH is
+    IsSupportManager: switching recording off also removes the notice the
+    *customer* is shown, so it is a management decision, not one an agent
+    makes about their own calls.
     """
 
     permission_classes = [IsAdminOrSuperAdmin]
 
     def get_permissions(self):
         if self.request.method == "PATCH":
-            return [IsSuperAdmin()]
+            return [IsSupportManager()]
         return super().get_permissions()
 
     def get(self, request):
@@ -438,11 +482,11 @@ class AdminVoiceCallSettingsView(APIView):
 class AdminCallDeleteView(APIView):
     """Erase one call from history — the row, its events, and its audio.
 
-    Super Admin only. IsSuperAdmin gates the route itself (including its
-    SUPERADMIN_IP_ALLOWLIST check, same as every other super-admin-only
-    mutation in this app), and voice_call_service.delete_call repeats the
-    is_superuser check next to the deletion it guards, so the rule holds
-    however the service is reached — belt and suspenders, not either/or.
+    Customer Support Manager only. IsSupportManager gates the route, and
+    voice_call_service.delete_call repeats the same predicate next to the
+    deletion it guards, so the rule holds however the service is reached —
+    belt and suspenders, not either/or. A support admin deleting the record of
+    their own call is exactly what this prevents.
 
     DELETE and nothing else: there is deliberately no admin GET on this route.
     A call's detail is already served by the history list and the participant
@@ -450,7 +494,7 @@ class AdminCallDeleteView(APIView):
     scoping rules to drift.
     """
 
-    permission_classes = [IsSuperAdmin]
+    permission_classes = [IsSupportManager]
 
     def delete(self, request, call_id):
         call = get_object_or_404(

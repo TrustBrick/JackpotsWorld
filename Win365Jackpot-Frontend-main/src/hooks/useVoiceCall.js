@@ -379,8 +379,14 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
 
     const { ok, data } = await post(`/api/live-chat/${ticketId}/calls/`)
     if (!ok) {
+      // FAILED, not IDLE. The modal renders nothing at IDLE, so setting an
+      // error and dropping straight back to it showed the player *nothing* -
+      // the tap simply appeared to do nothing. Routing through FAILED is what
+      // actually surfaces the reason ("Customer Support is currently
+      // unavailable", an unstaffed desk's 503) before the modal dismisses
+      // itself. Same treatment the unavailable/no-ticket branches above get.
       setError(data?.error || "Could not start the call. Please try again.")
-      applyPhase(PHASE.IDLE)
+      finish(null, PHASE.FAILED)
       return
     }
     setCall(data)
@@ -423,6 +429,55 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
     }
   }, [supported, config.available, ticketId, post, sendSignal, buildEngine, finish, reportFailed])
 
+  /**
+   * Agent side: call a player back, typically one who missed a call.
+   *
+   * Deliberately the same shape as startCall - the agent is the *initiator*
+   * here, so it takes the caller path through the engine (stand up the mic and
+   * wait for the offer) exactly as a customer does when they dial out. The
+   * engine's "caller" and "receiver" have always meant initiator and acceptor
+   * rather than customer and agent, which is why a callback needs no changes
+   * down there at all.
+   */
+  const startCallback = useCallback(async (ticketIdToCall) => {
+    if (!supported) {
+      setError("Your browser doesn't support voice calls.")
+      return
+    }
+    if (!ticketIdToCall) return
+    setError("")
+    applyPhase(PHASE.CALLING)
+
+    const { ok, data } = await post(`/api/admin-panel/live-chat/${ticketIdToCall}/callback/`)
+    if (!ok) {
+      setError(data?.error || "Could not call this player back. Please try again.")
+      finish(null, PHASE.FAILED)
+      return
+    }
+    setCall(data)
+    callRef.current = data
+
+    const subscribed = sendSignal?.("call.subscribe", { call_id: data.id })
+    if (!subscribed) {
+      setError("The support connection dropped. Please reload the panel and try again.")
+      reportFailed(data.id, "network_failure")
+      finish(data, PHASE.FAILED)
+      return
+    }
+
+    const engine = buildEngine()
+    engineRef.current = engine
+    try {
+      await engine.startAsCaller(data.id)
+    } catch (err) {
+      const reason = describeMediaError(err).includes("Microphone access is required")
+        ? "permission_denied"
+        : "connection_failed"
+      reportFailed(data.id, reason)
+      finish(data, PHASE.FAILED)
+    }
+  }, [supported, post, sendSignal, buildEngine, finish, reportFailed, applyPhase])
+
   const acceptCall = useCallback(async (incomingCall) => {
     if (!supported) {
       setError("Your browser doesn't support voice calls.")
@@ -431,7 +486,13 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
     setError("")
     applyPhase(PHASE.CONNECTING)
 
-    const { ok, data } = await post(`/api/admin-panel/live-chat/calls/${incomingCall.id}/accept/`)
+    // A player answering a callback goes to the customer route; an agent
+    // claiming a ringing call goes to the admin one, which resolves the race
+    // between several agents. Same button, different question.
+    const acceptPath = role === "agent"
+      ? `/api/admin-panel/live-chat/calls/${incomingCall.id}/accept/`
+      : `/api/live-chat/calls/${incomingCall.id}/accept/`
+    const { ok, data } = await post(acceptPath)
     if (!ok) {
       setError(data?.error || "This call is no longer available.")
       finish(null, PHASE.IDLE)
@@ -509,9 +570,15 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
     if (!data) return
 
     if (eventName === "call_incoming") {
-      // Agent side only. Ignored if this agent is already on a call, so an
-      // incoming ring cannot interrupt one in progress.
-      if (role !== "agent") return
+      // Both roles can be rung now: an agent by a player's inbound call, and a
+      // player by a support callback. The direction on the payload says which,
+      // and each side ignores the other's ring - a player must never see an
+      // inbound call ringing the support desk, and an agent's incoming card is
+      // for calls *to* the desk.
+      const inbound = (data.call?.direction || "inbound") === "inbound"
+      if (inbound ? role !== "agent" : role !== "customer") return
+      // Ignored if already on a call, so a ring cannot interrupt one in
+      // progress.
       if (phaseRef.current !== PHASE.IDLE && phaseRef.current !== PHASE.ENDED) return
       setCall(data.call)
       callRef.current = data.call
@@ -623,6 +690,7 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
     seconds,
     isBusy: phase !== PHASE.IDLE && phase !== PHASE.ENDED && phase !== PHASE.FAILED,
     startCall,
+    startCallback,
     acceptCall,
     rejectCall,
     endCall,

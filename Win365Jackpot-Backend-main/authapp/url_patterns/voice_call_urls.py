@@ -12,6 +12,7 @@ from django.urls import path
 
 from authapp.views.voice_call_views import (
     AdminCallAcceptView,
+    AdminCallbackView,
     AdminCallConnectedView,
     AdminCallEndView,
     AdminCallFailedView,
@@ -20,6 +21,7 @@ from authapp.views.voice_call_views import (
     AdminCallDeleteView,
     AdminCallRejectView,
     AdminVoiceCallSettingsView,
+    CallAcceptView,
     CallConnectedView,
     CallDetailView,
     CallEndView,
@@ -34,6 +36,7 @@ public_urlpatterns = [
     path("live-chat/calls/config/", VoiceCallConfigView.as_view()),
     path("live-chat/calls/", MyCallHistoryView.as_view()),
     path("live-chat/calls/<int:call_id>/", CallDetailView.as_view()),
+    path("live-chat/calls/<int:call_id>/accept/", CallAcceptView.as_view()),
     path("live-chat/calls/<int:call_id>/connected/", CallConnectedView.as_view()),
     path("live-chat/calls/<int:call_id>/end/", CallEndView.as_view()),
     path("live-chat/calls/<int:call_id>/failed/", CallFailedView.as_view()),
@@ -43,6 +46,7 @@ public_urlpatterns = [
 # Agent-facing — mounted at api/admin-panel/
 admin_urlpatterns = [
     path("live-chat/calls/", AdminCallHistoryView.as_view()),
+    path("live-chat/<int:ticket_id>/callback/", AdminCallbackView.as_view()),
     path("live-chat/calls/<int:call_id>/accept/", AdminCallAcceptView.as_view()),
     path("live-chat/calls/<int:call_id>/reject/", AdminCallRejectView.as_view()),
     path("live-chat/calls/<int:call_id>/connected/", AdminCallConnectedView.as_view()),

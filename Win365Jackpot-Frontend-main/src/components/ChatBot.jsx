@@ -8,6 +8,7 @@ import { asMessageArray, highestRealId } from "../services/liveChatMessages"
 // inert until `mode === "live"`, so the FAQ bot path is untouched.
 import { useVoiceCall, PHASE } from "../hooks/useVoiceCall"
 import ActiveCallModal from "./support/ActiveCallModal"
+import IncomingCallModal from "./support/IncomingCallModal"
 import CallStatus from "./support/CallStatus"
 import { setLauncherHeight } from "./support/launcherMetrics"
 
@@ -941,6 +942,15 @@ export default function ChatBot({ portal = "player" }) {
     {/* VOICE-CALL: rendered outside the launcher's fixed/stacked container so
         the call surface is centred on the viewport rather than anchored to the
         corner widget, and stays correct on a phone. */}
+      {/* VOICE-CALL: a support callback rings *here* now, so the player needs
+        the same incoming card the agent has. Rendered alongside the active
+        call surface and outside the launcher's own stacking context, so it
+        is centred on the viewport rather than pinned to the corner widget. */}
+    <IncomingCallModal
+        call={voiceCall.phase === PHASE.INCOMING ? voiceCall.call : null}
+        onAccept={() => voiceCall.acceptCall(voiceCall.call)}
+        onReject={() => voiceCall.rejectCall(voiceCall.call)}
+      />
     <ActiveCallModal
       phase={voiceCall.phase}
       call={voiceCall.call}
