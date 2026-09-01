@@ -20,6 +20,17 @@
 
 # Local virtualenv — EB builds its own from requirements.txt.
 venv/
+# The *other* virtualenv. Two exist in this checkout and only one was
+# listed, so ~91 MB of compressed site-packages shipped on every single
+# deploy - the largest thing in the bundle, and pure waste: EB installs
+# from requirements.txt on the instance and never looks at this.
+.venv/
+# Call recordings. VOICE_CALL_RECORDING_ROOT defaults to a sibling of
+# MEDIA_ROOT, which locally resolves inside this directory - so recorded
+# customer audio was being swept into the deploy archive and shipped to
+# the instance. Runtime data never belongs in a code bundle, least of all
+# this kind.
+call-recordings/
 
 # User uploads (663 MB) and runtime logs. Never belonged in a deploy
 # artifact; EB replaces /var/app/current wholesale on every deploy.
