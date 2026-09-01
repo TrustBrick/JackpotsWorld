@@ -1,1 +1,0 @@
-import{ap as r,r as u,j as e,aT as n,aZ as c}from"./index-RDDaLFx7.js";function d({tab:t}){const a=r(),s=u.useRef(!1);return e.jsxs("div",{className:"min-h-screen",style:{background:"var(--w365-bg)"},children:[e.jsx(n,{}),e.jsx(c,{isOpen:!0,onClose:()=>{s.current||a("/")},defaultTab:t,onAuthSuccess:()=>{s.current=!0,a("/dashboard")}})]})}export{d as default};
