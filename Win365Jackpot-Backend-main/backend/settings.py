@@ -720,6 +720,14 @@ VOICE_CALL_RING_TIMEOUT_SECONDS = config(
     "VOICE_CALL_RING_TIMEOUT_SECONDS", default=30, cast=int,
 )
 
+# How long a caller may wait when every agent is already on a call. The 30s
+# ring window above is the right length for "is anyone going to pick this
+# up", and much too short for "wait your turn" - a queued caller given only
+# 30s is hung up on before an agent could plausibly finish.
+VOICE_CALL_QUEUE_TIMEOUT_SECONDS = config(
+    "VOICE_CALL_QUEUE_TIMEOUT_SECONDS", default=180, cast=int,
+)
+
 # Calling requires cross-process push to work: the REST process that creates
 # the call must be able to reach the daphne process holding both browsers'
 # sockets. That is exactly what LIVE_CHAT_REALTIME already answers, so the

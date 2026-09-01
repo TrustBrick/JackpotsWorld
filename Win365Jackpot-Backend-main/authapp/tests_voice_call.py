@@ -1838,3 +1838,176 @@ class VoiceCallCallbackTests(VoiceCallTestBase):
         self._as(self.support)
         res = self.client.post(self.CALLBACK.format(ticket.id))
         self.assertEqual(res.status_code, 201)
+
+
+# ── Concurrent calls and the queue ──────────────────────────────────────────
+
+class VoiceCallQueueTests(VoiceCallTestBase):
+    """Several players calling at once used to mean all but the first were
+    dropped: the ring is one broadcast, and every agent's browser discarded
+    anything arriving while a card was already up. These pin the server half of
+    the fix - who counts as free, who is ahead of whom, and re-offering."""
+
+    def _agent(self, uid, role="support"):
+        user = User.objects.create_user(
+            email=f"{uid.lower()}@example.com", password="pw-Test-1", user_uid=uid,
+            is_staff=True,
+        )
+        AdminProfile.objects.update_or_create(
+            user=user, defaults={"role": role, "is_active": True},
+        )
+        SupportAgentPresence.objects.create(user=user, channel_name=f"chan-{uid}")
+        return user
+
+    # ── Who can actually pick up ────────────────────────────────────────────
+
+    def test_an_idle_agent_is_free(self):
+        self._go_off_duty()
+        self._agent("QFREE001")
+        self.assertEqual(voice_call_service.free_agent_count(), 1)
+
+    def test_an_agent_on_a_call_is_not_free(self):
+        """available_agent_count asks 'is the desk staffed'; free_agent_count
+        asks 'can anyone pick up right now'. They differ exactly here."""
+        self._go_off_duty()
+        agent = self._agent("QBUSY001")
+        call = self._ringing()
+        voice_call_service.accept_call(agent, call)
+
+        self.assertEqual(voice_call_service.available_agent_count(), 1)
+        self.assertEqual(voice_call_service.free_agent_count(), 0)
+
+    def test_finishing_a_call_makes_the_agent_free_again(self):
+        self._go_off_duty()
+        agent = self._agent("QFREED01")
+        call = voice_call_service.accept_call(agent, self._ringing())
+        self.assertEqual(voice_call_service.free_agent_count(), 0)
+
+        voice_call_service.end_call(agent, call)
+        self.assertEqual(voice_call_service.free_agent_count(), 1)
+
+    def test_busy_is_derived_not_stored(self):
+        """No second copy of the truth: an agent whose socket dies mid-call is
+        still busy, and one whose call ended is free, without any cleanup."""
+        self._go_off_duty()
+        agent = self._agent("QDERIV01")
+        voice_call_service.accept_call(agent, self._ringing())
+        self.assertIn(agent.id, voice_call_service.busy_agent_ids())
+
+    # ── Queue position ──────────────────────────────────────────────────────
+
+    def test_the_first_caller_has_nobody_ahead(self):
+        call = self._ringing()
+        self.assertEqual(voice_call_service.queue_position(call), 0)
+
+    def test_later_callers_are_behind_earlier_ones(self):
+        first = self._ringing(ticket=self._ticket())
+        second = self._ringing(ticket=self._ticket(user=self.other_player))
+        self.assertEqual(voice_call_service.queue_position(first), 0)
+        self.assertEqual(voice_call_service.queue_position(second), 1)
+
+    def test_a_claimed_call_stops_counting_against_the_queue(self):
+        first = self._ringing(ticket=self._ticket())
+        second = self._ringing(ticket=self._ticket(user=self.other_player))
+        voice_call_service.accept_call(self.agent, first)
+        # The one ahead is answered, so the waiting caller moves up.
+        self.assertEqual(voice_call_service.queue_position(second), 0)
+
+    # ── What the caller is told ─────────────────────────────────────────────
+
+    def test_a_caller_with_a_free_agent_is_not_told_they_are_queued(self):
+        call = self._ringing()
+        self.assertFalse(voice_call_service.call_payload(call)["queued"])
+
+    def test_a_caller_with_every_agent_busy_is_told_they_are_waiting(self):
+        """The case the whole queue exists for - and the one that previously
+        rang out silently."""
+        self._go_off_duty()
+        agent = self._agent("QWAIT001")
+        voice_call_service.accept_call(agent, self._ringing(ticket=self._ticket()))
+
+        waiting = self._ringing(ticket=self._ticket(user=self.other_player))
+        payload = voice_call_service.call_payload(waiting)
+        self.assertTrue(payload["queued"])
+        self.assertEqual(payload["status"], STATUS_RINGING)
+
+    def test_a_queued_caller_gets_the_longer_window_not_the_ring_window(self):
+        """30s is right for 'is anyone picking up' and far too short for
+        'wait your turn'."""
+        self._go_off_duty()
+        agent = self._agent("QWINDOW1")
+        voice_call_service.accept_call(agent, self._ringing(ticket=self._ticket()))
+
+        queued = self._ringing(ticket=self._ticket(user=self.other_player))
+        window = (queued.ring_expires_at - queued.started_at).total_seconds()
+        self.assertGreater(window, settings.VOICE_CALL_RING_TIMEOUT_SECONDS + 5)
+
+    # ── Re-offering ─────────────────────────────────────────────────────────
+
+    def test_waiting_calls_are_re_offered(self):
+        """The original ring is one broadcast; a browser busy at that instant
+        discards it. Without a re-offer the call is never seen again."""
+        first = self._ringing(ticket=self._ticket())
+        second = self._ringing(ticket=self._ticket(user=self.other_player))
+        offered = voice_call_service.offer_waiting_calls()
+        self.assertEqual(offered, 2)
+        for c in (first, second):
+            c.refresh_from_db()
+            self.assertEqual(c.status, STATUS_RINGING)
+
+    def test_an_answered_call_is_not_re_offered(self):
+        call = self._ringing()
+        voice_call_service.accept_call(self.agent, call)
+        self.assertEqual(voice_call_service.offer_waiting_calls(), 0)
+
+    def test_ending_a_call_drains_the_queue(self):
+        """An agent going free is what should pull the next caller through."""
+        self._go_off_duty()
+        agent = self._agent("QDRAIN01")
+        held = voice_call_service.accept_call(agent, self._ringing(ticket=self._ticket()))
+        waiting = self._ringing(ticket=self._ticket(user=self.other_player))
+
+        voice_call_service.end_call(agent, held)
+        waiting.refresh_from_db()
+        # Still ringing and still unclaimed - now with a free agent to take it.
+        self.assertEqual(waiting.status, STATUS_RINGING)
+        self.assertIsNone(waiting.receiver_id)
+        self.assertEqual(voice_call_service.free_agent_count(), 1)
+
+    # ── The headline case ───────────────────────────────────────────────────
+
+    def test_three_simultaneous_calls_reach_three_different_agents(self):
+        """Player A -> admin 1, player B -> admin 2, player C -> admin 3."""
+        self._go_off_duty()
+        a1 = self._agent("QDIST001")
+        a2 = self._agent("QDIST002")
+        a3 = self._agent("QDIST003")
+
+        players = [self.player, self.other_player,
+                   User.objects.create_user(email="third@example.com",
+                                            password="pw-Test-1", user_uid="QTHIRD01")]
+        calls = [self._ringing(ticket=self._ticket(user=p)) for p in players]
+
+        for agent, call in zip((a1, a2, a3), calls):
+            voice_call_service.accept_call(agent, call)
+
+        for agent, call in zip((a1, a2, a3), calls):
+            call.refresh_from_db()
+            self.assertEqual(call.receiver_id, agent.id)
+            self.assertEqual(call.status, STATUS_ACCEPTED)
+        # Everyone is now busy, so a fourth caller would be told they are
+        # waiting rather than ringing into nothing.
+        self.assertEqual(voice_call_service.free_agent_count(), 0)
+
+    def test_two_agents_cannot_take_the_same_call(self):
+        """The queue changes who is offered what; it must not weaken the claim."""
+        self._go_off_duty()
+        a1 = self._agent("QRACE001")
+        a2 = self._agent("QRACE002")
+        call = self._ringing()
+
+        voice_call_service.accept_call(a1, call)
+        with self.assertRaises(CallError):
+            voice_call_service.accept_call(a2, call)
+        call.refresh_from_db()
+        self.assertEqual(call.receiver_id, a1.id)

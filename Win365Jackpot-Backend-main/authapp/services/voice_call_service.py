@@ -262,6 +262,16 @@ def call_payload(call):
         "participant_type": call.ticket.participant_type,
         "status": call.status,
         "direction": call.direction,
+        # Queue state, so a caller with nobody free to take them is told they
+        # are waiting rather than listening to a ring that no agent can hear.
+        # Computed only while genuinely unclaimed - on a connected or finished
+        # call these are constant and not worth two queries per push.
+        "queue_position": queue_position(call),
+        "queued": bool(
+            call.status == STATUS_RINGING
+            and call.receiver_id is None
+            and free_agent_count() == 0
+        ),
         "end_reason": call.end_reason,
         "caller_id": call.caller_id,
         "caller_name": (getattr(caller, "name", "") or "").strip(),
@@ -505,6 +515,58 @@ def available_agent_count():
     )
 
 
+def busy_agent_ids():
+    """Agents currently on a call.
+
+    Derived from CallSession rather than stored on the presence row: "busy" is
+    exactly "is the receiver of a live call", so reading it from the calls
+    themselves means there is no second copy of the truth to drift, and no
+    cleanup to get wrong when a socket dies mid-call.
+    """
+    return set(
+        CallSession.objects
+        .filter(status__in=ACTIVE_STATUSES, receiver__isnull=False)
+        .values_list("receiver_id", flat=True)
+    )
+
+
+def free_agent_count():
+    """Eligible agents who are online AND not already on a call.
+
+    available_agent_count() answers "is the desk staffed at all"; this answers
+    "can anyone pick up right now". They differ precisely when every agent is
+    mid-call, which is the case a queue exists for.
+    """
+    cutoff = timezone.now() - PRESENCE_MAX_AGE
+    present = set(
+        SupportAgentPresence.objects
+        .filter(
+            connected_at__gte=cutoff,
+            user__is_superuser=False,
+            user__admin_profile__is_active=True,
+            user__admin_profile__role__in=AdminProfile.CALL_ELIGIBLE_ROLES,
+        )
+        .values_list("user_id", flat=True)
+    )
+    return len(present - busy_agent_ids())
+
+
+def queue_position(call):
+    """How many unanswered calls are ahead of this one, oldest first.
+
+    0 means nobody is ahead - this call is the next to be picked up. Used to
+    tell a caller they are waiting rather than leaving them listening to a ring
+    that no free agent can hear.
+    """
+    if call.status != STATUS_RINGING or call.receiver_id is not None:
+        return 0
+    return (
+        CallSession.objects
+        .filter(status=STATUS_RINGING, receiver__isnull=True, created_at__lt=call.created_at)
+        .count()
+    )
+
+
 def mark_agent_present(user, channel_name):
     """Record an open inbox socket. Idempotent on channel_name."""
     SupportAgentPresence.objects.update_or_create(
@@ -533,7 +595,13 @@ def initiate_call(user, ticket):
             return existing, False
         raise CallError("call_in_progress", "A call is already in progress.", status=409)
 
-    timeout = int(getattr(settings, "VOICE_CALL_RING_TIMEOUT_SECONDS", 30) or 30)
+    # A caller who has to wait gets the queue window, not the ring window. 30s
+    # is the right question for "is anyone going to pick up"; for "wait your
+    # turn" it hangs up on someone before an agent could plausibly finish.
+    if free_agent_count() > 0:
+        timeout = int(getattr(settings, "VOICE_CALL_RING_TIMEOUT_SECONDS", 30) or 30)
+    else:
+        timeout = int(getattr(settings, "VOICE_CALL_QUEUE_TIMEOUT_SECONDS", 180) or 180)
     try:
         with transaction.atomic():
             call = CallSession.objects.create(
@@ -595,6 +663,35 @@ def initiate_call(user, ticket):
     return call, True
 
 
+def offer_waiting_calls(limit=3):
+    """Re-ring the oldest unanswered calls to the desk.
+
+    The original ring is a single broadcast, and a browser that was busy at
+    that instant discards it - so without this a call that arrived while every
+    agent was mid-card was never offered to anyone again, and rang out unseen
+    while an agent sat idle seconds later. Called whenever an agent frees up or
+    comes online.
+
+    Re-broadcasting an already-seen call is harmless: an agent whose card is
+    still up ignores it as a duplicate, and one who is busy ignores it anyway.
+    """
+    waiting = list(
+        CallSession.objects
+        .filter(status=STATUS_RINGING, receiver__isnull=True)
+        .select_related("ticket", "caller")
+        .order_by("created_at")[:limit]
+    )
+    for call in waiting:
+        expire_if_due(call)
+        if call.status != STATUS_RINGING or call.receiver_id is not None:
+            continue
+        _broadcast(
+            CALL_AGENTS_GROUP, "call.event",
+            {"event": "call_incoming", "call": call_payload(call)},
+        )
+    return len(waiting)
+
+
 def accept_call(agent, call):
     """An agent claims a ringing call.
 
@@ -649,6 +746,9 @@ def reject_call(agent, call):
         call.pk, call.ticket_id, agent.pk,
     )
     _push_state(call)
+    # An agent just became free. Offer them whatever is still waiting -
+    # without this the queue only drains when a *new* call arrives.
+    offer_waiting_calls()
     return call
 
 
@@ -723,6 +823,9 @@ def end_call(user, call, reason=None):
             call.pk, call.ticket_id, before, new_status, reason, duration,
         )
         _push_state(call)
+        # An agent just became free. Offer them whatever is still waiting -
+        # without this the queue only drains when a *new* call arrives.
+        offer_waiting_calls()
     return call
 
 
@@ -766,6 +869,9 @@ def fail_call(user, call, reason, detail=""):
             call.pk, call.ticket_id, before, reason,
         )
         _push_state(call)
+        # An agent just became free. Offer them whatever is still waiting -
+        # without this the queue only drains when a *new* call arrives.
+        offer_waiting_calls()
     return call
 
 

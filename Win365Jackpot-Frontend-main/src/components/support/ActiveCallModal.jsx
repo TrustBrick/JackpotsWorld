@@ -137,7 +137,9 @@ export default function ActiveCallModal({
               animation: "jwLivePulse 1.6s ease-in-out infinite",
             }} />
           )}
-          {HEADLINE[phase]}
+          {phase === PHASE.CALLING && call?.queued
+            ? "Waiting for an agent…"
+            : HEADLINE[phase]}
         </p>
 
         {/* Timer — the one number that matters while a call is up. */}
@@ -168,9 +170,15 @@ export default function ActiveCallModal({
         }}>
           {finished
             ? (endedDuration > 0 ? `Duration: ${formatCallDuration(endedDuration)}` : "No conversation took place")
-            : (ringing && !showCallerContact)
-              ? "Connecting…"
-              : counterparty}
+            : (phase === PHASE.CALLING && call?.queued)
+              // Every agent is on another call. Saying so — and how many are
+              // ahead — is the difference between a wait and a fault.
+              ? (call.queue_position > 0
+                  ? `All agents are busy · ${call.queue_position} ahead of you`
+                  : "All agents are busy · you're next")
+              : (ringing && !showCallerContact)
+                ? "Connecting…"
+                : counterparty}
         </p>
         {showCallerEmail && (
           <p style={{

@@ -77,6 +77,16 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
   // Bumped when a recording finishes uploading, so a call-history list that
   // already rendered re-fetches and picks the audio up.
   const [recordingSavedAt, setRecordingSavedAt] = useState(0)
+  // Calls ringing this browser that have not been dealt with yet.
+  //
+  // A ring is a single broadcast. Previously anything arriving while a card
+  // was already up - or while this agent was mid-call - was dropped on the
+  // floor and never offered again, so two players calling at once meant the
+  // second rang out unseen while an agent sat idle moments later. Holding them
+  // means the desk works through them: whoever is free takes the head, the
+  // rest wait their turn, and the server's atomic claim still decides who
+  // actually gets each one.
+  const [incomingQueue, setIncomingQueue] = useState([])
 
   const engineRef = useRef(null)
   const callRef = useRef(null)
@@ -353,6 +363,21 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
     return () => clearTimeout(timer)
   }, [phase, reportFailed, finish])
 
+  // ── Queue promotion ───────────────────────────────────────────────────────
+  // Shows the next waiting call the moment this browser is free. This is what
+  // turns "the ring was dropped" into "the desk works through them": three
+  // players calling at once put three cards in three agents' queues, each
+  // agent takes the head, and the server's atomic claim ensures no two land on
+  // the same call.
+  useEffect(() => {
+    if (phase !== PHASE.IDLE && phase !== PHASE.ENDED) return
+    if (!incomingQueue.length) return
+    const next = incomingQueue[0]
+    setCall(next)
+    callRef.current = next
+    applyPhase(PHASE.INCOMING)
+  }, [phase, incomingQueue, applyPhase])
+
   // ── Actions ───────────────────────────────────────────────────────────────
   const startCall = useCallback(async () => {
     if (!supported) {
@@ -479,6 +504,9 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
   }, [supported, post, sendSignal, buildEngine, finish, reportFailed, applyPhase])
 
   const acceptCall = useCallback(async (incomingCall) => {
+    // Out of the queue either way: if the accept succeeds it is this
+    // agent's call, and if it fails another agent already claimed it.
+    setIncomingQueue(prev => prev.filter(c => c.id !== incomingCall?.id))
     if (!supported) {
       setError("Your browser doesn't support voice calls.")
       return
@@ -527,6 +555,10 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
   const rejectCall = useCallback(async (incomingCall) => {
     const target = incomingCall || callRef.current
     if (!target) return
+    // Declining removes it here even though it stays ringing for everyone
+    // else - this agent has said no, and re-promoting it to them would be a
+    // loop rather than a queue.
+    setIncomingQueue(prev => prev.filter(c => c.id !== target.id))
     await post(`/api/admin-panel/live-chat/calls/${target.id}/reject/`).catch(() => {})
     finish(null, PHASE.IDLE)
   }, [post, finish])
@@ -577,12 +609,14 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
       // for calls *to* the desk.
       const inbound = (data.call?.direction || "inbound") === "inbound"
       if (inbound ? role !== "agent" : role !== "customer") return
-      // Ignored if already on a call, so a ring cannot interrupt one in
-      // progress.
-      if (phaseRef.current !== PHASE.IDLE && phaseRef.current !== PHASE.ENDED) return
-      setCall(data.call)
-      callRef.current = data.call
-      applyPhase(PHASE.INCOMING)
+      // Queued rather than shown directly. The effect below promotes the head
+      // whenever this browser is free, so a ring that lands mid-call is taken
+      // up the moment the agent finishes instead of being lost. Duplicates are
+      // ignored - the server re-offers waiting calls, deliberately.
+      if (!data.call?.id) return
+      setIncomingQueue(prev => (
+        prev.some(c => c.id === data.call.id) ? prev : [...prev, data.call]
+      ))
       return
     }
 
@@ -591,6 +625,12 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
       if (!server) return
       const current = callRef.current
       if (current && server.id !== current.id) return
+
+      // Somebody else took it, or it ended: it is no longer answerable here,
+      // so it leaves the queue and the next one can come forward.
+      if (server.status !== "ringing") {
+        setIncomingQueue(prev => prev.filter(c => c.id !== server.id))
+      }
 
       if (TERMINAL_SERVER_STATUSES.has(server.status)) {
         // The other side hung up, declined, or the ring lapsed.
@@ -680,6 +720,8 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
     iceServers: config.ice_servers,
     recordingEnabled: !!config.recording_enabled,
     recordingSavedAt,
+    // How many other calls are waiting behind the one on screen.
+    waitingCount: Math.max(0, incomingQueue.length - (phase === PHASE.INCOMING ? 1 : 0)),
     phase,
     call,
     lastEnded,
