@@ -35,6 +35,8 @@ import { useVoiceCall, PHASE } from "../../hooks/useVoiceCall";
 import VoiceCallButton from "./VoiceCallButton";
 import ActiveCallModal from "./ActiveCallModal";
 import IncomingCallModal from "./IncomingCallModal";
+import CallTranscriptLine, { mergeCallsIntoMessages } from "./CallTranscriptLine";
+import { useTicketCalls } from "../../hooks/useTicketCalls";
 import CallStatus from "./CallStatus";
 
 const LIVE_POLL_MS = 2000;
@@ -111,6 +113,10 @@ export default function ServiceRequestConversation({ ticket, onBack, onToast }) 
   const [status, setStatus] = useState(ticket.status);
   const [messages, setMessages] = useState([]);
   const [connStatus, setConnStatus] = useState("closed");
+  // VOICE-CALL: calls on this conversation, shown inline in the transcript
+  // below rather than only in the separate history list - a player scrolling
+  // back should see that a call happened where it happened.
+  const [callLogKey, setCallLogKey] = useState(0);
   const [loading, setLoading] = useState(true);
   const [input, setInput] = useState("");
 
@@ -141,6 +147,13 @@ export default function ServiceRequestConversation({ ticket, onBack, onToast }) 
     sendSignal: sendCallSignal,
     ticketId: ticket.id,
     enabled: isActive && !!token,
+  });
+
+  const ticketCalls = useTicketCalls({
+    fetcher: callFetcher,
+    apiBase: API,
+    ticketId: ticket.id,
+    refreshKey: (voiceCall.lastEnded?.id || 0) + callLogKey,
   });
   const voiceCallRef = useRef(voiceCall);
   useEffect(() => { voiceCallRef.current = voiceCall; }, [voiceCall]);
@@ -361,7 +374,12 @@ export default function ServiceRequestConversation({ ticket, onBack, onToast }) 
             <div style={{ margin: "auto", textAlign: "center", color: "rgba(255,255,255,0.4)", fontSize: 12.5, maxWidth: 260 }}>
               No messages yet. Send a message below and an agent will reply here.
             </div>
-          ) : messages.map((m, i) => {
+          ) : mergeCallsIntoMessages(messages, ticketCalls, m => m.created_at).map((m, i) => {
+            if (m.__call) {
+              return (
+                <CallTranscriptLine key={`call-${m.__call.id}`} call={m.__call} />
+              );
+            }
             const day = fmtDay(m.created_at);
             const showDay = day && day !== lastDay;
             lastDay = day || lastDay;

@@ -3,7 +3,7 @@
 // SupportTicket model; this one only shows is_live_chat=True sessions and
 // talks over authapp's live-chat REST + WebSocket API.
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { LifeBuoy, Send, RefreshCw, CheckCircle2, Volume2, VolumeX, Disc, CircleSlash } from "lucide-react";
+import { LifeBuoy, Send, RefreshCw, CheckCircle2, Volume2, VolumeX, Disc, CircleSlash, PhoneOutgoing } from "lucide-react";
 import { API, adminFetch, fmtDT } from "../helpers";
 import { Card, Btn, Spinner } from "../components/SharedUI";
 import { useAdminTheme } from "../context/AdminThemeContext";
@@ -574,6 +574,23 @@ export default function LiveSupportTab({ onToast }) {
                     {selected.affiliate_id || selected.user_uid} · {selected.email}
                   </div>
                 </div>
+                {/* VOICE-CALL: call this player. Previously the only way to
+                    place an outbound call was the "Call back" action on a
+                    missed row, so a conversation where the player had never
+                    phoned in offered no way to ring them at all - which is
+                    most conversations. Calling belongs on the conversation
+                    itself, not only on a missed call. */}
+                {selected.status !== "resolved" && selected.status !== "closed"
+                  && voiceCall?.available && callPhase === PHASE.IDLE && (
+                  <Btn
+                    small
+                    outline
+                    onClick={() => voiceCall?.startCallback?.(selected.id)}
+                    title={`Call ${selected.name || selected.email || "this player"}`}
+                  >
+                    <PhoneOutgoing size={12} /> Call player
+                  </Btn>
+                )}
                 {selected.status !== "resolved" && selected.status !== "closed" && (
                   <Btn small onClick={markResolved}><CheckCircle2 size={12} /> Mark Resolved</Btn>
                 )}

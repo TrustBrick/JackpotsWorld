@@ -9,6 +9,8 @@ import { asMessageArray, highestRealId } from "../services/liveChatMessages"
 import { useVoiceCall, PHASE } from "../hooks/useVoiceCall"
 import ActiveCallModal from "./support/ActiveCallModal"
 import IncomingCallModal from "./support/IncomingCallModal"
+import CallTranscriptLine, { mergeCallsIntoMessages } from "./support/CallTranscriptLine"
+import { useTicketCalls } from "../hooks/useTicketCalls"
 import CallStatus from "./support/CallStatus"
 import { setLauncherHeight } from "./support/launcherMetrics"
 
@@ -547,6 +549,17 @@ export default function ChatBot({ portal = "player" }) {
     ticketId: liveTicketId,
     enabled: mode === "live" && !!liveTicketId,
   })
+  // VOICE-CALL: the calls on this conversation, shown inline in the
+  // transcript below. Re-fetched whenever a call ends so the line lands as
+  // soon as the call does.
+  const ticketCalls = useTicketCalls({
+    fetcher: callFetcher,
+    apiBase: API,
+    ticketId: liveTicketId,
+    enabled: mode === "live",
+    refreshKey: (voiceCall.lastEnded?.id || 0) + (voiceCall.phase === PHASE.IDLE ? 1 : 0),
+  })
+
   // Read inside the long-lived socket closure, which captures its own scope.
   const voiceCallRef = useRef(voiceCall)
   useEffect(() => { voiceCallRef.current = voiceCall }, [voiceCall])
@@ -927,8 +940,15 @@ export default function ChatBot({ portal = "player" }) {
         id: m.id,
         attachmentUrl: m.attachment_url || null,
         attachmentName: m.attachment_name || "",
+        created_at: m.created_at,
       }))
     : messages
+
+  // Calls belong in the transcript, interleaved where they happened. Only in
+  // live mode - the FAQ bot has no calls and no timestamps to sort against.
+  const renderList = mode === "live"
+    ? mergeCallsIntoMessages(displayMessages, ticketCalls, m => m.created_at)
+    : displayMessages
 
   const handleKey = e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage() } }
 
@@ -1139,7 +1159,10 @@ export default function ChatBot({ portal = "player" }) {
               scrollbarWidth: "thin",
               scrollbarColor: "rgba(212,175,55,0.15) transparent",
             }}>
-              {displayMessages.map((m, i) => (
+              {renderList.map((m, i) => (
+                m.__call ? (
+                  <CallTranscriptLine key={`call-${m.__call.id}`} call={m.__call} />
+                ) : (
                 <div key={m.id ?? i} style={{
                   display: "flex",
                   flexDirection: "column",
@@ -1241,6 +1264,7 @@ export default function ChatBot({ portal = "player" }) {
                     </button>
                   )}
                 </div>
+                )
               ))}
               {loading && (
                 <div style={{ display: "flex", alignItems: "center" }}>
