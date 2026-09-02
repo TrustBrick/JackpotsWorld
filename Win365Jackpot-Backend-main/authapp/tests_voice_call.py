@@ -2011,3 +2011,108 @@ class VoiceCallQueueTests(VoiceCallTestBase):
             voice_call_service.accept_call(a2, call)
         call.refresh_from_db()
         self.assertEqual(call.receiver_id, a1.id)
+
+
+# ── Live queue position ─────────────────────────────────────────────────────
+
+class VoiceCallLiveQueuePositionTests(VoiceCallTestBase):
+    """A caller used to be numbered once, when their call was created, and then
+    watch a position that never moved however many people ahead of them were
+    served - which reads as a stuck queue rather than a moving one."""
+
+    def _pushes(self, mock):
+        """(group, event, payload) for every broadcast made."""
+        out = []
+        for call_args in mock.call_args_list:
+            group, _event_type, payload = call_args[0][:3]
+            out.append((group, payload.get("event"), payload.get("call") or {}))
+        return out
+
+    def test_a_waiting_caller_is_told_their_new_position(self):
+        first = self._ringing(ticket=self._ticket())
+        waiting = self._ringing(ticket=self._ticket(user=self.other_player))
+        self.assertEqual(voice_call_service.queue_position(waiting), 1)
+
+        with patch.object(voice_call_service, "_broadcast") as bc:
+            voice_call_service.accept_call(self.agent, first)
+
+        to_waiting = [
+            payload for group, event, payload in self._pushes(bc)
+            if group == f"livechat_{waiting.ticket_id}"
+            and event == "call_state"
+            and payload.get("id") == waiting.pk
+        ]
+        self.assertTrue(to_waiting, "the waiting caller was never re-numbered")
+        self.assertEqual(to_waiting[-1]["queue_position"], 0)
+
+    def test_the_update_goes_to_the_callers_own_conversation_only(self):
+        """Queue position is per-caller. Broadcasting it anywhere shared would
+        tell one player about another's place in the queue."""
+        first = self._ringing(ticket=self._ticket())
+        waiting = self._ringing(ticket=self._ticket(user=self.other_player))
+
+        with patch.object(voice_call_service, "_broadcast") as bc:
+            voice_call_service.accept_call(self.agent, first)
+
+        for group, event, payload in self._pushes(bc):
+            if event == "call_state" and payload.get("id") == waiting.pk:
+                self.assertEqual(group, f"livechat_{waiting.ticket_id}")
+
+    def test_finishing_a_call_re_numbers_whoever_is_still_waiting(self):
+        self._go_off_duty()
+        agent = User.objects.create_user(
+            email="liveq@example.com", password="pw-Test-1", user_uid="QLIVE001", is_staff=True,
+        )
+        AdminProfile.objects.update_or_create(
+            user=agent, defaults={"role": "support", "is_active": True},
+        )
+        SupportAgentPresence.objects.create(user=agent, channel_name="chan-liveq")
+
+        held = voice_call_service.accept_call(agent, self._ringing(ticket=self._ticket()))
+        waiting = self._ringing(ticket=self._ticket(user=self.other_player))
+        # Everyone is busy, so this caller is queued.
+        self.assertTrue(voice_call_service.call_payload(waiting)["queued"])
+
+        with patch.object(voice_call_service, "_broadcast") as bc:
+            voice_call_service.end_call(agent, held)
+
+        to_waiting = [
+            payload for group, event, payload in self._pushes(bc)
+            if group == f"livechat_{waiting.ticket_id}" and event == "call_state"
+        ]
+        self.assertTrue(to_waiting)
+        # An agent is free again, so they are no longer waiting on anybody.
+        self.assertFalse(to_waiting[-1]["queued"])
+
+    def test_only_the_front_of_the_queue_is_re_rung(self):
+        """Every waiting caller is re-numbered, but agents are not shown the
+        whole backlog at once - the head is what should be answered next."""
+        tickets = [self._ticket(), self._ticket(user=self.other_player)]
+        extra = User.objects.create_user(
+            email="q3@example.com", password="pw-Test-1", user_uid="QEXTRA01",
+        )
+        tickets.append(self._ticket(user=extra))
+        calls = [self._ringing(ticket=t) for t in tickets]
+
+        with patch.object(voice_call_service, "_broadcast") as bc:
+            voice_call_service.offer_waiting_calls(limit=1)
+
+        pushes = self._pushes(bc)
+        rings = [p for g, e, p in pushes if e == "call_incoming"]
+        renumbers = [p for g, e, p in pushes if e == "call_state"]
+        self.assertEqual(len(rings), 1, "only the head should be re-rung")
+        self.assertEqual(rings[0]["id"], calls[0].pk)
+        self.assertEqual(len(renumbers), len(calls), "everyone waiting is re-numbered")
+
+    def test_positions_are_consecutive_from_zero(self):
+        tickets = [self._ticket(), self._ticket(user=self.other_player)]
+        calls = [self._ringing(ticket=t) for t in tickets]
+
+        with patch.object(voice_call_service, "_broadcast") as bc:
+            voice_call_service.offer_waiting_calls()
+
+        by_id = {}
+        for _g, event, payload in self._pushes(bc):
+            if event == "call_state":
+                by_id[payload["id"]] = payload["queue_position"]
+        self.assertEqual([by_id[c.pk] for c in calls], [0, 1])

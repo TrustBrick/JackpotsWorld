@@ -238,7 +238,7 @@ def _caller_affiliate_id(call):
     return f"AFF-{uid}" if uid else None
 
 
-def call_payload(call):
+def call_payload(call, queue_pos=None, free_agents=None):
     """Wire representation shared by REST responses and every push.
 
     Identifiers, state and timing — plus enough of the caller's identity for an
@@ -266,11 +266,14 @@ def call_payload(call):
         # are waiting rather than listening to a ring that no agent can hear.
         # Computed only while genuinely unclaimed - on a connected or finished
         # call these are constant and not worth two queries per push.
-        "queue_position": queue_position(call),
+        # queue_pos / free_agents let a caller that already knows these pass
+        # them in: refreshing a queue of N callers is otherwise 2N queries for
+        # facts that are identical across the whole batch.
+        "queue_position": queue_position(call) if queue_pos is None else queue_pos,
         "queued": bool(
             call.status == STATUS_RINGING
             and call.receiver_id is None
-            and free_agent_count() == 0
+            and (free_agent_count() if free_agents is None else free_agents) == 0
         ),
         "end_reason": call.end_reason,
         "caller_id": call.caller_id,
@@ -679,16 +682,37 @@ def offer_waiting_calls(limit=3):
         CallSession.objects
         .filter(status=STATUS_RINGING, receiver__isnull=True)
         .select_related("ticket", "caller")
-        .order_by("created_at")[:limit]
+        .order_by("created_at")
     )
-    for call in waiting:
+    free = free_agent_count()
+
+    offered = 0
+    for position, call in enumerate(waiting):
         expire_if_due(call)
         if call.status != STATUS_RINGING or call.receiver_id is not None:
             continue
+
+        payload = call_payload(call, queue_pos=position, free_agents=free)
+
+        # Tell this caller where they now stand. Without this a caller was
+        # numbered once, when their call was created, and then watched a
+        # position that never moved however many people ahead of them were
+        # served - which reads as a stuck queue rather than a moving one.
         _broadcast(
-            CALL_AGENTS_GROUP, "call.event",
-            {"event": "call_incoming", "call": call_payload(call)},
+            f"livechat_{call.ticket_id}", "call.event",
+            {"event": "call_state", "call": payload},
         )
+
+        # Only the front of the queue is re-rung. Broadcasting every waiting
+        # call would put the whole backlog in front of an agent at once, and
+        # the head is the one that should be answered next anyway.
+        if offered < limit:
+            _broadcast(
+                CALL_AGENTS_GROUP, "call.event",
+                {"event": "call_incoming", "call": payload},
+            )
+            offered += 1
+
     return len(waiting)
 
 
@@ -719,6 +743,10 @@ def accept_call(agent, call):
         call.pk, call.ticket_id, agent.pk,
     )
     _push_state(call)
+    # Someone was just taken off the front of the queue, so everyone
+    # behind them moves up. Re-numbering here is what makes a waiting
+    # caller's position actually count down.
+    offer_waiting_calls()
     return call
 
 
