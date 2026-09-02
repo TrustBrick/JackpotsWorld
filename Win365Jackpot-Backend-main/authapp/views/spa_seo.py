@@ -50,10 +50,19 @@ TITLE_SUFFIX = f' | {SITE_NAME}'
 # so the root-level copy of this icon returns 403 to every scraper (WhatsApp,
 # Telegram, Slack, LinkedIn, Google). See docs/MEDIA_ARCHITECTURE.md §2.
 DEFAULT_OG_IMAGE = f'{SITE_URL}/assets/icons/web-app-manifest-512x512.png'
-DEFAULT_TITLE = "JackpotsWorld — Asia's #1 Offline Casino VIP Platform"
+# Kept in step with the frontend's config/seo.js. This copy is what crawlers
+# and link unfurlers actually read, so a claim removed there but left here
+# would still be the version quoted in search results and social cards.
+#
+# No ranking claim: "Asia's #1" has no independent substantiation. The
+# description leads with the business model, because "world-class gaming"
+# read as an online casino — this platform refers members to offline venues
+# and the gaming happens there.
+DEFAULT_TITLE = 'JackpotsWorld — Premium Offline Casino VIP Platform'
 DEFAULT_DESCRIPTION = (
-    'Premium offline casino packages across Vietnam, Macau, India, Sri Lanka and the '
-    'Philippines. VIP travel, exclusive tournaments and world-class gaming. Register free.'
+    'Offline casino referral and VIP travel platform. Discover partner casino '
+    'destinations across Vietnam, Macau, India, Sri Lanka and the Philippines, get '
+    'your JackpotsWorld referral, and play directly at the casino. Register free.'
 )
 
 ROUTE_SEO = {

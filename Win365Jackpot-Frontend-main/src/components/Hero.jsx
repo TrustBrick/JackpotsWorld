@@ -196,31 +196,25 @@ const FloatingLuxury = memo(({ Icon, logo, label, pos, delay, color }) => {
 // ─── Rings ─────────────────────────────────────────────────────────────────
 const RINGS = [500, 700, 900, 1100]
 
-// ─── Daily Winnings ────────────────────────────────────────────────────────
-function getDailyWinnings() {
-  const d = new Date()
-
-  // shift day if before 6 AM
-  if (d.getHours() < 6) {
-    d.setDate(d.getDate() - 1)
-  }
-
-  // create deterministic seed
-  const seed =
-    d.getFullYear() * 10000 +
-    (d.getMonth() + 1) * 100 +
-    d.getDate()
-
-  // pseudo-random number (0–1)
-  const rand = Math.abs(Math.sin(seed) * 43758.5453123) % 1
-
-  // range 5–50
-  const value = Math.floor(rand * 46) + 5
-
-  return {
-    display: `$${value} Mn+`
-  }
-}
+// ─── "Won Today" — REMOVED, do not reinstate ───────────────────────────────
+// This block used to synthesise a headline figure:
+//
+//   const rand = Math.abs(Math.sin(seed) * 43758.5453123) % 1
+//   return { display: `$${Math.floor(rand * 46) + 5} Mn+` }
+//
+// A date-seeded PRNG produced "$5–50 Mn+", relabelled every day and
+// re-rendered every 60s, and the stats list then FORCED that value over
+// whatever an admin had set for a stat labelled "Won Today" — so the number
+// could not be corrected from the Back Office either.
+//
+// It was fabricated financial data presented as a live fact about player
+// winnings, on a site that does not run the games and does not see the
+// results. It is gone, along with the stat itself. JackpotsWorld refers
+// members to offline casinos; it has no source of truth for what anybody won,
+// so there is nothing here to report and nothing to replace it with.
+//
+// Any future stat must come from HeroStat rows an admin can actually stand
+// behind, rendered as-is with no client-side override.
 
 // ─── Countries ribbon fallback (used only until the API responds) ─────────
 const FALLBACK_LOCATIONS = [
@@ -240,7 +234,6 @@ const FALLBACK_LOCATIONS = [
 // ─── Main Hero ────────────────────────────────────────────────────────────
 export default function Hero() {
   const navigate = useNavigate()
-  const [dailyCr, setDailyCr] = useState(getDailyWinnings)
 
   // ─── Hero intro ──────────────────────────────────────────────────────────
   // `compact` false = the oversized stacked wordmark the visitor lands on.
@@ -326,20 +319,20 @@ export default function Hero() {
     }
   }, [])
 
-  useEffect(() => {
-    injectCSS()
-    const id = setInterval(() => setDailyCr(getDailyWinnings()), 60_000)
-    return () => clearInterval(id)
-  }, [])
+  useEffect(injectCSS, [])
 
+  // Membership and reach only. Nothing here describes gambling outcomes: this
+  // platform refers members to offline casinos and never sees a result.
   const FALLBACK_STATS = [
-    { label:'Players',   value:'20K+' },
-    { label:'Won Today', value:dailyCr.display },
+    { label:'Members',   value:'50K+' },
     { label:'Countries', value:'15+' },
     { label:'Support',   value:'24/7' },
   ]
-  const stats = (Array.isArray(heroStatsData) && heroStatsData.length > 0 ? heroStatsData : FALLBACK_STATS)
-    .map(s => s.label?.toLowerCase() === 'won today' ? { ...s, value: dailyCr.display } : s)
+  // Rendered exactly as configured. The override that used to rewrite a
+  // "Won Today" row's value client-side is gone with the generator above.
+  const stats = Array.isArray(heroStatsData) && heroStatsData.length > 0
+    ? heroStatsData
+    : FALLBACK_STATS
 
   return (
     <section
@@ -510,7 +503,12 @@ export default function Hero() {
           }}
         >
           <span style={{ width:7, height:7, borderRadius:'50%', background:'#4ade80', flexShrink:0, animation:'pulse-dot 2s infinite', display:'inline-block' }} />
-          {(settings?.hero_badge_text || "Asia's #1 Offline Casinos VIP's Platform")
+          {/* "Asia's #1" is gone: it is a ranking claim with no independent
+              substantiation behind it, and the badge is the first thing a
+              visitor (or a reviewer) reads. The apostrophe normalisers stay —
+              they only fire on the legacy wording, which can still be sitting
+              in an un-migrated LandingSettings row. */}
+          {(settings?.hero_badge_text || 'Premium Offline Casino VIP Platform')
             .toUpperCase()
             .replace(/CASINO'S\b/, 'CASINOS')
             .replace(/\bASIA'S\b/, "ASIA's")}
@@ -767,7 +765,7 @@ export default function Hero() {
                 boxShadow:'0 0 28px rgba(212,175,55,0.4)',
                 touchAction:'manipulation',
               }}
-            >{(settings?.hero_cta_primary_label && !settings.hero_cta_primary_label.includes('?')) ? settings.hero_cta_primary_label : '🎰 Register — FREE'}</motion.button>
+            >{(settings?.hero_cta_primary_label && !settings.hero_cta_primary_label.includes('?')) ? settings.hero_cta_primary_label : 'Get Your Referral'}</motion.button>
           </Link>
           <Link to="packages-all" smooth duration={600} offset={-80}>
             <motion.button
@@ -783,7 +781,7 @@ export default function Hero() {
                 letterSpacing:'0.13em', textTransform:'uppercase',
                 cursor:'pointer', touchAction:'manipulation',
               }}
-            >{(settings?.hero_cta_secondary_label && !settings.hero_cta_secondary_label.includes('?')) ? settings.hero_cta_secondary_label : 'Packages ✨'}</motion.button>
+            >{(settings?.hero_cta_secondary_label && !settings.hero_cta_secondary_label.includes('?')) ? settings.hero_cta_secondary_label : 'Explore Packages'}</motion.button>
           </Link>
         </motion.div>
 

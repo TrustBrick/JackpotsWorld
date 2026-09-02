@@ -316,7 +316,7 @@ export default function VIPLevels() {
               Levels are permanent
             </p>
             <p style={{ fontSize: 13, color: 'rgba(var(--w365-text-rgb),0.4)', lineHeight: 1.65 }}>
-              Your tier is a lifetime achievement. Total wagering accumulates across your entire account history and never resets — every bet builds your legacy.
+              Your tier is a lifetime achievement. Your recorded activity accumulates across your entire account history and never resets — every visit builds your legacy.
             </p>
           </div>
         </motion.div>

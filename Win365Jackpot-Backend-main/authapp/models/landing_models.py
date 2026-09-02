@@ -6,14 +6,27 @@ class LandingSettings(models.Model):
     """Singleton (pk=1) holding the landing page's single-value text/media
     fields — Hero badge/CTA copy, background video, and shared blurbs reused
     across a couple of sections."""
-    hero_badge_text         = models.CharField(max_length=200, default="Asia's #1 Offline Casinos VIP's Platform")
+    # Model defaults are the wording a fresh install ships with, so they are
+    # part of the public claim surface, not just a placeholder. Every default
+    # below describes referral / travel / concierge work — what this business
+    # actually does — and none of them assert a ranking, a licence, gambling
+    # outcomes, or that JackpotsWorld takes bets or holds player funds.
+    # Migration 0080 rewrites the rows an earlier seed already wrote.
+    hero_badge_text         = models.CharField(max_length=200, default="Premium Offline Casino VIP Platform")
     hero_background_video   = models.FileField(upload_to="landing/", max_length=255, null=True, blank=True)
-    hero_cta_primary_label  = models.CharField(max_length=60, default="🎰 Register — FREE")
-    hero_cta_secondary_label = models.CharField(max_length=60, default="Packages ✨")
+    hero_cta_primary_label  = models.CharField(max_length=60, default="Get Your Referral")
+    hero_cta_secondary_label = models.CharField(max_length=60, default="Explore Packages")
     hero_tagline             = models.CharField(max_length=100, default="www.jackpotsworld.vip")
-    global_reach_tagline     = models.CharField(max_length=200, default="Experience World-Class Casino Gaming Across")
-    trust_banner_heading     = models.CharField(max_length=200, default="Join 50,000+ Winning Players Across Asia")
-    trust_banner_subtext     = models.TextField(blank=True, default="From first-time casino visitors to high-rollers — Jackpots World is your trusted partner for every bet.")
+    # "Experience World-Class Casino Gaming Across" read as JackpotsWorld
+    # providing the gaming. It provides the introduction; the venue provides
+    # the gaming.
+    global_reach_tagline     = models.CharField(max_length=200, default="Discover World-Class Casino Destinations Across")
+    # "Winning Players" asserted verified gambling winners. The member count
+    # itself is confirmed against business records and stays; what it counts
+    # is members, not winners.
+    trust_banner_heading     = models.CharField(max_length=200, default="Join 50,000+ Members Across Asia")
+    # "your trusted partner for every bet" put JackpotsWorld on the bet.
+    trust_banner_subtext     = models.TextField(blank=True, default="From first-time casino visitors to high-rollers — Jackpots World is your trusted partner for every trip.")
     whatsapp_number          = models.CharField(max_length=20, default="919573807779")
     updated_at                = models.DateTimeField(auto_now=True)
 

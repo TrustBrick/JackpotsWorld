@@ -38,7 +38,12 @@ const LIVE_POLL_MS = 2000
 // staring at a button that already swallowed their tap.
 const CALL_QUEUE_TIMEOUT_MS = 12000
 
-const WELCOME = { role: "bot", text: "Welcome to Jackpots World Customer Support! 🎰\nI'm here to help with your account, deposits, withdrawals, KYC, gameplay and more. Ask me anything — and if I can't resolve it, I'll get our team on it." }
+// The old greeting offered help with "deposits, withdrawals ... gameplay",
+// which described a gambling operator's support desk. JackpotsWorld refers
+// members to offline casinos: it does not take wagers, run games or move
+// gambling money, and the widget must not imply otherwise in the first line
+// a visitor reads. Account/KYC help is real and stays.
+const WELCOME = { role: "bot", text: "Welcome to Jackpots World 👋\nWe help members discover premium offline casino destinations and arrange the referral for their visit.\nI can help with destinations, referrals, VIP assistance, events, your membership account and KYC. Ask me anything — and if I can't resolve it, I'll get our team on it." }
 
 // Rendered height of the floating concierge avatar. Deliberately small: it is
 // an avatar in the corner, not a character on the page. The 11vw middle term

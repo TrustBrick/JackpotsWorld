@@ -565,7 +565,13 @@ export default function GiftsSection() {
             Your Dream Prize Awaits
           </h3>
           <p style={{ fontSize: 13, color: 'rgba(var(--w365-text-rgb),0.5)', maxWidth: 480, margin: '0 auto 32px', lineHeight: 1.7 }}>
-            Register today, start playing as a Highroller, and watch your prize counter rise.{' '}
+            {/* "start playing as a Highroller" read as playing HERE. Play
+                happens at the destination casino; this platform gets you the
+                referral. The member count stays — it is the one figure the
+                business confirmed it can verify from its own records — but
+                "50,000+ members" is now a membership count and nothing more,
+                never "winning players". */}
+            Register today, visit our partner destinations, and watch your prize counter rise.{' '}
             <span style={{ color: '#D4AF37' }}>50,000+ members</span> are already on their way to something legendary.
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>

@@ -16,15 +16,35 @@ const ICON_MAP = {
   PlaneTakeoff, Crown, BarChart3, CheckCircle, Lock, BadgeCheck, MapPin, Star,
 }
 
+/* Every line here describes something JackpotsWorld itself does — referral,
+   travel, concierge, membership. Nothing claims a casino service.
+   JackpotsWorld does not run games, take wagers, issue gambling credit, hold
+   player funds or license anything; wording that implied otherwise has been
+   rewritten rather than softened.
+
+   What changed and why, so it does not creep back:
+     • "Secure & Licensed / All casino partners are fully licensed and
+       regulated" — a blanket regulatory claim covering venues whose licences
+       this business does not hold or verify. Now describes the selection
+       relationship, which is true. Per-casino licence details belong on that
+       casino's own card, sourced from its actual licence.
+     • "Seamless Buying / Deposit and withdraw ... at casinos" — read as
+       JackpotsWorld moving gambling money. Any such transaction is between
+       the member and the casino.
+     • "available only on Jackpots World" — offers are the casino's to give.
+     • "Every Booking to Every Bet" — put JackpotsWorld on the bet.
+     • "Smart Tools to Track Your Betting Sessions" / "Win Rate Analytics" —
+       REMOVED outright, not renamed. It described monitoring of gambling
+       activity this platform has no access to, and confirmed as
+       unsubstantiated, so there is no honest version of the card to keep. */
 const FALLBACK_FEATURES = [
-  { color: '#34d399', icon_name: 'ShieldCheck', title: 'Secure & Licensed', description: 'All casino partners are fully licensed and regulated. Your safety and privacy are our top priority.' },
-  { color: '#fbbf24', icon_name: 'Zap', title: 'Seamless Buying', description: 'Deposit and withdraw seamlessly across all types of currencies at casinos.' },
-  { color: '#f472b6', icon_name: 'Gift', title: 'Exclusive VIP Privilege', description: 'Special welcome bonuses, reload offers, and cashback deals available only on Jackpots World.' },
-  { color: '#60a5fa', icon_name: 'Globe', title: '15+ Countries Access', description: 'One registration unlocks casino opportunities in Vietnam, Macau, India, Sri Lanka, Philippines and more.' },
+  { color: '#34d399', icon_name: 'ShieldCheck', title: 'Selected Partner Venues', description: 'We work with selected offline casino destinations and local partners. Your privacy and your data are our priority.' },
+  { color: '#fbbf24', icon_name: 'Zap', title: 'Trip Planning Made Simple', description: 'One team to arrange your travel, stay and casino introduction. Your gaming transactions stay between you and the venue.' },
+  { color: '#f472b6', icon_name: 'Gift', title: 'Exclusive VIP Privilege', description: 'Member perks and partner offers arranged through your JackpotsWorld referral, provided by the destination casino.' },
+  { color: '#60a5fa', icon_name: 'Globe', title: '15+ Countries Covered', description: 'One membership, referrals to offline casino destinations in Vietnam, Macau, India, Sri Lanka, Philippines and more.' },
   { color: '#a78bfa', icon_name: 'HeadphonesIcon', title: '24/7 Live Support', description: 'Our multilingual support team is available round the clock via WhatsApp, chat, and call.' },
-  { color: '#22d3ee', icon_name: 'PlaneTakeoff', title: 'Full Trip Packages', description: 'We handle flights, hotels, transfers, and casino entry. Hassle-free from home to high-stakes table.' },
-  { color: '#D4AF37', icon_name: 'Crown', title: 'Every Booking to Every Bet', description: 'Earn loyalty points on every booking. Unlock exclusive perks, private rooms, and concierge service.' },
-  { color: '#fb923c', icon_name: 'BarChart3', title: 'Smart Tools to Track Your Betting Sessions', description: 'Smart tools to track your sessions, analyse your results, and optimise your gaming strategy.' },
+  { color: '#22d3ee', icon_name: 'PlaneTakeoff', title: 'Full Trip Packages', description: 'We handle flights, hotels, transfers and your casino introduction. Hassle-free from home to the venue.' },
+  { color: '#D4AF37', icon_name: 'Crown', title: 'Play Anywhere. Keep Your Points.', description: 'Your JackpotsWorld membership stays with you wherever you visit our partner destinations. Your referral and membership details remain connected to your account.' },
 ]
 
 const FeatureCard = memo(({ Icon, color, bg, border, title, desc }) => (

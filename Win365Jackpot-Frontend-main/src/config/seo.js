@@ -23,10 +23,18 @@ export const TITLE_SUFFIX = ` | ${SITE_NAME}`
 // for click-through on shared links.
 export const DEFAULT_OG_IMAGE = `${SITE_URL}/assets/icons/web-app-manifest-512x512.png`
 
-export const DEFAULT_TITLE = "JackpotsWorld — Asia's #1 Offline Casino VIP Platform"
+// No ranking claim. "Asia's #1" has no independent substantiation, and a
+// <title> is the most-quoted string on the site: it lands in search results,
+// social cards and every reviewer's screenshot.
+//
+// The description leads with what this business is, because the previous one
+// ("world-class gaming") read as an online casino. JackpotsWorld refers
+// members to offline venues; the gaming happens there, not here.
+export const DEFAULT_TITLE = 'JackpotsWorld — Premium Offline Casino VIP Platform'
 export const DEFAULT_DESCRIPTION =
-  'Premium offline casino packages across Vietnam, Macau, India, Sri Lanka and the ' +
-  'Philippines. VIP travel, exclusive tournaments and world-class gaming. Register free.'
+  'Offline casino referral and VIP travel platform. Discover partner casino ' +
+  'destinations across Vietnam, Macau, India, Sri Lanka and the Philippines, get ' +
+  'your JackpotsWorld referral, and play directly at the casino. Register free.'
 
 export const TWITTER_HANDLE = '' // set once a real @handle exists
 

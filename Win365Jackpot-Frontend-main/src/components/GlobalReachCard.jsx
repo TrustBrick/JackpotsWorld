@@ -35,7 +35,10 @@ export default function GlobalReachCard() {
       </div>
 
       <h3 className="font-black text-xl md:text-2xl gold-text mb-2">
-        {settings?.global_reach_tagline || 'Experience World-Class Casino Gaming Across'}
+        {/* "Experience World-Class Casino Gaming Across <countries>" read as
+            JackpotsWorld providing the gaming in those countries. It provides
+            the referral; the destination provides the gaming. */}
+        {settings?.global_reach_tagline || 'Discover World-Class Casino Destinations Across'}
       </h3>
 
       <p

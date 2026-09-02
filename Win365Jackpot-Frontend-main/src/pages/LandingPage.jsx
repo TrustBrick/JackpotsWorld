@@ -2,6 +2,7 @@ import React from 'react'
 import { useTheme } from '../context/ThemeContext'
 import Navbar from '../components/Navbar'
 import Hero from '../components/Hero'
+import ReferralJourney from '../components/ReferralJourney'
 import CountryPackages from '../components/CountryPackages'
 import FeaturedDestinationShowcase from '../components/FeaturedDestinationShowcase'
 import EventsPreviewSection from '../components/EventsPreviewSection'
@@ -12,6 +13,7 @@ import Footer from '../components/Footer'
 import ParticleStars from '../components/ParticleStars'
 import GiftsSection from '../components/Giftssection'
 import VIPLevels from '../components/VIPLevels'
+import BusinessModelFAQ from '../components/BusinessModelFAQ'
 import Register from '../components/Register'
 import PageScrollButtons from '../components/PageScrollButtons'
 
@@ -52,6 +54,10 @@ export default function LandingPage() {
       <Navbar />
       <main style={{ position: 'relative', zIndex: 1 }}>
         <Hero />
+        {/* Immediately under the hero, before anything starts selling. A
+            visitor should learn that we refer and the casino hosts before
+            they read a single package price — not three screens later. */}
+        <ReferralJourney />
         <CountryPackages />
         {/* After the destinations (CountryPackages renders them, and the
             packages section they live in), before Events below. Renders
@@ -65,6 +71,9 @@ export default function LandingPage() {
         <GiftsSection />
         <VIPLevels />
         <WhyChooseUs />
+        {/* Last thing before the registration form: the four questions whose
+            answers a member needs before handing over their details. */}
+        <BusinessModelFAQ />
         <Register />
       </main>
       <Footer />

@@ -49,7 +49,10 @@ export default function PremiumPartnerHeroMedia() {
   return (
     <HeroMediaShowcase
       items={items}
-      badgeLabel="Premium Partner"
+      // "Partner Destination", not "Premium Partner": the pill sits on a
+      // casino's own footage at the top of the page, and it has to read as
+      // somewhere we refer members to rather than somewhere we run.
+      badgeLabel="Partner Destination"
       soundKey="premium-partner-hero"
       // Defaults to wanting sound — this band only appears once the hero has
       // collapsed, which itself follows a scroll, tap or keypress, so audible

@@ -133,7 +133,11 @@ const FALLBACK_VIP_SERVICE_SRC_BY_LABEL = new Map(FALLBACK_VIP_SERVICES.map(v =>
 const INCLUSIONS = [
   { icon: <Plane      size={15} color="#D4AF37" />, label: 'Free Flights'   },
   { icon: <Hotel      size={15} color="#D4AF37" />, label: '5-Star Hotels'  },
-  { icon: <Coins      size={15} color="#D4AF37" />, label: 'Offline Casino Credits' },
+  // Casino credit is issued by the destination venue, not by JackpotsWorld.
+  // "Offline Casino Credits" in a JackpotsWorld package list read as
+  // JackpotsWorld handing out gambling credit; "Arranged" keeps the service
+  // we actually provide (arranging it) and leaves the issuing with the casino.
+  { icon: <Coins      size={15} color="#D4AF37" />, label: 'Casino Credits Arranged' },
   { icon: <Car        size={15} color="#D4AF37" />, label: 'Transfers'      },
   { icon: <UtensilsCrossed size={15} color="#D4AF37" />, label: 'All Meals' },
   { icon: <Wine       size={15} color="#D4AF37" />, label: 'Free Drinks'    },
@@ -916,7 +920,7 @@ function PackagesSection() {
         gap: 8, marginBottom: 28,
       }}>
         {[
-          'Offline Casino Credits Included',
+          'Casino Credits Arranged With Venue',
           'VIP Boarding Lounge',
           'Port Excursions',
           'Professional Dealer Tables',
@@ -1055,11 +1059,16 @@ export default function CountryPackages() {
               style={{ fontSize: 'clamp(0.6rem,2.5vw,0.75rem)' }}>
               ✈ Choose Your Destination
             </div>
+            {/* "Offline" and "partner" are load-bearing words, not padding:
+                this grid is the most casino-looking thing on the page, and
+                without them it reads as a list of venues JackpotsWorld runs.
+                They are venues we refer members to. */}
             <h2 className=" font-bold font-black gold-text" style={{ fontSize: 'clamp(1.7rem,7.5vw,3.2rem)', marginBottom: 10, lineHeight: 1.1 }}>
-              CASINO DESTINATION
+              PREMIUM CASINO DESTINATIONS
             </h2>
             <p className="font-body font-light text-theme-muted max-w-xl mx-auto" style={{ fontSize: 'clamp(0.82rem,3.2vw,1.1rem)' }}>
-              Popular spectacular casino destinations. One unforgettable journey.
+              Explore selected offline casino destinations across Asia. Each is an independent
+              venue we refer our members to — not operated by JackpotsWorld.
             </p>
           </motion.div>
 
@@ -1119,7 +1128,7 @@ export default function CountryPackages() {
                 </div>
                 {/* Top casinos */}
                 <div>
-                  <div className="font-body font-light" style={{ fontSize: 'clamp(0.58rem,2vw,0.65rem)', color: 'rgba(var(--w365-text-rgb),0.3)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>Top Casinos</div>
+                  <div className="font-body font-light" style={{ fontSize: 'clamp(0.58rem,2vw,0.65rem)', color: 'rgba(var(--w365-text-rgb),0.3)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>Offline Casino Destinations</div>
                   {country.casinos.split(', ').map((c2, j) => (
                     <div key={j} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                       <span style={{ width: 4, height: 4, borderRadius: '50%', background: country.color, flexShrink: 0 }} />
