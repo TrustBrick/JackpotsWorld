@@ -7,6 +7,7 @@ import Navbar from '../components/Navbar'
 import PageHeader from '../components/shared/PageHeader'
 import PageScrollButtons from '../components/PageScrollButtons'
 import HeroBackgroundVideo from '../components/shared/HeroBackgroundVideo'
+import SectionHeroMedia from '../components/shared/SectionHeroMedia'
 import PokerCard from '../components/poker/PokerCard'
 import PokerFilters from '../components/poker/PokerFilters'
 import AuthModal from '../components/AuthModal'
@@ -43,17 +44,20 @@ export default function Poker() {
 
   const { data, loading, error, reload } = useAutoFetch(fetchPokerTournaments, filters, { intervalMs: 60_000 })
 
-  // Background watermark only. Poker deliberately does NOT render the
-  // side_left/side_right cinematic cards Teen Patti briefly shared with it —
-  // this page's identity is the plain gold PageHeader it has always had, with
-  // footage behind it rather than a media-card layout around it.
+  // The background watermark's own row. The framed showcase band below the
+  // header reads the same endpoint through SectionHeroMedia, so the section's
+  // media is on screen twice: once as the low-opacity texture behind the
+  // header copy, once full-strength in its own frame. That is deliberate —
+  // the watermark stays exactly as it was and the card is an addition, not a
+  // replacement. fetchSectionMedia is a cached() service keyed on the query,
+  // so the two consumers share one network request rather than issuing two.
   const { data: sectionMedia } = useAutoFetch(fetchSectionMedia, { section: 'poker' })
   const backgroundSlot = Array.isArray(sectionMedia)
     ? sectionMedia.find(m => m.slot === 'background')
     : undefined
 
   // The watermark's own width/height ratio, which is what PageHeader shapes
-  // the hero band around %(d)s see the note there for why a text-sized band was
+  // the hero band around — see the note there for why a text-sized band was
   // clipping most of the footage away.
   //
   // Seeded at 16:9 rather than null so the band is the right height on the
@@ -119,6 +123,35 @@ export default function Poker() {
           />
         }
       />
+
+      {/* Hero media card, in the same framed template as the landing page's
+          Top Premium Partners band — same gold frame, media-shaped box, mute
+          control, badge pill and slide dots, because it is the same
+          component.
+
+          An addition to the watermark above, not a replacement for it: the
+          header keeps its cinematic backdrop, and the footage also gets a
+          frame where it can be seen properly and heard.
+
+          Breaks out of the header's text column into its own much wider band
+          (the same min(94vw, 1220px) the landing hero wraps that component
+          in). Renders nothing at all if neither a Back Office row nor the
+          bundled fallback resolves, and this wrapper collapses with it. */}
+      <div className="w-full flex justify-center px-4 md:px-6 pb-10">
+        {/* maxWidth as well as the 94vw target: 94vw exceeds this row's
+            content box once its px-4 is taken off a phone viewport, and an
+            over-wide flex item spills past both padding edges instead of
+            sitting inside them. The cap only ever binds below ~400px. */}
+        <div style={{ width: 'min(94vw, 1220px)', maxWidth: '100%' }}>
+          <SectionHeroMedia
+            section="poker"
+            fallbackVideo={HERO_WATERMARKS.poker.video}
+            fallbackPoster={HERO_WATERMARKS.poker.poster}
+            badgeLabel={t('poker.title')}
+            marginBottom={0}
+          />
+        </div>
+      </div>
 
       {!isLoggedIn && (
         <div className="max-w-3xl mx-auto px-4 -mt-6 mb-10">

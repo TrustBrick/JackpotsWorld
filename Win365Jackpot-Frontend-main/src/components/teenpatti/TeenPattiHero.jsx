@@ -5,6 +5,7 @@ import { Radio, CalendarRange, Crown } from 'lucide-react'
 import HighlightedText from '../shared/HighlightedText'
 import VipBenefitStrip from '../shared/VipBenefitStrip'
 import HeroBackgroundVideo from '../shared/HeroBackgroundVideo'
+import SectionHeroMedia from '../shared/SectionHeroMedia'
 import { fetchSectionMedia } from '../../services/landingService'
 import { HERO_WATERMARKS } from '../../config/heroWatermarks'
 import { useAutoFetch } from '../../hooks/useAutoFetch'
@@ -205,13 +206,16 @@ export default function TeenPattiHero({ liveCount = 0, upcomingCount = 0, onView
   const { t } = useTranslation()
   const reduceMotion = useReducedMotion()
 
-  // Cinematic hero media (Part 6-8) — entirely Back Office controlled via
-  // Manage Poker/Teen Patti → Hero Media. Absent slots simply render
-  // nothing; there is no hardcoded fallback video/image.
+  // The background watermark's own row. The framed card further down reads the
+  // same endpoint through SectionHeroMedia, so this section's media appears
+  // twice: once as the low-opacity texture behind everything, once
+  // full-strength in its own frame. That is deliberate — the watermark is
+  // unchanged and the card is an addition. fetchSectionMedia is a cached()
+  // service keyed on the query, so the two consumers share one request.
   //
   // useAutoFetch (not a one-shot effect): re-polls every 60s so a visitor
-  // already sitting on this page picks up a Back Office media change
-  // without navigating away and back — matches every other landing section.
+  // already sitting on this page picks up a Back Office media change without
+  // navigating away and back — matches every other landing section.
   const { data } = useAutoFetch(fetchSectionMedia, { section: 'teen_patti' })
   const media = Array.isArray(data) ? data : []
   const bySlot = (slot) => media.find(m => m.slot === slot)
@@ -272,12 +276,10 @@ export default function TeenPattiHero({ liveCount = 0, upcomingCount = 0, onView
         </motion.span>
       ))}
 
-      {/* Cinematic side cards flank the content on large screens (order-1 and
-          order-3 either side of the order-2 content) and stack full-width
-          beneath it on mobile (order-2 / order-3, matching the Part 12
-          hierarchy: content, then VIP strip, then featured visual) — one
-          grid, no duplicated DOM nodes per breakpoint, so a video is never
-          fetched or decoded twice. */}
+      {/* Two column widths inside one wrapper: the copy is held to a readable
+          660-ish px, and the media band below it breaks out to the full
+          1400px so the footage reads as the hero's major visual rather than
+          as a card sitting inside a paragraph column. */}
       <div className="relative z-10 max-w-[1400px] mx-auto">
         <div className="max-w-3xl mx-auto text-center w-full">
         <CardFan reduceMotion={reduceMotion} />
@@ -356,8 +358,36 @@ export default function TeenPattiHero({ liveCount = 0, upcomingCount = 0, onView
             )}
           </motion.button>
         </motion.div>
+        </div>
 
-        <div className="flex justify-center mt-9">
+        {/* Hero media card, in the same framed template as the landing page's
+            Top Premium Partners band — same gold frame, same media-shaped box,
+            same mute control, badge pill and slide dots, because it is the
+            same component.
+
+            An addition to the watermark behind this section, not a
+            replacement for it: the backdrop is unchanged, and the same footage
+            also gets a frame where it can be seen properly and heard. It sits
+            below the CTAs rather than above them so the buttons stay near the
+            fold on a laptop. Renders nothing when neither a Back Office row
+            nor the bundled fallback resolves. */}
+        {/* maxWidth as well as the 94vw target: 94vw is wider than this
+            column's content box once the section's px-4 is taken off a phone
+            viewport, and a too-wide block with auto margins does not centre —
+            it overflows to the right, which put the band 10px off-centre at
+            375px. The cap only ever binds below ~400px. */}
+        <div className="mt-12 mx-auto" style={{ width: 'min(94vw, 1220px)', maxWidth: '100%' }}>
+          <SectionHeroMedia
+            section="teen_patti"
+            fallbackVideo={HERO_WATERMARKS.teen_patti.video}
+            fallbackPoster={HERO_WATERMARKS.teen_patti.poster}
+            badgeLabel={t('teenPatti.title')}
+            marginBottom={0}
+          />
+        </div>
+
+        <div className="max-w-3xl mx-auto text-center w-full">
+        <div className="flex justify-center mt-12">
           <VipBenefitStrip />
         </div>
 
