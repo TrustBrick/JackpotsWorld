@@ -9,21 +9,31 @@ import { useAutoFetch } from '../../hooks/useAutoFetch'
    same framed template as the landing page's Top Premium Partners band.
 
    Sits alongside the low-opacity watermark those heroes paint behind their
-   copy (shared/HeroBackgroundVideo), which is unchanged — this is an
-   addition, not a replacement. The same footage therefore appears twice on
-   one screen: as the backdrop it always was, and again full-strength in a
-   frame with the same gold border, media-shaped box, mute control, badge pill
-   and slide dots as the Premium Partners band, because it is literally the
-   same component. Both consumers read the same cached() service, so the two
-   of them share one network request; the browser does decode the file twice,
-   which is the price of showing it in both places at once.
+   copy (shared/HeroBackgroundVideo) — this is an addition, not a replacement.
+   Same gold border, media-shaped box, mute control, badge pill and slide dots
+   as the Premium Partners band, because it is literally the same component.
+
+   ── Two slots, two independently managed videos ──────────────────────────
+   The watermark and this card are SEPARATE SectionMedia rows and are meant to
+   hold different footage:
+
+       background   the dimmed backdrop, read by the page component
+       hero_card    this card, read here
+
+   They were one row read by both surfaces, which forced the same file to play
+   as the backdrop and the card on a single screen with no way to tell them
+   apart from the Back Office. Reading `slot` here is what keeps them
+   separate; do not widen this back to "every row for the section".
 
    Data comes from GET /api/section-media/?section=… — the rows an admin
-   manages under Back Office → Manage Poker Media / Teen Patti Media. Every
-   active row for the section becomes a slide, so a section with more than one
-   configured slot rotates the way the partners band does, and a section with
-   one shows a single frame with no dots. Nothing is read from any other
-   endpoint.
+   manages under Back Office → Manage Poker Media / Teen Patti Media, where
+   each slot is its own editable entry. Both surfaces read the same cached()
+   service, so the two of them still share one network request. Nothing is
+   read from any other endpoint.
+
+   `unique_together` on (section, slot) means one card row per section today,
+   so the rotation and its dots stay dormant — the machinery is there if more
+   card slots are ever added.
 
    ── The bundled fallback ─────────────────────────────────────────────────
    `fallbackVideo` / `fallbackPoster` are the build-time assets in
@@ -72,6 +82,12 @@ const REVEAL_EASE = [0.25, 0.46, 0.45, 0.94]
 // Events that count as "the visitor has moved on from the intro". Same list as
 // Hero.jsx: passive and once, so this can never become a per-frame listener.
 const INTERACTION_EVENTS = ['scroll', 'wheel', 'touchmove', 'keydown', 'pointerdown']
+
+// The SectionMedia slot this card renders. Must match
+// landing_models.SectionMedia.SLOT_CHOICES. The watermark reads 'background'
+// from the page component; keeping the two names apart in code is what keeps
+// them apart on screen.
+const CARD_SLOT = 'hero_card'
 
 export default function SectionHeroMedia({
   section,
@@ -142,18 +158,29 @@ export default function SectionHeroMedia({
   // navigating away and back — matches every other landing section.
   const { data } = useAutoFetch(fetchSectionMedia, { section }, { intervalMs: 60_000 })
 
+  // Only the card's own slot. This used to take EVERY active row for the
+  // section, which meant it picked up the `background` row -- the watermark's
+  // row -- and played the same file as both the backdrop and the card on one
+  // screen, with no way to separate them from the Back Office.
+  //
+  // The two surfaces now read different slots and are two independently
+  // managed rows: `background` for the watermark (read by the page itself),
+  // `hero_card` here. Retired side_left/side_right rows are ignored rather
+  // than rendered, so a legacy row cannot reappear in the card.
   const configured = useMemo(() => (
     Array.isArray(data)
-      ? data.map(row => ({
-          id: row.id,
-          video: row.video || '',
-          image: row.poster_image || '',
-          // Per-row override of the section's default pill.
-          badge: row.label || '',
-          // No name or caption: the page's own heading sits directly above
-          // this band, and a plate restating it would say the same thing
-          // twice on one screen.
-        }))
+      ? data
+          .filter(row => row.slot === CARD_SLOT)
+          .map(row => ({
+            id: row.id,
+            video: row.video || '',
+            image: row.poster_image || '',
+            // Per-row override of the section's default pill.
+            badge: row.label || '',
+            // No name or caption: the page's own heading sits directly above
+            // this band, and a plate restating it would say the same thing
+            // twice on one screen.
+          }))
       : []
   ), [data])
 

@@ -19,13 +19,12 @@ const IMAGE_ACCEPT = ".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp";
 const VIDEO_ACCEPT = ".mp4,.webm,.mov,video/mp4,video/webm,video/quicktime";
 
 const SLOT_OPTIONS = [
-  // Background only. The side-card slots were removed from the public hero —
-  // both pages now carry a single cinematic watermark behind their content
-  // instead of media rails beside it — so offering them here would invite an
-  // upload that renders nowhere. The model keeps all three choices
-  // (landing_models.SectionMedia.SLOT_CHOICES) so any existing side row stays
-  // valid and readable; this list only governs what a new one can be.
-  { value: "background", label: "Background Watermark" },
+  // Two independent slots, and the labels say plainly where each one renders.
+  // They were one slot ("background") read by both surfaces, so the watermark
+  // and the card were forced to be the same clip; splitting them is the whole
+  // point of this list.
+  { value: "background", label: "Background Watermark — plays dimmed behind the hero text" },
+  { value: "hero_card", label: "Hero Media Card — the framed video between the heading and the subtitle" },
 ];
 
 const FIELDS = [

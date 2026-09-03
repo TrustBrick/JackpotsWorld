@@ -359,10 +359,25 @@ class SectionMedia(models.Model):
     """
 
     SECTION_CHOICES = [("teen_patti", "Teen Patti"), ("poker", "Poker")]
+    # Two slots are live, and they are deliberately separate rows so an admin
+    # can give a section two DIFFERENT clips:
+    #
+    #   background  the low-opacity cinematic watermark behind the hero copy
+    #   hero_card   the framed media card between the heading and the subtitle
+    #
+    # They used to be one row read twice, which meant the same file played as
+    # both the backdrop and the card on the same screen, with no way to
+    # separate them from the Back Office. `unique_together` below still holds,
+    # so each section gets exactly one of each.
+    #
+    # side_left / side_right are retired. They are kept in the choices so any
+    # legacy row stays valid and readable, but neither admin tab offers them
+    # and nothing renders them.
     SLOT_CHOICES = [
-        ("side_left", "Side Card — Left"),
-        ("side_right", "Side Card — Right"),
         ("background", "Background Watermark"),
+        ("hero_card", "Hero Media Card"),
+        ("side_left", "Side Card — Left (retired)"),
+        ("side_right", "Side Card — Right (retired)"),
     ]
 
     section = models.CharField(max_length=20, choices=SECTION_CHOICES, db_index=True)
