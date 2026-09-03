@@ -63,8 +63,19 @@ function CornerIndex({ card, flipped = false }) {
   )
 }
 
-function CardFan({ reduceMotion }) {
-  return (
+/* `scale` shrinks the whole fan without touching any of the numbers inside it.
+   Every offset in here — the contact shadow, the corner indices, the centre
+   pip, the foil rim — is tuned against CARD_W, so re-deriving them for a
+   smaller card meant editing a dozen values and re-tuning the art. A transform
+   on a wrapper that keeps the original height does it in one place: the inner
+   box still measures CARD_H + 66 so the absolute positioning is unchanged, and
+   the outer box reports the scaled height so the layout below moves up.
+
+   Teen Patti needs this because the fan was 228px of decoration sitting on top
+   of the hero, which pushed the media card's bottom edge 50px below a 900px
+   viewport — the card could not be seen without scrolling. */
+function CardFan({ reduceMotion, scale = 1 }) {
+  const inner = (
     <div
       className="relative w-full flex items-center justify-center select-none"
       style={{ height: CARD_H + 66 }}
@@ -200,6 +211,20 @@ function CardFan({ reduceMotion }) {
       })}
     </div>
   )
+
+  if (scale === 1) return inner
+
+  return (
+    <div
+      className="w-full flex items-center justify-center"
+      style={{ height: Math.round((CARD_H + 66) * scale) }}
+      aria-hidden="true"
+    >
+      <div style={{ width: '100%', transform: `scale(${scale})`, transformOrigin: 'center center' }}>
+        {inner}
+      </div>
+    </div>
+  )
 }
 
 export default function TeenPattiHero({ liveCount = 0, upcomingCount = 0, onViewLive, onViewUpcoming }) {
@@ -221,7 +246,11 @@ export default function TeenPattiHero({ liveCount = 0, upcomingCount = 0, onView
   const bySlot = (slot) => media.find(m => m.slot === slot)
 
   return (
-    <section className="relative pt-32 pb-20 px-4 dice-pattern overflow-hidden">
+    // pt-20, not pt-32. Together with the scaled-down fan, this is what brings
+    // the media card above the fold: its bottom edge sat at 950px against a
+    // 900px viewport, so it could not be seen without scrolling. Poker has no
+    // fan and only its own header padding, which is why its card already fit.
+    <section className="relative pt-20 pb-20 px-4 dice-pattern overflow-hidden">
       <HeroBackgroundVideo
         item={bySlot('background')}
         fallbackVideo={HERO_WATERMARKS.teen_patti.video}
@@ -282,13 +311,13 @@ export default function TeenPattiHero({ liveCount = 0, upcomingCount = 0, onView
           as a card sitting inside a paragraph column. */}
       <div className="relative z-10 max-w-[1400px] mx-auto">
         <div className="max-w-3xl mx-auto text-center w-full">
-        <CardFan reduceMotion={reduceMotion} />
+        <CardFan reduceMotion={reduceMotion} scale={0.45} />
 
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="flex items-center justify-center gap-3 mt-6 mb-3"
+          className="flex items-center justify-center gap-3 mt-3 mb-3"
         >
           <span className="h-px w-8 md:w-14" style={{ background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.6))' }} />
           <Crown size={13} className="text-gold shrink-0" />
@@ -308,6 +337,32 @@ export default function TeenPattiHero({ liveCount = 0, upcomingCount = 0, onView
         >
           {t('teenPatti.title')}
         </motion.h1>
+
+        {/* Hero media card, in the same framed template as the landing page's
+            Top Premium Partners band — same gold frame, media-shaped box,
+            mute control, badge pill and slide dots, because it is the same
+            component.
+
+            An addition to the watermark behind this section, not a
+            replacement: the backdrop is unchanged, and the same footage also
+            gets a frame where it can be seen properly and heard.
+
+            Between the heading and the subtitle. It stays inside this text
+            column rather than breaking out to the section's full width, so
+            the copy above and below it still read as one block — and a
+            full-width 16:9 frame here would put most of a screen between the
+            title and the sentence explaining it. Renders nothing when neither
+            a Back Office row nor the bundled fallback resolves, and this
+            wrapper collapses with it. */}
+        <div className="mx-auto" style={{ width: 'min(100%, 720px)', margin: '0 auto 24px' }}>
+          <SectionHeroMedia
+            section="teen_patti"
+            fallbackVideo={HERO_WATERMARKS.teen_patti.video}
+            fallbackPoster={HERO_WATERMARKS.teen_patti.poster}
+            badgeLabel={t('teenPatti.title')}
+            marginBottom={0}
+          />
+        </div>
 
         <motion.div
           initial={{ opacity: 0, y: 12 }}
@@ -358,35 +413,7 @@ export default function TeenPattiHero({ liveCount = 0, upcomingCount = 0, onView
             )}
           </motion.button>
         </motion.div>
-        </div>
 
-        {/* Hero media card, in the same framed template as the landing page's
-            Top Premium Partners band — same gold frame, same media-shaped box,
-            same mute control, badge pill and slide dots, because it is the
-            same component.
-
-            An addition to the watermark behind this section, not a
-            replacement for it: the backdrop is unchanged, and the same footage
-            also gets a frame where it can be seen properly and heard. It sits
-            below the CTAs rather than above them so the buttons stay near the
-            fold on a laptop. Renders nothing when neither a Back Office row
-            nor the bundled fallback resolves. */}
-        {/* maxWidth as well as the 94vw target: 94vw is wider than this
-            column's content box once the section's px-4 is taken off a phone
-            viewport, and a too-wide block with auto margins does not centre —
-            it overflows to the right, which put the band 10px off-centre at
-            375px. The cap only ever binds below ~400px. */}
-        <div className="mt-12 mx-auto" style={{ width: 'min(94vw, 1220px)', maxWidth: '100%' }}>
-          <SectionHeroMedia
-            section="teen_patti"
-            fallbackVideo={HERO_WATERMARKS.teen_patti.video}
-            fallbackPoster={HERO_WATERMARKS.teen_patti.poster}
-            badgeLabel={t('teenPatti.title')}
-            marginBottom={0}
-          />
-        </div>
-
-        <div className="max-w-3xl mx-auto text-center w-full">
         <div className="flex justify-center mt-12">
           <VipBenefitStrip />
         </div>

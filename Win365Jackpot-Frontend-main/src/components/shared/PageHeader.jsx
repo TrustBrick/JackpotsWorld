@@ -51,7 +51,14 @@ const TARGET_VISIBLE_FRAME = 0.72
 // clips squarer than about 2.4:1.
 const MAX_BAND_VH = 60
 
-export default function PageHeader({ eyebrow, title, subtitle, background = null, backgroundRatio = null }) {
+export default function PageHeader({
+  eyebrow, title, subtitle, background = null, backgroundRatio = null,
+  // Optional node rendered between the title and the subtitle. Poker puts its
+  // hero media card here. Opt-in like `background`, so the pages that pass
+  // nothing (Events, Promotions, Affiliates) render exactly as before — no
+  // wrapper, no spacing change, nothing to regress.
+  belowTitle = null,
+}) {
   // Only shape the band when there is something in it to shape it around, and
   // only once that thing has reported a usable ratio.
   const bandStyle = background && backgroundRatio > 0
@@ -110,6 +117,9 @@ export default function PageHeader({ eyebrow, title, subtitle, background = null
         >
           {title}
         </motion.h1>
+        {/* Between the heading and the subtitle. The caller owns its width and
+            its own reveal; this only decides where in the stack it sits. */}
+        {belowTitle}
         {subtitle && (
           <motion.p
             initial={{ opacity: 0, y: 12 }}

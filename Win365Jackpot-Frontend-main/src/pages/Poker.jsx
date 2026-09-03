@@ -122,36 +122,35 @@ export default function Poker() {
             onNaturalSize={setMediaRatio}
           />
         }
+        // Hero media card, in the same framed template as the landing page's
+        // Top Premium Partners band — same gold frame, media-shaped box, mute
+        // control, badge pill and slide dots, because it is the same
+        // component.
+        //
+        // An addition to the watermark behind the header, not a replacement:
+        // the band keeps its cinematic backdrop, and the footage also gets a
+        // frame where it can be seen properly and heard.
+        //
+        // Sits between the heading and the subtitle rather than below the
+        // whole band, so it reads as part of the hero. Held to 820px and
+        // centred: it lives inside the header's text column now, and at the
+        // full column width a 16:9 frame is tall enough to push the subtitle
+        // most of a screen down.
+        belowTitle={
+          <div
+            className="mx-auto"
+            style={{ width: 'min(100%, 820px)', margin: '0 auto 28px' }}
+          >
+            <SectionHeroMedia
+              section="poker"
+              fallbackVideo={HERO_WATERMARKS.poker.video}
+              fallbackPoster={HERO_WATERMARKS.poker.poster}
+              badgeLabel={t('poker.title')}
+              marginBottom={0}
+            />
+          </div>
+        }
       />
-
-      {/* Hero media card, in the same framed template as the landing page's
-          Top Premium Partners band — same gold frame, media-shaped box, mute
-          control, badge pill and slide dots, because it is the same
-          component.
-
-          An addition to the watermark above, not a replacement for it: the
-          header keeps its cinematic backdrop, and the footage also gets a
-          frame where it can be seen properly and heard.
-
-          Breaks out of the header's text column into its own much wider band
-          (the same min(94vw, 1220px) the landing hero wraps that component
-          in). Renders nothing at all if neither a Back Office row nor the
-          bundled fallback resolves, and this wrapper collapses with it. */}
-      <div className="w-full flex justify-center px-4 md:px-6 pb-10">
-        {/* maxWidth as well as the 94vw target: 94vw exceeds this row's
-            content box once its px-4 is taken off a phone viewport, and an
-            over-wide flex item spills past both padding edges instead of
-            sitting inside them. The cap only ever binds below ~400px. */}
-        <div style={{ width: 'min(94vw, 1220px)', maxWidth: '100%' }}>
-          <SectionHeroMedia
-            section="poker"
-            fallbackVideo={HERO_WATERMARKS.poker.video}
-            fallbackPoster={HERO_WATERMARKS.poker.poster}
-            badgeLabel={t('poker.title')}
-            marginBottom={0}
-          />
-        </div>
-      </div>
 
       {!isLoggedIn && (
         <div className="max-w-3xl mx-auto px-4 -mt-6 mb-10">
