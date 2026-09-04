@@ -58,14 +58,14 @@ export default function PokerFilters({ options, value, onChange, resultCount }) 
 
         <div className="ml-auto flex items-center gap-3">
           {resultCount != null && (
-            <span className="text-[11px] font-body text-white/40">
+            <span className="text-[11px] font-body text-white/60">
               {t('filters.tournamentCount', { count: resultCount })}
             </span>
           )}
           {hasActiveFilter && (
             <button
               onClick={() => onChange({ status: value.status || '' })}
-              className="flex items-center gap-1 text-[11px] font-bold tracking-wider uppercase text-white/45 hover:text-gold transition-colors"
+              className="flex items-center gap-1 text-[11px] font-bold tracking-wider uppercase text-white/64 hover:text-gold transition-colors"
             >
               <X size={12} /> {t('filters.clear')}
             </button>
@@ -75,7 +75,7 @@ export default function PokerFilters({ options, value, onChange, resultCount }) 
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
         <div>
-          <label className="block text-[10px] uppercase tracking-widest text-white/35 font-body mb-1.5">{t('filters.country')}</label>
+          <label className="block text-[10px] uppercase tracking-widest text-white/55 font-body mb-1.5">{t('filters.country')}</label>
           <select style={selectStyle} value={value.country || ''} onChange={e => set({ country: e.target.value, city: '' })}>
             <option value="">{t('filters.allCountries')}</option>
             {(options.countries || []).map(c => <option key={c} value={c}>{c}</option>)}
@@ -83,7 +83,7 @@ export default function PokerFilters({ options, value, onChange, resultCount }) 
         </div>
 
         <div>
-          <label className="block text-[10px] uppercase tracking-widest text-white/35 font-body mb-1.5">{t('filters.city')}</label>
+          <label className="block text-[10px] uppercase tracking-widest text-white/55 font-body mb-1.5">{t('filters.city')}</label>
           <select style={selectStyle} value={value.city || ''} onChange={e => set({ city: e.target.value })}>
             <option value="">{t('filters.allCities')}</option>
             {(options.cities || []).map(c => <option key={c} value={c}>{c}</option>)}
@@ -91,7 +91,7 @@ export default function PokerFilters({ options, value, onChange, resultCount }) 
         </div>
 
         <div>
-          <label className="block text-[10px] uppercase tracking-widest text-white/35 font-body mb-1.5">{t('filters.series')}</label>
+          <label className="block text-[10px] uppercase tracking-widest text-white/55 font-body mb-1.5">{t('filters.series')}</label>
           <select style={selectStyle} value={value.series || ''} onChange={e => set({ series: e.target.value })}>
             <option value="">{t('filters.allSeries')}</option>
             {(options.series || []).map(s => <option key={s} value={s}>{s}</option>)}
@@ -99,7 +99,7 @@ export default function PokerFilters({ options, value, onChange, resultCount }) 
         </div>
 
         <div>
-          <label className="block text-[10px] uppercase tracking-widest text-white/35 font-body mb-1.5">{t('filters.gameType')}</label>
+          <label className="block text-[10px] uppercase tracking-widest text-white/55 font-body mb-1.5">{t('filters.gameType')}</label>
           <select style={selectStyle} value={value.game_type || ''} onChange={e => set({ game_type: e.target.value })}>
             <option value="">{t('filters.allGames')}</option>
             {(options.game_types || []).map(g => <option key={g} value={g}>{g}</option>)}
@@ -107,7 +107,7 @@ export default function PokerFilters({ options, value, onChange, resultCount }) 
         </div>
 
         <div>
-          <label className="block text-[10px] uppercase tracking-widest text-white/35 font-body mb-1.5">{t('filters.fromDate')}</label>
+          <label className="block text-[10px] uppercase tracking-widest text-white/55 font-body mb-1.5">{t('filters.fromDate')}</label>
           <input
             type="date"
             style={selectStyle}
@@ -117,7 +117,7 @@ export default function PokerFilters({ options, value, onChange, resultCount }) 
         </div>
 
         <div>
-          <label className="block text-[10px] uppercase tracking-widest text-white/35 font-body mb-1.5">{t('filters.maxBuyIn')}</label>
+          <label className="block text-[10px] uppercase tracking-widest text-white/55 font-body mb-1.5">{t('filters.maxBuyIn')}</label>
           <input
             type="number"
             min="0"
@@ -129,7 +129,7 @@ export default function PokerFilters({ options, value, onChange, resultCount }) 
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 mt-3 text-[10px] font-body text-white/25">
+      <div className="flex items-center gap-1.5 mt-3 text-[10px] font-body text-white/40">
         <SlidersHorizontal size={11} /> {t('filters.applyInstantly')}
       </div>
     </div>

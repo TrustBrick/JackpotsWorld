@@ -36,6 +36,7 @@ import SignupWheelModal   from "./wheel/SignupWheelModal";
 import BonusWheelModal    from "./wheel/BonusWheelModal";
 import ChatBot            from "../ChatBot";
 import PageScrollButtons  from "../PageScrollButtons";
+import { useScrollToTopOnChange } from '../../hooks/useScrollToTopOnChange';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // BannedScreen
@@ -114,6 +115,10 @@ export default function Dashboard() {
   const bp       = useBreakpoint(); // ← reactive breakpoint
 
   const [tab,                setTab]                = useState("overview");
+  // Each tab is a different screen, and tab state is local so no navigation
+  // fires — without this, opening Wallet from halfway down Overview lands
+  // halfway down Wallet.
+  useScrollToTopOnChange(tab);
   const [data,               setData]               = useState(null);
   const [loading,            setLoading]            = useState(true);
   const [error,              setError]              = useState(null);

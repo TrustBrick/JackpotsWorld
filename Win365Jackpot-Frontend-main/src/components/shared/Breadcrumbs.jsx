@@ -22,13 +22,13 @@ export default function Breadcrumbs({ trail = [] }) {
 
   return (
     <nav aria-label="Breadcrumb" className="mb-5">
-      <ol className="flex flex-wrap items-center gap-1.5 text-xs font-body text-white/45">
+      <ol className="flex flex-wrap items-center gap-1.5 text-xs font-body text-white/64">
         {trail.map((crumb, i) => {
           const isLast = i === trail.length - 1
           return (
             <li key={crumb.path} className="flex items-center gap-1.5">
               {i > 0 && (
-                <ChevronRight size={12} className="text-white/25 shrink-0" aria-hidden="true" />
+                <ChevronRight size={12} className="text-white/40 shrink-0" aria-hidden="true" />
               )}
               {isLast ? (
                 // aria-current marks the page the trail ends on; it is not a

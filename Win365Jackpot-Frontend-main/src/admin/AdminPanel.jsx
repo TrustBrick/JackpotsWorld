@@ -57,6 +57,7 @@ import { AdminVoiceCallProvider } from "./context/AdminVoiceCallContext";  // VO
 import AdminThemeToggle from "./components/AdminThemeToggle";
 import Logo from "../components/shared/Logo";
 import BrandMark from "../components/shared/BrandMark";
+import { useScrollToTopOnChange } from "../hooks/useScrollToTopOnChange";
 
 
 const ICON_MAP = {
@@ -244,6 +245,9 @@ function AdminPanelInner() {
   const { C } = useAdminTheme();
   const [authed,    setAuthed]    = useState(false);
   const [tab,       setTabState]  = useState(initialTab);
+  // Same reason as the Dashboard: every tab is a different screen and the
+  // active one lives in local state, so nothing else resets the scroll.
+  useScrollToTopOnChange(tab);
   const [openGroups, setOpenGroups] = useState(initialOpenGroups);
   const [toast,     setToast]     = useState(null);
   const [adminUser, setAdminUser] = useState(null);

@@ -122,18 +122,18 @@ function UserDropdown({ user, onLogout, onRequireAuth }) {
             <div className="h-px w-full" style={{ background: 'linear-gradient(90deg, transparent, #D4AF37, transparent)' }} />
 
             <div className="px-4 py-3 border-b" style={{ borderColor: 'rgba(212,175,55,0.1)' }}>
-              <div className="text-xs text-white/35 tracking-widest uppercase mb-0.5">Logged in as</div>
+              <div className="text-xs text-white/55 tracking-widest uppercase mb-0.5">Logged in as</div>
               <div className="text-sm text-white/85 font-bold truncate">{user.name || user.email}</div>
-              {user.name && <div className="text-xs text-white/30 truncate">{user.email}</div>}
+              {user.name && <div className="text-xs text-white/50 truncate">{user.email}</div>}
             </div>
 
             <div className="px-4 py-3 border-b" style={{ borderColor: 'rgba(212,175,55,0.1)' }}>
               <div className="flex justify-between text-xs mb-1.5">
-                <span className="flex items-center gap-1.5 text-white/40"><Crown size={11} /> VIP Level</span>
+                <span className="flex items-center gap-1.5 text-white/60"><Crown size={11} /> VIP Level</span>
                 <span className="font-black" style={{ color: '#D4AF37' }}>VIP {user.vip_level || 1}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="flex items-center gap-1.5 text-white/40"><Wallet size={11} /> Wallet</span>
+                <span className="flex items-center gap-1.5 text-white/60"><Wallet size={11} /> Wallet</span>
                 <span className="font-black text-emerald-400">
                   ${Number(user.wallet_balance || 0).toLocaleString('en-IN')}
                 </span>

@@ -220,11 +220,11 @@ function InfiniteScrollStrip({ cards, direction = 1, speed = 38 }) {
             <Avatar src={c.photo} name={c.name} color={c.color} size="sm" />
             <div className="min-w-0">
               <div className="font-body font-light text-[11px] text-white font-bold truncate">{c.name}</div>
-              <div className="font-body font-light text-[9px] text-white/40 truncate">{c.flag} {c.city}</div>
+              <div className="font-body font-light text-[9px] text-white/60 truncate">{c.flag} {c.city}</div>
               <div className="font-body font-light text-[11px] font-black mt-0.5 truncate" style={{ color: c.color }}>
                 🏆 {c.won}
               </div>
-              <div className="font-body font-light text-[9px] text-white/30 truncate">{c.game} · {c.dest}</div>
+              <div className="font-body font-light text-[9px] text-white/50 truncate">{c.game} · {c.dest}</div>
             </div>
           </div>
         ))}

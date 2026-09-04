@@ -60,11 +60,11 @@ function Fact({ icon: Icon, label, value }) {
       className="rounded-xl px-4 py-3"
       style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
     >
-      <p className="text-[10px] uppercase tracking-widest text-white/35 font-body mb-1.5">{label}</p>
+      <p className="text-[10px] uppercase tracking-widest text-white/55 font-body mb-1.5">{label}</p>
       <p className="text-sm font-bold text-white/85 flex items-center gap-2">
         <Icon size={14} className="text-gold shrink-0" />
         {/* Part 6's rule, applied to Teen Patti too: never invent a value. */}
-        <span className={value ? '' : 'text-white/35 font-normal'}>{value || t('teenPatti.notAvailable')}</span>
+        <span className={value ? '' : 'text-white/55 font-normal'}>{value || t('teenPatti.notAvailable')}</span>
       </p>
     </div>
   )
@@ -164,7 +164,7 @@ export default function TeenPattiDetails() {
         <div className="max-w-5xl mx-auto">
           <button
             onClick={() => navigate('/teen-patti')}
-            className="flex items-center gap-2 text-white/45 hover:text-gold transition-colors text-xs font-bold tracking-widest uppercase mb-6"
+            className="flex items-center gap-2 text-white/64 hover:text-gold transition-colors text-xs font-bold tracking-widest uppercase mb-6"
           >
             <ArrowLeft size={14} /> Back to Teen Patti
           </button>
@@ -172,7 +172,7 @@ export default function TeenPattiDetails() {
           {loading ? (
             <div className="poker-card h-[520px] animate-pulse" style={{ opacity: 0.5 }} />
           ) : error || !event ? (
-            <div className="flex flex-col items-center justify-center py-24 text-white/40">
+            <div className="flex flex-col items-center justify-center py-24 text-white/60">
               <AlertTriangle size={40} className="mb-4 text-red-400/60" />
               <p className="font-body mb-4">Couldn't load this event.</p>
               <button
@@ -228,7 +228,7 @@ export default function TeenPattiDetails() {
                     {fixMojibakeCurrency(event.name)}
                   </h1>
                   {event.short_description && (
-                    <p className="text-white/55 font-body text-sm mb-6">{event.short_description}</p>
+                    <p className="text-white/74 font-body text-sm mb-6">{event.short_description}</p>
                   )}
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
@@ -266,7 +266,7 @@ export default function TeenPattiDetails() {
                   {event.description && (
                     <div className="mb-7">
                       <h2 className="text-xs uppercase tracking-widest text-gold/70 font-body mb-2">{t('teenPatti.about')}</h2>
-                      <p className="text-white/60 font-body text-sm leading-relaxed whitespace-pre-line">
+                      <p className="text-white/78 font-body text-sm leading-relaxed whitespace-pre-line">
                         {event.description}
                       </p>
                     </div>
@@ -283,7 +283,7 @@ export default function TeenPattiDetails() {
                         </p>
                         {event.my_confirmation_id && (
                           <p
-                            className="text-xs text-white/55 font-body mt-1 flex items-center justify-center sm:justify-start gap-1.5"
+                            className="text-xs text-white/74 font-body mt-1 flex items-center justify-center sm:justify-start gap-1.5"
                             style={{ fontFamily: "'Courier New', monospace" }}
                           >
                             <Ticket size={12} /> {event.my_confirmation_id}
@@ -301,7 +301,7 @@ export default function TeenPattiDetails() {
                       )}
                     </div>
                   ) : event.status === 'completed' ? (
-                    <p className="text-center text-white/35 font-body text-sm py-3">This event has finished.</p>
+                    <p className="text-center text-white/55 font-body text-sm py-3">This event has finished.</p>
                   ) : (
                     <button
                       onClick={handleRegister}

@@ -42,7 +42,7 @@ export default function RegistrationResultModal({ result, onClose }) {
             <button
               onClick={onClose}
               aria-label="Close"
-              className="absolute top-4 right-4 text-white/35 hover:text-white/80 transition-colors"
+              className="absolute top-4 right-4 text-white/55 hover:text-white/80 transition-colors"
             >
               <X size={18} />
             </button>
@@ -63,14 +63,14 @@ export default function RegistrationResultModal({ result, onClose }) {
               <h3 className="font-black text-xl text-[rgba(var(--w365-text-rgb),0.92)] mb-2">
                 {ok ? 'Seat Confirmed' : 'Registration Not Completed'}
               </h3>
-              <p className="text-white/55 text-sm font-body mb-5">{result.message}</p>
+              <p className="text-white/74 text-sm font-body mb-5">{result.message}</p>
 
               {ok && registration && (
                 <div
                   className="w-full rounded-xl px-4 py-4 mb-5 text-left"
                   style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.28)' }}
                 >
-                  <p className="text-[10px] uppercase tracking-widest text-white/40 font-body mb-1">
+                  <p className="text-[10px] uppercase tracking-widest text-white/60 font-body mb-1">
                     Confirmation ID
                   </p>
                   <p
@@ -81,12 +81,12 @@ export default function RegistrationResultModal({ result, onClose }) {
                   </p>
 
                   <p className="text-sm font-bold text-white/85 mb-1.5">{registration.event_name}</p>
-                  <p className="text-xs text-white/50 font-body flex items-center gap-1.5 mb-1">
+                  <p className="text-xs text-white/70 font-body flex items-center gap-1.5 mb-1">
                     <CalendarDays size={12} className="text-gold" />
                     {formatDate(registration.event_start_date)}
                   </p>
                   {(registration.event_city || registration.event_country) && (
-                    <p className="text-xs text-white/50 font-body flex items-center gap-1.5">
+                    <p className="text-xs text-white/70 font-body flex items-center gap-1.5">
                       <MapPin size={12} className="text-gold" />
                       {[registration.event_city, registration.event_country].filter(Boolean).join(', ')}
                     </p>

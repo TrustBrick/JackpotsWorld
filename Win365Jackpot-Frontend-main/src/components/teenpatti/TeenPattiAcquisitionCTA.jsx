@@ -83,7 +83,7 @@ export default function TeenPattiAcquisitionCTA({
           </div>
 
           {!isLoggedIn && (
-            <div className="flex items-center justify-center md:justify-start gap-5 mt-5 text-[11px] font-body text-white/40">
+            <div className="flex items-center justify-center md:justify-start gap-5 mt-5 text-[11px] font-body text-white/60">
               <span className="flex items-center gap-1.5"><Users size={13} className="text-gold" /> Exclusive Access</span>
               <span className="flex items-center gap-1.5"><Sparkles size={13} className="text-gold" /> VIP Community</span>
               <span className="flex items-center gap-1.5"><ShieldCheck size={13} className="text-gold" /> {t('teenPatti.ctaSecureTrusted')}</span>
@@ -102,7 +102,7 @@ export default function TeenPattiAcquisitionCTA({
             <ArrowRight size={15} />
           </motion.button>
           {!isLoggedIn && (
-            <span className="text-[10px] font-body text-white/35 tracking-wide">
+            <span className="text-[10px] font-body text-white/55 tracking-wide">
               Already have an account? <button onClick={onPrimaryAction} className="text-gold underline underline-offset-2">Sign in</button>
             </span>
           )}

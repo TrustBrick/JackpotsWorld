@@ -79,7 +79,7 @@ function PokerCard({ tournament }) {
           </span>
         )}
         {tournament.game_type && (
-          <span className="absolute bottom-3 left-3 text-[10px] font-body tracking-wider uppercase text-white/60">
+          <span className="absolute bottom-3 left-3 text-[10px] font-body tracking-wider uppercase text-white/78">
             {tournament.game_type}
           </span>
         )}

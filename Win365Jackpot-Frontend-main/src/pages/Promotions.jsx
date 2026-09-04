@@ -50,7 +50,7 @@ export default function Promotions() {
             ))}
           </div>
         ) : error ? (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-24 text-white/40">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-24 text-white/60">
             <AlertTriangle size={40} className="mb-4 text-red-400/60" />
             <p className="font-body mb-4">{t('promotions.loadError')}</p>
             <button onClick={reload} className="btn-outline-gold rounded-full px-5 py-2 text-sm font-bold flex items-center gap-2">
@@ -58,7 +58,7 @@ export default function Promotions() {
             </button>
           </motion.div>
         ) : countries.length === 0 ? (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-24 text-white/40">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-24 text-white/60">
             <Sparkles size={40} className="mb-4 text-gold/50" />
             <p className="font-body">{t('promotions.noPromotions')}</p>
           </motion.div>
@@ -69,7 +69,7 @@ export default function Promotions() {
                 <div className="flex items-center gap-3 mb-5">
                   <span className="flag text-2xl leading-none">{flagFromCountryCode(promotions[0]?.country_code)}</span>
                   <h2 className="gold-text font-black text-xl md:text-2xl tracking-wide">{country}</h2>
-                  <span className="text-white/30 text-xs font-body">{t('promotions.offersCount', { count: promotions.length })}</span>
+                  <span className="text-white/50 text-xs font-body">{t('promotions.offersCount', { count: promotions.length })}</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -67,7 +67,7 @@ export default function VipBenefitStrip({ className = '' }) {
         {t('vipStrip.tagline')}
       </p>
 
-      <p className="font-body text-[10px] text-white/35 text-center max-w-md leading-relaxed">
+      <p className="font-body text-[10px] text-white/55 text-center max-w-md leading-relaxed">
         {t('vipStrip.disclaimer')}
       </p>
     </motion.div>

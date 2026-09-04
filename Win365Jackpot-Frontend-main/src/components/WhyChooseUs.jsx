@@ -93,7 +93,7 @@ const FeatureCard = memo(({ Icon, color, bg, border, title, desc }) => (
         {title}
       </div>
       <p style={{
-        fontSize: '0.8rem', color: 'rgba(var(--w365-text-rgb),0.45)',
+        fontSize: '0.8rem', color: 'rgba(var(--w365-text-rgb),0.64)',
         lineHeight: 1.7, margin: 0,
       }}>
         {desc}
@@ -166,7 +166,7 @@ export default function WhyChooseUs() {
           </h2>
           <p className="font-body font-light" style={{
             fontSize: 'clamp(0.85rem,3.2vw,1.05rem)',
-            color: 'rgba(var(--w365-text-rgb),0.5)',
+            color: 'rgba(var(--w365-text-rgb),0.70)',
             maxWidth: 480, margin: '0 auto', lineHeight: 1.6,
           }}>
             We don't just book casino trips — we craft legendary experiences.

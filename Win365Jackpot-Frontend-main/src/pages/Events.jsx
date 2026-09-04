@@ -54,7 +54,7 @@ export default function Events() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="flex flex-col items-center justify-center py-24 text-white/40"
+            className="flex flex-col items-center justify-center py-24 text-white/60"
           >
             <AlertTriangle size={40} className="mb-4 text-red-400/60" />
             <p className="font-body mb-4">{t('events.loadError')}</p>
@@ -66,7 +66,7 @@ export default function Events() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="flex flex-col items-center justify-center py-24 text-white/40"
+            className="flex flex-col items-center justify-center py-24 text-white/60"
           >
             <CalendarX2 size={40} className="mb-4 text-gold/50" />
             <p className="font-body">{t('events.noEvents')}</p>
@@ -89,7 +89,7 @@ export default function Events() {
                 >
                   <ChevronLeft size={16} />
                 </button>
-                <span className="text-sm font-body text-white/50">{t('events.pageOf', { page, total: totalPages })}</span>
+                <span className="text-sm font-body text-white/70">{t('events.pageOf', { page, total: totalPages })}</span>
                 <button
                   onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                   disabled={page >= totalPages}

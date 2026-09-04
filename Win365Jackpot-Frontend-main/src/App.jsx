@@ -10,6 +10,7 @@ import { getToken } from './services/authStorage'
 import SessionTimeoutProvider from './components/SessionTimeoutProvider'
 import { HelmetProvider } from 'react-helmet-async'
 import RouteSeo from './components/RouteSeo'
+import ScrollToTop from './components/ScrollToTop'
 
 // ── Route-level code splitting ─────────────────────────────────────────────
 // LandingPage stays eager (first paint); everything else is only needed
@@ -136,6 +137,10 @@ export default function App() {
       {/* Per-route <head> tags (title/description/canonical/OG/JSON-LD).
           Inside BrowserRouter because it reads useLocation(); above
           <Routes> so it applies to every route including lazy ones. */}
+      {/* Starts every newly opened route at the top. Above <Routes> so it sees
+          lazy routes too; see the component for why it ignores back/forward
+          and hash targets. */}
+      <ScrollToTop />
       <RouteSeo />
       {/* ANALYTICS: page-view + UTM tracker. Renders nothing; here because it
           reads useLocation() and must see every route. */}

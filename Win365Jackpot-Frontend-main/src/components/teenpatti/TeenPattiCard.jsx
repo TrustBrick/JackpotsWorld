@@ -120,7 +120,7 @@ function TeenPattiCard({ event, onRegister, registering }) {
         )}
 
         {event.event_type && (
-          <span className="absolute bottom-3 left-3 text-[10px] font-body tracking-wider uppercase text-white/60">
+          <span className="absolute bottom-3 left-3 text-[10px] font-body tracking-wider uppercase text-white/78">
             {event.event_type}
           </span>
         )}
@@ -160,7 +160,7 @@ function TeenPattiCard({ event, onRegister, registering }) {
             className="rounded-xl px-3 py-2"
             style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.18)' }}
           >
-            <p className="text-[9px] uppercase tracking-widest text-white/40 font-body mb-0.5">{t('teenPatti.entry')}</p>
+            <p className="text-[9px] uppercase tracking-widest text-white/60 font-body mb-0.5">{t('teenPatti.entry')}</p>
             <p className="text-sm font-black text-gold flex items-center gap-1">
               <Coins size={12} /> {fmtMoney(event.entry_fee, event.currency)}
             </p>
@@ -169,7 +169,7 @@ function TeenPattiCard({ event, onRegister, registering }) {
             className="rounded-xl px-3 py-2"
             style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.18)' }}
           >
-            <p className="text-[9px] uppercase tracking-widest text-white/40 font-body mb-0.5">{t('teenPatti.prizePool')}</p>
+            <p className="text-[9px] uppercase tracking-widest text-white/60 font-body mb-0.5">{t('teenPatti.prizePool')}</p>
             <p className="text-sm font-black text-gold flex items-center gap-1">
               <Trophy size={12} /> {fmtMoney(event.prize_pool, event.currency)}
             </p>
@@ -179,7 +179,7 @@ function TeenPattiCard({ event, onRegister, registering }) {
         {hasSeatLimit && (
           <div className="mt-1">
             <div className="flex items-center justify-between text-[11px] font-body mb-1.5">
-              <span className="text-white/50 flex items-center gap-1.5">
+              <span className="text-white/70 flex items-center gap-1.5">
                 <Users size={12} className="text-gold" />
                 {t('teenPatti.seatsFilled', { filled: event.current_participants, total: event.max_participants })}
               </span>

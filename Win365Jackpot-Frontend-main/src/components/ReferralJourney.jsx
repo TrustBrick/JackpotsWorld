@@ -92,7 +92,7 @@ function Step({ step, index, reduceMotion, inView }) {
 
       <p style={{
         fontSize: 13, lineHeight: 1.65, margin: 0,
-        color: 'rgba(var(--w365-text-rgb),0.55)',
+        color: 'rgba(var(--w365-text-rgb),0.74)',
       }}>
         {step.body}
       </p>
@@ -136,7 +136,7 @@ export default function ReferralJourney() {
 
           <p style={{
             fontSize: 'clamp(12px,2.2vw,14px)', lineHeight: 1.75,
-            color: 'rgba(var(--w365-text-rgb),0.55)',
+            color: 'rgba(var(--w365-text-rgb),0.74)',
             maxWidth: 620, margin: '0 auto',
           }}>
             JackpotsWorld connects members with selected offline casino destinations and VIP

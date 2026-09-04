@@ -102,7 +102,7 @@ export default function EventDetails() {
 
         <button
           onClick={() => navigate('/events')}
-          className="flex items-center gap-1.5 text-sm font-body text-white/50 hover:text-gold transition-colors mb-6"
+          className="flex items-center gap-1.5 text-sm font-body text-white/70 hover:text-gold transition-colors mb-6"
         >
           <ArrowLeft size={15} /> {t('events.backToEvents')}
         </button>
@@ -110,7 +110,7 @@ export default function EventDetails() {
         {loading ? (
           <div className="casino-card h-[480px] animate-pulse" style={{ opacity: 0.5 }} />
         ) : error || !event ? (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-24 text-white/40">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-24 text-white/60">
             <AlertTriangle size={40} className="mb-4 text-red-400/60" />
             <p className="font-body mb-4">{t('events.couldNotLoadEvent')}</p>
             <button onClick={load} className="btn-outline-gold rounded-full px-5 py-2 text-sm font-bold flex items-center gap-2">
@@ -144,7 +144,7 @@ export default function EventDetails() {
             <div className="p-6 md:p-8">
               <h1 className="font-black text-2xl md:text-3xl text-white/90 mb-4">{fixMojibakeCurrency(event.name)}</h1>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm font-body text-white/60 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm font-body text-white/78 mb-6">
                 <div className="flex items-center gap-2"><MapPin size={15} className="text-gold shrink-0" /> {event.city ? `${event.city}, ` : ''}{event.country}</div>
                 <div className="flex items-center gap-2"><CalendarDays size={15} className="text-gold shrink-0" /> {formatDate(event.event_date)}</div>
                 {event.event_time && <div className="flex items-center gap-2"><Clock size={15} className="text-gold shrink-0" /> {formatTime(event.event_time)}</div>}
@@ -152,7 +152,7 @@ export default function EventDetails() {
               </div>
 
               {event.description && (
-                <p className="text-white/55 text-sm font-body leading-relaxed mb-6">{fixMojibakeCurrency(event.description)}</p>
+                <p className="text-white/74 text-sm font-body leading-relaxed mb-6">{fixMojibakeCurrency(event.description)}</p>
               )}
               {event.ticket_note && (
                 <p className="text-gold/70 text-xs font-body mb-6">{event.ticket_note}</p>
@@ -160,7 +160,7 @@ export default function EventDetails() {
 
               {!isLoggedIn ? (
                 <div className="flex flex-col md:flex-row items-center justify-between gap-4 px-5 py-4 rounded-xl" style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.2)' }}>
-                  <p className="text-white/60 text-sm font-body text-center md:text-left">{t('events.signInToGetTicketEvent')}</p>
+                  <p className="text-white/78 text-sm font-body text-center md:text-left">{t('events.signInToGetTicketEvent')}</p>
                   <div className="flex gap-2 shrink-0">
                     <button onClick={() => setAuthOpen(true)} className="btn-outline-gold flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase">
                       <LogIn size={13} /> {t('common.signIn')}

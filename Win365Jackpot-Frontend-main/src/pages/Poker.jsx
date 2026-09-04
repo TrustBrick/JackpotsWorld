@@ -155,7 +155,7 @@ export default function Poker() {
       {!isLoggedIn && (
         <div className="max-w-3xl mx-auto px-4 -mt-6 mb-10">
           <div className="casino-card flex flex-col md:flex-row items-center justify-between gap-4 px-6 py-4">
-            <p className="text-white/60 text-sm font-body text-center md:text-left">
+            <p className="text-white/78 text-sm font-body text-center md:text-left">
               {t('poker.signInPrompt')}
             </p>
             <div className="flex gap-2 shrink-0">
@@ -185,7 +185,7 @@ export default function Poker() {
             ))}
           </div>
         ) : error ? (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-24 text-white/40">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-24 text-white/60">
             <AlertTriangle size={40} className="mb-4 text-red-400/60" />
             <p className="font-body mb-4">{t('poker.loadError')}</p>
             <button onClick={reload} className="btn-outline-gold rounded-full px-5 py-2 text-sm font-bold flex items-center gap-2">
@@ -193,7 +193,7 @@ export default function Poker() {
             </button>
           </motion.div>
         ) : total === 0 ? (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-24 text-white/40">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-24 text-white/60">
             <Spade size={40} className="mb-4 text-gold/50" />
             <p className="font-body">{t('poker.noTournaments')}</p>
           </motion.div>

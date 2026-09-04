@@ -104,7 +104,7 @@ export default function PokerDetails() {
 
         <button
           onClick={() => navigate('/poker')}
-          className="flex items-center gap-1.5 text-sm font-body text-white/50 hover:text-gold transition-colors mb-6"
+          className="flex items-center gap-1.5 text-sm font-body text-white/70 hover:text-gold transition-colors mb-6"
         >
           <ArrowLeft size={15} /> {t('poker.backToPoker')}
         </button>
@@ -112,7 +112,7 @@ export default function PokerDetails() {
         {loading ? (
           <div className="poker-card h-[440px] animate-pulse" style={{ opacity: 0.5 }} />
         ) : error || !tournament ? (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-24 text-white/40">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-24 text-white/60">
             <AlertTriangle size={40} className="mb-4 text-red-400/60" />
             <p className="font-body mb-4">{t('poker.couldNotLoadTournament')}</p>
             <button onClick={load} className="btn-outline-gold rounded-full px-5 py-2 text-sm font-bold flex items-center gap-2">
@@ -152,13 +152,13 @@ export default function PokerDetails() {
               <h1 className="font-black text-2xl md:text-3xl text-white/90 mb-4">{fixMojibakeCurrency(tournament.name)}</h1>
 
               {(tournament.casino_name || tournament.location) && (
-                <p className="text-white/55 text-sm font-body flex items-center gap-2 mb-4">
+                <p className="text-white/74 text-sm font-body flex items-center gap-2 mb-4">
                   <Building2 size={15} className="text-gold shrink-0" />
                   {[tournament.casino_name, tournament.location].filter(Boolean).join(' · ')}
                 </p>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm font-body text-white/60 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm font-body text-white/78 mb-6">
                 <div className="flex items-center gap-2"><Coins size={15} className="text-gold shrink-0" /> {t('poker.buyIn')}: {fmtMoney(tournament.buy_in)}</div>
                 <div className="flex items-center gap-2"><Trophy size={15} className="text-gold shrink-0" /> {t('poker.prizePool')}: {fmtMoney(tournament.prize_pool)}</div>
                 <div className="flex items-center gap-2"><CalendarDays size={15} className="text-gold shrink-0" /> {formatDate(tournament.event_date)}</div>
@@ -166,12 +166,12 @@ export default function PokerDetails() {
               </div>
 
               {tournament.description && (
-                <p className="text-white/55 text-sm font-body leading-relaxed mb-6">{fixMojibakeCurrency(tournament.description)}</p>
+                <p className="text-white/74 text-sm font-body leading-relaxed mb-6">{fixMojibakeCurrency(tournament.description)}</p>
               )}
 
               {!isLoggedIn ? (
                 <div className="flex flex-col md:flex-row items-center justify-between gap-4 px-5 py-4 rounded-xl" style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.2)' }}>
-                  <p className="text-white/60 text-sm font-body text-center md:text-left">{t('poker.signInToGetTicket')}</p>
+                  <p className="text-white/78 text-sm font-body text-center md:text-left">{t('poker.signInToGetTicket')}</p>
                   <div className="flex gap-2 shrink-0">
                     <button onClick={() => setAuthOpen(true)} className="btn-outline-gold flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase">
                       <LogIn size={13} /> {t('common.signIn')}

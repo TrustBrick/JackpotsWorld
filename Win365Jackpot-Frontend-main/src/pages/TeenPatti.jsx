@@ -163,7 +163,7 @@ export default function TeenPatti() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="flex flex-col items-center justify-center py-24 text-white/40"
+              className="flex flex-col items-center justify-center py-24 text-white/60"
             >
               <AlertTriangle size={40} className="mb-4 text-red-400/60" />
               <p className="font-body mb-4">{t('teenPatti.loadError')}</p>
@@ -178,7 +178,7 @@ export default function TeenPatti() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="flex flex-col items-center justify-center py-24 text-white/40"
+              className="flex flex-col items-center justify-center py-24 text-white/60"
             >
               <Spade size={40} className="mb-4 text-gold/50" />
               <p className="font-body">{t('teenPatti.noEvents')}</p>

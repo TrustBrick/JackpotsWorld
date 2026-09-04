@@ -57,7 +57,11 @@ select:disabled {
   --w365-bg-mid:      #150010;
   --w365-card:        #1A0015;
   --w365-text:        #f5f0e8;
-  --w365-text-muted:  rgba(245,240,232,0.6);
+  /* Secondary/supporting text. Raised from 0.6: against the 0.92 heading
+     token below it, 0.6 read as washed out rather than subordinate. 0.78
+     is legible at small sizes while staying clearly under the heading, so
+     the hierarchy is preserved rather than flattened. */
+  --w365-text-muted:  rgba(245,240,232,0.78);
   --w365-border:      rgba(212,175,55,0.3);
   --w365-bg-rgb:      10,0,5;
   --w365-heading:     rgba(255,255,255,0.92);
@@ -72,7 +76,7 @@ select:disabled {
   --w365-bg-mid:      #F3EBDA;
   --w365-card:        #FFFDF8;
   --w365-text:        #241505;
-  --w365-text-muted:  rgba(36,21,5,0.62);
+  --w365-text-muted:  rgba(36,21,5,0.78);
   --w365-border:      rgba(154,125,32,0.35);
   --w365-bg-rgb:      251,247,239;
   --w365-heading:     #1a0f02;
@@ -246,7 +250,10 @@ select:disabled {
     background: rgba(255,255,255,0.08);
   }
 
-  .input-casino::placeholder { color: var(--w365-text-muted); }
+  /* Not --w365-text-muted: that token was lifted to 0.78 for supporting
+     text, and a placeholder at that strength reads as a filled-in value.
+     A placeholder has to stay obviously empty. */
+  .input-casino::placeholder { color: rgba(var(--w365-text-rgb),0.45); }
 
   .chip {
     width: 60px; height: 60px;

@@ -83,7 +83,7 @@ function FaqRow({ item, open, onToggle, reduceMotion }) {
             <p style={{
               margin: '0 0 20px', padding: '0 4px',
               fontSize: 'clamp(12px,2.1vw,13.5px)', lineHeight: 1.75,
-              color: 'rgba(var(--w365-text-rgb),0.58)',
+              color: 'rgba(var(--w365-text-rgb),0.76)',
               maxWidth: 760,
             }}>
               {item.a}

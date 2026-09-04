@@ -86,11 +86,11 @@ function InfiniteScrollStrip({ cards, direction = 1, speed = 35 }) {
             </div>
             <div className="min-w-0">
               <div className="font-body font-light text-[11px] text-white font-bold truncate">{c.name}</div>
-              <div className="font-body font-light text-[9px] text-white/40 truncate">{c.flag} {c.city}</div>
+              <div className="font-body font-light text-[9px] text-white/60 truncate">{c.flag} {c.city}</div>
               <div className="font-body font-light text-[11px] font-black mt-0.5 truncate" style={{ color: c.color }}>
                 💰 {c.commission}
               </div>
-              <div className="font-body font-light text-[9px] text-white/30 truncate">{c.referrals} referred players</div>
+              <div className="font-body font-light text-[9px] text-white/50 truncate">{c.referrals} referred players</div>
             </div>
           </div>
         ))}

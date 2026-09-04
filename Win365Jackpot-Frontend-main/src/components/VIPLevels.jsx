@@ -178,7 +178,7 @@ export default function VIPLevels() {
           }}>
             VIP Program Levels
           </h2>
-          <p style={{ fontSize: 14, color: 'rgba(var(--w365-text-rgb),0.3)', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+          <p style={{ fontSize: 14, color: 'rgba(var(--w365-text-rgb),0.50)', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
             Bronze · Silver · Gold · Jackpot I · II · III · Platinum · Diamond
           </p>
         </motion.div>
@@ -233,7 +233,7 @@ export default function VIPLevels() {
                 <p style={{ fontSize: 16, fontWeight: 600, color: 'var(--w365-text)', marginBottom: 2 }}>
                   {activeTier.label}
                 </p>
-                <p style={{ fontSize: 12, color: 'rgba(var(--w365-text-rgb),0.35)' }}>
+                <p style={{ fontSize: 12, color: 'rgba(var(--w365-text-rgb),0.55)' }}>
                   {activeTier.benefits.length} of {ALL_BENEFITS.length} benefits included
                 </p>
               </div>
@@ -273,7 +273,7 @@ export default function VIPLevels() {
                         {name}
                       </span>
                       {included && detail && (
-                        <span style={{ fontSize: 12, color: 'rgba(var(--w365-text-rgb),0.35)', marginLeft: 10 }}>
+                        <span style={{ fontSize: 12, color: 'rgba(var(--w365-text-rgb),0.55)', marginLeft: 10 }}>
                           — {detail.desc}
                         </span>
                       )}
@@ -315,7 +315,7 @@ export default function VIPLevels() {
             <p style={{ fontSize: 14, fontWeight: 600, color: '#D4AF37', marginBottom: 4 }}>
               Levels are permanent
             </p>
-            <p style={{ fontSize: 13, color: 'rgba(var(--w365-text-rgb),0.4)', lineHeight: 1.65 }}>
+            <p style={{ fontSize: 13, color: 'rgba(var(--w365-text-rgb),0.60)', lineHeight: 1.65 }}>
               Your tier is a lifetime achievement. Your recorded activity accumulates across your entire account history and never resets — every visit builds your legacy.
             </p>
           </div>

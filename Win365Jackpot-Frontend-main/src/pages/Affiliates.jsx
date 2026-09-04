@@ -67,7 +67,7 @@ function FaqItem({ faq, isOpen, onToggle }) {
             transition={{ duration: 0.25 }}
             className="overflow-hidden"
           >
-            <p className="px-5 pb-4 text-white/55 text-sm font-body leading-relaxed">{faq.a}</p>
+            <p className="px-5 pb-4 text-white/74 text-sm font-body leading-relaxed">{faq.a}</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -103,7 +103,7 @@ export default function Affiliates() {
 
       {/* What is it */}
       <section className="max-w-4xl mx-auto px-4 pb-16 text-center">
-        <p className="text-white/60 font-body text-sm md:text-base leading-relaxed">
+        <p className="text-white/78 font-body text-sm md:text-base leading-relaxed">
           The Jackpots World Affiliate Program lets creators, publishers, and communities earn ongoing
           commission by referring players to our network of luxury partner casinos, events, and
           promotions. No inventory, no risk — just a tracking link and a dedicated affiliate manager
@@ -131,7 +131,7 @@ export default function Affiliates() {
                 <Icon size={18} className="text-gold" />
               </div>
               <h3 className="font-body font-bold text-sm text-white/85">{title}</h3>
-              <p className="text-white/50 text-xs font-body leading-relaxed">{text}</p>
+              <p className="text-white/70 text-xs font-body leading-relaxed">{text}</p>
             </motion.div>
           ))}
         </div>
@@ -157,7 +157,7 @@ export default function Affiliates() {
             >
               <span className="gold-text font-black text-3xl">{step.step}</span>
               <h3 className="font-body font-bold text-sm text-white/85">{step.title}</h3>
-              <p className="text-white/50 text-xs font-body leading-relaxed">{step.text}</p>
+              <p className="text-white/70 text-xs font-body leading-relaxed">{step.text}</p>
             </motion.div>
           ))}
         </div>
@@ -171,7 +171,7 @@ export default function Affiliates() {
         <div className="casino-card p-6">
           <ul className="flex flex-col gap-3">
             {terms.map((t, i) => (
-              <li key={i} className="flex items-start gap-2.5 text-white/55 text-sm font-body leading-relaxed">
+              <li key={i} className="flex items-start gap-2.5 text-white/74 text-sm font-body leading-relaxed">
                 <CheckCircle2 size={15} className="text-gold shrink-0 mt-0.5" />
                 {t}
               </li>
@@ -199,7 +199,7 @@ export default function Affiliates() {
       <section className="max-w-3xl mx-auto px-4 pb-24 text-center">
         <div className="section-divider max-w-xs mx-auto mb-8" />
         <h2 className="gold-text font-black text-2xl mb-3 tracking-wide">Ready to Start Earning?</h2>
-        <p className="text-white/55 font-body text-sm mb-8">
+        <p className="text-white/74 font-body text-sm mb-8">
           Join the Jackpots World Affiliate Program today — it's free, and your dashboard is ready the moment you sign up.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">

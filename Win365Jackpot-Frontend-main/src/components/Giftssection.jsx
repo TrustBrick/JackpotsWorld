@@ -190,7 +190,7 @@ function FeaturedCard({ gift }) {
           </div>
           <TierBadge tier={gift.tier} color={gift.tierColor} />
           <div style={{ marginTop: 16, textAlign: 'center' }}>
-            <div style={{ fontSize: 9, color: 'rgba(var(--w365-text-rgb),0.35)', letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 4 }}>Market Value</div>
+            <div style={{ fontSize: 9, color: 'rgba(var(--w365-text-rgb),0.55)', letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 4 }}>Market Value</div>
             <div style={{ fontSize: 26, fontWeight: 900, color: gift.accent }}>{gift.value}</div>
           </div>
         </div>
@@ -204,12 +204,12 @@ function FeaturedCard({ gift }) {
             <p style={{ fontSize: 12, color: `${gift.accent}90`, margin: '0 0 14px', letterSpacing: '0.04em' }}>
               {gift.subtitle}
             </p>
-            <p style={{ fontSize: 13, color: 'rgba(var(--w365-text-rgb),0.5)', lineHeight: 1.7, margin: '0 0 20px', maxWidth: 560 }}>
+            <p style={{ fontSize: 13, color: 'rgba(var(--w365-text-rgb),0.70)', lineHeight: 1.7, margin: '0 0 20px', maxWidth: 560 }}>
               {gift.description}
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '6px 24px', marginBottom: 24 }}>
               {gift.perks.map((perk, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: 'rgba(var(--w365-text-rgb),0.65)' }}>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: 'rgba(var(--w365-text-rgb),0.80)' }}>
                   <span style={{ width: 5, height: 5, borderRadius: '50%', background: gift.accent, flexShrink: 0 }} />
                   {perk}
                 </div>
@@ -310,13 +310,13 @@ function GiftCard({ gift, index }) {
       <div style={{ padding: '20px 20px 24px', flex: 1, display: 'flex', flexDirection: 'column' }}>
         <h3 style={{ fontSize: 17, fontWeight: 900, color: 'var(--w365-text)', margin: '0 0 3px' }}>{gift.name}</h3>
         <p style={{ fontSize: 10, color: `${gift.accent}85`, margin: '0 0 10px', letterSpacing: '0.04em' }}>{gift.subtitle}</p>
-        <p style={{ fontSize: 12, color: 'rgba(var(--w365-text-rgb),0.45)', lineHeight: 1.65, margin: '0 0 14px', flex: 1 }}>
+        <p style={{ fontSize: 12, color: 'rgba(var(--w365-text-rgb),0.64)', lineHeight: 1.65, margin: '0 0 14px', flex: 1 }}>
           {gift.description}
         </p>
 
         <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
           {gift.perks.map((perk, i) => (
-            <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11, color: 'rgba(var(--w365-text-rgb),0.6)' }}>
+            <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11, color: 'rgba(var(--w365-text-rgb),0.78)' }}>
               <span style={{ width: 4, height: 4, borderRadius: '50%', background: gift.accent, flexShrink: 0 }} />
               {perk}
             </li>
@@ -336,7 +336,7 @@ function GiftCard({ gift, index }) {
             </span>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 8, color: 'rgba(var(--w365-text-rgb),0.3)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 2 }}>
+            <div style={{ fontSize: 8, color: 'rgba(var(--w365-text-rgb),0.50)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 2 }}>
               Market Value
             </div>
             <div style={{ fontSize: 15, fontWeight: 900, color: gift.accent }}>{gift.value}</div>
@@ -460,7 +460,7 @@ export default function GiftsSection() {
             initial={{ opacity: 0 }}
             animate={headerInView ? { opacity: 1 } : {}}
             transition={{ delay: 0.3 }}
-            style={{ fontSize: 'clamp(13px,2vw,16px)', color: 'rgba(var(--w365-text-rgb),0.5)', maxWidth: 560, margin: '0 auto', lineHeight: 1.7 }}
+            style={{ fontSize: 'clamp(13px,2vw,16px)', color: 'rgba(var(--w365-text-rgb),0.70)', maxWidth: 560, margin: '0 auto', lineHeight: 1.7 }}
           >
             Highrollers play differently. Walk away with a{' '}
             <span style={{ color: '#D4AF37' }}>Rolex, BMW, Mercedes-Benz</span>{' '}
@@ -502,7 +502,7 @@ export default function GiftsSection() {
                 Earn & Redeem
               </span>
             </h3>
-            <p style={{ fontSize: 12, color: 'rgba(var(--w365-text-rgb),0.35)', letterSpacing: '0.1em' }}>
+            <p style={{ fontSize: 12, color: 'rgba(var(--w365-text-rgb),0.55)', letterSpacing: '0.1em' }}>
               4 simple steps to your dream prize
             </p>
           </div>
@@ -535,7 +535,7 @@ export default function GiftsSection() {
                 </div>
                 <div style={{ fontSize: 28, marginBottom: 12, marginTop: 4 }}>{step.icon}</div>
                 <div style={{ fontSize: 13, fontWeight: 800, color: 'rgba(var(--w365-text-rgb),0.85)', marginBottom: 6 }}>{step.label}</div>
-                <div style={{ fontSize: 11, color: 'rgba(var(--w365-text-rgb),0.4)', lineHeight: 1.6 }}>{step.description}</div>
+                <div style={{ fontSize: 11, color: 'rgba(var(--w365-text-rgb),0.60)', lineHeight: 1.6 }}>{step.description}</div>
                 {i < steps.length - 1 && (
                   <div style={{
                     position: 'absolute', right: -8, top: '50%', transform: 'translateY(-50%)',
@@ -564,7 +564,7 @@ export default function GiftsSection() {
           <h3 style={{ fontSize: 'clamp(20px,4vw,36px)', fontWeight: 900, color: 'var(--w365-text)', margin: '0 0 12px', lineHeight: 1.2 }}>
             Your Dream Prize Awaits
           </h3>
-          <p style={{ fontSize: 13, color: 'rgba(var(--w365-text-rgb),0.5)', maxWidth: 480, margin: '0 auto 32px', lineHeight: 1.7 }}>
+          <p style={{ fontSize: 13, color: 'rgba(var(--w365-text-rgb),0.70)', maxWidth: 480, margin: '0 auto 32px', lineHeight: 1.7 }}>
             {/* "start playing as a Highroller" read as playing HERE. Play
                 happens at the destination casino; this platform gets you the
                 referral. The member count stays — it is the one figure the

@@ -63,14 +63,14 @@ export default function TeenPattiFilters({ options, value, onChange, resultCount
 
         <div className="ml-auto flex items-center gap-3">
           {resultCount != null && (
-            <span className="text-[11px] font-body text-white/40">
+            <span className="text-[11px] font-body text-white/60">
               {t('filters.eventCount', { count: resultCount })}
             </span>
           )}
           {hasActiveFilter && (
             <button
               onClick={() => onChange({ status: value.status || '' })}
-              className="flex items-center gap-1 text-[11px] font-bold tracking-wider uppercase text-white/45 hover:text-gold transition-colors"
+              className="flex items-center gap-1 text-[11px] font-bold tracking-wider uppercase text-white/64 hover:text-gold transition-colors"
             >
               <X size={12} /> {t('filters.clear')}
             </button>
@@ -80,7 +80,7 @@ export default function TeenPattiFilters({ options, value, onChange, resultCount
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
         <div>
-          <label className="block text-[10px] uppercase tracking-widest text-white/35 font-body mb-1.5">{t('filters.country')}</label>
+          <label className="block text-[10px] uppercase tracking-widest text-white/55 font-body mb-1.5">{t('filters.country')}</label>
           <select
             style={selectStyle}
             value={value.country || ''}
@@ -94,7 +94,7 @@ export default function TeenPattiFilters({ options, value, onChange, resultCount
         </div>
 
         <div>
-          <label className="block text-[10px] uppercase tracking-widest text-white/35 font-body mb-1.5">{t('filters.city')}</label>
+          <label className="block text-[10px] uppercase tracking-widest text-white/55 font-body mb-1.5">{t('filters.city')}</label>
           <select style={selectStyle} value={value.city || ''} onChange={e => set({ city: e.target.value })}>
             <option value="">{t('filters.allCities')}</option>
             {(options.cities || []).map(c => <option key={c} value={c}>{c}</option>)}
@@ -102,7 +102,7 @@ export default function TeenPattiFilters({ options, value, onChange, resultCount
         </div>
 
         <div>
-          <label className="block text-[10px] uppercase tracking-widest text-white/35 font-body mb-1.5">{t('filters.casino')}</label>
+          <label className="block text-[10px] uppercase tracking-widest text-white/55 font-body mb-1.5">{t('filters.casino')}</label>
           <select style={selectStyle} value={value.casino || ''} onChange={e => set({ casino: e.target.value })}>
             <option value="">{t('filters.allCasinos')}</option>
             {casinos.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -110,7 +110,7 @@ export default function TeenPattiFilters({ options, value, onChange, resultCount
         </div>
 
         <div>
-          <label className="block text-[10px] uppercase tracking-widest text-white/35 font-body mb-1.5">{t('filters.fromDate')}</label>
+          <label className="block text-[10px] uppercase tracking-widest text-white/55 font-body mb-1.5">{t('filters.fromDate')}</label>
           <input
             type="date"
             style={selectStyle}
@@ -120,7 +120,7 @@ export default function TeenPattiFilters({ options, value, onChange, resultCount
         </div>
 
         <div>
-          <label className="block text-[10px] uppercase tracking-widest text-white/35 font-body mb-1.5">{t('filters.maxEntryFee')}</label>
+          <label className="block text-[10px] uppercase tracking-widest text-white/55 font-body mb-1.5">{t('filters.maxEntryFee')}</label>
           <input
             type="number"
             min="0"
@@ -132,7 +132,7 @@ export default function TeenPattiFilters({ options, value, onChange, resultCount
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 mt-3 text-[10px] font-body text-white/25">
+      <div className="flex items-center gap-1.5 mt-3 text-[10px] font-body text-white/40">
         <SlidersHorizontal size={11} /> {t('filters.applyInstantly')}
       </div>
     </div>

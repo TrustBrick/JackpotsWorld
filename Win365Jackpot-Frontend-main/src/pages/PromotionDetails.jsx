@@ -73,7 +73,7 @@ export default function PromotionDetails() {
 
         <button
           onClick={() => navigate('/promotions')}
-          className="flex items-center gap-1.5 text-sm font-body text-white/50 hover:text-gold transition-colors mb-6"
+          className="flex items-center gap-1.5 text-sm font-body text-white/70 hover:text-gold transition-colors mb-6"
         >
           <ArrowLeft size={15} /> Back to Promotions
         </button>
@@ -81,7 +81,7 @@ export default function PromotionDetails() {
         {loading ? (
           <div className="casino-card h-[420px] animate-pulse" style={{ opacity: 0.5 }} />
         ) : error || !promo ? (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-24 text-white/40">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-24 text-white/60">
             <AlertTriangle size={40} className="mb-4 text-red-400/60" />
             <p className="font-body mb-4">Couldn't load this promotion.</p>
             <button onClick={load} className="btn-outline-gold rounded-full px-5 py-2 text-sm font-bold flex items-center gap-2">
@@ -113,7 +113,7 @@ export default function PromotionDetails() {
                   {promo.casino_name && (
                     <span className="text-white/90 text-sm font-body font-semibold">{promo.casino_name}</span>
                   )}
-                  <span className="text-white/60 text-xs font-body flex items-center gap-1">
+                  <span className="text-white/78 text-xs font-body flex items-center gap-1">
                     <span className="flag text-sm leading-none">{flagFromCountryCode(promo.country_code)}</span>
                     {promo.country}
                   </span>
@@ -171,10 +171,10 @@ export default function PromotionDetails() {
             <div className="p-6 md:p-8">
               <h1 className="font-black text-2xl md:text-3xl text-white/90 mb-4">{promo.title}</h1>
 
-              {promo.description && <p className="text-white/60 text-sm font-body leading-relaxed mb-5">{promo.description}</p>}
+              {promo.description && <p className="text-white/78 text-sm font-body leading-relaxed mb-5">{promo.description}</p>}
 
               {promo.validity_text && (
-                <div className="flex items-center gap-2 text-sm font-body text-white/60 mb-2">
+                <div className="flex items-center gap-2 text-sm font-body text-white/78 mb-2">
                   <CalendarClock size={15} className="text-gold" /> {promo.validity_text}
                 </div>
               )}
@@ -187,7 +187,7 @@ export default function PromotionDetails() {
               {promo.benefits?.length > 0 && (
                 <ul className="flex flex-col gap-2 mb-6">
                   {promo.benefits.map((b, i) => (
-                    <li key={i} className="flex items-center gap-2 text-sm font-body text-white/55">
+                    <li key={i} className="flex items-center gap-2 text-sm font-body text-white/74">
                       <CheckCircle2 size={14} className="text-gold" /> {b}
                     </li>
                   ))}
@@ -199,7 +199,7 @@ export default function PromotionDetails() {
                   <div className="flex items-center gap-1.5 text-xs font-body uppercase tracking-widest text-gold/70 mb-2">
                     <ScrollText size={12} /> Terms &amp; Conditions
                   </div>
-                  <p className="text-white/40 text-xs font-body leading-relaxed whitespace-pre-line">{promo.terms_conditions}</p>
+                  <p className="text-white/60 text-xs font-body leading-relaxed whitespace-pre-line">{promo.terms_conditions}</p>
                 </div>
               )}
 
@@ -230,7 +230,7 @@ export default function PromotionDetails() {
           >
             <button
               onClick={() => setLightbox(null)}
-              className="absolute top-5 right-5 text-white/60 hover:text-gold transition-colors"
+              className="absolute top-5 right-5 text-white/78 hover:text-gold transition-colors"
             >
               <X size={22} />
             </button>
