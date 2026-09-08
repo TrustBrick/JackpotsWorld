@@ -82,6 +82,29 @@ from .support_script_models import SupportScript
 # itself) to remove the feature. See analytics_models.py's docstring.
 from .analytics_models import AnalyticsEvent, Campaign, Visitor, VisitorSession
 
+# FAQ: Back-Office-managed questions for the landing and affiliate pages.
+from .faq_models import FAQ
+
+# ANDHAR-BAHAR: the third game section. Imported here for the same reason
+# SupportTicket is above -- the registry must know these models regardless of
+# which other module happens to import them first.
+from .andhar_bahar_models import (
+    AndharBaharContent, AndharBaharHighlight, AndharBaharStep, AndharBaharEvent,
+    AndharBaharRegistration,
+)
+
+# SUPPORT-COMMUNICATION: departments, call transfer/hold records and per-player
+# chat/call restrictions, layered on the live-chat + voice-call stack above.
+# Imported after call_models because CallTransfer/CallHoldEvent point at
+# CallSession.
+from .support_communication_models import (
+    SupportDepartment,
+    CallTransfer,
+    CallHoldEvent,
+    PlayerCommunicationRestriction,
+    PlayerCommunicationRestrictionLog,
+)
+
 __all__ = [
     # User models
     "User",
@@ -137,4 +160,18 @@ __all__ = [
     "VisitorSession",
     # SUPPORT-SCRIPT
     "SupportScript",
+    # FAQ
+    "FAQ",
+    # ANDHAR-BAHAR
+    "AndharBaharContent",
+    "AndharBaharHighlight",
+    "AndharBaharStep",
+    "AndharBaharEvent",
+    "AndharBaharRegistration",
+    # SUPPORT-COMMUNICATION
+    "SupportDepartment",
+    "CallTransfer",
+    "CallHoldEvent",
+    "PlayerCommunicationRestriction",
+    "PlayerCommunicationRestrictionLog",
 ]

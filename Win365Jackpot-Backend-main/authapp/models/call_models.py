@@ -142,6 +142,16 @@ EVENT_ENDED = "ended"
 EVENT_FAILED = "failed"
 EVENT_TIMEOUT = "timeout"
 EVENT_RECORDED = "recorded"
+# Hold and forwarding. Added to the same audit stream the existing transitions
+# already write to, rather than a parallel one, so a call's history reads as a
+# single ordered sequence — "accepted, connected, held, forwarded, resumed,
+# ended" — instead of two tables an operator has to interleave by hand.
+# CallHoldEvent/CallTransfer carry the detail (durations, targets, reasons);
+# these are the timeline entries pointing at them.
+EVENT_HOLD = "hold"
+EVENT_RESUME = "resume"
+EVENT_TRANSFER = "transfer"
+EVENT_TRANSFERRED = "transferred"
 
 CALL_EVENT_CHOICES = [
     (EVENT_INITIATED, "Initiated"),
@@ -151,6 +161,10 @@ CALL_EVENT_CHOICES = [
     (EVENT_CONNECTED, "Connected"),
     (EVENT_MUTE,      "Mute"),
     (EVENT_UNMUTE,    "Unmute"),
+    (EVENT_HOLD,      "Hold"),
+    (EVENT_RESUME,    "Resume"),
+    (EVENT_TRANSFER,  "Transfer requested"),
+    (EVENT_TRANSFERRED, "Transferred"),
     (EVENT_ENDED,     "Ended"),
     (EVENT_FAILED,    "Failed"),
     (EVENT_TIMEOUT,   "Timeout"),
@@ -210,6 +224,97 @@ class VoiceCallSettings(models.Model):
     which is the one thing this feature must never do.
     """
     recording_enabled = models.BooleanField(default=True)
+
+    # ── Live Support settings ───────────────────────────────────────────────
+    # Everything below is new. It lives on THIS row, not on a second
+    # "LiveSupportSettings" singleton, because a second one would mean two
+    # places to look for "is calling on?" and two rows that can disagree. The
+    # model keeps its historical name (renaming it would rewrite a table and
+    # every import for no behavioural gain) and its verbose name now says what
+    # it actually is.
+    #
+    # Every default below reproduces the behaviour that existed before these
+    # columns did: chat and calls on, hold and forwarding on, messages at the
+    # wording already shown. Adding the settings changed nothing until an
+    # admin changes something.
+
+    # Master availability switches. These are platform-wide; the per-player
+    # controls are PlayerCommunicationRestriction (a different question).
+    chat_enabled = models.BooleanField(default=True)
+    calls_enabled = models.BooleanField(default=True)
+
+    # Working hours, in the project timezone. Both blank = always open, which
+    # is what the desk did before this existed.
+    working_hours_start = models.TimeField(null=True, blank=True)
+    working_hours_end = models.TimeField(null=True, blank=True)
+    # Hard "we are closed today" override that does not require editing hours.
+    holiday_mode = models.BooleanField(default=False)
+
+    # Ring timeout in seconds. 0 defers to settings.VOICE_CALL_RING_TIMEOUT_SECONDS,
+    # so an unset value keeps the deployment's existing behaviour rather than
+    # imposing a new one.
+    ring_timeout_seconds = models.PositiveIntegerField(default=0)
+
+    # ── Hold ────────────────────────────────────────────────────────────────
+    hold_enabled = models.BooleanField(default=True)
+    # The audio the held party hears, played by their own browser (there is no
+    # media server to inject it — see the module docstring). Uploaded by an
+    # admin, so the rights question is answered by whoever uploads it; nothing
+    # ships a copyrighted track and no default file is bundled. With this
+    # blank, clients fall back to a generated periodic comfort tone — a plain
+    # sine burst synthesised in the browser via WebAudio, which is not a
+    # recording and carries no rights at all.
+    hold_audio = models.FileField(
+        upload_to="support/hold_audio/", max_length=255, null=True, blank=True,
+    )
+    hold_message = models.CharField(
+        max_length=300,
+        default="Please hold — your support agent will be back with you shortly.",
+    )
+    # Seconds. 0 = no limit. When set, the server resumes the call by itself
+    # so a customer is never left on a silent hold because an agent walked
+    # away; the resume is recorded with auto_resumed=True. The limit is
+    # enforced by the `sweep_expired_calls` command (every minute, see
+    # .ebextensions/02_cron.config) — a hold has no lazy read path that could
+    # expire it, so with no scheduler this value would mean nothing.
+    #
+    # 120s: long enough for an agent to genuinely check something on the
+    # customer's behalf, short enough that a crashed agent tab does not leave
+    # someone listening to hold audio. It shipped as 0, which read as "no
+    # limit configured" rather than as anyone's decision.
+    max_hold_seconds = models.PositiveIntegerField(default=120)
+
+    # ── Forwarding / escalation ─────────────────────────────────────────────
+    forwarding_enabled = models.BooleanField(default=True)
+    # How long a forward rings its target before it is marked timed out and
+    # the call returns to the original agent. 0 defers to the call ring
+    # timeout above.
+    transfer_ring_timeout_seconds = models.PositiveIntegerField(default=0)
+
+    # ── Player-facing messages ──────────────────────────────────────────────
+    # Every string a player can be shown when support is unavailable. Held
+    # here so wording changes are a Back Office edit, never a deploy.
+    offline_message = models.CharField(
+        max_length=300,
+        default="Support is currently offline. Leave a message and our team will reply as soon as we are back.",
+    )
+    queue_message = models.CharField(
+        max_length=300,
+        default="All our agents are busy right now. You are in the queue and will be connected shortly.",
+    )
+    chat_disabled_message = models.CharField(
+        max_length=300,
+        default="Support chat is temporarily unavailable for your account. Please check back later.",
+    )
+    call_disabled_message = models.CharField(
+        max_length=300,
+        default="Support calls are temporarily unavailable for your account. Please check back later.",
+    )
+    call_unavailable_message = models.CharField(
+        max_length=300,
+        default="Voice calling is not available right now. Please continue on chat and we will help you there.",
+    )
+
     updated_at = models.DateTimeField(auto_now=True)
     updated_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
@@ -217,8 +322,8 @@ class VoiceCallSettings(models.Model):
     )
 
     class Meta:
-        verbose_name = "Voice call settings"
-        verbose_name_plural = "Voice call settings"
+        verbose_name = "Live support settings"
+        verbose_name_plural = "Live support settings"
 
     def __str__(self):
         return "Voice Call Settings"
@@ -292,6 +397,33 @@ class CallSession(models.Model):
     # Duplicate guard — see the module docstring. Never set from client input.
     active_key = models.PositiveBigIntegerField(null=True, blank=True, default=None)
 
+    # ── Hold / transfer ─────────────────────────────────────────────────────
+    # HOLD AND TRANSFER ARE NOT STATUSES, deliberately. A held call is still
+    # `connected` — the WebRTC session is up, the peers are still negotiated,
+    # and only the audio tracks are disabled. Modelling hold as a status would
+    # mean every `status == "connected"` check in the service, the consumer and
+    # the frontend silently stopped matching a call that is very much still
+    # connected, and the recorder would tear down mid-call.
+    #
+    # So they are orthogonal flags, and `display_status` below composes them
+    # into the single word an operator wants to read ("On Hold", "Forwarding").
+    # That keeps one vocabulary in the UI without a second state machine
+    # underneath it.
+    is_on_hold = models.BooleanField(default=False, db_index=True)
+    hold_started_at = models.DateTimeField(null=True, blank=True)
+    # Accumulated across every hold period, so a call held three times reports
+    # the total the customer actually spent waiting. Maintained by
+    # voice_call_service.resume_call() when each period closes.
+    total_hold_seconds = models.PositiveIntegerField(default=0)
+
+    # Set while a CallTransfer is pending. Denormalised (rather than derived
+    # from the transfers relation) because it is read on every state broadcast,
+    # and a related query per broadcast is a per-frame cost on the hot path.
+    is_transferring = models.BooleanField(default=False)
+    # How many times this call has been successfully forwarded. Lets history
+    # show "escalated twice" without walking the transfer rows.
+    transfer_count = models.PositiveSmallIntegerField(default=0)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -316,6 +448,57 @@ class CallSession(models.Model):
     @property
     def is_active(self):
         return self.status in ACTIVE_STATUSES
+
+    @property
+    def display_status(self):
+        """The single word an operator reads, composed from `status` plus the
+        orthogonal hold/transfer flags above.
+
+        This is the ONLY place the composition happens — the API serialises
+        it, the Back Office renders it, and the customer widget shows it, so
+        the three can never disagree about what "on hold" looks like. The
+        underlying `status` column is untouched and still means exactly what it
+        always did.
+        """
+        if self.status == STATUS_CONNECTED:
+            # FORWARDING OUTRANKS HOLD, and the order matters: requesting a
+            # transfer puts the customer on hold for the ring, so both flags
+            # are set at once. "On hold" would then be technically true and
+            # actively misleading — an agent watching the desk needs to know
+            # the call is being handed over, not that someone is waiting. The
+            # hold is a consequence of the forward, not the point of it.
+            if self.is_transferring:
+                return "forwarding"
+            if self.is_on_hold:
+                return "on_hold"
+            # A live call that has been handed over is, right now, simply a
+            # live call — the new agent needs "connected", not a label about
+            # how it got to them. That it WAS escalated is what history cares
+            # about, and that is the terminal branch below.
+            return STATUS_CONNECTED
+        if self.status in TERMINAL_STATUSES and self.transfer_count:
+            # "Forwarded" is an outcome, not a state: this call ended on a
+            # different agent than it started with. A manager reviewing the day
+            # needs to see that at a glance rather than by opening the transfer
+            # list on every row. `end_reason` still says HOW it ended, so
+            # nothing is lost by labelling it this way.
+            return "forwarded"
+        # NOTE on "calling": it is a caller-side reading of `ringing`, not a
+        # separate server state — one row cannot be two words at once, and the
+        # difference is purely who is looking. The customer widget renders it
+        # from its own PHASE.CALLING (components/support/ActiveCallModal.jsx),
+        # which is the moment between placing the call and an agent accepting.
+        # The desk sees the same row as "ringing", which is what it is to them.
+        return self.status
+
+    @property
+    def live_hold_seconds(self):
+        """total_hold_seconds plus the period currently open, if any — so a
+        call that is on hold *right now* reports a hold time that grows."""
+        total = self.total_hold_seconds
+        if self.is_on_hold and self.hold_started_at:
+            total += int((timezone.now() - self.hold_started_at).total_seconds())
+        return total
 
     @property
     def has_recording(self):

@@ -341,8 +341,9 @@ class PremiumPartner(models.Model):
 
 
 class SectionMedia(models.Model):
-    """Cinematic hero media for the Teen Patti and Poker pages — the two side
-    video/image cards and the low-opacity background watermark layer.
+    """Cinematic hero media for the game pages (Teen Patti, Poker, Andhar
+    Bahar) — the framed hero media card and the low-opacity background
+    watermark layer.
 
     Same shape as PremiumPartner (Back Office managed, image+video sharing
     the same upload validators) but scoped to a fixed visual slot rather
@@ -352,13 +353,22 @@ class SectionMedia(models.Model):
     concept (a showcased partner casino) and conflating it with decorative
     page media would blur two unrelated things.
 
-    `section` keeps Teen Patti and Poker media hard-separated at the model
-    level: the two Back Office admin views (see views/landing_views.py)
-    each hardcode which section they serve and force it on every write, so
-    a row can never move between sections through the API.
+    `section` keeps each page's media hard-separated at the model level: the
+    Back Office admin views (see views/landing_views.py) each hardcode which
+    section they serve and force it on every write, so a row can never move
+    between sections through the API.
     """
 
-    SECTION_CHOICES = [("teen_patti", "Teen Patti"), ("poker", "Poker")]
+    SECTION_CHOICES = [
+        ("teen_patti", "Teen Patti"),
+        ("poker", "Poker"),
+        # ANDHAR-BAHAR: the third game page reuses this model rather than
+        # getting a media model of its own. `section` already hard-separates
+        # the pages at the model level and each admin view forces its own
+        # value on every write, so adding a section is additive and cannot
+        # let one page's media leak into another's.
+        ("andhar_bahar", "Andhar Bahar"),
+    ]
     # Two slots are live, and they are deliberately separate rows so an admin
     # can give a section two DIFFERENT clips:
     #

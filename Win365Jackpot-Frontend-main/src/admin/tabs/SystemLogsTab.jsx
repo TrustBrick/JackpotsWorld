@@ -1,9 +1,8 @@
 import React, { useState } from "react";
-import { LineChart, Megaphone, MousePointerClick, PlayCircle, UserCheck, Users, Pointer, Stethoscope } from "lucide-react";
+import { LineChart, Megaphone, PlayCircle, UserCheck, Users, Pointer, Stethoscope } from "lucide-react";
 import { useAdminTheme } from "../context/AdminThemeContext";
 import AnalyticsOverviewTab from "./analytics/AnalyticsOverviewTab";
 import CampaignAnalyticsTab from "./analytics/CampaignAnalyticsTab";
-import UrlAnalyticsTab from "./analytics/UrlAnalyticsTab";
 import VideoAnalyticsTab from "./analytics/VideoAnalyticsTab";
 import MemberEngagementTab from "./analytics/MemberEngagementTab";
 import VisitorAnalyticsTab from "./analytics/VisitorAnalyticsTab";
@@ -21,6 +20,12 @@ import AnalyticsDiagnosticTab from "./analytics/AnalyticsDiagnosticTab";
  * change what it shows, and if any of these ever needs to go back to being
  * its own sidebar item, it can, because nothing was folded into this file.
  *
+ * URL Analytics was removed from this row on request, along with its
+ * component, its /api/admin-panel/analytics/urls/ endpoint and the
+ * urls_report aggregation behind it. Campaign Analytics is unaffected and
+ * still counts the same url_click events -- see the note in
+ * services/analytics_service.py for what stayed and why.
+ *
  * Deliberately distinct from Activity Logs (tabs/LogsTab.jsx). That page is
  * the who-did-what audit trail — User Logs and Admin Logs — and answers
  * questions about people. This one answers questions about the system:
@@ -35,7 +40,6 @@ import AnalyticsDiagnosticTab from "./analytics/AnalyticsDiagnosticTab";
 const TABS = [
   { id: "overview", label: "Overview", icon: LineChart, Component: AnalyticsOverviewTab },
   { id: "campaigns", label: "Campaign Analytics", icon: Megaphone, Component: CampaignAnalyticsTab },
-  { id: "urls", label: "URL Analytics", icon: MousePointerClick, Component: UrlAnalyticsTab },
   { id: "videos", label: "Video Analytics", icon: PlayCircle, Component: VideoAnalyticsTab },
   { id: "members", label: "Member Analytics", icon: UserCheck, Component: MemberEngagementTab },
   // VISITOR-ANALYTICS: who came and from where, what got clicked, and a

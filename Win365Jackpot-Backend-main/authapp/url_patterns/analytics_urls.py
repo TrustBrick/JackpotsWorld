@@ -10,7 +10,6 @@ from authapp.views.analytics_views import (
     AnalyticsEventIngestView,
     CampaignClickRedirectView,
     AdminAnalyticsOverviewView,
-    AdminAnalyticsUrlsView,
     AdminAnalyticsVideosView,
     AdminAnalyticsVideoDetailView,
     AdminAnalyticsLocationsView,
@@ -36,7 +35,6 @@ public_urlpatterns = [
 # Admin-only — mounted at api/admin-panel/ (all IsAdminOrSuperAdmin)
 admin_urlpatterns = [
     path("analytics/overview/", AdminAnalyticsOverviewView.as_view()),
-    path("analytics/urls/", AdminAnalyticsUrlsView.as_view()),
     path("analytics/videos/", AdminAnalyticsVideosView.as_view()),
     # VISITOR-ANALYTICS: the more specific /viewers/ route MUST come before
     # the <content_id> catch-all — Django resolves in order, and a content_id

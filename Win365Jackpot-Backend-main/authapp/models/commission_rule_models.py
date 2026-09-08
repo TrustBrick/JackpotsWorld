@@ -5,8 +5,8 @@ Country + Casino + Affiliate scoped commission rules — the third and most
 specific layer of the commission stack. The full dispatch order, implemented
 in services/commission_rule_service.resolve_rule():
 
-  1. CommissionRule  (this module)  — country/casino/affiliate scoped, tiered,
-                                      condition-gated
+  1. CommissionRule  (this module)  — country/casino/affiliate/game scoped,
+                                      tiered, condition-gated
   2. CommissionPlan  (affiliate_commission_models.py) — one plan per affiliate
   3. AffiliateProfile.commission_rate — the original flat rate
 
@@ -19,6 +19,13 @@ Country is a plain string matching Casino.country / User.country rather than a
 new Country table — the app has never had one, and introducing it would mean
 migrating every existing country column. Casino is a real FK, since that table
 already exists.
+
+Game (Poker / Teen Patti / Andhar Bahar) is the fourth scope dimension, added
+after the other three. It is a slug from authapp.constants.games — one shared
+vocabulary, so a rule scoped to "poker" and a ledger entry attributed to
+"poker" are talking about the same thing. "" means "any game" and is what every
+rule written before the column existed carries, which is exactly why adding it
+changed nobody's earnings.
 """
 from decimal import Decimal
 
@@ -26,6 +33,9 @@ from django.conf import settings
 from django.db import models
 
 from authapp.models.casino_models import Casino
+from authapp.constants.games import (
+    GAME_FIELD_CHOICES, GAME_LABELS, GAME_UNSPECIFIED, normalise_game,
+)
 
 # Deliberately the same three values as affiliate_commission_models.
 # COMMISSION_TYPES so a rule and a plan describe the same kinds of earning and
@@ -94,11 +104,24 @@ LEDGER_STATUSES = [
 
 # Scope weights behind CommissionRule.specificity. Chosen so that summing the
 # dimensions a rule pins down reproduces Part 34's precedence order exactly:
-#   affiliate+casino+country 7 > affiliate+casino 6 > affiliate+country 5 >
-#   affiliate 4 > casino+country 3 > casino 2 > country 1 > global 0
-_WEIGHT_AFFILIATE = 4
-_WEIGHT_CASINO = 2
-_WEIGHT_COUNTRY = 1
+#   affiliate+casino+country 14 > affiliate+casino 12 > affiliate+country 10 >
+#   affiliate 8 > casino+country 6 > casino 4 > country 2 > global 0
+#
+# GAME was added as a fourth dimension, and the other three weights were
+# DOUBLED rather than game being slotted in above them. That is the whole
+# point: doubling is a monotonic rescale, so the relative order of every
+# pre-existing rule is bit-for-bit what it was, and `game` (weight 1) can only
+# ever break a tie between rules that were already tied. A country-scoped rule
+# still beats a global one; a global "Poker 5%" rule does NOT leapfrog an
+# affiliate-specific arrangement just because it names a game.
+#
+# Composition works the way an admin expects: country=India (2) loses to
+# country=India + game=poker (3), so per-game rates layer on top of regional
+# ones rather than fighting them.
+_WEIGHT_AFFILIATE = 8
+_WEIGHT_CASINO = 4
+_WEIGHT_COUNTRY = 2
+_WEIGHT_GAME = 1
 
 
 class CommissionRule(models.Model):
@@ -114,6 +137,13 @@ class CommissionRule(models.Model):
     casino = models.ForeignKey(
         Casino, null=True, blank=True,
         on_delete=models.CASCADE, related_name="commission_rules",
+    )
+    # The fourth scope dimension. "" means "any game", which is what every
+    # pre-existing rule has and why adding this column changed nothing about
+    # what anybody earns — see _WEIGHT_GAME above for the precedence argument.
+    game = models.CharField(
+        max_length=20, choices=GAME_FIELD_CHOICES, blank=True, default=GAME_UNSPECIFIED,
+        db_index=True,
     )
 
     commission_type = models.CharField(max_length=10, choices=COMMISSION_TYPES, db_index=True)
@@ -167,6 +197,7 @@ class CommissionRule(models.Model):
             models.Index(fields=["is_active", "commission_type", "-specificity"]),
             models.Index(fields=["country", "commission_type"]),
             models.Index(fields=["affiliate", "commission_type"]),
+            models.Index(fields=["game", "commission_type"]),
         ]
 
     def __str__(self):
@@ -181,6 +212,8 @@ class CommissionRule(models.Model):
             parts.append(self.country)
         if self.casino_id:
             parts.append(self.casino.name if self.casino else f"Casino #{self.casino_id}")
+        if self.game:
+            parts.append(GAME_LABELS.get(self.game, self.game))
         return " + ".join(parts) or "Global default"
 
     def compute_specificity(self):
@@ -188,6 +221,7 @@ class CommissionRule(models.Model):
             (_WEIGHT_AFFILIATE if self.affiliate_id else 0)
             + (_WEIGHT_CASINO if self.casino_id else 0)
             + (_WEIGHT_COUNTRY if self.country else 0)
+            + (_WEIGHT_GAME if self.game else 0)
         )
 
     def is_effective_on(self, on_date):
@@ -205,6 +239,10 @@ class CommissionRule(models.Model):
         # country is matched case-insensitively at read time, but storing it
         # consistently keeps the Back Office list from showing near-duplicates.
         self.country = (self.country or "").strip()
+        # Normalised for the same reason country is: the column is matched
+        # exactly at read time, so a stray "Teen-Patti" would silently never
+        # match anything the engine attributes as "teen_patti".
+        self.game = normalise_game(self.game)
         super().save(*args, **kwargs)
 
 
@@ -324,6 +362,18 @@ class CommissionLedgerEntry(models.Model):
     casino = models.ForeignKey(
         Casino, null=True, blank=True, on_delete=models.SET_NULL, related_name="commission_ledger_entries",
     )
+    # Which game generated the qualifying activity this entry priced. "" for
+    # every pre-existing row and for any activity a trigger genuinely cannot
+    # attribute (an offline deposit recorded with no game context) — an honest
+    # blank, never a guess, because "Top Performing Game" has to be a fact.
+    #
+    # This is the column that makes per-game reporting possible without a
+    # separate attribution table: a player is not "a poker player", each piece
+    # of their activity belongs to a game, and that is the grain this records.
+    game = models.CharField(
+        max_length=20, choices=GAME_FIELD_CHOICES, blank=True, default=GAME_UNSPECIFIED,
+        db_index=True,
+    )
 
     rule = models.ForeignKey(
         CommissionRule, null=True, blank=True, on_delete=models.SET_NULL, related_name="ledger_entries",
@@ -401,6 +451,9 @@ class CommissionLedgerEntry(models.Model):
             models.Index(fields=["affiliate", "commission_type"]),
             models.Index(fields=["country", "status"]),
             models.Index(fields=["status", "created_at"]),
+            # Backs the affiliate dashboard's per-game commission breakdown
+            # and its "top performing game" card.
+            models.Index(fields=["affiliate", "game"]),
         ]
         constraints = [
             # Idempotency for the rolling branch (one entry per bet slip per

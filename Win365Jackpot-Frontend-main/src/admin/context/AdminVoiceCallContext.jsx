@@ -33,6 +33,8 @@ import { useVoiceCall, PHASE } from "../../hooks/useVoiceCall";
 import { useAdminTheme } from "./AdminThemeContext";
 import IncomingCallModal from "../../components/support/IncomingCallModal";
 import ActiveCallModal from "../../components/support/ActiveCallModal";
+import TransferCallModal from "../../components/support/TransferCallModal";
+import IncomingTransferModal from "../../components/support/IncomingTransferModal";
 import { adminCallTheme } from "../../components/support/callTheme";
 
 const AdminVoiceCallContext = createContext(null);
@@ -106,6 +108,43 @@ export function AdminVoiceCallProvider({ children }) {
     };
   }, []);
 
+  // Loaded on demand when the agent opens the picker, not on mount: the
+  // roster only matters while a transfer is being chosen, and fetching it for
+  // every agent on every panel load would be a request per session for a list
+  // most of them never open.
+  const fetchTransferTargets = useCallback(async () => {
+    const res = await adminFetch(`${API}/api/admin-panel/live-chat/transfer-targets/`);
+    return res?.ok ? res.json() : null;
+  }, []);
+
+  const [transferOpen, setTransferOpen] = useState(false);
+
+  // Accepting a forward is a multi-step negotiation (accept, subscribe, offer),
+  // not a single post, so the card has to stay put and stay disabled until it
+  // resolves — otherwise the agent presses again and the second accept is
+  // refused, replacing a working call with an error.
+  // Read fresh rather than cached: the whole failure this guards against is a
+  // token that changed under the panel after the socket was already open.
+  const signedInAdmin = (() => {
+    try {
+      return JSON.parse(localStorage.getItem("admin_user") || "{}");
+    } catch {
+      return {};
+    }
+  })();
+
+  const [accepting, setAccepting] = useState(false);
+  const acceptForwardedCall = useCallback(async () => {
+    const transfer = voiceCall.incomingTransfer;
+    if (!transfer || accepting) return;
+    setAccepting(true);
+    try {
+      await voiceCall.acceptTransfer(transfer);
+    } finally {
+      setAccepting(false);
+    }
+  }, [voiceCall, accepting]);
+
   const value = { ...voiceCall, socketConnected: connected, callTheme };
 
   return (
@@ -131,11 +170,46 @@ export function AdminVoiceCallProvider({ children }) {
         speakerSupported={voiceCall.speakerSupported}
         recordingEnabled={voiceCall.recordingEnabled}
         showCallerContact
+        onHold={voiceCall.onHold}
+        transferring={voiceCall.transferring}
+        holdMessage={voiceCall.holdMessage}
+        // The agent's own surface, so both controls are offered here. Hold is
+        // still gated on the server's hold_enabled setting; forwarding is
+        // gated on forwarding_enabled, and the endpoints refuse either way.
+        canHold={voiceCall.holdEnabled}
+        canForward
+        onHoldToggle={() => (voiceCall.onHold ? voiceCall.resumeCall() : voiceCall.holdCall())}
+        onForward={() => setTransferOpen(true)}
         error={voiceCall.error}
         onToggleMute={voiceCall.toggleMute}
         onToggleSpeaker={voiceCall.toggleSpeaker}
         onEnd={voiceCall.endCall}
         onDismiss={voiceCall.endCall}
+        theme={callTheme}
+      />
+      <TransferCallModal
+        open={transferOpen}
+        onClose={() => setTransferOpen(false)}
+        onSubmit={voiceCall.transferCall}
+        fetchTargets={fetchTransferTargets}
+        theme={callTheme}
+      />
+      {/* A colleague has forwarded a call here. Rendered at panel level like
+          the incoming-call card above, for the same reason: an escalation is
+          an interruption, and one that only reaches an agent while they happen
+          to have Live Support open is not one. */}
+      <IncomingTransferModal
+        transfer={voiceCall.incomingTransfer}
+        onAccept={acceptForwardedCall}
+        onDecline={() => voiceCall.respondToTransfer(voiceCall.incomingTransfer?.id, "decline")}
+        // Taking a forwarded call needs the same browser capabilities as
+        // answering any other one. Without this the card offered a button that
+        // could not work and said nothing when it didn't.
+        canAccept={voiceCall.supported}
+        busy={accepting}
+        error={voiceCall.error}
+        signedInAdminId={signedInAdmin?.id ?? null}
+        signedInAs={signedInAdmin?.email || ""}
         theme={callTheme}
       />
     </AdminVoiceCallContext.Provider>

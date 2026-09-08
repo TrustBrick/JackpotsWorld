@@ -591,6 +591,40 @@ class VoiceCallConfigTests(VoiceCallTestBase):
         res = self.client.get("/api/live-chat/calls/config/")
         self.assertEqual(res.status_code, 401)
 
+    def test_hold_audio_url_is_absolute_so_the_frontend_origin_cannot_break_it(self):
+        """A relative /media/ path is resolved against whatever origin the SPA
+        is served from, which is only the API's origin when Django serves the
+        built bundle. Split origins (Vite on :5173 talking to :8000, or a CDN
+        in front of the SPA) turned the uploaded hold tune into the frontend's
+        own SPA fallback: 200 text/html, an <audio> that cannot decode it, and
+        a customer hearing the generated comfort tone instead.
+        """
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from authapp.models.call_models import VoiceCallSettings
+
+        row = VoiceCallSettings.load()
+        row.hold_audio = SimpleUploadedFile(
+            "hold.mp3", b"ID3 not-really-audio", content_type="audio/mpeg",
+        )
+        row.save()
+        self.addCleanup(row.hold_audio.delete, save=False)
+
+        self._as(self.player)
+        url = self.client.get("/api/live-chat/calls/config/").data["hold_audio_url"]
+        self.assertTrue(
+            url.startswith("http://") or url.startswith("https://"),
+            f"hold_audio_url must be absolute, got {url!r}",
+        )
+        self.assertIn("/media/", url)
+
+    def test_hold_audio_url_is_blank_when_nothing_is_uploaded(self):
+        # Blank is meaningful: the client falls back to the synthesised comfort
+        # tone rather than pointing an <audio> element at nothing.
+        self._as(self.player)
+        self.assertEqual(
+            self.client.get("/api/live-chat/calls/config/").data["hold_audio_url"], "",
+        )
+
     @override_settings(LIVE_CHAT_REALTIME=False)
     def test_calling_is_unavailable_without_cross_process_push(self):
         """On a WSGI-only host the signaling push cannot cross processes, so
@@ -778,9 +812,30 @@ class VoiceCallTurnCredentialTests(VoiceCallTestBase):
         # up — nothing about credentials, other users, or storage. This is an
         # allowlist on purpose: a new key here is a deliberate decision to
         # publish something, not an accident.
+        #
+        # The five hold/restriction keys were added deliberately, and each is
+        # safe to publish to the caller themselves:
+        #   hold_enabled / hold_audio_url / hold_message / max_hold_seconds
+        #       the desk's hold configuration. The agent's Hold button and the
+        #       customer's hold audio are driven from this one payload
+        #       precisely so they cannot be configured differently.
+        #   calls_allowed
+        #       whether THIS caller may call, and the player-safe message if
+        #       not. It never contains the admin's internal reason or note —
+        #       see communication_restriction_service, and the test in
+        #       tests_call_control that asserts it.
         self.assertEqual(
             set(res.data.keys()),
-            {"available", "ice_servers", "ring_timeout_seconds", "recording_enabled"},
+            {
+                "available", "ice_servers", "ring_timeout_seconds", "recording_enabled",
+                "hold_enabled", "hold_audio_url", "hold_message", "max_hold_seconds",
+                "calls_allowed",
+            },
+        )
+        # The restriction block is the player-safe shape only.
+        self.assertEqual(
+            set(res.data["calls_allowed"].keys()),
+            {"allowed", "message", "scope", "until"},
         )
 
 

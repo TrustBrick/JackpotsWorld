@@ -252,16 +252,6 @@ class UrlClickTests(AnalyticsTestBase):
         self.assertEqual(res.url, "/")
         self.assertEqual(AnalyticsEvent.objects.count(), 0)
 
-    def test_url_analytics_report_aggregates_clicks_and_uniques(self):
-        c = self._campaign()
-        for aid in ("clkA", "clkA", "clkB"):  # A twice, B once
-            self.client.get(f"/api/analytics/click/{c.tracking_id}/?aid={aid}0000", HTTP_USER_AGENT=BROWSER_UA)
-        rows = self.admin_get("/api/admin-panel/analytics/urls/", range="30d").data
-        row = next(r for r in rows if r["campaign"] == "august_2026")
-        self.assertEqual(row["clicks"], 3)
-        self.assertEqual(row["unique_visitors"], 2)
-
-
 # ── UTM / campaign attribution ───────────────────────────────────────────────
 class CampaignAttributionTests(AnalyticsTestBase):
     def test_inbound_utm_is_matched_to_a_defined_campaign(self):
@@ -282,11 +272,19 @@ class CampaignAttributionTests(AnalyticsTestBase):
         row = next(r for r in rows if r["id"] == c.id)
         self.assertEqual(row["registrations"], 1)
 
-    def test_utm_without_a_campaign_still_appears_in_url_report(self):
+    def test_utm_without_a_campaign_is_still_recorded_on_the_event(self):
+        """URL Analytics (the report that listed raw UTM triples) was removed,
+        but the UTM columns it read are NOT scaffolding — they are still
+        written on every ingest and still read by campaign matching. This is
+        what proves the removal took the report and not the data."""
         self.ingest({"event_type": "page_view", "anonymous_id": "anonu90001", "session_id": "s",
                      "utm_source": "newsletter", "utm_campaign": "spring_blast"})
-        rows = self.admin_get("/api/admin-panel/analytics/urls/", range="30d").data
-        self.assertTrue(any(r["campaign"] == "spring_blast" for r in rows))
+        ev = AnalyticsEvent.objects.get(anonymous_id="anonu90001")
+        self.assertEqual(ev.utm_source, "newsletter")
+        self.assertEqual(ev.utm_campaign, "spring_blast")
+        # No formally-defined Campaign matches it, so it stays unattributed
+        # rather than being guessed onto one.
+        self.assertIsNone(ev.campaign_id)
 
 
 # ── Video engagement ─────────────────────────────────────────────────────────
@@ -363,7 +361,6 @@ class VideoAnalyticsTests(AnalyticsTestBase):
 class AdminAnalyticsAccessTests(AnalyticsTestBase):
     ADMIN_ENDPOINTS = [
         "/api/admin-panel/analytics/overview/",
-        "/api/admin-panel/analytics/urls/",
         "/api/admin-panel/analytics/videos/",
         "/api/admin-panel/analytics/campaigns/",
         "/api/admin-panel/analytics/locations/",
@@ -612,8 +609,12 @@ class LocationAnalyticsTests(AnalyticsTestBase):
         self.assertEqual(row.region, "")
         self.assertEqual(row.city, "")
         # The read side renders blank as "Unknown" — never invents a place.
+        # The country itself is rendered as its FULL NAME, with the ISO code
+        # kept alongside: the database still stores "IN", the dashboard shows
+        # "India". See utils/countries.py.
         detail = self.admin_get(f"/api/admin-panel/analytics/videos/{self.VID}/", range="30d").data
-        india = next(c for c in detail["locations"] if c["country"] == "IN")
+        india = next(c for c in detail["locations"] if c["country_code"] == "IN")
+        self.assertEqual(india["country"], "India")
         self.assertEqual(india["regions"][0]["region"], "Unknown")
         self.assertEqual(india["regions"][0]["cities"][0]["city"], "Unknown")
 
@@ -677,7 +678,8 @@ class LocationAnalyticsTests(AnalyticsTestBase):
         self.ingest({"event_type": "video_click", "content_type": "video", "content_id": self.VID,
                      "anonymous_id": "clicker_geo", "session_id": "gs5", "client_event_id": "geo-click"}, country="TH")
         detail = self.admin_get(f"/api/admin-panel/analytics/videos/{self.VID}/", range="30d").data
-        thailand = next(c for c in detail["locations"] if c["country"] == "TH")
+        thailand = next(c for c in detail["locations"] if c["country_code"] == "TH")
+        self.assertEqual(thailand["country"], "Thailand")
         self.assertEqual(thailand["viewers"], 1)
         self.assertEqual(thailand["clicks"], 1)
         self.assertEqual(thailand["unique_clickers"], 1)

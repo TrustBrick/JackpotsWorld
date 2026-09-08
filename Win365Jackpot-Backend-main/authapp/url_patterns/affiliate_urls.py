@@ -4,6 +4,8 @@ from authapp.views.affiliate_views import (
     AffiliateLoginView,
     AffiliateApplyView,
     AffiliateDashboardView,
+    AffiliateInsightsView,
+    AffiliateProgramStatsView,
     AffiliateReferralsListView,
     AffiliateTrackClickView,
     AffiliateCommissionsListView,
@@ -34,6 +36,12 @@ public_urlpatterns = [
     path("affiliate/apply/", AffiliateApplyView.as_view()),
     path("affiliate/track-click/", AffiliateTrackClickView.as_view()),
     path("affiliate/dashboard/", AffiliateDashboardView.as_view()),
+    # The metrics beyond commission — see AffiliateInsightsView for why
+    # this is additive rather than folded into dashboard/.
+    path("affiliate/insights/", AffiliateInsightsView.as_view()),
+    # Public, aggregate-only figures for the marketing page. See the view
+    # for what it replaced and why it exposes no individual.
+    path("affiliate/program-stats/", AffiliateProgramStatsView.as_view()),
     path("affiliate/referrals/", AffiliateReferralsListView.as_view()),
     path("affiliate/commissions/", AffiliateCommissionsListView.as_view()),
     path("affiliate/clicks/", AffiliateClickLogListView.as_view()),

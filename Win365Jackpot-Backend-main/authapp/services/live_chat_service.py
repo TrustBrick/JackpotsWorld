@@ -21,7 +21,25 @@ from authapp.models.support_ticket_models import (
     PARTICIPANT_PLAYER,
 )
 
+from authapp.services import communication_restriction_service
+
 logger = logging.getLogger(__name__)
+
+
+class ChatRestricted(Exception):
+    """This user's chat access is closed.
+
+    Carries the player-safe message to show them, and the RestrictionResult
+    behind it so a caller can report the scope (platform / hours / player)
+    without re-running the check. Never carries the admin's internal reason —
+    see communication_restriction_service for why that split matters.
+    """
+
+    def __init__(self, message, *, result=None):
+        super().__init__(message)
+        self.message = message
+        self.result = result
+
 
 LIVE_CHAT_SUBJECT = "Live Chat Session"
 AFFILIATE_LIVE_CHAT_SUBJECT = "Affiliate Live Chat Session"
@@ -54,7 +72,19 @@ def get_or_create_active_session(user, participant_type=PARTICIPANT_PLAYER):
     conversation and player conversation from collapsing into one thread:
     AffiliateProfile is a OneToOne on User, so both portals authenticate as
     the same User row and the FK alone can't tell them apart.
+
+    Raises ChatRestricted when this user's chat access is closed — by the
+    platform switch or by their own restriction row. Deliberately raised HERE
+    rather than checked in the view: this function is what every chat entry
+    point calls, so gating it is what makes the restriction actually hold.
+    An ALREADY-OPEN session is not reopened either, because a restriction that
+    only applies to new conversations is trivially bypassed by keeping one
+    open.
     """
+    allowed = communication_restriction_service.chat_allowed(user)
+    if not allowed.allowed:
+        raise ChatRestricted(allowed.message, result=allowed)
+
     session = (
         SupportTicket.objects
         .filter(

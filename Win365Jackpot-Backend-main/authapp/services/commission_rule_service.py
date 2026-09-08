@@ -8,14 +8,21 @@ can be tested on its own, which is the part most likely to be argued about.
 
 PRECEDENCE (Part 34), most specific wins:
 
-    affiliate + casino + country   (specificity 7)
-    affiliate + casino             (6)
-    affiliate + country            (5)
-    affiliate                      (4)
-    casino + country               (3)
-    casino                         (2)
-    country                        (1)
+    affiliate + casino + country   (specificity 14)
+    affiliate + casino             (12)
+    affiliate + country            (10)
+    affiliate                      (8)
+    casino + country               (6)
+    casino                         (4)
+    country                        (2)
     global default                 (0)
+
+GAME is a fourth dimension worth 1, so it breaks ties WITHIN a level rather
+than jumping between them: `country=India` (2) still loses to `affiliate` (8),
+and `country=India + game=poker` (3) beats plain `country=India` (2). The other
+weights were doubled when game was added, which is a monotonic rescale — the
+order above is exactly the order that existed before, renumbered. See
+commission_rule_models._WEIGHT_GAME.
 
 `priority` (admin-set, higher wins) only breaks ties *within* one specificity
 level — it can never promote a country-wide rule above an affiliate-specific
@@ -33,6 +40,7 @@ import logging
 from django.db.models import Q
 from django.utils import timezone
 
+from authapp.constants.games import normalise_game
 from authapp.models.casino_models import Casino
 from authapp.models.commission_rule_models import CommissionRule
 
@@ -56,13 +64,16 @@ def resolve_casino(casino_name, country=None):
     return matches[0] if len(matches) == 1 else None
 
 
-def resolve_rule(affiliate, *, commission_type, country=None, casino=None, on_date=None):
+def resolve_rule(affiliate, *, commission_type, country=None, casino=None,
+                 game=None, on_date=None):
     """The single entry point for "which rule applies here". Returns a
     CommissionRule or None (None means: fall through to the CommissionPlan
     layer, then to the legacy flat rate).
 
     `casino` may be a Casino instance or None. `country` is a plain string,
-    matched case-insensitively against CommissionRule.country.
+    matched case-insensitively against CommissionRule.country. `game` is a slug
+    from authapp.constants.games, or falsy for activity that is not attributed
+    to any game.
     """
     if not affiliate:
         return None
@@ -70,6 +81,7 @@ def resolve_rule(affiliate, *, commission_type, country=None, casino=None, on_da
     on_date = on_date or timezone.now().date()
     country = (country or "").strip()
     casino_id = getattr(casino, "id", casino) or None
+    game = normalise_game(game)
 
     # Scope match: for each dimension, a rule either leaves it unset (applies
     # to everything) or pins it to exactly this context's value.
@@ -88,6 +100,15 @@ def resolve_rule(affiliate, *, commission_type, country=None, casino=None, on_da
         # can't be shown to apply.
         scope &= Q(casino__isnull=True)
 
+    if game:
+        scope &= (Q(game="") | Q(game=game))
+    else:
+        # Activity we cannot attribute to a game must not be priced by a rule
+        # that claims to be about one — a deposit recorded with no game context
+        # is not evidence of poker play. Same treatment country and casino
+        # already get.
+        scope &= Q(game="")
+
     candidates = CommissionRule.objects.filter(
         scope,
         is_active=True,
@@ -101,13 +122,14 @@ def resolve_rule(affiliate, *, commission_type, country=None, casino=None, on_da
     return candidates.first()
 
 
-def has_commission_rule(affiliate, *, commission_type, country=None, casino=None, on_date=None):
+def has_commission_rule(affiliate, *, commission_type, country=None, casino=None,
+                        game=None, on_date=None):
     """Cheap existence check for the dispatch site, so the trigger can decide
     between the rule engine and the older plan engine without building the
     full rule object twice."""
     return resolve_rule(
         affiliate, commission_type=commission_type,
-        country=country, casino=casino, on_date=on_date,
+        country=country, casino=casino, game=game, on_date=on_date,
     ) is not None
 
 

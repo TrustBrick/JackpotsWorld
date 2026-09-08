@@ -63,6 +63,20 @@ const NEGOTIATION_TIMEOUT_MS = 25000
  * @param {number}   opts.ticketId   customer only; the conversation to call on.
  * @param {boolean}  opts.enabled    false ⇒ do nothing at all (e.g. signed out)
  */
+// Server pushes that carry a full call payload, and are therefore all applied
+// the same way: the row's state wins over whatever this client believed.
+// `call_state` is the generic one; the rest come from the hold/forward layer
+// (see services/call_control_service._push_control_state). Events with their
+// own branch below — call_incoming, the transfer offer/completed/failed
+// notifications, call_renegotiate, call_signal — return before reaching this.
+const STATE_EVENTS = new Set([
+  "call_state",
+  "call_hold",
+  "call_resume",
+  "call_transfer_pending",
+  "call_transferred",
+])
+
 export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, enabled = true }) {
   const [config, setConfig] = useState({
     available: false, ice_servers: [], ring_timeout_seconds: 30, recording_enabled: false,
@@ -77,6 +91,10 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
   // Bumped when a recording finishes uploading, so a call-history list that
   // already rendered re-fetches and picks the audio up.
   const [recordingSavedAt, setRecordingSavedAt] = useState(0)
+  const [onHold, setOnHold] = useState(false)
+  const [transferring, setTransferring] = useState(false)
+  // A colleague's forward waiting for this agent to accept or decline.
+  const [incomingTransfer, setIncomingTransfer] = useState(null)
   // Calls ringing this browser that have not been dealt with yet.
   //
   // A ring is a single broadcast. Previously anything arriving while a card
@@ -89,6 +107,11 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
   const [incomingQueue, setIncomingQueue] = useState([])
 
   const engineRef = useRef(null)
+  // Hold state, and the desk configuration behind it. Both come from the
+  // server: `onHold` from the call_state push (so the two endpoints can
+  // never disagree, and a reloaded tab is corrected), and the audio/limit
+  // from GET call-control-config.
+  const holdConfigRef = useRef({ hold_enabled: true, hold_audio_url: "", hold_message: "" })
   const callRef = useRef(null)
   const phaseRef = useRef(PHASE.IDLE)
   const audioRef = useRef(null)
@@ -170,7 +193,18 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
         const res = await fetcher(`${apiBase}/api/live-chat/calls/config/`)
         if (!res?.ok || cancelled) return
         const json = await res.json()
-        if (!cancelled) setConfig(json)
+        if (cancelled) return
+        setConfig(json)
+        // Mirrored into a ref as well as state: the call_state handler reads
+        // it from inside a useCallback that must not re-create itself every
+        // time the config lands, and a stale closure there would mean the
+        // customer gets the fallback tone instead of the configured audio.
+        holdConfigRef.current = {
+          hold_enabled: json.hold_enabled !== false,
+          hold_audio_url: json.hold_audio_url || "",
+          hold_message: json.hold_message || "",
+          max_hold_seconds: json.max_hold_seconds || 0,
+        }
       } catch { /* leaves available:false — the button stays hidden */ }
     })()
     return () => { cancelled = true }
@@ -185,6 +219,10 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
     if (audioRef.current) audioRef.current.srcObject = null
     setMuted(false)
     setSpeakerOn(true)
+    // The engine's stop() already silences the hold audio; this clears the UI
+    // state so the next call does not open showing a stale "On hold" badge.
+    setOnHold(false)
+    setTransferring(false)
     if (audioRef.current) audioRef.current.muted = false
     setSeconds(0)
   }, [])
@@ -279,6 +317,10 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
     onRemoteStream: (stream) => {
       if (audioRef.current) {
         audioRef.current.srcObject = stream
+        // The engine needs this element to silence what the user HEARS while
+        // on hold. It only ever toggles `muted`; the stream stays attached
+        // here, so resuming is instant rather than a re-attach.
+        engineRef.current?.attachRemoteSink?.(audioRef.current)
         // Autoplay can still be refused if the user has never interacted;
         // both call entry points are a click, so this is a belt-and-braces
         // retry rather than the normal path.
@@ -571,6 +613,142 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
     finish(data || current, PHASE.ENDED)
   }, [post, adminPrefix, finish])
 
+  // ── Hold ──────────────────────────────────────────────────────────────────
+  // The agent asks the SERVER to hold; the server decides, records the period
+  // and pushes the new state to both endpoints. Neither browser flips its own
+  // audio on the click — they both act on the push. That is what stops the two
+  // sides disagreeing when one request fails, and what lets a customer whose
+  // tab reloaded mid-hold be told they are still on hold.
+  const holdCall = useCallback(async () => {
+    const current = callRef.current
+    if (!current) return { ok: false }
+    const { ok, data } = await post(`${adminPrefix}/live-chat/calls/${current.id}/hold/`)
+    if (!ok) setError(data?.error || "Could not put the call on hold.")
+    return { ok, data }
+  }, [post, adminPrefix])
+
+  const resumeCall = useCallback(async () => {
+    const current = callRef.current
+    if (!current) return { ok: false }
+    const { ok, data } = await post(`${adminPrefix}/live-chat/calls/${current.id}/resume/`)
+    if (!ok) setError(data?.error || "Could not take the call off hold.")
+    return { ok, data }
+  }, [post, adminPrefix])
+
+  /** Decline or cancel a forwarded call. Accepting is separate below, because
+   *  it has to do considerably more than post a verb. */
+  const respondToTransfer = useCallback(async (transferId, action) => {
+    if (!transferId) return { ok: false }
+    const { ok, data } = await post(`${adminPrefix}/live-chat/transfers/${transferId}/${action}/`)
+    // Cleared either way. Declining something the server says is no longer
+    // pending still means the agent is done with it, and leaving a card up
+    // that can never be acted on is worse than the failed request.
+    setIncomingTransfer(null)
+    if (!ok) setError(data?.error || "Could not respond to the transfer.")
+    return { ok, data }
+  }, [post, adminPrefix])
+
+  /**
+   * Take over a forwarded call.
+   *
+   * Accepting the transfer is only half of it. The server reassigns
+   * CallSession.receiver — which is what admits this browser to the call's
+   * signaling group and drops the previous agent — but this browser then has
+   * to actually JOIN that group, get a microphone and negotiate with the
+   * customer, exactly as acceptCall does for an inbound ring. Posting the
+   * accept and stopping there would move the call on paper and leave the
+   * customer listening to hold audio for ever.
+   *
+   * The customer's side is told to renegotiate by the server (call_renegotiate),
+   * so both ends rebuild against each other rather than one waiting on a
+   * connection that no longer has a peer.
+   */
+  const acceptTransfer = useCallback(async (transfer) => {
+    const transferId = transfer?.id
+    if (!transferId) return { ok: false }
+    if (!supported) {
+      setError("Your browser doesn't support voice calls.")
+      return { ok: false }
+    }
+    setError("")
+    applyPhase(PHASE.CONNECTING)
+
+    const { ok, data } = await post(`${adminPrefix}/live-chat/transfers/${transferId}/accept/`)
+    if (!ok) {
+      // The card DELIBERATELY stays up. Clearing it here put the panel back in
+      // PHASE.IDLE, where nothing renders an error — so a refused accept (the
+      // ring already lapsed, a colleague took it first) looked exactly like a
+      // button that does nothing. The card is the only surface on screen at
+      // this moment, so it is where the reason has to appear; Decline dismisses
+      // it.
+      setError(data?.error || "This transfer is no longer available.")
+      finish(null, PHASE.IDLE)
+      return { ok: false, data }
+    }
+    setIncomingTransfer(null)
+
+    const callId = data?.call_id
+    if (!callId) {
+      finish(null, PHASE.IDLE)
+      return { ok: false }
+    }
+
+    // Fetch the call itself: the transfer payload identifies it but does not
+    // carry its state, and the surface needs the caller's details.
+    const { data: callData } = await (async () => {
+      const res = await fetcher(`${apiBase}${adminPrefix}/live-chat/calls/${callId}/transfers/`)
+      if (!res?.ok) return { data: null }
+      const json = await res.json().catch(() => null)
+      return { data: json?.call || null }
+    })()
+
+    const activeCall = callData || { id: callId }
+    setCall(activeCall)
+    callRef.current = activeCall
+
+    // Without this frame landing, this browser is not in the call's signaling
+    // group and the offer it is about to send goes nowhere — the same
+    // reasoning as acceptCall.
+    const subscribed = sendSignal?.("call.subscribe", { call_id: callId })
+    if (!subscribed) {
+      setError("The support connection dropped. Please reload the panel and try again.")
+      reportFailed(callId, "network_failure")
+      finish(activeCall, PHASE.FAILED)
+      return { ok: false }
+    }
+
+    const engine = buildEngine()
+    engineRef.current = engine
+    try {
+      // As the OFFERER, not the receiver. The customer's peer connection was
+      // built against the previous agent and has been torn down by the
+      // renegotiate push, so there is no offer waiting to be answered — this
+      // side has to make the new one.
+      await engine.startAsCaller(callId)
+    } catch (err) {
+      const reason = describeMediaError(err).includes("Microphone access is required")
+        ? "permission_denied"
+        : "connection_failed"
+      reportFailed(callId, reason)
+      finish(activeCall, PHASE.FAILED)
+      return { ok: false }
+    }
+    return { ok: true, data }
+  }, [supported, post, adminPrefix, fetcher, apiBase, sendSignal, buildEngine, finish, reportFailed])
+
+  /** Forward the call to a named agent or a department. The customer goes on
+   *  hold for the ring; see call_control_service for the full state machine. */
+  const transferCall = useCallback(async ({ toAgentId = null, toDepartmentId = null, reason = "", note = "" } = {}) => {
+    const current = callRef.current
+    if (!current) return { ok: false }
+    const { ok, data } = await post(
+      `${adminPrefix}/live-chat/calls/${current.id}/transfer/`,
+      { to_agent_id: toAgentId, to_department_id: toDepartmentId, reason, note },
+    )
+    if (!ok) setError(data?.error || "Could not forward the call.")
+    return { ok, data }
+  }, [post, adminPrefix])
+
   const toggleMute = useCallback(() => {
     setMuted(prev => {
       const next = !prev
@@ -620,7 +798,86 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
       return
     }
 
-    if (eventName === "call_state") {
+    // ── Incoming transfer ─────────────────────────────────────────────────
+    // A colleague forwarded a call here, or to a department this agent is in.
+    // Held as state rather than acted on: accepting is a deliberate choice,
+    // and the same first-to-accept race the server resolves for inbound calls
+    // resolves this one too.
+    if (eventName === "call_transfer_offer") {
+      if (role !== "agent" || !data.transfer?.id) return
+      setIncomingTransfer(prev => {
+        if (prev?.id === data.transfer.id) return prev
+        // A new offer starts clean: the reason the LAST one could not be taken
+        // must not sit on this card as if it were about this call.
+        setError("")
+        return data.transfer
+      })
+      return
+    }
+
+    // The transfer this agent started was taken — their leg is over, so the
+    // call surface comes down here while it continues on the colleague's
+    // screen. Ending it locally rather than through the end endpoint: the
+    // call is still live, it just is not this agent's any more.
+    if (eventName === "call_transfer_completed") {
+      if (role !== "agent") return
+      setIncomingTransfer(null)
+      cleanup()
+      setCall(null)
+      callRef.current = null
+      applyPhase(PHASE.IDLE)
+      return
+    }
+
+    // Declined, cancelled or timed out. The card comes down wherever it was
+    // showing; the forwarding agent keeps the call.
+    if (eventName === "call_transfer_failed") {
+      setIncomingTransfer(prev => (
+        prev && prev.id === data.transfer?.id ? null : prev
+      ))
+      return
+    }
+
+    // ── Renegotiation after a transfer ────────────────────────────────────
+    // The call now has a different agent on the other end. This browser's
+    // peer connection was negotiated against the PREVIOUS one and is dead: it
+    // has to be torn down and rebuilt, or the customer sits on a connection
+    // whose peer has gone.
+    //
+    // Customer side only. The new agent is the one that offers (see
+    // acceptTransfer), so this side rebuilds as the receiver and waits.
+    if (eventName === "call_renegotiate") {
+      if (role !== "customer") return
+      const current = callRef.current
+      const callId = data.call?.id || current?.id
+      if (!callId) return
+      try { engineRef.current?.stop() } catch { /* already stopped */ }
+      engineRef.current = null
+      if (data.call) { setCall(data.call); callRef.current = data.call }
+      applyPhase(PHASE.CONNECTING)
+      const engine = buildEngine()
+      engineRef.current = engine
+      try {
+        await engine.startAsReceiver(callId)
+      } catch (err) {
+        reportFailed(callId, "connection_failed")
+        finish(callRef.current, PHASE.FAILED)
+      }
+      return
+    }
+
+    // call_state and the CONTROL events are one branch on purpose: every one of
+    // them carries the same call payload (`call_control_payload` is
+    // `call_payload` plus the hold/transfer flags), and every one of them means
+    // the same thing to a client — "this is the row's current state".
+    //
+    // They were not listed here, and the effect was that hold looked broken
+    // while working perfectly: the server recorded the hold, wrote the
+    // CallHoldEvent and pushed `call_hold` to both browsers, and both browsers
+    // dropped it on the floor because the name did not match. The agent's
+    // button never became "Resume", the customer was never muted and never
+    // heard the hold audio. Nothing below this line had to change.
+    if (STATE_EVENTS.has(eventName)) {
       const server = data.call
       if (!server) return
       const current = callRef.current
@@ -636,6 +893,23 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
         // The other side hung up, declined, or the ring lapsed.
         if (phaseRef.current !== PHASE.IDLE) finish(server, PHASE.ENDED)
         return
+      }
+
+      // HOLD. The server's flag is the authority, so this runs on every
+      // call_state push rather than only on the hold/resume events — a client
+      // that missed one (a dropped socket, a reload) is corrected by the next
+      // state it receives, instead of being left silently out of step.
+      if (typeof server.is_on_hold === "boolean") {
+        setOnHold(server.is_on_hold)
+        engineRef.current?.setHold?.(server.is_on_hold, {
+          holdAudioUrl: holdConfigRef.current.hold_audio_url,
+          // Only the CUSTOMER hears hold audio. An agent who put someone on
+          // hold to go and check something needs a quiet line to do it on.
+          playHoldAudio: role === "customer",
+        })
+      }
+      if (typeof server.is_transferring === "boolean") {
+        setTransferring(server.is_transferring)
       }
       // Still ringing on this screen, but no longer ringing on the server:
       // another agent claimed it. A call rings to every on-duty agent (the
@@ -688,7 +962,7 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
         finish(current, PHASE.FAILED)
       }
     }
-  }, [role, finish, reportFailed, cleanup, applyPhase])
+  }, [role, finish, reportFailed, cleanup, applyPhase, buildEngine, setCall])
 
   // ── Unmount / navigation / tab close ──────────────────────────────────────
   useEffect(() => {
@@ -730,6 +1004,11 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
     speakerOn,
     speakerSupported: true,
     seconds,
+    // Server-decided, not locally toggled — see the call_state handler.
+    onHold,
+    transferring,
+    holdEnabled: !!holdConfigRef.current.hold_enabled,
+    holdMessage: holdConfigRef.current.hold_message,
     isBusy: phase !== PHASE.IDLE && phase !== PHASE.ENDED && phase !== PHASE.FAILED,
     startCall,
     startCallback,
@@ -738,6 +1017,12 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
     endCall,
     toggleMute,
     toggleSpeaker,
+    holdCall,
+    resumeCall,
+    transferCall,
+    incomingTransfer,
+    acceptTransfer,
+    respondToTransfer,
     dismissError: () => setError(""),
     onSocketEvent,
   }

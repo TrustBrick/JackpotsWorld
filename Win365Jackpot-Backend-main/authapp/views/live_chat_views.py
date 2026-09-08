@@ -112,9 +112,21 @@ class LiveChatStartView(APIView):
         participant_type = live_chat_service.resolve_participant_type(
             request.user, (request.data.get("portal") or "").strip().lower(),
         )
-        session, created = live_chat_service.get_or_create_active_session(
-            request.user, participant_type,
-        )
+        try:
+            session, created = live_chat_service.get_or_create_active_session(
+                request.user, participant_type,
+            )
+        except live_chat_service.ChatRestricted as exc:
+            # 403 with the player-safe message only. The admin's reason and
+            # internal note are never serialised here -- see
+            # services/communication_restriction_service.py.
+            body = {"error": exc.message, "code": "chat_restricted"}
+            if exc.result is not None:
+                body["restriction"] = {
+                    "scope": exc.result.scope,
+                    "until": exc.result.until.isoformat() if exc.result.until else None,
+                }
+            return Response(body, status=403)
         if created:
             live_chat_service.notify_session_started(session)
         messages = session.chat_messages.all()

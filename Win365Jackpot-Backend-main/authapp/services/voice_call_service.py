@@ -88,6 +88,7 @@ from authapp.models.call_models import (
     VoiceCallSettings,
 )
 from authapp.models.support_ticket_models import PARTICIPANT_AFFILIATE, SupportTicket
+from authapp.services import communication_restriction_service
 from authapp.models.user_model import AdminProfile
 from authapp.models.user_model import ActivityLog
 
@@ -583,6 +584,20 @@ def mark_agent_absent(channel_name):
 
 def initiate_call(user, ticket):
     """Customer starts a call. Returns (call, created)."""
+    # Platform switch, working hours, and this player's own call restriction —
+    # all three in one check, server-side. The widget hides the button too, but
+    # that is presentation: a restriction a player can lift by POSTing straight
+    # to this endpoint would not be one. See
+    # services/communication_restriction_service.py.
+    #
+    # BEFORE the transport check on purpose. "Calls are turned off for your
+    # account" is both the more specific answer and the one that must never be
+    # skippable; a deployment that cannot carry signaling would otherwise mask
+    # every restriction behind a generic 503.
+    allowed = communication_restriction_service.calls_allowed(user)
+    if not allowed.allowed:
+        raise CallError("calls_restricted", allowed.message, status=403)
+
     if not calling_available():
         raise CallError(
             "calling_unavailable",
@@ -804,6 +819,27 @@ def mark_connected(user, call):
     return call
 
 
+def _close_hold_on_exit(call, when):
+    """A call that ends while held must not stay flagged as held.
+
+    Late import: call_control_service imports THIS module (it composes on the
+    call state machine rather than reimplementing it), so the dependency can
+    only point this way at call time. Kept as one helper so every terminal
+    transition closes a hold identically.
+    """
+    if not call.is_on_hold:
+        return
+    from authapp.services import call_control_service
+
+    try:
+        call_control_service.close_hold_on_end(call, when)
+    except Exception:
+        # Hold bookkeeping must never be the reason a hangup fails. The call
+        # is already terminal by this point; the worst case is a stale flag,
+        # which is what this whole helper exists to clean up.
+        logger.exception("voice-call: call=%s failed to close hold on exit", call.pk)
+
+
 def end_call(user, call, reason=None):
     """Hang up, from either side, from any live state.
 
@@ -845,6 +881,7 @@ def end_call(user, call, reason=None):
     )
     call.refresh_from_db()
     if updated:
+        _close_hold_on_exit(call, now)
         _log_event(call, EVENT_ENDED, user, f"{before}->{new_status}:{reason}")
         logger.info(
             "voice-call: call=%s ticket=%s transition=%s->%s reason=%s duration=%ss",
@@ -888,6 +925,7 @@ def fail_call(user, call, reason, detail=""):
     )
     call.refresh_from_db()
     if updated:
+        _close_hold_on_exit(call, now)
         note = f"{before}->failed:{reason}"
         if detail:
             note = f"{note} {detail}"

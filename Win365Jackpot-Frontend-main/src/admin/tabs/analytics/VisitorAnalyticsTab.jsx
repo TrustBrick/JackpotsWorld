@@ -253,7 +253,19 @@ function VisitorLocationTree({ countries, onPickCity }) {
               style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 9px", borderRadius: 8, cursor: "pointer", background: isOpen ? "rgba(255,255,255,0.05)" : "transparent" }}
             >
               <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 11 }}>{isOpen ? "▾" : "▸"}</span>
-              <span style={{ fontWeight: 700, fontSize: 12.5, color: "white", flex: 1 }}>{c.country}</span>
+              {/* Full country name, resolved server-side from the stored ISO
+                  code. The `unknown_reasons` breakdown appears only on a
+                  bucket that genuinely has no country, and says WHY from the
+                  geo_status recorded at lookup time -- so "Unknown: 412" is
+                  now "380 on private networks, 32 failed lookups". */}
+              <span style={{ fontWeight: 700, fontSize: 12.5, color: "white", flex: 1 }}>
+                {c.country}
+                {c.unknown_reasons?.length > 0 && (
+                  <span style={{ fontWeight: 400, fontSize: 10.5, color: "rgba(255,255,255,0.45)", marginLeft: 8 }}>
+                    ({c.unknown_reasons.map(r => `${r.reason}: ${fmtN(r.visitors)}`).join(" · ")})
+                  </span>
+                )}
+              </span>
               <span style={{ fontSize: 12, fontWeight: 700, color: C.gold }}>{fmtN(c.visitors)}</span>
             </div>
             {isOpen && (

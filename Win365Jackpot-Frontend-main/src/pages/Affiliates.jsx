@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -9,12 +9,15 @@ import { useTheme } from '../context/ThemeContext'
 import Navbar from '../components/Navbar'
 import PageHeader from '../components/shared/PageHeader'
 import PageScrollButtons from '../components/PageScrollButtons'
-import AffiliateFloatingCards from '../components/AffiliateFloatingCards'
+import AffiliateSupportedGames from '../components/AffiliateSupportedGames'
+import { useAutoFetch } from '../hooks/useAutoFetch'
+import { fetchFaqs } from '../services/landingService'
 
 // ── Static content ───────────────────────────────────────────────────────────
-// This is copy-only content for now. If you later want this editable from an
-// admin panel, move these arrays into src/data/affiliates.js and fetch from
-// `GET /api/affiliates/content` the same way Events/Promotions/Poker do.
+// Benefits, How It Works and Terms are still local copy. The FAQ below is NOT
+// -- it comes from Back Office -> FAQs (category "affiliate"), with the list
+// here kept only as the offline fallback, exactly as the landing page's
+// BusinessModelFAQ does. See that component for the full reasoning.
 
 const benefits = [
   { icon: TrendingUp, title: 'Recurring Revenue', text: 'Earn lifetime commission on every referred player\'s activity, not just a one-time payout.' },
@@ -38,22 +41,32 @@ const terms = [
   'Payouts are processed monthly, subject to a minimum payout threshold.',
 ]
 
-const faqs = [
-  { q: 'Is there a cost to join the affiliate program?', a: 'No — joining the Jackpots World affiliate program is completely free.' },
-  { q: 'How and when do I get paid?', a: 'Commissions are calculated weekly and monthly based on your referred players\' activity and paid out directly to your registered account.' },
-  { q: 'Can I promote more than one partner casino?', a: 'Yes — your affiliate link covers our entire network of partner casinos, events, and promotions.' },
-  { q: 'Is there a limit to how much I can earn?', a: 'There is no cap on commission earnings. The more active players you refer, the higher your tier and payout.' },
-  { q: 'How do I know commission?', a: 'Connect with VIP Affiliate host.' },
+// Rendered only when the API returns nothing (an outage, or an emptied
+// table). Migration 0086 seeds the live rows, so a working deployment shows
+// the Back Office copy, not this.
+const FALLBACK_FAQS = [
+  { id: 'fb-1', question: 'Is there a cost to join the affiliate program?', answer: 'No — joining the Jackpots World affiliate program is completely free.' },
+  { id: 'fb-2', question: 'How and when do I get paid?', answer: 'Commissions are calculated weekly and monthly based on your referred players\' activity and paid out directly to your registered account.' },
+  { id: 'fb-3', question: 'Can I promote more than one partner casino?', answer: 'Yes — your affiliate link covers our entire network of partner casinos, events, and promotions.' },
+  { id: 'fb-4', question: 'Which games can I refer players for?', answer: 'Poker, Teen Patti and Andhar Bahar. Your referral link can target a specific game, and commission is attributed to whichever game the player\'s qualifying activity actually took place in.' },
+  { id: 'fb-5', question: 'How is my commission rate decided?', answer: 'Commission rates are configured by our affiliate team and can vary by game, country, destination and affiliate tier. Your current rates are shown in your affiliate dashboard.' },
 ]
 
+const FAQ_PARAMS = { category: 'affiliate' }
+
 function FaqItem({ faq, isOpen, onToggle }) {
+  const panelId = `aff-faq-panel-${faq.id}`
+  const buttonId = `aff-faq-button-${faq.id}`
   return (
     <div className="casino-card overflow-hidden">
       <button
+        id={buttonId}
         onClick={onToggle}
+        aria-expanded={isOpen}
+        aria-controls={panelId}
         className="w-full flex items-center justify-between px-5 py-4 text-left"
       >
-        <span className="font-body text-sm md:text-base text-white/85 font-semibold pr-4">{faq.q}</span>
+        <span className="font-body text-sm md:text-base text-white/85 font-semibold pr-4">{faq.question}</span>
         <motion.span animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }} className="text-gold shrink-0">
           <ChevronDown size={18} />
         </motion.span>
@@ -61,13 +74,23 @@ function FaqItem({ faq, isOpen, onToggle }) {
       <AnimatePresence>
         {isOpen && (
           <motion.div
+            id={panelId}
+            role="region"
+            aria-labelledby={buttonId}
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.25 }}
             className="overflow-hidden"
           >
-            <p className="px-5 pb-4 text-white/74 text-sm font-body leading-relaxed">{faq.a}</p>
+            {/* pre-line so an admin's deliberate line breaks survive, with no
+                markup path of any kind. */}
+            <p
+              className="px-5 pb-4 text-white/74 text-sm font-body leading-relaxed"
+              style={{ whiteSpace: 'pre-line' }}
+            >
+              {faq.answer}
+            </p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -89,6 +112,13 @@ export default function Affiliates() {
   const [openFaq, setOpenFaq]   = useState(0)
   const navigate = useNavigate()
   const { theme } = useTheme()
+
+  const { data: faqData } = useAutoFetch(fetchFaqs, FAQ_PARAMS, { intervalMs: 300_000 })
+  // Live rows if there are any, the built-in copy otherwise. Never both.
+  const faqs = useMemo(() => {
+    const rows = Array.isArray(faqData) ? faqData : []
+    return rows.length ? rows : FALLBACK_FAQS
+  }, [faqData])
 
   return (
     <div key={theme} className="min-h-screen" style={{ background: 'var(--w365-bg)' }}>
@@ -137,9 +167,13 @@ export default function Affiliates() {
         </div>
       </section>
 
-      {/* Floating affiliate cards */}
+      {/* What an affiliate can refer players for. Replaced a strip of
+          randomly generated "affiliates earning right now" cards that also
+          rendered each card three times over, and then the aggregate
+          headcounts that briefly stood in for them — see
+          AffiliateSupportedGames for the full account. */}
       <div className="pb-20">
-        <AffiliateFloatingCards />
+        <AffiliateSupportedGames />
       </div>
 
       {/* How it works */}
@@ -186,7 +220,7 @@ export default function Affiliates() {
         <div className="flex flex-col gap-3">
           {faqs.map((faq, i) => (
             <FaqItem
-              key={i}
+              key={faq.id}
               faq={faq}
               isOpen={openFaq === i}
               onToggle={() => setOpenFaq(openFaq === i ? -1 : i)}

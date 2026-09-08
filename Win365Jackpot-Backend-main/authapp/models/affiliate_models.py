@@ -3,6 +3,8 @@ from decimal import Decimal
 from django.conf import settings
 from django.db import models
 
+from authapp.constants.games import GAME_FIELD_CHOICES, GAME_UNSPECIFIED
+
 
 class AffiliateProfile(models.Model):
     """Marks a User as an affiliate — mirrors AdminProfile's pattern of
@@ -81,6 +83,18 @@ class ReferralCommission(models.Model):
     commission_type = models.CharField(
         max_length=10, choices=COMMISSION_TYPE_CHOICES, default="legacy", db_index=True,
     )
+    # Which game generated the activity behind this commission. Mirrors
+    # CommissionLedgerEntry.game and comes from the same shared vocabulary, so
+    # the money row and its audit row always agree.
+    #
+    # "" on every pre-existing row: those commissions were earned before any
+    # game was attributed, and backfilling them would be inventing history.
+    # Per-game affiliate reporting therefore reads "not attributed" for old
+    # activity rather than silently crediting it to a game.
+    game = models.CharField(
+        max_length=20, choices=GAME_FIELD_CHOICES, blank=True, default=GAME_UNSPECIFIED,
+        db_index=True,
+    )
     # Existing rows/legacy rows were always awarded unconditionally, so they
     # are correctly "qualified" from the moment this field was introduced.
     qualification_status = models.CharField(
@@ -99,6 +113,7 @@ class ReferralCommission(models.Model):
         indexes = [
             models.Index(fields=["affiliate", "status"]),
             models.Index(fields=["affiliate", "commission_type"]),
+            models.Index(fields=["affiliate", "game"]),
         ]
 
     def __str__(self):
@@ -158,6 +173,18 @@ class AffiliateClickLog(models.Model):
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     user_agent = models.CharField(max_length=255, blank=True)
     landing_path = models.CharField(max_length=255, blank=True)
+
+    # Which game this referral link was promoting, from the link's ?game=
+    # parameter (or inferred from landing_path when the link pointed straight
+    # at a game page). This is the *intent* of the referral, and it is
+    # deliberately NOT what commission attribution reads: a player referred
+    # through a poker link who then plays Andhar Bahar generates Andhar Bahar
+    # commission. Keeping the two apart is what stops marketing intent being
+    # mistaken for actual activity.
+    game = models.CharField(
+        max_length=20, choices=GAME_FIELD_CHOICES, blank=True, default=GAME_UNSPECIFIED,
+        db_index=True,
+    )
 
     # Best-effort, resolved at write time from ip_address (see
     # authapp/utils/geolocation.py) / user_agent (see authapp/utils/user_agent.py).

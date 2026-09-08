@@ -123,6 +123,9 @@ export function createCallEngine({
   // run; addIceCandidate would throw on those. They are held here and flushed
   // once a remote description exists.
   let pendingCandidates = []
+  // The user's own mute choice, remembered across a hold so resuming does
+  // not turn a deliberately muted microphone back on.
+  let isMuted = false
   let hasRemoteDescription = false
   // Resolves once the microphone is live and the peer connection is standing
   // with the local track attached. handleOffer waits on it: the call starts
@@ -141,6 +144,93 @@ export function createCallEngine({
   let recordingMime = ""
   let recordingCtx = null
   let recordingSink = null
+
+  // ── Hold ──────────────────────────────────────────────────────────────────
+  // Deliberately NOT folded into the mute state above. Mute is this user's own
+  // choice and only silences one direction; hold is a call state decided by the
+  // server, silences both, and plays audio to the held party. Sharing one flag
+  // would mean un-muting could accidentally take someone off hold.
+  let onHold = false
+  // Set by the hook so the engine can silence what the user hears. The engine
+  // does not own the element (the hook attaches the remote stream to it), so
+  // it only ever toggles `muted` and never replaces srcObject.
+  let remoteSink = null
+  let holdAudioEl = null
+  let holdToneCtx = null
+  let holdToneStop = null
+
+  /** A plain periodic beep, synthesised. Used when no hold audio is
+   *  configured. Two short tones every few seconds — enough to say "you are
+   *  still connected" without being something anyone would call music. */
+  function startHoldTone() {
+    if (holdToneCtx) return
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)()
+      holdToneCtx = ctx
+      let cancelled = false
+      const beep = () => {
+        if (cancelled || ctx.state === "closed") return
+        const osc = ctx.createOscillator()
+        const gain = ctx.createGain()
+        osc.type = "sine"
+        osc.frequency.value = 440
+        // Ramped rather than switched, so it does not click.
+        gain.gain.setValueAtTime(0, ctx.currentTime)
+        gain.gain.linearRampToValueAtTime(0.06, ctx.currentTime + 0.05)
+        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.45)
+        osc.connect(gain).connect(ctx.destination)
+        osc.start()
+        osc.stop(ctx.currentTime + 0.5)
+      }
+      beep()
+      const timer = setInterval(beep, 4000)
+      holdToneStop = () => {
+        cancelled = true
+        clearInterval(timer)
+        try { ctx.close() } catch { /* already closed */ }
+      }
+    } catch {
+      // No WebAudio (or blocked before a gesture). The hold is still real —
+      // the audio really is cut both ways — the held party just hears silence.
+      holdToneCtx = null
+    }
+  }
+
+  function stopHoldTone() {
+    try { holdToneStop?.() } catch { /* no-op */ }
+    holdToneStop = null
+    holdToneCtx = null
+  }
+
+  function killHoldElement(el) {
+    try {
+      el.pause()
+      // Clearing the source and re-loading releases the decoder as well as
+      // stopping playback: pause() alone leaves a looping element ready to
+      // resume if anything ever touches it again.
+      el.removeAttribute("src")
+      el.load?.()
+      el.remove()
+    } catch { /* already gone */ }
+  }
+
+  function stopHoldAudio() {
+    if (holdAudioEl) {
+      killHoldElement(holdAudioEl)
+      holdAudioEl = null
+    }
+    // Belt and braces, because a hold tune still playing after the call has
+    // ended is the failure nobody forgives. The element lives on document.body
+    // rather than in the React tree, so anything that loses the reference —
+    // an engine replaced mid-hold by a transfer renegotiation, a hold applied
+    // twice by two pushes — would otherwise leave it looping for the life of
+    // the page. A document only ever hosts one call, so sweeping by marker is
+    // safe and covers every path at once.
+    try {
+      document.querySelectorAll("audio[data-jw-hold-audio]").forEach(killHoldElement)
+    } catch { /* no DOM (SSR/tests) */ }
+    stopHoldTone()
+  }
 
   // ── ICE diagnosis ─────────────────────────────────────────────────────────
   // Which *kinds* of candidate each side managed to gather is the whole
@@ -474,12 +564,94 @@ export function createCallEngine({
     },
 
     /** Local-only mute. The track stops producing audio; nothing is routed
-     *  through the backend, and the peer connection stays up. */
+     *  through the backend, and the peer connection stays up.
+     *
+     *  A muted track stays muted while on hold and after resuming: hold
+     *  disables the same track for its own reason, and resume restores it to
+     *  whatever the user's own mute choice was rather than unconditionally
+     *  turning the microphone back on. */
     setMuted(muted) {
       if (!localStream) return false
-      localStream.getAudioTracks().forEach(t => { t.enabled = !muted })
+      isMuted = muted
+      // While on hold the track must stay disabled whatever this says — hold
+      // wins, and the user's choice is applied when the call resumes.
+      if (!onHold) localStream.getAudioTracks().forEach(t => { t.enabled = !muted })
       if (callId) send?.(muted ? "call.mute" : "call.unmute", { call_id: callId })
       return muted
+    },
+
+    /** The element the hook plays the remote stream through. Handed to the
+     *  engine so hold can silence what this user hears; the engine only ever
+     *  toggles `muted` on it. */
+    attachRemoteSink(el) {
+      remoteSink = el || null
+      if (remoteSink && onHold) remoteSink.muted = true
+    },
+
+    /**
+     * Put this endpoint on hold, or take it off.
+     *
+     * REAL, in all three directions — see this file's hold notes:
+     *   • the local audio track is disabled, so nothing said here is sent;
+     *   • the remote element is muted, so nothing said there is heard;
+     *   • `holdAudioUrl` (or a synthesised tone) plays locally, so the held
+     *     party knows the call is still up.
+     *
+     * `playHoldAudio` is false for the AGENT — the agent needs a quiet line
+     * to do whatever they put the customer on hold for, and hold music in
+     * their own headset would be actively unhelpful. The customer's client
+     * passes true.
+     *
+     * The peer connection is NEVER torn down: the call stays connected, the
+     * recording keeps running, and resuming is a track toggle rather than a
+     * renegotiation.
+     */
+    setHold(held, { holdAudioUrl = "", playHoldAudio = false } = {}) {
+      onHold = !!held
+      if (localStream) {
+        localStream.getAudioTracks().forEach(t => {
+          // On resume, restore the user's own mute choice rather than
+          // unconditionally re-enabling the microphone.
+          t.enabled = onHold ? false : !isMuted
+        })
+      }
+      if (remoteSink) remoteSink.muted = onHold
+      if (!onHold) {
+        stopHoldAudio()
+        return false
+      }
+      if (playHoldAudio) {
+        // Already playing: a repeat is a no-op, never a second source. The
+        // server's flag is applied on EVERY state push, not just the hold
+        // event, so a customer sitting on hold sees setHold(true) many times
+        // over one hold — each one appending its own <audio> would layer the
+        // tune over itself and orphan every element but the last.
+        if (holdAudioEl || holdToneCtx) return true
+        if (holdAudioUrl) {
+          try {
+            const el = document.createElement("audio")
+            el.src = holdAudioUrl
+            el.loop = true
+            el.autoplay = true
+            el.setAttribute("playsinline", "")
+            el.style.display = "none"
+            // The marker teardown sweeps on, so an element that outlives this
+            // closure can still be found and killed.
+            el.dataset.jwHoldAudio = "1"
+            document.body.appendChild(el)
+            holdAudioEl = el
+            // The user is mid-call, so a gesture has already been made and
+            // autoplay is permitted. If it is refused anyway, fall through to
+            // the tone rather than leaving silence.
+            el.play?.().catch(() => { startHoldTone() })
+          } catch {
+            startHoldTone()
+          }
+        } else {
+          startHoldTone()
+        }
+      }
+      return true
     },
 
     /**
@@ -490,9 +662,15 @@ export function createCallEngine({
      */
     stop() {
       closed = true
-      // First, before the tracks feeding it are stopped. The recorder flushes
-      // asynchronously and delivers its blob through onstop, which is why this
-      // is safe to do here and why teardown below does not wait for it.
+      // Before anything else: a customer still hearing hold audio after the
+      // call has ended is the worst version of this feature failing, and it
+      // is the one thing teardown must not be able to skip.
+      onHold = false
+      stopHoldAudio()
+      remoteSink = null
+      // The recorder flushes asynchronously and delivers its blob through
+      // onstop, which is why this is safe here and why teardown below does
+      // not wait for it.
       stopRecording()
       try {
         localStream?.getTracks().forEach(t => t.stop())

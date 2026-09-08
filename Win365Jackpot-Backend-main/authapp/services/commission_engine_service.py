@@ -41,6 +41,7 @@ from django.db import IntegrityError, transaction as db_transaction
 from django.db.models import Sum
 from django.utils import timezone
 
+from authapp.constants.games import normalise_game
 from authapp.models.affiliate_models import AffiliateProfile, ReferralCommission
 from authapp.models.commission_rule_models import CommissionLedgerEntry
 from authapp.models.offline_deposit import OfflineDepositLog
@@ -265,7 +266,7 @@ def calculate_amount(rule, tier, base_amount):
 
 @db_transaction.atomic
 def evaluate(referred_user, *, commission_type, base_amount=None, casino_name=None,
-             reference_id="", country=None):
+             reference_id="", country=None, game=None):
     """Evaluate one commission event under the rule engine.
 
     Returns a CommissionResult. `applied=False` means no rule matched and the
@@ -274,6 +275,15 @@ def evaluate(referred_user, *, commission_type, base_amount=None, casino_name=No
     Never raises for business reasons; unmet conditions produce a "qualifying"
     ledger entry (so the affiliate can see how close they are), not an
     exception.
+
+    `game` is which game generated this activity, from authapp.constants.games.
+    It does two things and they are separate:
+      • it narrows rule resolution, so a per-game rule can price it; and
+      • it is STAMPED on the ledger entry and the money row regardless of
+        which rule matched, so per-game reporting works even when the rule that
+        applied was a game-agnostic one.
+    The default (None -> "") is what every existing trigger passes implicitly,
+    so nothing that does not yet know about games behaves differently.
     """
     affiliate = referred_user.referred_by
     if not affiliate:
@@ -315,9 +325,11 @@ def evaluate(referred_user, *, commission_type, base_amount=None, casino_name=No
     # Affiliate → Referred Player → Country → Casino.
     country = (country or getattr(referred_user, "country", "") or "").strip()
     casino = commission_rule_service.resolve_casino(casino_name, country)
+    game = normalise_game(game)
 
     rule = commission_rule_service.resolve_rule(
         affiliate, commission_type=commission_type, country=country, casino=casino,
+        game=game,
     )
     if not rule:
         return CommissionResult(applied=False, reason="No matching commission rule.")
@@ -363,7 +375,7 @@ def evaluate(referred_user, *, commission_type, base_amount=None, casino_name=No
 
     entry_kwargs = dict(
         affiliate=affiliate, referred_player=referred_user,
-        country=country, casino=casino,
+        country=country, casino=casino, game=game,
         rule=rule, rule_name=rule.name,
         tier=tier, tier_name=(tier.name or str(tier.id)) if tier else "",
         commission_type=commission_type,
@@ -497,6 +509,9 @@ def _create_money_row(entry):
         commission_rate=entry.commission_rate,
         amount=entry.commission_amount,
         commission_type=entry.commission_type,
+        # Carried from the ledger entry so the money row and its audit row can
+        # never disagree about which game paid.
+        game=entry.game,
         qualification_status="qualified",
         status="pending",
     )

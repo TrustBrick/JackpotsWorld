@@ -38,6 +38,7 @@ from collections import defaultdict
 
 from authapp.models import ActivityLog
 from authapp.models.wallet_models import WalletAccount, WalletTransaction
+from authapp.constants.games import normalise_game
 from authapp.models.offline_deposit import OfflineDepositLog
 from authapp.models.casino_models import Casino
 from authapp.models.casino_wallet_models import CasinoWalletAccount
@@ -144,7 +145,7 @@ def _write_rp_txn(user, amount: Decimal, txn_type: str, note: str, actor) -> flo
     return float(acct.balance)
 
 
-def _log_offline(user, txn_type, casino, wallet_type, amount, main_balance, actor, note="", transfer_to=None):
+def _log_offline(user, txn_type, casino, wallet_type, amount, main_balance, actor, note="", transfer_to=None, game=""):
     try:
         tag = f"[{wallet_type}] {txn_type} ${amount}"
         if transfer_to:
@@ -157,6 +158,10 @@ def _log_offline(user, txn_type, casino, wallet_type, amount, main_balance, acto
             casino_name=casino or "",
             vip_level_at_time=getattr(user, "vip_level", 1) or 1,
             note=tag,
+            # Defaults to "" so the call sites with no game in scope (wallet
+            # transfers, main-account moves) keep writing exactly the row they
+            # always did.
+            game=game or "",
             available_balance=Decimal(str(main_balance)) if main_balance is not None else Decimal("0"),
             recorded_by=actor,
         )
@@ -184,7 +189,7 @@ def _resolve_player_casino_wallet(user, casino_name: str, country: str):
     return wallet, None
 
 
-def _evaluate_deposit_commission(user, *, casino_name=None, country=None):
+def _evaluate_deposit_commission(user, *, casino_name=None, country=None, game=None):
     """Re-evaluate this player's Deposit Commission under the rule engine.
 
     Called from every event that can change the answer: a recorded deposit
@@ -203,6 +208,7 @@ def _evaluate_deposit_commission(user, *, casino_name=None, country=None):
         from authapp.services import commission_engine_service
         commission_engine_service.evaluate(
             user, commission_type="deposit", casino_name=casino_name, country=country,
+            game=game,
         )
     except Exception as e:
         logger.warning("deposit commission evaluation failed for user %s: %s", user.id, e)
@@ -294,6 +300,10 @@ class AdminOfflineDepositsView(APIView):
             note        = (data.get("note") or "").strip()
             country     = (data.get("country") or "").strip()
             to_country  = (data.get("transfer_to_country") or "").strip()
+            # Optional. normalise_game() maps "teen-patti"/"Teen Patti"/"" all
+            # to the one stored slug, so the Back Office form and any script
+            # posting to this endpoint cannot introduce a second spelling.
+            game        = normalise_game(data.get("game"))
 
 
 
@@ -376,7 +386,7 @@ class AdminOfflineDepositsView(APIView):
                 )
                 _log_offline(user=user, txn_type=txn_type, casino=casino,
                              wallet_type=wallet_type, amount=amount,
-                             main_balance=new_main_bal, actor=actor, note=note)
+                             main_balance=new_main_bal, actor=actor, note=note, game=game)
 
                 # Deposit Commission — the deposit ledger this player's
                 # referrer earns off has just moved, so re-evaluate it. Only
@@ -387,7 +397,9 @@ class AdminOfflineDepositsView(APIView):
                 # affiliates' plans are evaluated. This layer is additive —
                 # with no matching deposit rule it is a no-op, exactly as
                 # before.
-                _evaluate_deposit_commission(user, casino_name=casino, country=country or None)
+                _evaluate_deposit_commission(
+                    user, casino_name=casino, country=country or None, game=game,
+                )
 
                 ActivityLog.log(
                     action="casino_transfer", actor=actor, target_user=user,
@@ -465,7 +477,7 @@ class AdminOfflineDepositsView(APIView):
                                             f"{casino} | {note or f'Withdrawal from {casino}'}", actor)
                 _log_offline(user=user, txn_type=txn_type, casino=casino,
                              wallet_type=wallet_type, amount=amount,
-                             main_balance=new_main_bal, actor=actor, note=note)
+                             main_balance=new_main_bal, actor=actor, note=note, game=game)
                 ActivityLog.log(
                     action="wallet_credit", actor=actor, target_user=user,
                     description=f"WAC ${amount:,.2f} {wallet_type}: {casino} casino ▼ → User main ▲",
@@ -496,7 +508,7 @@ class AdminOfflineDepositsView(APIView):
                     return Response({"error": f"Casino wallet: {exc}"}, status=400)
                 _log_offline(user=user, txn_type=txn_type, casino=casino,
                              wallet_type=wallet_type, amount=amount,
-                             main_balance=None, actor=actor, note=note)
+                             main_balance=None, actor=actor, note=note, game=game)
 
                 # Losing Commission — re-evaluates the referrer's cumulative
                 # qualifying-loss commission, if any. Tries the Country+Casino
@@ -510,7 +522,7 @@ class AdminOfflineDepositsView(APIView):
                     from authapp.services.affiliate_commission_service import evaluate_player_commission
                     result = commission_engine_service.evaluate(
                         user, commission_type="losing", casino_name=casino,
-                        country=country or None,
+                        country=country or None, game=game,
                     )
                     if not result.applied:
                         evaluate_player_commission(user)
@@ -577,6 +589,7 @@ class AdminOfflineDepositsView(APIView):
             betting_date = data.get("betting_date") or None
             casino       = (data.get("casino_name") or "").strip()
             country      = (data.get("country") or "").strip()
+            game         = normalise_game(data.get("game"))
             note         = (data.get("note") or "").strip()
             num_bets     = int(data.get("total_bets") or 0)
             bet_amount   = Decimal(str(data.get("total_bet_amount") or 0))
@@ -699,6 +712,7 @@ class AdminOfflineDepositsView(APIView):
                 user=user, entry_type="rolling_points", casino_name=casino,
                 vip_level_at_time=old_vip_level,
                 slip_number=slip_number or None, betting_date=betting_date or None,
+                game=game,
                 total_bets=num_bets, total_bet_amount=bet_amount,
                 rp_rate=float(rp_rate), rolling_pct=float(roll_pct),
                 rolling_points_added=float(rp_added), rolling_points_total=float(new_total),
@@ -735,6 +749,12 @@ class AdminOfflineDepositsView(APIView):
                         # failed to match here and the payout quietly fell
                         # through to the older per-affiliate plan instead.
                         country=country or None,
+                        # Which game the bet slip was played on. Narrows rule
+                        # resolution and is stamped on the ledger either way,
+                        # so "top performing game" is answerable from real
+                        # attributed activity rather than inferred from the
+                        # referral link.
+                        game=game,
                     )
                     if not result.applied:
                         if has_commission_assignment(user.referred_by):
@@ -752,7 +772,9 @@ class AdminOfflineDepositsView(APIView):
             # "qualifying" forever. Idempotent: the deposit branch is
             # one-per-(affiliate, player) and refreshes its existing row in
             # place rather than adding another.
-            _evaluate_deposit_commission(user, casino_name=casino, country=country or None)
+            _evaluate_deposit_commission(
+                user, casino_name=casino, country=country or None, game=game,
+            )
 
             ActivityLog.log(
                 action="rolling_points_added", actor=actor, target_user=user,

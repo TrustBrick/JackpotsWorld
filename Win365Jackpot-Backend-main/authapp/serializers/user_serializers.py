@@ -16,6 +16,7 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from authapp.models import User, AdminProfile, ActivityLog
+from authapp.utils.countries import display_country
 
 PROFILE_LOCK_DAYS = 90
 
@@ -212,12 +213,18 @@ class UserProfileSerializer(serializers.ModelSerializer):
     profile_last_updated = serializers.DateTimeField(read_only=True)
     can_edit_profile     = serializers.SerializerMethodField()
     days_until_unlock    = serializers.SerializerMethodField()
+    # `country` stays the stored ISO alpha-2 code — it is what the profile
+    # edit and admin PATCH paths write, and what every country filter matches
+    # on. `country_display` is the same value spelled out for a human, so no
+    # screen has to render a bare "IN" and no client needs its own copy of the
+    # ISO table. Same split as the analytics payloads' country/country_display.
+    country_display      = serializers.SerializerMethodField()
 
     class Meta:
         model  = User
         fields = [
             "id", "user_uid", "email", "name",
-            "country", "dial_code", "phone",
+            "country", "country_display", "dial_code", "phone",
             "date_of_birth", "avatar", "avatar_url", "preferred_language",
             "vip_level", "vip_xp", "vip_xp_needed", "vip_progress_pct",
             "wallet_balance", "bonus_balance",
@@ -230,7 +237,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "can_edit_profile", "days_until_unlock",
         ]
         read_only_fields = (
-            "id", "user_uid", "email",
+            "id", "user_uid", "email", "country_display",
             "vip_level", "vip_xp",
             "wallet_balance", "bonus_balance",
             "total_deposited", "total_withdrawn", "total_won",
@@ -239,6 +246,15 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "last_login_city", "last_login_region", "last_login_country_name",
             "profile_last_updated", "profile_locked_until",
         )
+
+    def get_country_display(self, obj):
+        """Full country name for the stored code, or "" when there is none.
+
+        Blank rather than "Unknown": a user who never picked a country has no
+        country, and letting the caller choose its own placeholder beats
+        baking one into the payload.
+        """
+        return display_country(obj.country, unknown_label="")
 
     def get_can_edit_profile(self, obj):
         if not obj.profile_locked_until:

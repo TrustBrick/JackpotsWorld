@@ -307,11 +307,20 @@ class LiveChatAdminInboxConsumer(CallSignalingMixin, AsyncJsonWebsocketConsumer)
         # recorded, because the channel layer cannot be asked "is anyone
         # there?" - and without that answer an unstaffed desk rings into
         # nothing for the full timeout instead of saying so.
+        from authapp.services.call_control_service import agent_group
         from authapp.services.voice_call_service import CALL_AGENTS_GROUP
 
         self._is_call_agent = await _is_call_eligible(self.user)
         if self._is_call_agent:
             await self.channel_layer.group_add(CALL_AGENTS_GROUP, self.channel_name)
+            # This agent's OWN group, for anything addressed to them alone —
+            # today, a call forwarded to them by name, and the "your leg is
+            # over" notice when a transfer they started is accepted. Ringing a
+            # named transfer through CALL_AGENTS_GROUP instead would put the
+            # card in front of the whole desk, which is exactly what choosing a
+            # person rather than a department is meant to avoid.
+            self._agent_group = agent_group(self.user.id)
+            await self.channel_layer.group_add(self._agent_group, self.channel_name)
             await _mark_present(self.user, self.channel_name)
 
         await self.accept()
@@ -322,6 +331,8 @@ class LiveChatAdminInboxConsumer(CallSignalingMixin, AsyncJsonWebsocketConsumer)
         await self.channel_layer.group_discard(self.GROUP_NAME, self.channel_name)
         if getattr(self, "_is_call_agent", False):
             await self.channel_layer.group_discard(CALL_AGENTS_GROUP, self.channel_name)
+            if getattr(self, "_agent_group", None):
+                await self.channel_layer.group_discard(self._agent_group, self.channel_name)
             await _mark_absent(self.channel_name)
         await self.discard_call_groups()
 

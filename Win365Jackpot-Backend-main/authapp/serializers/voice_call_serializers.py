@@ -24,6 +24,10 @@ class CallSessionSerializer(serializers.ModelSerializer):
     caller_affiliate_id = serializers.SerializerMethodField()
     receiver_name = serializers.SerializerMethodField()
     has_recording = serializers.BooleanField(read_only=True)
+    # Composed from `status` plus the orthogonal hold/transfer flags — one
+    # place decides, so the API, the Back Office and the customer widget
+    # cannot disagree about what "on hold" or "forwarded" looks like.
+    display_status = serializers.CharField(read_only=True)
     recording_url = serializers.SerializerMethodField()
 
     class Meta:
@@ -33,9 +37,14 @@ class CallSessionSerializer(serializers.ModelSerializer):
             "caller_id", "caller_name", "caller_uid", "caller_email",
             "caller_affiliate_id",
             "receiver_id", "receiver_name",
-            "status", "direction", "end_reason",
+            "status", "display_status", "direction", "end_reason",
             "started_at", "ring_expires_at", "connected_at", "ended_at",
             "duration_seconds",
+            # The hold/forward record. `status` is unchanged and still means
+            # exactly what it always did; these sit beside it so call history
+            # can answer "was this escalated, and how long did the customer
+            # spend waiting" without a second request per row.
+            "is_on_hold", "total_hold_seconds", "transfer_count",
             "has_recording", "recording_bytes", "recording_url",
         ]
         read_only_fields = fields

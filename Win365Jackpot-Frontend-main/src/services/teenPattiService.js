@@ -1,7 +1,10 @@
 // src/services/teenPattiService.js
 // Same shape as pokerService/eventService — plain fetch through apiClient,
 // with a short TTL cache on the two read endpoints.
-import { apiGet, apiGetAuthed, apiPostAuthed, apiDeleteAuthed, createCache } from "./apiClient"
+import {
+  apiGet, apiGetAuthed, apiGetMaybeAuthed, apiPostAuthed, apiDeleteAuthed,
+  authKey, createCache,
+} from "./apiClient"
 
 const cache = createCache(60_000)
 
@@ -10,12 +13,18 @@ const cache = createCache(60_000)
  * Returns DRF's paginated shape: { count, next, previous, results }.
  */
 export async function fetchTeenPattiEvents(params = {}, { force = false } = {}) {
-  const key = JSON.stringify(params)
+  // Sent WITH the token when the visitor has one: every event in this response
+  // carries is_registered / my_confirmation_id / can_register, and the server
+  // computes those from request.user. Fetched anonymously they come back false
+  // for everyone, so a member who already holds a seat would still be shown
+  // "Register" — see TeenPattiCard, which renders straight off those fields.
+  // The cache key carries auth state for the same reason (apiClient.authKey).
+  const key = `${authKey()}:${JSON.stringify(params)}`
   if (!force) {
     const hit = cache.get(key)
     if (hit) return hit
   }
-  const data = await apiGet("/api/teen-patti/", params)
+  const data = await apiGetMaybeAuthed("/api/teen-patti/", params)
   cache.set(key, data)
   return data
 }
@@ -25,7 +34,9 @@ export async function fetchTeenPattiFilters() {
 }
 
 export async function fetchTeenPattiDetail(id) {
-  return apiGet(`/api/teen-patti/${id}/`)
+  // Same reason as the list: TeenPattiDetails shows the member's own seat and
+  // confirmation ID off this payload.
+  return apiGetMaybeAuthed(`/api/teen-patti/${id}/`)
 }
 
 export async function fetchMyTeenPattiRegistrations() {

@@ -40,6 +40,49 @@ export async function apiGet(path, params = {}) {
   })
 }
 
+/**
+ * apiGet, but it sends the bearer token when the visitor happens to have one.
+ *
+ * For endpoints that are PUBLIC (AllowAny) yet answer a little differently for
+ * a signed-in member — the game listings, whose event payloads carry
+ * `is_registered` / `can_register` computed from request.user. Fetched with
+ * plain apiGet those fields are always false, because the request arrives
+ * anonymous no matter who is looking, and the card can never say "Registered".
+ *
+ * Not a substitute for apiGetAuthed: this one is for routes that must still
+ * work with no token at all, so a missing or expired token degrades to the
+ * public answer instead of failing. Anything that genuinely requires
+ * authentication should use apiGetAuthed and get its 401.
+ *
+ * CACHING: a response from this helper depends on WHO asked, so any cache in
+ * front of it must key on that too — see `authKey()` below.
+ */
+export async function apiGetMaybeAuthed(path, params = {}) {
+  const url = `${API_BASE}${path}${buildQuery(params)}`
+  const token = getToken("access")
+  return withRetry(async () => {
+    const res = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    if (!res.ok) throw new Error(`Request to ${path} failed (${res.status})`)
+    return res.json()
+  })
+}
+
+/**
+ * Cache-key fragment identifying whose answer a cached response is.
+ *
+ * Just "signed in or not" — never the token itself, which would put a
+ * credential into a Map key and into anything that ever logs one. Within one
+ * browser tab the signed-in visitor is always the same person, so the
+ * distinction that actually matters is signed-in vs signed-out: it stops a
+ * cached "Registered" surviving a sign-out, and stops a signed-out payload
+ * being reused once the same visitor signs in.
+ */
+export function authKey() {
+  return getToken("access") ? "u" : "anon"
+}
+
 // ── Small TTL cache, shared by eventService/pokerService/promotionService ──
 export function createCache(ttlMs = 60_000) {
   const store = new Map()

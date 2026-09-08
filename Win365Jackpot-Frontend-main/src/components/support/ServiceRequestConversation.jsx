@@ -313,6 +313,11 @@ export default function ServiceRequestConversation({ ticket, onBack, onToast }) 
         speakerSupported={voiceCall.speakerSupported}
         error={voiceCall.error}
         recordingEnabled={voiceCall.recordingEnabled}
+        // State only, no controls -- same reasoning as the customer widget:
+        // an affiliate on hold needs to know that is what happened.
+        onHold={voiceCall.onHold}
+        transferring={voiceCall.transferring}
+        holdMessage={voiceCall.holdMessage}
         onToggleMute={voiceCall.toggleMute}
         onToggleSpeaker={voiceCall.toggleSpeaker}
         onEnd={voiceCall.endCall}

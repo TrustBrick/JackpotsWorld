@@ -82,6 +82,11 @@ ROUTE_SEO = {
         'Upcoming poker tournaments with buy-ins, prize pools and seat availability at '
         'premier casinos across Asia and beyond. Register through JackpotsWorld.',
     ),
+    '/andhar-bahar': (
+        f'Andhar Bahar — Play At Partner Casinos{TITLE_SUFFIX}',
+        'Andhar Bahar at JackpotsWorld partner casinos. How the game works, where it is '
+        'played and which destinations are running tables. Play at the casino, never online.',
+    ),
     '/affiliates': (
         f'Casino Affiliate Program — Earn Commission{TITLE_SUFFIX}',
         'Join the JackpotsWorld affiliate program. Competitive commission plans, '

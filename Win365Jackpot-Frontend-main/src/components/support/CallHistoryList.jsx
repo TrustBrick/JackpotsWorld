@@ -31,6 +31,10 @@ const fmtBytes = (n) => {
   return `${(n / (1024 * 1024)).toFixed(1)} MB`
 }
 
+// Keyed on `display_status`, which the server composes from `status` plus the
+// hold/transfer flags — so "On hold", "Forwarding" and "Forwarded" arrive as
+// values here rather than being re-derived from three fields in the browser.
+// The raw `status` keys stay, because the server falls back to them.
 const STATUS_LABEL = {
   ringing: "Ringing",
   accepted: "Connecting",
@@ -40,6 +44,11 @@ const STATUS_LABEL = {
   missed: "Missed",
   failed: "Failed",
   cancelled: "Cancelled",
+  on_hold: "On hold",
+  forwarding: "Forwarding",
+  // An OUTCOME, not a live state: this call ended on a different agent than
+  // it started with.
+  forwarded: "Forwarded",
 }
 
 const END_REASON_LABEL = {
@@ -58,7 +67,10 @@ const END_REASON_LABEL = {
 // Only three shapes matter at a glance: it connected, nobody answered, or it
 // broke. Anything more granular is in the end-reason line underneath.
 function statusTone(status, theme) {
-  if (status === "ended" || status === "connected") return theme.green
+  // A forwarded call did connect and was handled — it belongs with the
+  // successful outcomes, not with the failures.
+  if (status === "ended" || status === "connected" || status === "forwarded") return theme.green
+  if (status === "on_hold" || status === "forwarding") return theme.gold
   if (status === "failed") return theme.red
   return theme.sub
 }
@@ -216,7 +228,10 @@ export default function CallHistoryList({
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
         {calls.map(c => {
-          const tone = statusTone(c.status, theme)
+          // Prefer the server's composed status; fall back to the raw column
+          // for an older API build that does not send one.
+          const shownStatus = c.display_status || c.status
+          const tone = statusTone(shownStatus, theme)
           return (
             <div
               key={c.id}
@@ -235,7 +250,20 @@ export default function CallHistoryList({
                   fontSize: 11.5, fontWeight: 600, color: theme.text,
                   display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap",
                 }}>
-                  <span style={{ color: tone }}>{STATUS_LABEL[c.status] || c.status}</span>
+                  <span style={{ color: tone }}>{STATUS_LABEL[shownStatus] || shownStatus}</span>
+                  {/* Hold time and escalation count, shown only when they
+                      actually happened — a call with neither reads exactly as
+                      it always did. */}
+                  {c.total_hold_seconds > 0 && (
+                    <span style={{ color: theme.muted, fontSize: 10.5 }}>
+                      · {formatCallDuration(c.total_hold_seconds)} on hold
+                    </span>
+                  )}
+                  {c.transfer_count > 0 && (
+                    <span style={{ color: theme.muted, fontSize: 10.5 }}>
+                      · forwarded {c.transfer_count === 1 ? "once" : `${c.transfer_count}\u00d7`}
+                    </span>
+                  )}
                   {c.duration_seconds > 0 && (
                     <span style={{ color: theme.sub, fontVariantNumeric: "tabular-nums" }}>
                       · {formatCallDuration(c.duration_seconds)}

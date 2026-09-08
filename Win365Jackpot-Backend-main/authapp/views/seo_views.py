@@ -37,6 +37,7 @@ STATIC_ROUTES = [
     ('/events',             'daily',   '0.9'),
     ('/promotions',         'daily',   '0.9'),
     ('/poker',              'daily',   '0.9'),
+    ('/andhar-bahar',       'weekly',  '0.8'),
     ('/affiliates',         'weekly',  '0.7'),
     ('/affiliate-register', 'monthly', '0.5'),
     ('/privacy-policy',     'yearly',  '0.3'),

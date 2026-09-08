@@ -28,6 +28,8 @@ const Affiliates       = lazy(() => import('./pages/Affiliates'))
 const Poker            = lazy(() => import('./pages/Poker'))
 const PokerDetails     = lazy(() => import('./pages/PokerDetails'))
 const TeenPatti        = lazy(() => import('./pages/TeenPatti'))
+const AndharBahar      = lazy(() => import('./pages/AndharBahar'))
+const AndharBaharAuth  = lazy(() => import('./pages/AndharBaharAuth'))
 const TeenPattiDetails = lazy(() => import('./pages/TeenPattiDetails'))
 const AuthPage         = lazy(() => import('./pages/AuthPage'))
 const AffiliatePanel   = lazy(() => import('./affiliate/AffiliatePanel'))
@@ -163,6 +165,14 @@ export default function App() {
         <Route path="/poker/:id"        element={<PokerDetails />} />
         <Route path="/teen-patti"       element={<TeenPatti />} />
         <Route path="/teen-patti/:id"   element={<TeenPattiDetails />} />
+        <Route path="/andhar-bahar"     element={<AndharBahar />} />
+        {/* The section's own doorway. Same account system as /sign-in and
+            /sign-up — a different entry point, not a second set of
+            credentials — but it says what the visitor is signing up FOR and
+            returns them to Andhar Bahar afterwards instead of the dashboard,
+            so they do not lose the event they were looking at. */}
+        <Route path="/andhar-bahar/sign-in"  element={<AndharBaharAuth tab="login" />} />
+        <Route path="/andhar-bahar/sign-up"  element={<AndharBaharAuth tab="register" />} />
         <Route path="/sign-in"          element={<AuthPage tab="login" />} />
         <Route path="/sign-up"          element={<AuthPage tab="register" />} />
 

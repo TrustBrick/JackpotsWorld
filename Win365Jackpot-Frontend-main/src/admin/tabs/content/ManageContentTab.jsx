@@ -5,6 +5,9 @@ import { adminFetch, API } from "../../helpers";
 import { useAdminTheme } from "../../context/AdminThemeContext";
 
 function fieldToFormValue(field, item) {
+  // A multi-select holds an array of ids. Normalised to strings because the
+  // <option> values are strings, and a number id would never match.
+  if (field.multiple) return (item?.[field.name] || []).map(String);
   if (field.type === "list") return (item?.[field.name] || []).join("\n");
   if (field.type === "gallery") return ""; // tracked separately via existingGallery, not form state
   if (field.type === "boolean") return item ? !!item[field.name] : !!field.default;
@@ -13,7 +16,10 @@ function fieldToFormValue(field, item) {
 
 function emptyForm(fields) {
   const initial = {};
-  fields.forEach(f => { initial[f.name] = f.type === "boolean" ? !!f.default : (f.default ?? ""); });
+  fields.forEach(f => {
+    if (f.multiple) { initial[f.name] = []; return; }
+    initial[f.name] = f.type === "boolean" ? !!f.default : (f.default ?? "");
+  });
   return initial;
 }
 
@@ -32,7 +38,15 @@ function emptyForm(fields) {
  * pre-edit content for up to its own 60s TTL. Omit only for a tab whose
  * apiPath doesn't back a public fetch at all (e.g. Locations).
  */
-export default function ManageContentTab({ resourceLabel, apiPath, fields, columns, onToast, onSaved }) {
+export default function ManageContentTab({
+  resourceLabel, apiPath, fields, columns, onToast, onSaved,
+  // Extra query params for the LIST request only, as a plain object.
+  // Deliberately separate from `apiPath`: that string is also concatenated
+  // with `${id}/` for edit and delete, so a query string baked into it would
+  // produce "/faqs/?category=landing5/" on every row action. Defaults to
+  // nothing, so every existing caller behaves exactly as before.
+  listParams = null,
+}) {
   const { C } = useAdminTheme();
   const inputStyle = {
     width: "100%", padding: "9px 12px", borderRadius: 8,
@@ -86,9 +100,19 @@ export default function ManageContentTab({ resourceLabel, apiPath, fields, colum
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Stringified so the useCallback below depends on the VALUE rather than the
+  // object identity — an inline `listParams={{...}}` at the call site is a new
+  // object every render, and depending on it directly would reload on every
+  // parent render.
+  const listParamsKey = JSON.stringify(listParams || {});
+
   const load = useCallback(() => {
     setLoading(true);
-    adminFetch(`${API}${apiPath}?page=${page}`)
+    const params = new URLSearchParams({ page: String(page) });
+    Object.entries(JSON.parse(listParamsKey)).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== "") params.set(k, String(v));
+    });
+    adminFetch(`${API}${apiPath}?${params.toString()}`)
       .then(r => r?.json())
       .then(j => {
         if (!j) return;
@@ -96,7 +120,7 @@ export default function ManageContentTab({ resourceLabel, apiPath, fields, colum
         else { setItems(j.results || []); setTotal(j.count || 0); }
       })
       .finally(() => setLoading(false));
-  }, [apiPath, page]);
+  }, [apiPath, page, listParamsKey]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -143,6 +167,14 @@ export default function ManageContentTab({ resourceLabel, apiPath, fields, colum
       }
       if (f.type === "gallery") {
         (files[f.name] || []).forEach(file => fd.append(f.name, file));
+        return;
+      }
+      if (f.multiple) {
+        // Repeated keys, not a JSON array: that is the encoding DRF's
+        // ManyRelatedField reads out of multipart. An empty selection appends
+        // nothing, which PATCHes the relation to empty rather than leaving it
+        // untouched -- the same thing the form is showing.
+        (form[f.name] || []).forEach(v => fd.append(f.name, v));
         return;
       }
       let val = form[f.name];
@@ -275,6 +307,27 @@ export default function ManageContentTab({ resourceLabel, apiPath, fields, colum
                     style={inputStyle}
                   >
                     {f.options.map(o => <option key={o.value} value={o.value} style={{ background: C.surface, color: C.text }}>{o.label}</option>)}
+                  </select>
+                ) : f.type === "asyncSelect" && f.multiple ? (
+                  <select
+                    multiple
+                    size={Math.min(6, Math.max(3, (asyncOptions[f.name] || []).length))}
+                    value={form[f.name] || []}
+                    onChange={e => {
+                      const next = Array.from(e.target.selectedOptions).map(o => o.value);
+                      setForm(prev => ({ ...prev, [f.name]: next }));
+                    }}
+                    style={{ ...inputStyle, height: "auto", padding: 6 }}
+                  >
+                    {(asyncOptions[f.name] || []).map(o => (
+                      <option
+                        key={o.id}
+                        value={o[f.optionValueKey || "id"]}
+                        style={{ background: C.surface, color: C.text, padding: "4px 6px" }}
+                      >
+                        {o[f.optionLabelKey || "name"]}
+                      </option>
+                    ))}
                   </select>
                 ) : f.type === "asyncSelect" ? (
                   <select

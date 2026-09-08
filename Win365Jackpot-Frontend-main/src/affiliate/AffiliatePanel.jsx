@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import {
   Key, Eye, EyeOff, AlertCircle, RefreshCw,
   LayoutGrid, Megaphone, HandCoins, Users, HelpCircle, Activity, Bell, User, ShieldCheck, Wallet as WalletIcon,
+  BarChart3,
 } from "lucide-react";
 import { API, affiliateFetch } from "./helpers";
 import { endSession, noteLogin } from "../services/sessionManager";
@@ -10,6 +11,7 @@ import { setSession, getToken, getUser, clearSession } from "../services/authSto
 import Logo from "../components/shared/Logo";
 import AffiliateSidebar, { SIDEBAR_WIDTH, useBreakpoint } from "./AffiliateSidebar";
 import OverviewTab from "./tabs/OverviewTab";
+import InsightsTab from "./tabs/InsightsTab";
 import CampaignsTab from "./tabs/CampaignsTab";
 import CommissionTab from "./tabs/CommissionTab";
 import WalletTab from "./tabs/WalletTab";
@@ -140,6 +142,13 @@ function AffiliateLoginScreen({ onSuccess }) {
 
 const TABS = [
   { id: "overview", label: "Overview", icon: LayoutGrid, Component: OverviewTab },
+  // The metrics beyond commission — referrals, conversion, per-game
+  // breakdown, tier progress, links. A NEW tab rather than a rewrite of
+  // Overview: that tab is what shipped and what affiliates already know, and
+  // breaking its layout to add cards would be a regression for a cosmetic
+  // gain. Both read funnel figures the server computes once, so they cannot
+  // disagree.
+  { id: "insights", label: "Insights", icon: BarChart3, Component: InsightsTab },
   { id: "campaigns", label: "Campaigns", icon: Megaphone, Component: CampaignsTab },
   { id: "commission", label: "Commission", icon: HandCoins, Component: CommissionTab },
   { id: "wallet", label: "Wallet", icon: WalletIcon, Component: WalletTab },

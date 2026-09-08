@@ -43,6 +43,9 @@ from authapp.models.analytics_models import (
 from authapp.services import visitor_service
 from authapp.utils.anonymous_id import derive_anonymous_id
 from authapp.utils.bot_detection import is_bot
+from authapp.utils.countries import (
+    UNKNOWN_LABEL, display_country, unknown_reason_label,
+)
 from authapp.utils.user_agent import classify_user_agent
 
 CONTENT_TYPE_VIDEO = "video"
@@ -431,12 +434,17 @@ def overview(start_dt, end_dt):
             "unique_clickers": click_unique_v,
             "total_clicks": all_clicks.count(),
             "unique_all_clickers": all_click_unique_v,
+            "total_video_impressions": vm["impressions"],
+            "unique_video_exposed": vm["unique_exposed"],
+            "has_video_impression_data": vm["has_impression_data"],
             "total_video_views": vm["total_views"],
             "unique_video_viewers": vm["unique_viewers"],
+            "video_view_through_rate": vm["view_through_rate"],
             "video_completion_rate": vm["completion_rate"],
             "total_video_clicks": vm["total_clicks"],
             "unique_video_clickers": vm["unique_clickers"],
             "video_ctr": vm["ctr"],
+            "video_total_ctr": vm["total_ctr"],
             "avg_video_watch_seconds": vm["avg_watch_seconds"],
             "new_members": signups.count(),
         }
@@ -444,32 +452,21 @@ def overview(start_dt, end_dt):
     return _cache_get_or_set(f"analytics:overview:{_rng_key(start_dt, end_dt)}", produce)
 
 
-# ── URL / source analytics ───────────────────────────────────────────────────
-def urls_report(start_dt, end_dt):
-    """One row per (utm_source, utm_medium, utm_campaign) seen in the window,
-    covering both formally-defined campaigns and raw UTM traffic."""
-    def produce():
-        qs = _events(start_dt, end_dt).exclude(utm_campaign="")
-        keys = qs.order_by().values_list("utm_source", "utm_medium", "utm_campaign").distinct()
-        rows = []
-        for source, medium, campaign in keys:
-            group = qs.filter(utm_source=source, utm_medium=medium, utm_campaign=campaign)
-            uv, um = _unique_from_qs(group)
-            last = group.order_by("-created_at").values_list("created_at", flat=True).first()
-            rows.append({
-                "source": source, "medium": medium, "campaign": campaign,
-                "clicks": group.filter(event_type=EVENT_URL_CLICK).count(),
-                "unique_visitors": uv,
-                "unique_members": um,
-                "page_views": group.filter(event_type=EVENT_PAGE_VIEW).count(),
-                "video_views": group.filter(event_type=EVENT_VIDEO_START).count(),
-                "registrations": group.filter(event_type=EVENT_SIGNUP).count(),
-                "last_activity": last.isoformat() if last else None,
-            })
-        rows.sort(key=lambda r: r["clicks"] + r["page_views"], reverse=True)
-        return rows
-
-    return _cache_get_or_set(f"analytics:urls:{_rng_key(start_dt, end_dt)}", produce)
+# ── URL / source analytics — REMOVED ─────────────────────────────────────────
+# `urls_report` (one row per raw utm_source/medium/campaign triple) and its
+# AdminAnalyticsUrlsView / "URL Analytics" tab are gone, on request.
+#
+# What deliberately STAYS, because other analytics depend on it:
+#   • EVENT_URL_CLICK and CampaignClickRedirectView — campaigns_report below
+#     counts url_click events, and the redirect endpoint is what records them.
+#     Removing either would empty the Campaign Analytics click column.
+#   • AnalyticsEvent.utm_source/utm_medium/utm_campaign/utm_content/utm_term —
+#     still written on ingest and still read by campaigns_report and by
+#     match_campaign(). They are a column on a table with live history, not
+#     scaffolding for the removed report.
+# Formally-defined campaigns were always the more useful half of this and are
+# unaffected: Campaign Analytics answers the same question against real
+# Campaign rows.
 
 
 # ── Campaign analytics (defined Campaign rows) ───────────────────────────────
@@ -490,7 +487,7 @@ def campaigns_report(start_dt, end_dt):
                 "page_views": group.filter(event_type=EVENT_PAGE_VIEW).count(),
                 "video_views": group.filter(event_type=EVENT_VIDEO_START).count(),
                 "registrations": regs,
-                "conversion_rate": round(100.0 * regs / uv, 1) if uv else 0.0,
+                "conversion_rate": _pct(regs, uv),
             })
         rows.sort(key=lambda r: r["clicks"], reverse=True)
         return rows
@@ -506,29 +503,95 @@ def _video_events(start_dt, end_dt, content_id=None):
     return qs
 
 
+def _pct(numerator, denominator):
+    """Percentage, or 0.0 when there is nothing to divide by.
+
+    Every rate in this module goes through here. A zero denominator is the
+    NORMAL case for a window with no traffic, not an error, and it must
+    produce 0.0 — never a ZeroDivisionError, and never the NaN/Infinity that
+    JSON cannot represent and the dashboard would render as "NaN%".
+    """
+    if not denominator:
+        return 0.0
+    return round(100.0 * numerator / denominator, 1)
+
+
 def _reduce_video(rows):
-    """Python-side reduction over one video's events. Returns view/viewer/
-    milestone/watch-time/click metrics. Milestones and clicks count DISTINCT
-    viewers, so a duplicate event (should never happen — the client de-dupes,
-    and client_event_id backs that with a real DB constraint for clicks) still
-    cannot inflate anything.
+    """Python-side reduction over one video's events. Returns exposure/view/
+    viewer/milestone/watch-time/click metrics. Milestones, impressions and
+    clicks all count DISTINCT viewers, so a duplicate event (should never
+    happen — the client de-dupes, and client_event_id backs that with a real
+    DB constraint) still cannot inflate anything.
 
     `rows` is (event_type, user_id, anonymous_id, metadata) tuples — one video
     scope at a time, so callers batch all of a window's video events in ONE
     query and group by content_id themselves (see videos_report) rather than
     calling this per-video-per-query.
+
+    ── THE CTR BUG THIS FIXES ────────────────────────────────────────────────
+    CTR used to be `unique_clickers / unique_viewers`, where "viewers" meant
+    everyone who had PLAYED the video (starters, completers, milestone
+    reachers). Two things were wrong with that, and they compounded:
+
+      1. `video_click` is, by its own definition (analytics_models.py), "a real
+         user gesture on the player itself — tap on the poster/native controls
+         to start or resume playback". On a click-to-play video that same
+         gesture ALSO produces the `video_start` that put the viewer in the
+         denominator. The numerator was therefore largely a subset of the
+         denominator by construction, and CTR sat pinned near 100% however the
+         video actually performed. It could also EXCEED 100%: a tap that never
+         resulted in playback (a permission prompt, an aborted load, an
+         immediate scroll away) is a click with no matching start, and a CTA
+         click needs no playback at all.
+
+      2. `video_impression` — the event the client has always emitted, once per
+         video per tab session, when the player is at least half on screen —
+         was ingested, stored, and then NEVER READ here. The vocabulary comment
+         that introduced it says exactly what it is for: "the denominator for a
+         view-through rate — without it there is no denominator separating
+         never saw the video from saw it and did not play it". The denominator
+         it was collected for was simply never wired up.
+
+    So the fix is not a formula tweak; it is reading the signal that was
+    already being collected. Exposure is now the denominator:
+
+        unique_exposed  everyone we KNOW saw the player: impression viewers,
+                        plus anyone who played or clicked. The union matters —
+                        a play or a click is itself proof of exposure, so a
+                        missing impression event (the observer never fired, an
+                        autoplay far off-screen) can never push CTR over 100%.
+        ctr             unique clickers / unique_exposed      ("Unique CTR")
+        total_ctr       total clicks    / total impressions   ("Total CTR")
+
+    Unique CTR stays the headline because the product definition it was written
+    under is still right: someone who plays a video three times and clicks once
+    is one click-through, not a third of one. Total CTR is reported alongside
+    it, and CAN legitimately exceed 100% — one exposure can produce several
+    clicks — which is why the two are labelled separately rather than blended.
+
+    `has_impression_data` keeps this honest for windows that predate impression
+    tracking, or where the observer never ran: with no impressions at all Total
+    CTR has no true denominator, so it is None and the dashboard shows a dash
+    rather than a fabricated 0%.
     """
     starters, completers = set(), set()
     milestone_viewers = {m: set() for m in VIDEO_MILESTONES}
     play_clickers, cta_clickers = set(), set()
+    impression_viewers = set()
+    total_impressions = 0
     total_views = 0
     total_play_clicks = 0
     total_cta_clicks = 0
+    total_pauses = 0
+    total_exits = 0
     watch_by_viewer = {}  # visitor_key -> max watched seconds seen
 
     for ev_type, user_id, anon, meta in rows:
         vk = _visitor_key(user_id, anon)
-        if ev_type == EVENT_VIDEO_START:
+        if ev_type == EVENT_VIDEO_IMPRESSION:
+            total_impressions += 1
+            impression_viewers.add(vk)
+        elif ev_type == EVENT_VIDEO_START:
             total_views += 1
             starters.add(vk)
         elif ev_type == EVENT_VIDEO_COMPLETE:
@@ -543,12 +606,21 @@ def _reduce_video(rows):
         elif ev_type == EVENT_VIDEO_CTA_CLICK:
             total_cta_clicks += 1
             cta_clickers.add(vk)
+        elif ev_type == EVENT_VIDEO_PAUSE:
+            total_pauses += 1
+        elif ev_type == EVENT_VIDEO_EXIT:
+            total_exits += 1
         secs = (meta or {}).get("watched_seconds")
         if isinstance(secs, (int, float)) and secs >= 0:
             if vk not in watch_by_viewer or secs > watch_by_viewer[vk]:
                 watch_by_viewer[vk] = secs
 
-    unique_viewers = len(starters | completers | {v for s in milestone_viewers.values() for v in s})
+    # "Viewers" keeps its original meaning — people who actually PLAYED. That
+    # is what the Unique Viewers card has always counted and what the retention
+    # funnel is a percentage of; exposure is reported next to it as its own
+    # number rather than quietly redefining this one.
+    played = starters | completers | {v for s in milestone_viewers.values() for v in s}
+    unique_viewers = len(played)
     started = len(starters) or unique_viewers
     # "Completed" merges the explicit `ended` signal with reaching the 100%
     # playback milestone, so a viewer who scrubs straight to the end without
@@ -558,11 +630,22 @@ def _reduce_video(rows):
     all_clickers = play_clickers | cta_clickers
     unique_clickers = len(all_clickers)
     total_clicks = total_play_clicks + total_cta_clicks
+
+    exposed = impression_viewers | played | all_clickers
+    unique_exposed = len(exposed)
+
     avg_watch = round(sum(watch_by_viewer.values()) / len(watch_by_viewer), 1) if watch_by_viewer else 0.0
     return {
+        "impressions": total_impressions,
+        "unique_impressions": len(impression_viewers),
+        "unique_exposed": unique_exposed,
+        "has_impression_data": total_impressions > 0,
         "total_views": total_views,
         "unique_viewers": unique_viewers,
         "started": started,
+        # Of everyone who saw the player, how many pressed play. The metric the
+        # impression event was collected for in the first place.
+        "view_through_rate": _pct(unique_viewers, unique_exposed),
         # Only the "reached N%" milestones below 100 — 100% is reported as
         # "completed" (merged with the `ended` event), matching how the
         # dashboard's own retention table is meant to read: 25/50/75% Reached,
@@ -570,17 +653,21 @@ def _reduce_video(rows):
         "milestones": {str(m): len(milestone_viewers[m]) for m in VIDEO_MILESTONES if m != 100},
         "completed": completed,
         "avg_watch_seconds": avg_watch,
-        "completion_rate": round(100.0 * completed / started, 1) if started else 0.0,
+        "completion_rate": _pct(completed, started),
         "total_clicks": total_clicks,
         "unique_clickers": unique_clickers,
         "play_clicks": total_play_clicks,
         "unique_play_clickers": len(play_clickers),
         "cta_clicks": total_cta_clicks,
         "unique_cta_clickers": len(cta_clickers),
-        # CTR per the agreed definition: unique clickers / unique viewers, not
-        # per-view — a viewer who plays a video three times and clicks once is
-        # one click-through, not a third of one.
-        "ctr": round(100.0 * unique_clickers / unique_viewers, 1) if unique_viewers else 0.0,
+        "pauses": total_pauses,
+        "exits": total_exits,
+        # See the docstring. `ctr` is Unique CTR and is the headline; total_ctr
+        # sits beside it and is None (not 0) when there is no impression data
+        # to divide by, so the UI shows a dash instead of implying a measured
+        # zero.
+        "ctr": _pct(unique_clickers, unique_exposed),
+        "total_ctr": _pct(total_clicks, total_impressions) if total_impressions else None,
     }
 
 
@@ -603,8 +690,17 @@ def videos_report(start_dt, end_dt):
             m = _reduce_video(video_rows)
             rows.append({
                 "content_id": vid,
+                # Exposure first: impressions are the denominator of CTR, so a
+                # row where CTR looks surprising is explained by the two
+                # numbers immediately to its left rather than by opening the
+                # detail view.
+                "impressions": m["impressions"],
+                "unique_impressions": m["unique_impressions"],
+                "unique_exposed": m["unique_exposed"],
+                "has_impression_data": m["has_impression_data"],
                 "total_views": m["total_views"],
                 "unique_viewers": m["unique_viewers"],
+                "view_through_rate": m["view_through_rate"],
                 "reached_50": m["milestones"]["50"],
                 "completed": m["completed"],
                 "avg_watch_seconds": m["avg_watch_seconds"],
@@ -612,8 +708,11 @@ def videos_report(start_dt, end_dt):
                 "total_clicks": m["total_clicks"],
                 "unique_clickers": m["unique_clickers"],
                 "ctr": m["ctr"],
+                "total_ctr": m["total_ctr"],
             })
-        rows.sort(key=lambda r: r["total_views"], reverse=True)
+        rows.sort(
+            key=lambda r: (r["impressions"], r["total_views"]), reverse=True,
+        )
         return rows
 
     return _cache_get_or_set(f"analytics:videos:{_rng_key(start_dt, end_dt)}", produce)
@@ -625,19 +724,29 @@ def video_detail(start_dt, end_dt, content_id):
         .values_list("event_type", "user_id", "anonymous_id", "metadata")
     )
     m = _reduce_video(raw)
-    started = m["started"] or 1
-    # Retention as a % of everyone who started, from real events.
-    retention = [{"stage": "Started", "count": m["started"], "pct": 100.0}]
+    started = m["started"]
+    # Retention as a % of everyone who started, from real events. An empty
+    # window reports 0.0% at every stage rather than 100% of nothing.
+    retention = [{
+        "stage": "Started", "count": started, "pct": 100.0 if started else 0.0,
+    }]
     for ms in VIDEO_MILESTONES:
         if ms == 100:
             continue
         c = m["milestones"][str(ms)]
-        retention.append({"stage": f"{ms}%", "count": c, "pct": round(100.0 * c / started, 1)})
-    retention.append({"stage": "Completed", "count": m["completed"], "pct": round(100.0 * m["completed"] / started, 1)})
+        retention.append({"stage": f"{ms}%", "count": c, "pct": _pct(c, started)})
+    retention.append(
+        {"stage": "Completed", "count": m["completed"], "pct": _pct(m["completed"], started)},
+    )
     return {
         "content_id": str(content_id),
+        "impressions": m["impressions"],
+        "unique_impressions": m["unique_impressions"],
+        "unique_exposed": m["unique_exposed"],
+        "has_impression_data": m["has_impression_data"],
         "total_views": m["total_views"],
         "unique_viewers": m["unique_viewers"],
+        "view_through_rate": m["view_through_rate"],
         "video_starts": m["started"],
         "avg_watch_seconds": m["avg_watch_seconds"],
         "completion_rate": m["completion_rate"],
@@ -648,7 +757,10 @@ def video_detail(start_dt, end_dt, content_id):
         "unique_play_clickers": m["unique_play_clickers"],
         "cta_clicks": m["cta_clicks"],
         "unique_cta_clickers": m["unique_cta_clickers"],
+        "pauses": m["pauses"],
+        "exits": m["exits"],
         "ctr": m["ctr"],
+        "total_ctr": m["total_ctr"],
         "locations": location_report(start_dt, end_dt, content_id=content_id),
     }
 
@@ -658,8 +770,21 @@ def location_report(start_dt, end_dt, content_id=None):
     """Country -> region -> city breakdown of video viewers/clicks in the
     window. content_id=None covers every video (the dashboard's aggregate
     "Viewers by Country"); a specific content_id scopes it to one video (the
-    per-video location panel). "Unknown" (never a fabricated value) covers a
-    country/region/city that could not be resolved.
+    per-video location panel).
+
+    COUNTRIES COME BACK AS FULL NAMES ("India"), not ISO codes ("IN"), with
+    the code alongside them in `country_code`. The database still stores only
+    the code — this is a display concern and is resolved here, once, rather
+    than in each of the several places that render a country. The name is the
+    provider's own where one was recorded, and utils/countries.py's ISO 3166-1
+    table otherwise; an unrecognised code is shown as itself rather than
+    hidden behind "Unknown".
+
+    "Unknown" (never a fabricated value) covers a country that could not be
+    resolved, and that bucket now carries `unknown_reasons` — a breakdown of
+    WHY, taken from the geo_status recorded on each visitor at lookup time.
+    That is the difference between an admin seeing "Unknown: 412" and seeing
+    that 380 of those were private/local addresses and 32 were failed lookups.
 
     NOTE — the `.exclude(country="")` that used to be on this query is gone,
     deliberately. It silently discarded every event whose country had not
@@ -676,18 +801,47 @@ def location_report(start_dt, end_dt, content_id=None):
     group."""
     def produce():
         qs = _video_events(start_dt, end_dt, content_id)
-        raw = qs.values_list("country", "region", "city", "event_type", "user_id", "anonymous_id")
+        # `country_name` and the visitor's geo_status are pulled alongside the
+        # code in the SAME query — no extra round trip and no N+1. The name is
+        # what the provider itself returned for this lookup, so it outranks any
+        # local table (see utils/countries.display_country); geo_status is what
+        # turns a bare "Unknown" into an actionable reason.
+        raw = qs.values_list(
+            "country", "country_name", "region", "city",
+            "event_type", "user_id", "anonymous_id", "visitor__geo_status",
+        )
 
-        tree = {}  # country -> region -> city -> {"viewers": set, "clicks": int, "clickers": set}
-        for country, region, city, ev_type, user_id, anon in raw:
-            country = country or "Unknown"
-            region = region or "Unknown"
-            city = city or "Unknown"
+        # country_key -> {label, code, reasons, regions{...}}
+        tree = {}
+        for code, name, region, city, ev_type, user_id, anon, geo_status in raw:
+            code = (code or "").strip().upper()
+            label = display_country(code, name, unknown_label=UNKNOWN_LABEL)
+            region = region or UNKNOWN_LABEL
+            city = city or UNKNOWN_LABEL
             vk = _visitor_key(user_id, anon)
+
+            entry = tree.setdefault(label, {
+                "code": code,
+                # Every distinct reason seen in this bucket. A country that
+                # resolved fine has none; the Unknown bucket usually has
+                # several, and listing them is the difference between "we do
+                # not know" and "these visitors were on private networks and
+                # those lookups were rate-limited".
+                "reasons": {},
+                "regions": {},
+            })
+            if not entry["code"] and code:
+                entry["code"] = code
+            if not code:
+                # Only unresolved rows carry a reason — a resolved country has
+                # nothing to explain.
+                reason = unknown_reason_label(geo_status or "no_visitor")
+                entry["reasons"][reason] = entry["reasons"].get(reason, 0) + 1
+
             node = (
-                tree.setdefault(country, {})
-                    .setdefault(region, {})
-                    .setdefault(city, {"viewers": set(), "clicks": 0, "clickers": set()})
+                entry["regions"]
+                .setdefault(region, {})
+                .setdefault(city, {"viewers": set(), "clicks": 0, "clickers": set()})
             )
             if ev_type == EVENT_VIDEO_START:
                 node["viewers"].add(vk)
@@ -696,10 +850,10 @@ def location_report(start_dt, end_dt, content_id=None):
                 node["clickers"].add(vk)
 
         countries = []
-        for country, regions in tree.items():
+        for label, entry in tree.items():
             country_viewers, country_clickers, country_clicks = set(), set(), 0
             region_rows = []
-            for region, cities in regions.items():
+            for region, cities in entry["regions"].items():
                 region_viewers, region_clickers, region_clicks = set(), set(), 0
                 city_rows = []
                 for city, d in cities.items():
@@ -725,7 +879,19 @@ def location_report(start_dt, end_dt, content_id=None):
                 country_clicks += region_clicks
             region_rows.sort(key=lambda r: r["viewers"], reverse=True)
             countries.append({
-                "country": country,
+                # Full name for display ("India"), the ISO code alongside it
+                # for anything that needs to key off it (flags, filters). The
+                # database still stores only the code — nothing about what is
+                # persisted changed here.
+                "country": label,
+                "country_code": entry["code"],
+                # Present only on the Unknown bucket, ordered commonest-first.
+                "unknown_reasons": [
+                    {"reason": reason, "events": count}
+                    for reason, count in sorted(
+                        entry["reasons"].items(), key=lambda kv: kv[1], reverse=True,
+                    )
+                ],
                 "viewers": len(country_viewers),
                 "clicks": country_clicks,
                 "unique_clickers": len(country_clickers),
@@ -919,10 +1085,17 @@ def _visitor_row(v, by_type):
         "ip_address": v.ip_address,
         "location": v.location_label(),
         "country_code": v.country_code,
+        # The name an admin reads. `country_name` stays exactly what the
+        # provider returned (possibly blank); `country_display` is the
+        # resolved one, so a row carrying only "IN" still shows "India".
         "country_name": v.country_name,
+        "country_display": display_country(v.country_code, v.country_name, unknown_label=UNKNOWN_LABEL),
         "region": v.region,
         "city": v.city,
         "geo_status": v.geo_status,
+        # Why there is no country, when there is not one. Empty string for a
+        # visitor whose location resolved fine.
+        "geo_status_label": "" if v.country_code else unknown_reason_label(v.geo_status or "no_visitor"),
         "device_type": v.device_type,
         "browser": v.browser,
         "operating_system": v.operating_system,
@@ -1001,6 +1174,8 @@ def visitor_detail(visitor_id, start_dt=None, end_dt=None):
         "approximate_location": v.location_label(),
         "country_code": v.country_code,
         "country_name": v.country_name,
+        "country_display": display_country(v.country_code, v.country_name, unknown_label=UNKNOWN_LABEL),
+        "geo_status_label": "" if v.country_code else unknown_reason_label(v.geo_status or "no_visitor"),
         "region": v.region,
         "region_code": v.region_code,
         "city": v.city,
@@ -1105,7 +1280,11 @@ def visitor_locations(start_dt, end_dt, **filters):
     Unresolved values are bucketed as "Unknown" rather than dropped, so the
     country totals always add up to the visitor total. A row is never
     fabricated: if the provider never returned a city, the city is "Unknown",
-    not a plausible one.
+    not a plausible one — and the Unknown bucket carries `unknown_reasons`
+    saying WHY, from the geo_status recorded when the lookup was attempted.
+
+    Countries are returned as full names, with the ISO code alongside in
+    `country_code`. See utils/countries.py for where the name comes from.
     """
     qs = _apply_visitor_filters(_visitors_in_window(start_dt, end_dt), **filters)
 
@@ -1123,12 +1302,27 @@ def visitor_locations(start_dt, end_dt, **filters):
             code, name = "--", "Local / Private Network"
         else:
             code = r["country_code"] or "??"
-            name = r["country_name"] or r["country_code"] or "Unknown"
-        region = r["region"] or "Unknown"
-        city = r["city"] or "Unknown"
+            # display_country prefers the provider's own name, falls back to
+            # the ISO 3166-1 table, and only then to the code itself — so a
+            # visitor whose row carries just "IN" now reads "India" instead of
+            # a two-letter code an admin has to decode.
+            name = display_country(
+                r["country_code"], r["country_name"], unknown_label=UNKNOWN_LABEL,
+            )
+        region = r["region"] or UNKNOWN_LABEL
+        city = r["city"] or UNKNOWN_LABEL
 
-        country = tree.setdefault(code, {"country": name, "code": code, "visitors": 0, "regions": {}})
+        country = tree.setdefault(
+            code,
+            {"country": name, "code": code, "visitors": 0, "reasons": {}, "regions": {}},
+        )
         country["visitors"] += r["n"]
+        if not r["country_code"] and r["geo_status"] != GEO_STATUS_PRIVATE_IP:
+            # Why this visitor has no country. Recorded at lookup time on the
+            # Visitor row, so this reports what actually happened rather than
+            # guessing after the fact.
+            reason = unknown_reason_label(r["geo_status"] or "no_visitor")
+            country["reasons"][reason] = country["reasons"].get(reason, 0) + r["n"]
         reg = country["regions"].setdefault(region, {"region": region, "visitors": 0, "cities": {}})
         reg["visitors"] += r["n"]
         cty = reg["cities"].setdefault(city, {"city": city, "visitors": 0})
@@ -1144,6 +1338,12 @@ def visitor_locations(start_dt, end_dt, **filters):
         out.append({
             "country": country["country"],
             "country_code": country["code"],
+            "unknown_reasons": [
+                {"reason": reason, "visitors": count}
+                for reason, count in sorted(
+                    country["reasons"].items(), key=lambda kv: kv[1], reverse=True,
+                )
+            ],
             "visitors": country["visitors"],
             "regions": regions,
         })
@@ -1177,7 +1377,7 @@ def clicks_report(start_dt, end_dt, *, country=None, city=None, device=None, pag
               .order_by("-clicks")[:limit]
         )
         return [
-            {label_key: r[field] or "Unknown",
+            {label_key: r[field] or UNKNOWN_LABEL,
              "clicks": r["clicks"],
              "unique_clickers": r["unique_clickers"]}
             for r in rows
@@ -1199,11 +1399,40 @@ def clicks_report(start_dt, end_dt, *, country=None, city=None, device=None, pag
                              .order_by().values("visitor_id").distinct().count(),
         "by_element": _clicks_by_element(qs),
         "by_page": group("url", "page"),
-        "by_country": group("country", "country"),
+        # by_country is built separately from group() because it is the one
+        # dimension whose stored value (an ISO code) is not what should be
+        # displayed. The filter still matches on the code — `country=` above
+        # is a code — so only the label changes.
+        "by_country": _clicks_by_country(qs),
         "by_city": group("city", "city"),
         "by_device": group("device_type", "device"),
         "over_time": [{"date": d, "clicks": n} for d, n in sorted(per_day.items())],
     }
+
+
+def _clicks_by_country(qs, limit=50):
+    """Click totals per country, labelled with full names.
+
+    The ISO code is returned alongside as `country_code` so the dashboard can
+    keep filtering by code (which is what the column actually holds) while
+    showing a name.
+    """
+    rows = (
+        qs.order_by()
+          .values("country", "country_name")
+          .annotate(clicks=Count("id"), unique_clickers=Count("visitor", distinct=True))
+          .order_by("-clicks")[:limit]
+    )
+    out = []
+    for r in rows:
+        code = (r["country"] or "").strip().upper()
+        out.append({
+            "country": display_country(code, r["country_name"], unknown_label=UNKNOWN_LABEL),
+            "country_code": code,
+            "clicks": r["clicks"],
+            "unique_clickers": r["unique_clickers"],
+        })
+    return out
 
 
 def _clicks_by_element(qs, limit=50):
@@ -1291,10 +1520,12 @@ def video_viewers(content_id, start_dt, end_dt, *, country=None, city=None, devi
         )
         countries.append({
             "country_code": code or "??",
-            "country": r["country_name"] or code or "Unknown",
+            # Full name, via the same resolver every other country render in
+            # this module now uses.
+            "country": display_country(code, r["country_name"], unknown_label=UNKNOWN_LABEL),
             "viewers": r["viewers"],
             "cities": [
-                {"city": c["city"] or "Unknown", "viewers": c["viewers"]}
+                {"city": c["city"] or UNKNOWN_LABEL, "viewers": c["viewers"]}
                 for c in cities
             ],
         })

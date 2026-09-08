@@ -54,6 +54,12 @@ export const fetchPremiumPartners   = cached("/api/premium-partners/")
 export const fetchSectionMedia      = cached("/api/section-media/")
 export const fetchVipServiceImages  = cached("/api/vip-service-images/")
 export const fetchTourPackages      = cached("/api/tour-packages/")
+// Back-Office-managed FAQ entries. Call as fetchFaqs({ category: "landing" })
+// or { category: "affiliate" } -- the category is part of the cache key, so
+// the landing page and the Affiliates page never collide. Returns active rows
+// only, in display order. An empty array is a normal answer, and each caller
+// falls back to its own built-in copy rather than rendering an empty section.
+export const fetchFaqs              = cached("/api/faqs/")
 
 // Call after an Admin Panel "Landing Page" save/update/delete succeeds, so
 // the public Landing Page (and any preview of it in the same browser tab)

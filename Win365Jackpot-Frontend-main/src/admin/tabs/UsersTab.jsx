@@ -14,6 +14,7 @@ import { Card, Spinner, UidBadge, Pagination } from "../components/SharedUI";
 import { adminFetch, API, fmt, fmtN, fmtDT } from "../helpers";
 import { useAdminTheme } from "../context/AdminThemeContext";
 
+import PlayerCommunicationPanel from "../components/PlayerCommunicationPanel";
 /* ═══════════════════════════════════════════════════════════
    CONSTANTS
 ═══════════════════════════════════════════════════════════ */
@@ -43,6 +44,17 @@ const WALLET_META = {
 };
 
 const isRPType = (wt) => wt === "RP" || wt === "rolling_points";
+
+/* The API sends the stored ISO code in `country` and the spelled-out name in
+   `country_display` (see UserProfileSerializer). Show the name, keep the code
+   in parentheses because admins search and filter on the code — and fall back
+   to whichever one is present so an older payload still reads sensibly. */
+const countryLabel = (u) => {
+  const name = (u?.country_display || "").trim();
+  const code = (u?.country || "").trim();
+  if (name && code && name.toUpperCase() !== code.toUpperCase()) return `${name} (${code})`;
+  return name || code || "—";
+};
 
 const TX_COLORS = {
   C:              { bg: "rgba(52,211,153,0.12)",  color: "#34D399", init: "$"  },
@@ -772,6 +784,16 @@ function UserDetailPanel({ data, onClose, onToast }) {
         {travelState.count > 5 && <MiniPagination page={travelState.page} total={travelState.count} perPage={5} onChange={pg => loadTravel(pg)} />}
       </Card>
 
+      {/* ── 6b. SUPPORT ACCESS ──
+          Chat and call access for this one player. Placed with the other
+          per-player controls rather than on the Live Support settings screen,
+          because it is a fact about THIS account, not a desk-wide setting —
+          and this is the screen an admin is already on when they decide a
+          player needs a cooling-off period. */}
+      <Card>
+        <PlayerCommunicationPanel userId={u.id} onToast={onToast} />
+      </Card>
+
       {/* ── 7. VIP RANK PROGRESS ── */}
       <Card>
         <div style={S.sectionTitle}>⭐ VIP Rank Progress</div>
@@ -828,7 +850,7 @@ function UserDetailPanel({ data, onClose, onToast }) {
       <Card>
         <div style={S.sectionTitle}>🪪 Identity & Account</div>
         <DetailRow icon={<Phone size={10} />}         label="Phone"              value={u?.phone || "Not provided"} />
-        <DetailRow icon={<Globe size={10} />}         label="Country"            value={u?.country || "—"} />
+        <DetailRow icon={<Globe size={10} />}         label="Country"            value={countryLabel(u)} />
         <DetailRow icon={<Calendar size={10} />}      label="Date of Birth"      value={u?.date_of_birth || "—"} />
         <DetailRow icon={<Calendar size={10} />}      label="Member Since"       value={fmtDT(u?.date_joined)} />
         <DetailRow icon={<Clock size={10} />}         label="Last Login"         value={u?.last_login ? fmtDT(u.last_login) : "Never"} />

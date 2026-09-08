@@ -1,6 +1,18 @@
 // src/admin/tabs/analytics/VideoAnalyticsTab.jsx
-// ANALYTICS: per-video views/clicks/retention/location. Click a row for its
-// retention funnel, click/CTR breakdown, and location drill-down.
+// ANALYTICS: per-video exposure/views/clicks/retention/location. Click a row
+// for its retention funnel, click/CTR breakdown, and location drill-down.
+//
+// TWO CTRs, deliberately labelled apart:
+//   Unique CTR  unique clickers / people exposed. The headline — someone who
+//               plays a video three times and clicks once is one
+//               click-through, not a third of one. Cannot exceed 100%.
+//   Total CTR   all clicks / all impressions. CAN legitimately exceed 100%
+//               (one exposure can produce several clicks), which is exactly
+//               why it is not blended with the number above.
+// Both divide by EXPOSURE, not by plays. The previous single CTR divided by
+// plays, and on a click-to-play video the click that starts playback is the
+// same gesture that creates the play — so the numerator was inside the
+// denominator and CTR sat pinned near 100%. See _reduce_video's docstring.
 import React, { useState, useEffect, useCallback } from "react";
 import { ArrowLeft } from "lucide-react";
 import { adminFetch, API, fmtN } from "../../helpers";
@@ -47,13 +59,29 @@ function VideoDetail({ contentId, range, onBack, onToast }) {
       {loading ? <Spinner /> : !detail ? <EmptyState /> : (
         <>
           <StatGrid>
+            {/* Exposure first — it is the DENOMINATOR of CTR, and putting it
+                anywhere else is how the old dashboard let a CTR near 100% look
+                plausible. An impression is "the player was at least half on
+                screen", emitted once per video per tab session. */}
+            <StatCard label="Impressions" value={fmtN(detail.impressions)} sub={`${fmtN(detail.unique_impressions)} unique`} color={C.teal} />
+            <StatCard label="People Exposed" value={fmtN(detail.unique_exposed)} sub="impressions, plays and clicks combined" color={C.teal} />
             <StatCard label="Total Views" value={fmtN(detail.total_views)} color={C.orange} />
             <StatCard label="Unique Viewers" value={fmtN(detail.unique_viewers)} color={C.gold} />
+            <StatCard label="View-Through Rate" value={fmtPct(detail.view_through_rate)} sub="of those exposed, how many played" color={C.gold} />
             <StatCard label="Video Starts" value={fmtN(detail.video_starts)} color={C.gold} />
             <StatCard label="Total Clicks" value={fmtN(detail.total_clicks)} sub={`${fmtN(detail.unique_clickers)} unique`} color={C.purple} />
             <StatCard label="Avg Watch Time" value={fmtSecs(detail.avg_watch_seconds)} color={C.teal} />
             <StatCard label="Completion Rate" value={fmtPct(detail.completion_rate)} color={C.pink} />
-            <StatCard label="CTR" value={fmtPct(detail.ctr)} sub="unique clickers / unique viewers" color={C.blue} />
+            <StatCard label="Unique CTR" value={fmtPct(detail.ctr)} sub="unique clickers / people exposed" color={C.blue} />
+            {/* A dash, not 0%, when there is no impression data to divide by.
+                That happens for windows predating impression tracking, and
+                showing a measured-looking zero there would be a fabrication. */}
+            <StatCard
+              label="Total CTR"
+              value={detail.total_ctr == null ? "—" : fmtPct(detail.total_ctr)}
+              sub={detail.has_impression_data ? "all clicks / all impressions" : "no impressions recorded"}
+              color={C.blue}
+            />
           </StatGrid>
 
           <Panel title="Clicks breakdown">
@@ -116,14 +144,17 @@ export default function VideoAnalyticsTab({ onToast }) {
       </div>
       <div style={{ overflowX: "auto" }}>
         <Table
-          headers={["Video", "Total Views", "Unique Viewers", "Reached 50%", "Completed", "Avg Watch", "Completion", "Total Clicks", "Unique Clickers", "CTR", ""]}
-          loading={loading} colSpan={11} emptyText="No video plays yet"
+          headers={["Video", "Impressions", "Exposed", "Total Views", "Unique Viewers", "View-Through", "Reached 50%", "Completed", "Avg Watch", "Completion", "Total Clicks", "Unique Clickers", "Unique CTR", "Total CTR", ""]}
+          loading={loading} colSpan={15} emptyText="No video impressions or plays yet"
         >
           {rows.map(v => (
             <tr key={v.content_id} style={{ borderTop: `1px solid ${C.border}`, cursor: "pointer" }} onClick={() => setSelected(v.content_id)}>
               <td style={{ ...td, fontWeight: 700, color: "white" }}>{v.content_id}</td>
+              <td style={{ ...td, color: C.teal, fontWeight: 700 }}>{fmtN(v.impressions)}</td>
+              <td style={td}>{fmtN(v.unique_exposed)}</td>
               <td style={{ ...td, color: C.orange, fontWeight: 700 }}>{fmtN(v.total_views)}</td>
               <td style={td}>{fmtN(v.unique_viewers)}</td>
+              <td style={td}>{fmtPct(v.view_through_rate)}</td>
               <td style={td}>{fmtN(v.reached_50)}</td>
               <td style={td}>{fmtN(v.completed)}</td>
               <td style={td}>{fmtSecs(v.avg_watch_seconds)}</td>
@@ -131,6 +162,7 @@ export default function VideoAnalyticsTab({ onToast }) {
               <td style={{ ...td, color: C.purple, fontWeight: 700 }}>{fmtN(v.total_clicks)}</td>
               <td style={td}>{fmtN(v.unique_clickers)}</td>
               <td style={{ ...td, color: C.blue, fontWeight: 700 }}>{fmtPct(v.ctr)}</td>
+              <td style={td}>{v.total_ctr == null ? "—" : fmtPct(v.total_ctr)}</td>
               <td style={{ ...td, color: C.blue }}>View →</td>
             </tr>
           ))}

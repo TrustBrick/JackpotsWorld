@@ -60,7 +60,11 @@ from authapp.serializers.voice_call_serializers import (
     CallSessionSerializer,
     VoiceCallSettingsSerializer,
 )
-from authapp.services import voice_call_service
+from authapp.services import (
+    call_control_service,
+    communication_restriction_service,
+    voice_call_service,
+)
 from authapp.services.voice_call_service import CallError
 from authapp.throttles import VoiceCallStartRateThrottle
 
@@ -116,6 +120,16 @@ class VoiceCallConfigView(APIView):
             # this endpoint, so they cannot disagree about whether the call is
             # being recorded.
             "recording_enabled": voice_call_service.recording_enabled(),
+            # Hold configuration, on the SAME endpoint for the same reason: the
+            # agent's Hold button and the customer's hold audio must be
+            # configured identically, and two endpoints are two chances for
+            # them to drift. hold_settings() returns hold_enabled, the audio
+            # URL, the message and the maximum.
+            **call_control_service.hold_settings(request),
+            # Whether this player may call at all, and what to tell them if
+            # not. Advisory — the real gate is in initiate_call — but it is
+            # what lets the widget explain itself instead of failing on click.
+            "calls_allowed": communication_restriction_service.calls_allowed(request.user).as_dict(),
         })
 
 

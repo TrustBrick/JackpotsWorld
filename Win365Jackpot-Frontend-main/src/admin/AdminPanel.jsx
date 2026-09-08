@@ -13,6 +13,7 @@ import {
   Layers, // Commission Rules
   LineChart, MousePointerClick, PlayCircle, Megaphone, UserCheck, // ANALYTICS
   Menu, X, // mobile off-canvas drawer controls
+  HelpCircle, Headset,
 } from "lucide-react";
 
 import OverviewTab       from "./tabs/OverviewTab";
@@ -45,6 +46,9 @@ import SupportScriptsManageTab from "./tabs/content/SupportScriptsManageTab";  /
 import LiveSupportTab       from "./tabs/LiveSupportTab";              // LIVE-CHAT
 // ANALYTICS: real first-party analytics dashboard tabs.
 import SystemLogsTab       from "./tabs/SystemLogsTab";
+import AndharBaharManageTab from "./tabs/content/AndharBaharManageTab";
+import FaqManageTab        from "./tabs/content/FaqManageTab";
+import LiveSupportSettingsTab from "./tabs/content/LiveSupportSettingsTab";
 
 import { Card, Toast, NotificationPopup } from "./components/SharedUI";
 import { API, adminFetch } from "./helpers";
@@ -69,8 +73,10 @@ const ICON_MAP = {
   MessageCircle, // LIVE-CHAT
   Percent, // Affiliate Commissions — was referenced but never mapped/imported before this change
   Club, // Teen Patti
-  Layers, // Commission Rules
+  Layers, // Commission Rules + Andhar Bahar
   LineChart, MousePointerClick, PlayCircle, Megaphone, UserCheck, // ANALYTICS
+  HelpCircle, // FAQs
+  Headset, // Live Support Settings
 };
 
 // AFFILIATE-APPROVAL: sessionStorage keys for sidebar state that should
@@ -404,9 +410,11 @@ function AdminPanelInner() {
       case "events":    return <EventsManageTab     {...props} />;
       case "poker":     return <PokerManageTab       {...props} />;
       case "teen-patti":return <TeenPattiManageTab   {...props} />;
+      case "andhar-bahar": return <AndharBaharManageTab {...props} />;  // ANDHAR-BAHAR
       case "promotions":return <PromotionsManageTab  {...props} />;
       case "locations": return <LocationsManageTab   {...props} />;
       case "landing":   return <LandingManageTab     {...props} />;
+      case "faqs":      return <FaqManageTab         {...props} />;
       case "affiliates":return <AffiliatesTab        {...props} />;
       case "affiliate-withdrawals": return <AffiliateWithdrawalsTab {...props} />; // AFFILIATE-WITHDRAWALS
       case "affiliate-commissions": return <AffiliateCommissionsTab {...props} />; // Commission Engine
@@ -416,6 +424,7 @@ function AdminPanelInner() {
       case "support-settings": return <SupportSettingsTab {...props} />;
       case "support-scripts": return <SupportScriptsManageTab {...props} />;  // SUPPORT-SCRIPT
       case "live-support":     return <LiveSupportTab     {...props} />; // LIVE-CHAT
+      case "live-support-settings": return <LiveSupportSettingsTab {...props} />;
       // SYSTEM LOGS: one destination, five tabs inside it. The old
       // per-analytics ids still resolve here so a browser session holding one
       // of them in sessionStorage opens the page that now contains that view

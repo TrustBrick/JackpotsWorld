@@ -294,6 +294,11 @@ export function Pagination({ page, total, perPage = 20, onChange }) {
 // ─── Table shell ──────────────────────────────────────────────────────────────
 export function Table({ headers, children, loading, colSpan, emptyText = "No records found" }) {
   const { C } = useAdminTheme();
+  // Every caller builds its rows with `items.map(...)`, and an EMPTY ARRAY is
+  // truthy — so a plain `children || <empty row>` rendered nothing at all when
+  // a list came back empty, and the emptyText each caller carefully wrote was
+  // dead code. Checking the array's length is what makes it reachable.
+  const hasRows = Array.isArray(children) ? children.length > 0 : Boolean(children);
   return (
     <Card solid style={{ padding: 0, overflow: "hidden" }}>
       <div style={{ overflowX: "auto" }}>
@@ -308,7 +313,7 @@ export function Table({ headers, children, loading, colSpan, emptyText = "No rec
         <tbody>
           {loading
             ? <tr><td colSpan={colSpan || headers.length} style={{ padding: 40, textAlign: "center", color: C.muted }}><Spinner /></td></tr>
-            : children || <tr><td colSpan={colSpan || headers.length} style={{ padding: 40, textAlign: "center", color: C.muted, fontSize: 13 }}>{emptyText}</td></tr>
+            : hasRows ? children : <tr><td colSpan={colSpan || headers.length} style={{ padding: 40, textAlign: "center", color: C.muted, fontSize: 13 }}>{emptyText}</td></tr>
           }
         </tbody>
       </table>

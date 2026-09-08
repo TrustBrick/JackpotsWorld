@@ -139,9 +139,16 @@ export const ADMIN_NAV_GROUPS = [
       // Teen Patti: events + registrations, managed through one tab with an
       // in-tab view toggle — same shape as Manage Poker above.
       { id:"teen-patti", label:"Teen Patti",         icon:"Club"          },
+      // ANDHAR-BAHAR: the third game section — page content, how-to-play
+      // steps, highlight cards, events and hero media, all in one tab with an
+      // in-tab view toggle, the same shape as Teen Patti above.
+      { id:"andhar-bahar", label:"Andhar Bahar",     icon:"Layers"        },
       { id:"promotions", label:"Manage Promotions",  icon:"Gift"          },
       { id:"locations",  label:"Manage Locations",   icon:"MapPin"        },
       { id:"landing",    label:"Landing Page",       icon:"LayoutTemplate"},
+      // FAQ: the landing and Affiliates page questions. Its own entry rather
+      // than a Landing Page sub-tab, because it serves several pages.
+      { id:"faqs",       label:"FAQs",               icon:"HelpCircle"    },
     ],
   },
   {
@@ -158,6 +165,10 @@ export const ADMIN_NAV_GROUPS = [
       // ticket tabs above) — safe to remove this line + LiveSupportTab.jsx +
       // its case in AdminPanel.jsx to remove the feature.
       { id:"live-support", label:"Live Support", icon:"MessageCircle" },
+      // How the desk behaves: availability, working hours, hold, forwarding,
+      // departments and every player-facing message. Distinct from Support
+      // Settings above, which is the multilingual translation configuration.
+      { id:"live-support-settings", label:"Live Support Settings", icon:"Headset" },
       { id:"notifications", label:"Notifications", icon:"Bell" },
     ],
   },

@@ -12,29 +12,49 @@ idempotent and safe to run repeatedly or concurrently with itself.
 | `python manage.py sync_poker --statuses-only` | every 15 min | Refreshes only upcoming/live/completed from event dates. Cheap; no outbound requests. |
 | `python manage.py sync_teenpatti_statuses` | every 15 min | Promotes Teen Patti events published → upcoming → live → completed, notifying registrants when an event goes live. |
 | `python manage.py sync_teenpatti_statuses --remind` | once daily | The above, plus a "your event starts soon" notification for events inside the next 24h. |
-| `python manage.py sweep_expired_calls` | every minute | VOICE-CALL: marks voice calls whose ring window has lapsed as `missed`. Cheap; no outbound requests. |
+| `python manage.py sweep_expired_calls` | every minute | VOICE-CALL: marks voice calls whose ring window has lapsed as `missed`, and ends any hold past `max_hold_seconds`. Cheap; no outbound requests. **Shipped as cron — see below.** |
 
-`sweep_expired_calls` is a safety net rather than the primary mechanism. Every
-read path already expires a lapsed call lazily
-(`voice_call_service.expire_if_due`), so this only matters for a ring nobody
-ever looks at again — a customer whose browser died mid-call with no agent
-opening the panel. Without it that row stays `ringing`, holding its
-conversation's single active-call slot and blocking the next call. Unlike the
-sync jobs below it is safe to run on every instance: each transition is a
-conditional `UPDATE` against a still-ringing row and it sends no
-notifications.
+`sweep_expired_calls` runs two sweeps, and they are not equally optional.
+
+For a **lapsed ring** it is a safety net rather than the primary mechanism:
+every read path already expires one lazily (`voice_call_service.expire_if_due`),
+so the sweep only matters for a ring nobody ever looks at again — a customer
+whose browser died mid-call with no agent opening the panel. Without it that row
+stays `ringing`, holding its conversation's single active-call slot and blocking
+the next call.
+
+For a **runaway hold** it is the only mechanism. A hold has no lazy read path —
+the customer is the only one waiting on it and their client is doing exactly
+what it was told — so an agent whose tab crashes mid-hold leaves that customer
+on hold audio indefinitely unless this job ends it. The limit is
+`VoiceCallSettings.max_hold_seconds`; while it is `0` (the default) the hold
+sweep is a deliberate no-op, so setting a limit in the Back Office is what turns
+the guarantee on.
+
+Unlike the sync jobs it is safe to run on every instance: each transition is a
+conditional `UPDATE` against a row still in the state being swept, and neither
+sweep sends notifications.
 
 A failing source never aborts a run: `sync_poker` catches per source, records
 the error on `PokerSource.error_message` and in `PokerSyncLog`, and continues.
 
 ## Elastic Beanstalk
 
-EB has no built-in scheduler for a web tier, so use cron on the instance. Add
-a `.ebextensions` file (this repo does not ship one — enable it deliberately,
-since a second instance would otherwise double-run the jobs):
+EB has no built-in scheduler for a web tier, so use cron on the instance.
+
+This repo ships **`.ebextensions/02_cron.config`, and it schedules exactly one
+job**: `sweep_expired_calls`, every minute, on every instance. That job is safe
+to double-run (see above), and the hold half of it has no other safety net.
+
+The **sync jobs are deliberately not shipped**. This environment runs more than
+one instance, so anything added to that file runs once per instance per tick,
+and the sync jobs notify — notifications are not deduplicated, so a second
+instance means a second "starting soon" message to every registrant. To enable
+them, either add them to a dedicated EB *worker* environment or gate them on the
+leader instance; the block below is the shape they take:
 
 ```yaml
-# .ebextensions/02_cron.config
+# .ebextensions/03_cron_sync.config — NOT shipped; see the warning above
 files:
   "/etc/cron.d/jackpotsworld_sync":
     mode: "000644"
@@ -51,11 +71,11 @@ commands:
     command: "rm -f /etc/cron.d/jackpotsworld_sync.bak"
 ```
 
-**If the environment is ever scaled past one instance**, move these to a
-dedicated EB *worker* environment (or gate them on the leader instance);
-otherwise every instance runs every job, which would produce duplicate
-"starting soon" notifications. The sync itself is safe — ingest is keyed on
-`(source, source_event_id)` — but notifications are not deduplicated.
+**This environment already runs more than one instance**, so that block cannot
+be dropped in as-is: every instance would run every job, producing duplicate
+"starting soon" notifications. Move them to a dedicated EB *worker* environment
+or gate them on the leader instance first. The sync itself is safe — ingest is
+keyed on `(source, source_event_id)` — but notifications are not deduplicated.
 
 ## Running manually
 

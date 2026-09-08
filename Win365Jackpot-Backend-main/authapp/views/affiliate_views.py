@@ -36,6 +36,8 @@ from authapp.models import User
 from authapp.models.affiliate_commission_models import (
     AffiliateCommissionAssignment, AffiliatePlayerCommissionStatus, CommissionPlan,
 )
+from authapp.constants.games import GAME_CHOICES, GAME_ROUTES, normalise_game
+from authapp.services import affiliate_dashboard_service
 from authapp.models.affiliate_models import (
     AffiliateProfile, ReferralCommission, AffiliateClickLog, AffiliateLoginLog, AffiliateCampaign,
 )
@@ -173,6 +175,22 @@ class AffiliateLoginView(APIView):
 # (see AuthModal.jsx), independent of whether the visitor ever signs up —
 # lets "Total Clicks" reflect real traffic, not just conversions.
 
+def _game_from_path(landing_path):
+    """Infer the referred game from the landing path, e.g. "/andhar-bahar" or
+    "/poker/12" -> the matching slug. Returns "" for any other page.
+
+    Prefix-matched against GAME_ROUTES rather than a second hardcoded list, so
+    adding a game to authapp/constants/games.py teaches this too.
+    """
+    path = (landing_path or "").strip().lower()
+    if not path:
+        return ""
+    for slug, route in GAME_ROUTES.items():
+        if path == route or path.startswith(route + "/"):
+            return slug
+    return ""
+
+
 class AffiliateTrackClickView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -198,12 +216,20 @@ class AffiliateTrackClickView(APIView):
         geo = resolve_geo_location(ip) or {}
         device, browser = parse_user_agent(user_agent)
 
+        landing_path = (request.data.get("landing_path") or "")[:255]
+        # Which game this link was promoting. Explicit ?game= wins; failing
+        # that it is inferred from the page the visitor actually landed on,
+        # since a link straight to /andhar-bahar is unambiguous about intent.
+        # Never guessed beyond that — an unrecognised value normalises to "".
+        game = normalise_game(request.data.get("game")) or _game_from_path(landing_path)
+
         click = AffiliateClickLog.objects.create(
             affiliate=affiliate,
             campaign=campaign,
             ip_address=ip,
             user_agent=user_agent,
-            landing_path=(request.data.get("landing_path") or "")[:255],
+            landing_path=landing_path,
+            game=game,
             country=(geo.get("country_name") or "")[:100],
             city=(geo.get("city") or "")[:100],
             device=device,
@@ -340,6 +366,60 @@ class AffiliateDashboardView(APIView):
                 "total_leveled_players": total_leveled,
             },
         })
+
+
+class AffiliateProgramStatsView(APIView):
+    """GET /api/affiliate/program-stats/ — what an affiliate can refer players
+    for. Public, and deliberately carries no figures at all.
+
+    HISTORY, because the shape of this endpoint only makes sense with it. The
+    Affiliates page once rendered a strip of invented affiliates — names,
+    cities, referral counts and commission amounts generated client-side with
+    Math.random() on every page load, under "Affiliates Earning Right Now" —
+    each card rendered three times over by a triple-repeated array, which is
+    what put the same fabricated person on screen several times.
+
+    That was replaced with real aggregate counts (active partners, players
+    referred, countries reached). Those were genuine, but they were the wrong
+    thing to publish here and have since been removed too: a prospective
+    affiliate needs to know WHAT they can refer people for, not the size of
+    the roster. Nothing read them, so nothing computes them.
+
+    WHAT IS LEFT IS NOT A FIGURE. The supported-games list is the platform's
+    own vocabulary (authapp/constants/games.py), so adding a game adds it to
+    the public page with no frontend change and no second list to keep in
+    step. No count, no rate, no earnings claim: commission varies by game,
+    country, destination and tier and is set per affiliate, so any headline
+    percentage here would be invented. An affiliate's real rates are behind
+    IsAffiliate on the insights endpoint.
+    """
+
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        return Response({
+            "supported_games": [
+                {"game": slug, "label": label, "route": GAME_ROUTES.get(slug, "")}
+                for slug, label in GAME_CHOICES
+            ],
+        })
+
+
+class AffiliateInsightsView(APIView):
+    """GET /api/affiliate/insights/ — the metrics beyond commission.
+
+    A SEPARATE endpoint from AffiliateDashboardView rather than a rewrite of
+    it. That view is what the existing Overview tab already reads, and its
+    payload shape is depended on by shipped frontend code; breaking it to add
+    cards would be a regression for a cosmetic gain. This is additive, and the
+    two share their funnel maths through affiliate_stats_service so they can
+    never disagree about what "qualified" means.
+    """
+
+    permission_classes = [IsAffiliate]
+
+    def get(self, request):
+        return Response(affiliate_dashboard_service.build(request.user))
 
 
 class AffiliateCommissionsListView(APIView):

@@ -67,7 +67,16 @@ export default function AnalyticsOverviewTab({ onToast }) {
               <StatCard label="Unique Clickers" value={fmtN(data.unique_video_clickers)} color={C.purple} />
               <StatCard label="Average Watch Time" value={fmtSecs(data.avg_video_watch_seconds)} color={C.teal} />
               <StatCard label="Completion Rate" value={fmtPct(data.video_completion_rate)} color={C.pink} />
-              <StatCard label="CTR" value={fmtPct(data.video_ctr)} color={C.blue} />
+              {/* Unique CTR: unique clickers / people exposed. Labelled
+                  explicitly because Total CTR sits beside it on the Video
+                  Analytics tab and the two answer different questions. */}
+              <StatCard label="CTR (unique)" value={fmtPct(data.video_ctr)} color={C.blue} />
+              <StatCard
+                label="CTR (total)"
+                value={data.video_total_ctr == null ? "—" : fmtPct(data.video_total_ctr)}
+                color={C.blue}
+              />
+              <StatCard label="Impressions" value={fmtN(data.total_video_impressions)} color={C.teal} />
             </StatGrid>
           </Panel>
 

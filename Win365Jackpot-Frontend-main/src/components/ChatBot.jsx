@@ -986,6 +986,13 @@ export default function ChatBot({ portal = "player" }) {
       speakerSupported={voiceCall.speakerSupported}
       error={voiceCall.error}
       recordingEnabled={voiceCall.recordingEnabled}
+      // State only, no controls: holding and forwarding are things support
+      // does, and the customer's panel exists to tell them WHY they have
+      // stopped hearing anyone. Without this, a hold is indistinguishable
+      // from a dropped call.
+      onHold={voiceCall.onHold}
+      transferring={voiceCall.transferring}
+      holdMessage={voiceCall.holdMessage}
       onToggleMute={voiceCall.toggleMute}
       onToggleSpeaker={voiceCall.toggleSpeaker}
       onEnd={voiceCall.endCall}

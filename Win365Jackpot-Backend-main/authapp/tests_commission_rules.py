@@ -65,19 +65,76 @@ class CommissionRulePrecedenceTests(APITestCase):
         return commission_rule_service.resolve_rule(self.affiliate, **params)
 
     def test_specificity_is_scored_so_precedence_matches_the_spec(self):
+        """The ladder, most specific first.
+
+        Asserted as an ORDERING, not as literal weights. The weights were
+        rescaled (doubled) when `game` was added as a fourth dimension — see
+        commission_rule_models._WEIGHT_GAME — and pinning the literals is what
+        made this test fail on a change that deliberately preserved every
+        rule's relative position. The order below is the requirement; the
+        numbers behind it are an implementation detail that may be rescaled
+        again.
+        """
         combos = [
-            ({"affiliate": self.affiliate, "casino": self.casino, "country": "Sri Lanka"}, 7),
-            ({"affiliate": self.affiliate, "casino": self.casino}, 6),
-            ({"affiliate": self.affiliate, "country": "Sri Lanka"}, 5),
-            ({"affiliate": self.affiliate}, 4),
-            ({"casino": self.casino, "country": "Sri Lanka"}, 3),
-            ({"casino": self.casino}, 2),
-            ({"country": "Sri Lanka"}, 1),
-            ({}, 0),
+            {"affiliate": self.affiliate, "casino": self.casino, "country": "Sri Lanka"},
+            {"affiliate": self.affiliate, "casino": self.casino},
+            {"affiliate": self.affiliate, "country": "Sri Lanka"},
+            {"affiliate": self.affiliate},
+            {"casino": self.casino, "country": "Sri Lanka"},
+            {"casino": self.casino},
+            {"country": "Sri Lanka"},
+            {},
         ]
-        for scope, expected in combos:
-            rule = _rule(name=f"scope-{expected}", **scope)
-            self.assertEqual(rule.specificity, expected, scope)
+        scores = []
+        for i, scope in enumerate(combos):
+            rule = _rule(name=f"scope-{i}", **scope)
+            scores.append((rule.specificity, scope))
+
+        for (higher, higher_scope), (lower, lower_scope) in zip(scores, scores[1:]):
+            self.assertGreater(
+                higher, lower,
+                f"{higher_scope} must outrank {lower_scope}",
+            )
+        # A rule that pins nothing is still the floor.
+        self.assertEqual(scores[-1][0], 0)
+
+    def test_game_is_the_finest_scope_dimension(self):
+        """Game breaks ties WITHIN a level; it never jumps between levels.
+
+        This is the property that let `game` be added without changing what
+        any existing affiliate earns: a game-scoped global rule must not
+        outrank a country-scoped one, and adding a game to a rule must make it
+        strictly more specific than the same rule without one.
+        """
+        global_game = _rule(name="global+game", game="poker")
+        country_only = _rule(name="country", country="Sri Lanka")
+        country_game = _rule(name="country+game", country="Sri Lanka", game="poker")
+        plain_global = _rule(name="global")
+
+        self.assertGreater(global_game.specificity, plain_global.specificity)
+        self.assertGreater(country_only.specificity, global_game.specificity,
+                           "a country rule must still beat a game-only rule")
+        self.assertGreater(country_game.specificity, country_only.specificity)
+
+    def test_a_game_scoped_rule_only_matches_that_game(self):
+        poker_rule = _rule(name="poker only", game="poker", rate=Decimal("9"))
+        generic = _rule(name="any game", rate=Decimal("1"))
+
+        self.assertEqual(self._resolve(game="poker"), poker_rule)
+        # A different game falls back to the game-agnostic rule rather than
+        # being priced by the poker one.
+        self.assertEqual(self._resolve(game="andhar_bahar"), generic)
+        # Activity with NO game attributed must never be priced by a rule that
+        # claims to be about one.
+        self.assertEqual(self._resolve(game=None), generic)
+
+    def test_existing_rules_are_unaffected_by_the_game_dimension(self):
+        """A rule written before games existed (game="") keeps matching every
+        piece of activity, attributed or not."""
+        legacy = _rule(name="legacy", country="Sri Lanka", rate=Decimal("3"))
+        for game in (None, "", "poker", "teen_patti", "andhar_bahar"):
+            with self.subTest(game=game):
+                self.assertEqual(self._resolve(game=game), legacy)
 
     def test_most_specific_rule_wins_over_every_broader_rule(self):
         _rule(name="global", rate=Decimal("1"))

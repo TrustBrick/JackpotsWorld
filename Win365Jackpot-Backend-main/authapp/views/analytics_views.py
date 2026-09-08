@@ -10,7 +10,6 @@ Admin dashboard endpoints.
 
   Admin (api/admin-panel/, IsAdminOrSuperAdmin):
     • AdminAnalyticsOverviewView     — GET analytics/overview/
-    • AdminAnalyticsUrlsView         — GET analytics/urls/
     • AdminAnalyticsVideosView       — GET analytics/videos/
     • AdminAnalyticsVideoDetailView  — GET analytics/videos/<content_id>/
     • AdminAnalyticsCampaignsView    — GET analytics/campaigns/
@@ -138,12 +137,6 @@ class AdminAnalyticsOverviewView(_AdminAnalyticsBase):
     def get(self, request):
         s, e = self._range(request)
         return Response(analytics_service.overview(s, e))
-
-
-class AdminAnalyticsUrlsView(_AdminAnalyticsBase):
-    def get(self, request):
-        s, e = self._range(request)
-        return Response(analytics_service.urls_report(s, e))
 
 
 class AdminAnalyticsVideosView(_AdminAnalyticsBase):

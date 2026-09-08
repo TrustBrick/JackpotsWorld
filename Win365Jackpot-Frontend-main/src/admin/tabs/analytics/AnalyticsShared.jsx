@@ -214,7 +214,22 @@ export function LocationTree({ countries }) {
               }}
             >
               {isOpen ? <ChevronDown size={13} color="rgba(255,255,255,0.5)" /> : <ChevronRight size={13} color="rgba(255,255,255,0.5)" />}
-              <span style={{ fontWeight: 700, fontSize: 12.5, color: "white", flex: 1 }}>{c.country || "Unknown"}</span>
+              {/* `country` is now the FULL NAME ("India"), resolved server-side
+                  from the stored ISO code — see utils/countries.py. The code
+                  itself is in `country_code` for anything that needs to key
+                  off it. */}
+              <span style={{ fontWeight: 700, fontSize: 12.5, color: "white", flex: 1 }}>
+                {c.country || "Unknown"}
+                {/* WHY a row is Unknown, not just that it is. The reasons come
+                    from the geo_status recorded when the lookup was attempted,
+                    so this reports what actually happened rather than a guess.
+                    Absent entirely on a country that resolved. */}
+                {c.unknown_reasons?.length > 0 && (
+                  <span style={{ fontWeight: 400, fontSize: 10.5, color: "rgba(255,255,255,0.45)", marginLeft: 8 }}>
+                    ({c.unknown_reasons.map(r => `${r.reason}: ${fmtN(r.events ?? r.visitors)}`).join(" · ")})
+                  </span>
+                )}
+              </span>
               <span style={{ fontSize: 11.5, color: C.orange, fontWeight: 700 }}>{fmtN(c.viewers)} viewers</span>
               <span style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>{fmtN(c.clicks)} clicks · {fmtN(c.unique_clickers)} clickers</span>
             </button>

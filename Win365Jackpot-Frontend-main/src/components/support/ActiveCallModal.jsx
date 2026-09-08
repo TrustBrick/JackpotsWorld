@@ -10,7 +10,10 @@
 
 import React from "react"
 import { motion } from "framer-motion"
-import { AlertCircle, Disc, Mic, MicOff, Phone, PhoneOff, Volume2, VolumeX } from "lucide-react"
+import {
+  AlertCircle, Disc, Mic, MicOff, Pause, Phone, PhoneOff, Play,
+  Forward, Volume2, VolumeX,
+} from "lucide-react"
 import { formatCallDuration } from "../../services/voiceCallService"
 import { PUBLIC_CALL_THEME } from "./callTheme"
 import { PHASE } from "../../hooks/useVoiceCall"
@@ -69,6 +72,20 @@ export default function ActiveCallModal({
   // agent needs the account on the line, and `receiver_name` is their own name
   // when they are the one who answered.
   showCallerContact = false,
+  // ── Hold / forward ──────────────────────────────────────────────────────
+  // Server-decided state, not a local toggle: `onHold` arrives on the
+  // call_state push so both endpoints show the same thing, and a client whose
+  // socket dropped mid-hold is corrected by the next state it receives.
+  onHold = false,
+  transferring = false,
+  holdMessage = "",
+  // Agent surfaces only. Holding is something an agent does to a customer,
+  // and forwarding is an internal routing decision — neither belongs on the
+  // customer's panel, which shows the resulting STATE instead.
+  canHold = false,
+  canForward = false,
+  onHoldToggle,
+  onForward,
   error,
   onToggleMute,
   onToggleSpeaker,
@@ -85,16 +102,30 @@ export default function ActiveCallModal({
 
   const callerEmail = (call?.caller_email || "").trim()
   const callerReference = call?.caller_affiliate_id || call?.caller_uid || ""
-  // On an agent's screen the person on the line is the caller; on a customer's
-  // it is the agent who answered.
-  const counterparty = showCallerContact
-    ? (call?.caller_name || callerEmail || "Customer")
-    : (call?.receiver_name || call?.caller_name || "Support")
+  // WHICH SIDE IS WHICH depends on who placed the call. A player ringing the
+  // desk is caller=player / receiver=agent; a support callback is the mirror
+  // of that. Reading `caller` as "the customer" is only right for the first
+  // kind — on a callback it showed the agent their OWN name (and their own
+  // email under it) as the person on the line, and showed the customer their
+  // own name as "Support".
+  const outbound = call?.direction === "outbound"
+  const customerName = outbound
+    ? (call?.receiver_name || "Customer")
+    : (call?.caller_name || callerEmail || "Customer")
+  const agentName = outbound
+    ? (call?.caller_name || "Support")
+    : (call?.receiver_name || "Support")
+  const counterparty = showCallerContact ? customerName : agentName
   // The agent sees who they answered from the moment they answer, not once
   // the peer connection settles: the phase headline above already says
   // "Connecting…", so repeating it here in place of the caller's identity
   // spends the most useful line on the screen saying nothing.
-  const showCallerEmail = showCallerContact && !!callerEmail && !finished
+  // Only ever the CUSTOMER's contact line, never the agent's own. The payload
+  // carries caller_email/caller_uid and nothing equivalent for the receiver
+  // (deliberately — see voice_call_service.call_payload on whose email goes on
+  // the wire), so on a callback there is no customer contact to show and the
+  // line is omitted rather than filled with the agent's own address.
+  const showCallerEmail = showCallerContact && !outbound && !!callerEmail && !finished
 
   return (
     <div
@@ -205,6 +236,26 @@ export default function ActiveCallModal({
           </p>
         )}
 
+        {/* HOLD / FORWARDING STATE. Shown to BOTH sides — a customer who
+            has stopped hearing their agent needs to be told why, and that is
+            the difference between a hold and a call that appears to have
+            dropped. The wording is the admin-configured hold message. */}
+        {(onHold || transferring) && !finished && (
+          <div style={{
+            display: "flex", alignItems: "flex-start", gap: 8, textAlign: "left",
+            padding: "9px 11px", marginBottom: 16, borderRadius: 9,
+            background: `${theme.gold}14`, border: `1px solid ${theme.gold}44`,
+            color: theme.gold, fontSize: 12, lineHeight: 1.45,
+          }}>
+            <Pause size={15} style={{ flexShrink: 0, marginTop: 1 }} aria-hidden="true" />
+            <span aria-live="polite">
+              {transferring
+                ? "Transferring you to a colleague — please hold."
+                : (holdMessage || "You are on hold. Your agent will be back shortly.")}
+            </span>
+          </div>
+        )}
+
         {error && (
           <div style={{
             display: "flex", alignItems: "flex-start", gap: 8, textAlign: "left",
@@ -238,6 +289,29 @@ export default function ActiveCallModal({
                 onClick={onToggleSpeaker}
                 theme={theme}
                 disabled={!connected}
+              />
+            )}
+            {canHold && (
+              <ControlButton
+                icon={onHold ? Play : Pause}
+                label={onHold ? "Resume" : "Hold"}
+                active={onHold}
+                onClick={onHoldToggle}
+                theme={theme}
+                // Disabled while a transfer is ringing: the customer is
+                // already held for that, and resuming underneath it would put
+                // them back on a line the agent is trying to hand away.
+                disabled={!connected || transferring}
+              />
+            )}
+            {canForward && (
+              <ControlButton
+                icon={Forward}
+                label="Forward"
+                active={transferring}
+                onClick={onForward}
+                theme={theme}
+                disabled={!connected || transferring}
               />
             )}
           </div>

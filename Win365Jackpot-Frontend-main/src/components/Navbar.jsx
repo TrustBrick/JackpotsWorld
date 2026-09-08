@@ -22,7 +22,7 @@ const NAV_I18N_KEY = {
   Affiliates: 'nav.affiliates',
   Poker: 'nav.poker',
   'Teen Patti': 'nav.teenPatti',
-  Contacts: 'nav.contacts',
+  'Andhar Bahar': 'nav.andharBahar',
   'Why Us': 'nav.whyUs',
   Register: 'nav.register',
   Gifts: 'nav.gifts',
@@ -32,18 +32,24 @@ const NAV_I18N_KEY = {
 // type: 'scroll'  -> existing homepage sections (react-scroll on "/", falls
 //                     back to navigate-then-scroll from any other page)
 //       'route'   -> dedicated pages, navigated via React Router
-//       'contact' -> always scrolls to the homepage Contact section, from
-//                     any page (never opens a separate page)
 // Events / Destinations / Promotions were removed from here — their content
 // now lives inline on the home page beside the Packages section, reachable
 // via "View All" links instead of top-level nav entries.
+//
+// Contacts was removed too. The footer it scrolled to (Footer.jsx, id="contact")
+// is untouched and still reachable by scrolling and from footer links — only
+// the top-level nav entry is gone, which is what leaves room for the third
+// game without the desktop row wrapping. The 'contact' link type went with it:
+// nothing else used it, and a link type with no links is a trap for whoever
+// adds the next nav entry.
 const navLinks = [
   { label: 'Home',         type: 'scroll',  to: 'hero'     },
   { label: 'VIP Levels',   type: 'scroll',  to: 'vip'      },
   { label: 'Affiliates',   type: 'route',   path: '/affiliates' },
   { label: 'Poker',        type: 'route',   path: '/poker'      },
   { label: 'Teen Patti',   type: 'route',   path: '/teen-patti' },
-  { label: 'Contacts',     type: 'contact', to: 'contact'  },
+  // Sits with the other games, not at the end, so the three read as a set.
+  { label: 'Andhar Bahar', type: 'route',   path: '/andhar-bahar' },
   { label: 'Why Us',       type: 'scroll',  to: 'why'      },
   { label: 'Register',     type: 'scroll',  to: 'register' },
   { label: 'Gifts',        type: 'scroll',  to: 'gifts', isGift: true },
@@ -294,9 +300,9 @@ export default function Navbar() {
 }, [])
 
   // ── Cross-page scroll support ──────────────────────────────────────────────
-  // If a nav item that scrolls to a homepage section (Home, VIP Levels,
-  // Destinations, Why Us, Gifts, Register, Contacts) is clicked while on a
-  // different route (e.g. /events), we navigate home first and then scroll
+  // If a nav item that scrolls to a homepage section (Home, VIP Levels, Why
+  // Us, Gifts, Register) is clicked while on a different route (e.g.
+  // /andhar-bahar), we navigate home first and then scroll
   // to the target section once it mounts. On the homepage itself, the
   // original react-scroll <Link> behaviour is left completely untouched.
   useEffect(() => {

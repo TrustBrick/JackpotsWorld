@@ -6,6 +6,8 @@ OfflineDepositLog model — records every back-office session entry.
 from django.db import models
 from django.conf import settings
 
+from authapp.constants.games import GAME_FIELD_CHOICES, GAME_UNSPECIFIED
+
 
 class OfflineDepositLog(models.Model):
     ENTRY_TYPES = [("cash", "Cash"), ("rolling_points", "Rolling Points")]
@@ -35,13 +37,22 @@ class OfflineDepositLog(models.Model):
     levelup_points_needed = models.IntegerField(default=5000)
     level_up_triggered    = models.BooleanField(default=False, db_index=True)
 
+    # Which game this activity was for. Optional: an entry recorded without
+    # one is attributed to no game rather than guessed at, and is priced by
+    # game-agnostic commission rules exactly as every entry was before this
+    # column existed. See authapp/constants/games.py.
+    game        = models.CharField(max_length=20, choices=GAME_FIELD_CHOICES, blank=True, default=GAME_UNSPECIFIED, db_index=True)
+
     note        = models.TextField(blank=True)
     recorded_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="deposit_logs_recorded")
     created_at  = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
         ordering = ["-created_at"]
-        indexes  = [models.Index(fields=["user", "entry_type", "created_at"])]
+        indexes  = [
+            models.Index(fields=["user", "entry_type", "created_at"]),
+            models.Index(fields=["game", "created_at"]),
+        ]
 
 
 # ────────────────────────────────────────────────────────────────────────────

@@ -10,6 +10,23 @@
 # they are kept adjacent here so the grouping stays obvious.
 from django.urls import path
 
+from authapp.views.call_control_views import (
+    AdminCallControlConfigView,
+    AdminCallHoldView,
+    AdminCallResumeView,
+    AdminCallTransferListView,
+    AdminCallTransferView,
+    AdminLiveSupportSettingsView,
+    AdminPlayerCommunicationHistoryView,
+    AdminPlayerCommunicationView,
+    AdminSupportDepartmentDetailView,
+    AdminSupportDepartmentListCreateView,
+    AdminTransferAcceptView,
+    AdminTransferCancelView,
+    AdminTransferDeclineView,
+    AdminTransferTargetsView,
+    MyCommunicationStatusView,
+)
 from authapp.views.voice_call_views import (
     AdminCallAcceptView,
     AdminCallbackView,
@@ -41,6 +58,10 @@ public_urlpatterns = [
     path("live-chat/calls/<int:call_id>/end/", CallEndView.as_view()),
     path("live-chat/calls/<int:call_id>/failed/", CallFailedView.as_view()),
     path("live-chat/<int:ticket_id>/calls/", TicketCallListCreateView.as_view()),
+    # What the widget needs before offering chat or a call: whether either is
+    # open for THIS player, and the player-safe message if not. Read-only, and
+    # the real gate is server-side in live_chat_service / voice_call_service.
+    path("live-chat/communication-status/", MyCommunicationStatusView.as_view()),
 ]
 
 # Agent-facing — mounted at api/admin-panel/
@@ -60,4 +81,33 @@ admin_urlpatterns = [
     # The recording switch. Not under live-chat/: it is a deployment-wide
     # setting, not a property of one conversation.
     path("voice-call-settings/", AdminVoiceCallSettingsView.as_view()),
+
+    # ── Hold / forwarding ──────────────────────────────────────────────────
+    # Declared before the <int:call_id>/ DELETE route above would matter --
+    # these all carry a trailing verb segment, so there is no ambiguity, but
+    # they are grouped here rather than interleaved so the call-control
+    # surface reads as one block.
+    path("live-chat/calls/<int:call_id>/hold/", AdminCallHoldView.as_view()),
+    path("live-chat/calls/<int:call_id>/resume/", AdminCallResumeView.as_view()),
+    path("live-chat/calls/<int:call_id>/transfer/", AdminCallTransferView.as_view()),
+    path("live-chat/calls/<int:call_id>/transfers/", AdminCallTransferListView.as_view()),
+    # "transfer-targets" is a literal and must be declared before any
+    # <int:transfer_id> pattern could shadow it -- it cannot, since that
+    # converter only matches digits, but the ordering is kept explicit.
+    path("live-chat/transfer-targets/", AdminTransferTargetsView.as_view()),
+    path("live-chat/call-control-config/", AdminCallControlConfigView.as_view()),
+    path("live-chat/transfers/<int:transfer_id>/accept/", AdminTransferAcceptView.as_view()),
+    path("live-chat/transfers/<int:transfer_id>/decline/", AdminTransferDeclineView.as_view()),
+    path("live-chat/transfers/<int:transfer_id>/cancel/", AdminTransferCancelView.as_view()),
+
+    # ── Departments and desk settings ──────────────────────────────────────
+    path("support-departments/", AdminSupportDepartmentListCreateView.as_view()),
+    path("support-departments/<int:pk>/", AdminSupportDepartmentDetailView.as_view()),
+    # The whole desk configuration. voice-call-settings/ above still serves
+    # the recording switch on its own for the client that already reads it.
+    path("live-support-settings/", AdminLiveSupportSettingsView.as_view()),
+
+    # ── Per-player chat/call access ────────────────────────────────────────
+    path("players/<int:user_id>/communication/", AdminPlayerCommunicationView.as_view()),
+    path("players/<int:user_id>/communication/history/", AdminPlayerCommunicationHistoryView.as_view()),
 ]
