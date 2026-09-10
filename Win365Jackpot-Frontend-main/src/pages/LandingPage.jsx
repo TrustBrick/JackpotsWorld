@@ -16,6 +16,14 @@ import VIPLevels from '../components/VIPLevels'
 import BusinessModelFAQ from '../components/BusinessModelFAQ'
 import Register from '../components/Register'
 import PageScrollButtons from '../components/PageScrollButtons'
+// VIP DESTINATION PILLARS: the non-casino half of the story (§4). Each one
+// renders nothing at all until it has Back Office rows, so adding them here
+// cannot leave empty headings on the page.
+import BeyondTheCasinoSection from '../components/experiences/BeyondTheCasinoSection'
+import LuxuryTravelSection from '../components/experiences/LuxuryTravelSection'
+import StaysSection from '../components/experiences/StaysSection'
+import DiningEntertainmentSection from '../components/experiences/DiningEntertainmentSection'
+import VipConciergeSection from '../components/experiences/VipConciergeSection'
 
 export default function LandingPage() {
   const { theme } = useTheme()
@@ -54,6 +62,12 @@ export default function LandingPage() {
       <Navbar />
       <main style={{ position: 'relative', zIndex: 1 }}>
         <Hero />
+        {/* The whole offering in one screen, immediately under the hero.
+            The header nav is deliberately unchanged, so this band is where a
+            visitor who skims learns the site is more than casinos — and every
+            card is a Back Office row whose CTA target is editable, so where
+            each one sends people can change without a deploy. */}
+        <BeyondTheCasinoSection />
         {/* Immediately under the hero, before anything starts selling. A
             visitor should learn that we refer and the casino hosts before
             they read a single package price — not three screens later. */}
@@ -63,11 +77,25 @@ export default function LandingPage() {
             packages section they live in), before Events below. Renders
             nothing at all when no showcase is active. */}
         <FeaturedDestinationShowcase />
-        <div className="grid md:grid-cols-3 gap-6 max-w-7xl mx-auto px-4 pb-16 items-stretch">
+        {/* §4 story order: the destinations and the casino packages above have
+            established WHERE and WHAT TO PLAY; these two answer how you get
+            there and where you sleep, before the page moves on to what is on
+            while you are there. */}
+        <LuxuryTravelSection />
+        <StaysSection />
+        {/* id is the Events stop on the journey rail. The grid itself, and all
+            three cards in it, are unchanged. */}
+        <div id="events-preview" className="grid md:grid-cols-3 gap-6 max-w-7xl mx-auto px-4 pb-16 items-stretch">
           <GlobalReachCard />
           <EventsPreviewSection />
           <PromotionsPreviewSection />
         </div>
+        {/* After the events grid, because an evening follows a day out. */}
+        <DiningEntertainmentSection />
+        {/* Closes the destination story — the one host who arranges all of the
+            above — before the page returns to the existing membership and
+            registration sections. */}
+        <VipConciergeSection />
         <GiftsSection />
         <VIPLevels />
         <WhyChooseUs />

@@ -93,6 +93,17 @@ from .andhar_bahar_models import (
     AndharBaharRegistration,
 )
 
+# EXPERIENCES: the non-casino pillars of the public site (luxury travel,
+# stays, dining, concierge) plus the enquiries they capture. One model with a
+# `category`, not one per pillar -- see the module docstring.
+from .experience_models import (
+    Experience,
+    ExperienceEnquiry,
+    CATEGORY_CHOICES as EXPERIENCE_CATEGORY_CHOICES,
+    CATEGORY_VALUES as EXPERIENCE_CATEGORY_VALUES,
+    ENQUIRY_STATUS_CHOICES as EXPERIENCE_ENQUIRY_STATUS_CHOICES,
+)
+
 # SUPPORT-COMMUNICATION: departments, call transfer/hold records and per-player
 # chat/call restrictions, layered on the live-chat + voice-call stack above.
 # Imported after call_models because CallTransfer/CallHoldEvent point at
@@ -168,6 +179,9 @@ __all__ = [
     "AndharBaharStep",
     "AndharBaharEvent",
     "AndharBaharRegistration",
+    # EXPERIENCES
+    "Experience",
+    "ExperienceEnquiry",
     # SUPPORT-COMMUNICATION
     "SupportDepartment",
     "CallTransfer",

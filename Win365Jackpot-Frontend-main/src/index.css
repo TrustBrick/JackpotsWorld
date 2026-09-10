@@ -1,5 +1,6 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;1,500&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -331,3 +332,101 @@ select:disabled {
 
 /* Flag emoji sizing */
 .flag { font-size: 2rem; }
+
+/* ── VIP destination pillars (luxury travel / stays / dining / concierge) ─────
+   Layout that genuinely needs media queries, which the sections' inline styles
+   cannot express. Everything else about these sections lives in their own
+   components — this is the responsive skeleton only.                          */
+
+/* Luxury Travel: an alternating two-up panel that collapses to one column on
+   narrow screens. auto-fit rather than a fixed 1fr 1fr, so a panel with no
+   image (most of them, until photography exists) fills the width instead of
+   leaving an empty half. */
+.exp-travel-panel {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+}
+/* Below 900px the offset has nowhere to offset to, so the text always leads —
+   reading a caption before the thing it describes is worse than losing the
+   zig-zag. */
+@media (max-width: 899px) {
+  .exp-travel-panel > * { order: 0 !important; }
+}
+
+/* Stays: an editorial stack. Two columns of prose on desktop, one on mobile,
+   with the index numeral hanging in the margin where there is room for it. */
+.exp-stay-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(10px, 2.5vw, 22px);
+}
+@media (min-width: 860px) {
+  .exp-stay-row { grid-template-columns: 64px 1fr; align-items: start; }
+}
+
+/* Dining: a horizontal rail. Deliberately scrollable rather than wrapped —
+   a rail reads as a menu of options and gives this section a different rhythm
+   from the stacked panels above it. Snap points stop it resting mid-card. */
+.exp-dining-rail {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(240px, 300px);
+  gap: clamp(12px, 2.5vw, 20px);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 10px;
+  /* Room for the focus ring on the first and last card. */
+  scroll-padding-inline: 4px;
+}
+.exp-dining-rail > * { scroll-snap-align: start; }
+/* A thin gold scrollbar rather than the OS default, which looks foreign on a
+   dark premium surface. */
+.exp-dining-rail::-webkit-scrollbar { height: 6px; }
+.exp-dining-rail::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 999px; }
+.exp-dining-rail::-webkit-scrollbar-thumb { background: rgba(212,175,55,0.45); border-radius: 999px; }
+.exp-dining-rail { scrollbar-width: thin; scrollbar-color: rgba(212,175,55,0.45) rgba(255,255,255,0.05); }
+
+/* Concierge: a quiet two-column service list, single column on mobile. */
+.exp-concierge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: clamp(14px, 3vw, 26px);
+}
+
+/* "Beyond the Casino" overview band — six signposts under the hero.
+   auto-fit rather than a fixed six columns: the reference layout is six across
+   on a wide desktop, but the same rule gives three on a tablet and two on a
+   phone without a single media query, and it still works if an admin adds a
+   seventh card or deactivates one. */
+.exp-beyond-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: clamp(12px, 1.6vw, 20px);
+  align-items: stretch;
+}
+/* Two-up on small phones rather than one enormous card per screen — these are
+   signposts, and a visitor should be able to see several at once to grasp the
+   breadth, which is the whole point of the band. */
+@media (max-width: 520px) {
+  .exp-beyond-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ── Display type ─────────────────────────────────────────────────────────────
+   A serif for HEADLINES ONLY. Manrope keeps every piece of body copy, every
+   button, the navigation and the whole Back Office — a serif reads as classic
+   luxury at 40px and as hard work at 14px, and the brief's §15 asks for the
+   existing typography to be maintained.
+
+   Applied by opting in with `font-display`, never by restyling h1/h2 globally:
+   the member dashboard, the admin panel and the game pages all use headings
+   too, and none of them asked for a new typeface.
+
+   The fallback chain matters more than usual here. If Google Fonts is blocked
+   or slow the headline still lands on a serif (Georgia is on effectively every
+   Windows and Android device, Times on the rest) rather than falling back to
+   the body sans, which would make the design look broken rather than plain. */
+.font-display {
+  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  /* Tighter than a sans wants to be: large serif display type needs the
+     letters closer together or it reads as spaced-out rather than set. */
+  letter-spacing: -0.015em;
+}

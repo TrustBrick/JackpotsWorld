@@ -816,3 +816,12 @@ ANALYTICS_SESSION_IDLE_MINUTES = config(
 REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["chat-message"] = config(
     "CHAT_MESSAGE_RATE", default="60/min",
 )
+
+# ── Experience enquiries ─────────────────────────────────────────────────────
+# Per-IP ceiling on the public "Enquire Now" form for the VIP destination
+# pillars. Every accepted POST is a durable row in a table staff are expected
+# to work through, so the limit protects the usefulness of that list, not just
+# the server. Low on purpose — a genuine enquirer sends one, maybe two.
+REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["experience-enquiry"] = config(
+    "EXPERIENCE_ENQUIRY_RATE", default="6/hour",
+)

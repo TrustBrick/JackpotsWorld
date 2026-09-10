@@ -105,3 +105,23 @@ class ChatMessageThrottle(SimpleRateThrottle):
 
     def get_cache_key(self, request, view):
         return self.cache_format % {"scope": self.scope, "ident": self.get_ident(request)}
+
+
+class ExperienceEnquiryThrottle(SimpleRateThrottle):
+    """EXPERIENCES: per-IP cap on the public enquiry form.
+
+    The endpoint is AllowAny by design — requiring an account would defeat a
+    public enquiry form — and every accepted POST creates a durable row a host
+    is expected to read. Unthrottled, that is a lead table anyone can fill with
+    noise until the real enquiries are unfindable.
+
+    Deliberately low. A person sending one enquiry, changing their mind and
+    sending another is well inside this; anything faster is not a person.
+    Keyed per account when signed in so one office network sharing an IP
+    cannot lock its own members out of enquiring.
+    """
+    scope = "experience-enquiry"
+
+    def get_cache_key(self, request, view):
+        ident = request.user.pk if request.user and request.user.is_authenticated else self.get_ident(request)
+        return self.cache_format % {"scope": self.scope, "ident": ident}

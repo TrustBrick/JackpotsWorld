@@ -1,7 +1,7 @@
 /**
  * LandingManageTab.jsx — ORCHESTRATOR
  *
- * One sidebar entry ("Landing Page") fanning out into the 14 sub-sections
+ * One sidebar entry ("Landing Page") fanning out into the 18 sub-sections
  * that make up the public landing page's admin-managed content. Mirrors the
  * nested pill-tab pattern already used by
  * src/admin/tabs/offline_deposits/OfflineDepositTab.jsx.
@@ -11,7 +11,7 @@ import { motion } from "framer-motion";
 import {
   Settings, BarChart3, Sparkles, ShieldCheck, Gift, ListOrdered,
   Crown, ListChecks, Quote, MapPin, Images, GalleryHorizontal, Plane, Star,
-  Clapperboard, MessageSquare,
+  Clapperboard, MessageSquare, Gem, Inbox,
 } from "lucide-react";
 import { useAdminTheme } from "../../context/AdminThemeContext";
 
@@ -31,6 +31,8 @@ import DestinationMediaManageTab from "./DestinationMediaManageTab";
 import FeaturedDestinationShowcaseManageTab from "./FeaturedDestinationShowcaseManageTab";
 import VipServiceImagesManageTab from "./VipServiceImagesManageTab";
 import TourPackagesManageTab from "./TourPackagesManageTab";
+import ExperiencesManageTab from "./ExperiencesManageTab";
+import ExperienceEnquiriesTable from "./ExperienceEnquiriesTable";
 
 const SUB_TABS = [
   { id: "settings",   label: "Site Settings",    Icon: Settings,          Comp: LandingSiteSettingsTab },
@@ -50,6 +52,11 @@ const SUB_TABS = [
   { id: "destshowcase", label: "Featured Showcase", Icon: Clapperboard,    Comp: FeaturedDestinationShowcaseManageTab },
   { id: "vipgallery", label: "VIP Gallery",       Icon: GalleryHorizontal, Comp: VipServiceImagesManageTab },
   { id: "packages",   label: "Tour Packages",     Icon: Plane,             Comp: TourPackagesManageTab },
+  // EXPERIENCES: the four non-casino pillars of the public page (luxury
+  // travel, stays, dining, concierge) and the leads their enquiry forms
+  // capture. One model with a category, so one tab covers all four.
+  { id: "experiences", label: "Experiences",      Icon: Gem,               Comp: ExperiencesManageTab },
+  { id: "expenquiries", label: "Experience Enquiries", Icon: Inbox,        Comp: ExperienceEnquiriesTable },
   // The prefilled WhatsApp text behind each enquiry button. Lives here
   // because these buttons are landing-page content, and this is where an
   // admin already comes to edit landing-page content.

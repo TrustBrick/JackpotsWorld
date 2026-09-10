@@ -288,6 +288,13 @@ export default function ManageContentTab({
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             {fields.map(f => (
+              // A `hidden` field is carried in the form state and submitted
+              // like any other -- emptyForm() already seeds it from `default`
+              // -- but never rendered. It is for a value the CALLER fixes
+              // rather than the admin chooses: the Experiences tab uses it to
+              // stamp the category of the pillar whose view you are in, so a
+              // card cannot be filed under the wrong section by mistake.
+              f.type === "hidden" ? null : (
               <div key={f.name} style={f.wide ? { gridColumn: "1 / -1" } : undefined}>
                 <label style={{ display: "block", fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 5 }}>
                   {f.label}
@@ -467,6 +474,7 @@ export default function ManageContentTab({
                   />
                 )}
               </div>
+              )
             ))}
           </div>
           <Btn onClick={submit} disabled={submitting} style={{ marginTop: 16, width: "100%", justifyContent: "center" }}>
