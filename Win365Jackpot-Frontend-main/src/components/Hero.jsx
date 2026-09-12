@@ -20,12 +20,17 @@ const HERO_COLLAPSE_SEC = 1.1
 const HERO_COLLAPSE_EASE = [0.22, 0.61, 0.36, 1]
 // Spread into each animated block's `transition`.
 //
-// Deliberately applied only inside the title's own column: the Sri Lanka
-// media band is sized to take back roughly what the collapsing title gives
-// up, so the location ticker, partner plaque and CTAs below barely move.
-// That matters because SupportAssistant.jsx measures .w365-hero-ctas and
-// .w365-partner-plaque rects at runtime to keep itself clear of them —
-// animating those elements' transforms would feed it moving targets.
+// Shared by the three blocks above the partner media band — the badge, the
+// title and the divider. All three move when the intro collapses: the title
+// shrinks, and the other two tighten up to hand the band below them as much
+// of the first screen as they can spare. Tweening them together is what
+// keeps that a single gesture, rather than a title that glides while the
+// blocks around it jump.
+//
+// Deliberately not applied below the band, which is far taller than the
+// space the title gives back: everything under it moves by hundreds of
+// pixels at once, and tweening that would animate a slide down the page
+// rather than a small correction.
 const HERO_LAYOUT_TWEEN = { duration: HERO_COLLAPSE_SEC, ease: HERO_COLLAPSE_EASE }
 
 // ─── CSS ───────────────────────────────────────────────────────────────────
@@ -480,19 +485,26 @@ export default function Hero() {
       <div style={{
         position:'relative', zIndex:10, textAlign:'center', width:'100%',
         maxWidth:660,
-        paddingTop:'clamp(72px,18vw,108px)',
+        // Tighter once the intro has collapsed. Every pixel this block gives
+        // back is a pixel the partner band below can use, and that band is
+        // sized to whatever is left — so this is what decides how much of
+        // the video fits on the first screen. Stays clear of the 64px navbar
+        // fixed over it.
+        paddingTop: compact ? 'clamp(48px,11vw,68px)' : 'clamp(72px,18vw,108px)',
         paddingLeft:'clamp(16px,5vw,24px)',
         paddingRight:'clamp(16px,5vw,24px)',
       }}>
 
         {/* Badge */}
         <motion.div
+          layout
           initial={{ opacity:0, y:-20 }} animate={{ opacity:1, y:0 }}
-          transition={{ delay:0.2, duration:0.45 }}
+          transition={{ delay:0.2, duration:0.45, layout: HERO_LAYOUT_TWEEN }}
           style={{
             display:'inline-flex', alignItems:'center', gap:9,
             border:'1.5px solid rgba(245,224,122,0.7)', borderRadius:999,
-            padding:'8px 20px', marginBottom:'clamp(12px,3vw,24px)',
+            padding:'8px 20px',
+            marginBottom: compact ? 'clamp(6px,1.6vw,12px)' : 'clamp(12px,3vw,24px)',
             background:'rgba(212,175,55,0.16)',
             fontFamily:"'Manrope', sans-serif",
             fontSize:'clamp(9px,2vw,11.5px)', fontWeight:900,
@@ -580,7 +592,7 @@ export default function Hero() {
       <div style={{
         position:'relative', zIndex:10, textAlign:'center', width:'100%',
         maxWidth:660,
-        paddingBottom:'clamp(6px,1.5vw,12px)',
+        paddingBottom: compact ? 0 : 'clamp(6px,1.5vw,12px)',
         paddingLeft:'clamp(16px,5vw,24px)',
         paddingRight:'clamp(16px,5vw,24px)',
       }}>
@@ -591,29 +603,26 @@ export default function Hero() {
           style={{
             width:56, height:2,
             background:'linear-gradient(90deg, transparent, #D4AF37, transparent)',
-            margin:'10px auto 16px auto',
+            margin: compact ? '4px auto 8px auto' : '10px auto 16px auto',
           }}
         />
 
       </div>
 
-      {/* Top Premium Partners media — the hero's major visual element,
-          not a small card, so it breaks out of the 660px text column into
-          its own much wider band (same technique the ticker below uses).
-          Occupies the vertical space the wordmark gives back when it
-          collapses. Mounted only once the intro is done, so none of its
-          media is fetched or decoded while the intro is still playing.
-          Renders nothing when no partner is featured, and the wrapper
-          collapses with it. */}
+      {/* Top Premium Partners media — the hero's major visual element, and
+          full-bleed: no side padding and no width cap, so it spans the
+          screen edge to edge and fades into the hero's own background at
+          its top and bottom (the immersive variant of
+          shared/HeroMediaShowcase). zIndex one below the title's, so the
+          wordmark, still shrinking when this mounts, passes over the band's
+          faded top edge rather than under it — and above the floating cards
+          and badges, which stay out of the footage. Mounted only once the
+          intro is done, so none of its media is fetched or decoded while the
+          intro is still playing. Renders nothing when no partner is
+          featured, and the wrapper collapses with it. */}
       {compact && (
-        <div style={{
-          position:'relative', zIndex:10, width:'100%',
-          display:'flex', flexDirection:'column', alignItems:'center',
-          paddingLeft:'clamp(16px,5vw,24px)', paddingRight:'clamp(16px,5vw,24px)',
-        }}>
-          <div style={{ width:'min(94vw, 1220px)' }}>
-            <PremiumPartnerHeroMedia />
-          </div>
+        <div style={{ position:'relative', zIndex:9, width:'100%' }}>
+          <PremiumPartnerHeroMedia />
         </div>
       )}
 

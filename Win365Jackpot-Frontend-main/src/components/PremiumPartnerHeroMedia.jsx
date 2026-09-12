@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react'
 import { useAutoFetch } from '../hooks/useAutoFetch'
 import { fetchPremiumPartners } from '../services/landingService'
-import { flagFromCountryCode } from '../utils/countryFlags'
+import { flagFromCountryCode, flagIconUrl } from '../utils/countryFlags'
 import HeroMediaShowcase from './shared/HeroMediaShowcase'
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -17,11 +17,14 @@ import HeroMediaShowcase from './shared/HeroMediaShowcase'
    independent systems. Nothing here is hardcoded — the partners shown, their
    order and their media are entirely Back Office controlled.
 
-   Presentation lives in shared/HeroMediaShowcase — the same framing, video
-   player, mute control, crossfade, gold badge and caption treatment this
-   component used to carry inline, unchanged, and now shared with the Poker
-   and Teen Patti heroes. This file is the data half only: fetch the partners,
-   shape them into showcase items, and hand them over.
+   Presentation lives in shared/HeroMediaShowcase — the same video player,
+   mute control, crossfade, gold badge and caption treatment this component
+   used to carry inline, now shared with the Poker and Teen Patti heroes.
+   This band renders its immersive variant: frameless, sized so the whole
+   frame plays on one screen, and dissolving into the hero at every edge,
+   where those two heroes keep the framed one. This file is the data half
+   only: fetch the partners, shape them into showcase items, and hand them
+   over.
    ───────────────────────────────────────────────────────────────────────── */
 
 export default function PremiumPartnerHeroMedia() {
@@ -38,7 +41,10 @@ export default function PremiumPartnerHeroMedia() {
           video: p.hero_video || '',
           image: p.hero_image || '',
           name: p.name,
+          // Both of them: the SVG is what actually renders, and the emoji
+          // covers the codes flag-icons is not bundled for.
           flag: flagFromCountryCode(p.flag_country_code),
+          flagIcon: flagIconUrl(p.flag_country_code),
           // Falls back to the place when no description is set, so the caption
           // line is never empty — but never invents either.
           caption: p.description || [p.city, p.country].filter(Boolean).join(', '),
@@ -49,6 +55,7 @@ export default function PremiumPartnerHeroMedia() {
   return (
     <HeroMediaShowcase
       items={items}
+      variant="immersive"
       // "Partner Destination", not "Premium Partner": the pill sits on a
       // casino's own footage at the top of the page, and it has to read as
       // somewhere we refer members to rather than somewhere we run.

@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import { Volume2, VolumeX } from 'lucide-react'
@@ -6,7 +7,7 @@ import { attemptPlay, useSoundPreference, useUserActivation } from '../../hooks/
 import { useVideoAnalytics } from '../../hooks/useVideoAnalytics'
 
 /* ─────────────────────────────────────────────────────────────────────────
-   HeroMediaShowcase — the framed hero media band.
+   HeroMediaShowcase — the hero media band, framed or frameless.
 
    This is the presentation half of what used to live entirely inside
    PremiumPartnerHeroMedia: the gold-hairline frame with its glow, the
@@ -25,13 +26,21 @@ import { useVideoAnalytics } from '../../hooks/useVideoAnalytics'
    fetches its own data and hands over a plain list; there is no endpoint, no
    fallback and no hardcoded content in here.
 
+   The framed band is the default. variant="immersive" renders the same
+   slides, rotation, playback and sound policy frameless instead, sized to
+   play a whole frame on one screen and dissolving into the page at every
+   edge. The landing page's Top Premium Partners band uses it; Poker and
+   Teen Patti stay framed. See the Immersive variant notes below.
+
    ── The item contract ────────────────────────────────────────────────────
      id       stable identity. Keys the media element, so a rotation tears the
               previous one down (and with it its audio).
      video    optional URL. Preferred over `image` when present and playable.
      image    optional URL. The still, and the video's poster.
      name     optional. Rendered as the plate title with the gold sheen.
-     flag     optional emoji, shown beside the name.
+     flag     optional flag emoji, shown beside the name.
+     flagIcon optional flag SVG URL. Preferred over `flag` whenever both are
+              given — see FlagMark for why.
      caption  optional line under the name.
      badge    optional per-item pill text, overriding `badgeLabel`.
 
@@ -58,11 +67,12 @@ const VISIBILITY_THRESHOLD = 0.25
 const MAX_VIDEO_SLIDE_MS = 30_000
 
 /* ── Media fit ────────────────────────────────────────────────────────────
-   Nothing here is ever cropped. `cover` used to be chosen whenever the crop
-   was small enough to look deliberate, which traded away part of the frame to
-   avoid letterbox bars — and on the real 848x478 upload against this ~2.4:1
-   band that meant a quarter of the picture, top and bottom, was simply not
-   shown.
+   Nothing in the framed band is ever cropped (the immersive one fills a
+   fixed slot and does — see its own notes below). `cover` used to be chosen
+   whenever the crop was small enough to look deliberate, which traded away
+   part of the frame to avoid letterbox bars — and on the real 848x478 upload
+   against this ~2.4:1 band that meant a quarter of the picture, top and
+   bottom, was simply not shown.
 
    The frame takes the media's shape instead, so `contain` has nothing left to
    letterbox: no crop, no bars. The height is bounded so a portrait upload
@@ -83,6 +93,91 @@ const MIN_MEDIA_RATIO = 1.6
 const MAX_MEDIA_RATIO = 3.2
 
 const clampRatio = (r) => Math.min(MAX_MEDIA_RATIO, Math.max(MIN_MEDIA_RATIO, r))
+
+// The whole frame, centred in whatever box it is handed.
+const CONTAIN_FIT = { objectFit: 'contain', objectPosition: 'center' }
+
+/* ── Immersive variant ────────────────────────────────────────────────────
+   No frame at all: no border, radius or glow, and all four edges masked so
+   the footage dissolves into the page behind it rather than ending on a
+   line.
+
+   A mask rather than a colour overlay on purpose: behind the band the hero
+   paints a radial gradient, its own background video and slowly turning
+   rings, so a fade to any one flat colour would leave a visible seam where
+   the fade met the real background. The mask makes the footage itself
+   transparent, so whatever is behind it shows through.
+
+   ── Full screen, and what it costs ───────────────────────────────────────
+   The band fills the screen: edge to edge, and from wherever the hero's
+   title block leaves off down to the bottom of the window, so there is
+   nothing below the fold to scroll for.
+
+   That slot is a far wider shape than the footage. A 16:9 upload across a
+   1916x888 window stands 1080px tall while the room under the title is
+   nearer 670px, so filling the screen crops about a third of the frame's
+   height. The crop comes off the BOTTOM (see IMMERSIVE_CROP): partner
+   footage carries its burned-in titles and frames its subject in the upper
+   part of the shot, and the bottom is where this band's own title plate
+   sits anyway.
+
+   The two things asked of this band — every pixel of the frame, and a
+   screen filled edge to edge — can only both hold when the upload is as
+   wide as the slot (~2.8:1 on that window). Footage cut that wide fills it
+   with nothing lost; a 16:9 file cannot. The alternatives are dark bands
+   either side, or a band that runs past the fold.
+
+   Squarer uploads are the exception: a portrait or square file keeps its
+   whole frame, because cropping one to a wide slot would leave a sliver of
+   a picture rather than a hero. */
+
+// Under this the band would read as a letterbox slit rather than a hero, so
+// a very short window gets a band that runs past the fold instead.
+const IMMERSIVE_MIN_HEIGHT = 190
+// Most partner uploads are 16:9, so starting there means the band is already
+// the right height before the file reports its own shape.
+const IMMERSIVE_DEFAULT_RATIO = 16 / 9
+// Squarer than this, filling the slot would throw away most of the picture,
+// so such an upload keeps its whole frame instead.
+const IMMERSIVE_MIN_COVER_RATIO = 1.3
+// Which slice of a too-tall frame survives. Almost all of the crop is taken
+// off the bottom: the burned-in titles partner footage carries, and the
+// subject it frames, sit high in the shot.
+const IMMERSIVE_CROP = { objectFit: 'cover', objectPosition: 'center 15%' }
+
+/* All four edges fade out. Both gradients use eased rather than linear
+   stops, so neither ends in a visible line, and they go on two nested layers
+   rather than being composited into one mask: mask-composite is still
+   spelled differently in every engine, while a mask on a wrapper and a mask
+   on its child compose everywhere.
+
+   Deliberately short fades: they are here to soften the band's edges into
+   the hero, not to dim footage someone is trying to watch. The top fade is
+   the shorter of the two, because it is the end burned-in titles sit
+   closest to. */
+const IMMERSIVE_MASK_V = `linear-gradient(to bottom, ${[
+  'rgba(0,0,0,0) 0%', 'rgba(0,0,0,0.25) 2%', 'rgba(0,0,0,0.7) 4.5%', '#000 7%',
+  '#000 86%', 'rgba(0,0,0,0.7) 91%', 'rgba(0,0,0,0.25) 96%', 'rgba(0,0,0,0) 100%',
+].join(', ')})`
+
+const IMMERSIVE_MASK_H = `linear-gradient(to right, ${[
+  'rgba(0,0,0,0) 0%', 'rgba(0,0,0,0.3) 1.6%', 'rgba(0,0,0,0.75) 3.6%', '#000 6%',
+  '#000 94%', 'rgba(0,0,0,0.75) 96.4%', 'rgba(0,0,0,0.3) 98.4%', 'rgba(0,0,0,0) 100%',
+].join(', ')})`
+
+// A floor under the title plate, the way a cinematic hero darkens its lower
+// third, plus a soft vignette pulling the edges toward the hero's own dark.
+// Both use the hero's magenta-black and both sit under the mask, so they fade
+// out with the footage rather than leaving a dark band of their own.
+const IMMERSIVE_SCRIM = [
+  'linear-gradient(to top, rgba(10,0,5,0.9) 0%, rgba(22,0,18,0.45) 24%, rgba(22,0,18,0) 50%)',
+  'radial-gradient(ellipse 80% 75% at 50% 40%, rgba(10,0,5,0) 55%, rgba(10,0,5,0.4) 100%)',
+].join(', ')
+
+// The plate and controls line up with the navbar's own content column
+// (max-w-7xl, px-4), so the partner's name starts under the logo rather than
+// at some arbitrary distance from the edge of a full-bleed band.
+const IMMERSIVE_INSET = 'max(16px, calc((100% - 1280px) / 2 + 16px))'
 
 /* ── Sheen ────────────────────────────────────────────────────────────────
    The plate title is gold lettering with a soft highlight travelling across
@@ -173,6 +268,7 @@ function buildSlides(items, videoFailedIds) {
         poster: item.image || undefined,
         name: item.name || '',
         flag: item.flag || '',
+        flagIcon: item.flagIcon || '',
         caption: item.caption || '',
         badge: item.badge || '',
       }
@@ -206,6 +302,13 @@ function buildSlides(items, videoFailedIds) {
 function HeroVideo({
   src, poster, active, loop, soundOn, onSoundChange, onEnded, onError,
   contentId, title, contentKind, onNaturalSize,
+  fit = CONTAIN_FIT,
+  // Where the mute control goes. Left undefined (the framed band) it floats
+  // in the frame's top-left corner. The immersive band masks that corner
+  // away, so it passes the element of its own control row instead — null
+  // until that row has mounted, while the control waits rather than
+  // flashing up in the corner first.
+  controlSlot,
 }) {
   const videoRef = useRef(null)
   const pendingPlayRef = useRef(null)
@@ -296,6 +399,12 @@ function HeroVideo({
   // carry the message on its own.
   const blocked = active && soundOn && !audible
 
+  const docked = controlSlot !== undefined
+  const placeControl = (control) => {
+    if (!docked) return control
+    return controlSlot ? createPortal(control, controlSlot) : null
+  }
+
   return (
     <>
       <video
@@ -334,41 +443,43 @@ function HeroVideo({
         // black bars a video element paints behind itself.
         style={{
           width: '100%', height: '100%',
-          objectFit: 'contain', objectPosition: 'center',
+          ...fit,
           display: 'block', background: 'transparent',
         }}
       />
-      <motion.button
-        onClick={toggleSound}
-        whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
-        title={audible ? 'Mute' : 'Unmute'}
-        aria-label={audible ? 'Mute video' : 'Unmute video'}
-        style={{
-          position: 'absolute', top: 10, left: 10, zIndex: 3,
-          height: 34, borderRadius: 999,
-          padding: blocked ? '0 12px 0 10px' : 0,
-          width: blocked ? 'auto' : 34,
-          gap: blocked ? 7 : 0,
-          background: audible ? 'rgba(212,175,55,0.25)' : 'rgba(0,0,0,0.6)',
-          backdropFilter: 'blur(8px)',
-          border: '1px solid rgba(212,175,55,0.35)',
-          color: '#F5E07A', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontFamily: "'Manrope', sans-serif",
-          fontSize: 10.5, fontWeight: 800,
-          letterSpacing: '0.12em', textTransform: 'uppercase',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {audible ? <Volume2 size={15} /> : <VolumeX size={15} />}
-        {blocked && <span>Tap for sound</span>}
-      </motion.button>
+      {placeControl(
+        <motion.button
+          onClick={toggleSound}
+          whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
+          title={audible ? 'Mute' : 'Unmute'}
+          aria-label={audible ? 'Mute video' : 'Unmute video'}
+          style={{
+            ...(!docked && { position: 'absolute', top: 10, left: 10, zIndex: 3 }),
+            height: 34, borderRadius: 999,
+            padding: blocked ? '0 12px 0 10px' : 0,
+            width: blocked ? 'auto' : 34,
+            gap: blocked ? 7 : 0,
+            background: audible ? 'rgba(212,175,55,0.25)' : 'rgba(0,0,0,0.6)',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(212,175,55,0.35)',
+            color: '#F5E07A', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: "'Manrope', sans-serif",
+            fontSize: 10.5, fontWeight: 800,
+            letterSpacing: '0.12em', textTransform: 'uppercase',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {audible ? <Volume2 size={15} /> : <VolumeX size={15} />}
+          {blocked && <span>Tap for sound</span>}
+        </motion.button>
+      )}
     </>
   )
 }
 
 /* ── Still image ─────────────────────────────────────────────────────────── */
-function HeroPhoto({ slide, eager, reduceMotion, onNaturalSize }) {
+function HeroPhoto({ slide, eager, reduceMotion, onNaturalSize, fit = CONTAIN_FIT }) {
   return (
     <AnimatePresence mode="sync">
       <motion.img
@@ -396,10 +507,98 @@ function HeroPhoto({ slide, eager, reduceMotion, onNaturalSize }) {
         style={{
           position: 'absolute', inset: 0,
           width: '100%', height: '100%',
-          objectFit: 'contain', objectPosition: 'center', display: 'block',
+          ...fit, display: 'block',
         }}
       />
     </AnimatePresence>
+  )
+}
+
+/* ── Flag ─────────────────────────────────────────────────────────────────
+   Artwork, not a glyph. A regional-indicator emoji is the obvious way to
+   draw a flag, and it comes out as bare letters ("LK") anywhere without a
+   flag emoji font — which includes every Windows build. So an item carrying
+   the SVG the hero's location ticker already uses gets that, and the emoji
+   stays as the fallback for the codes flag-icons is not bundled for (only
+   the ticker's own country set is, deliberately — see utils/countryFlags).
+
+   `size` is the artwork's height. The emoji fallback is set a little larger
+   than that, because an emoji glyph carries its own padding inside the em
+   box where the SVG runs edge to edge. */
+function FlagMark({ icon, emoji, size }) {
+  if (icon) {
+    return (
+      <img
+        src={icon}
+        alt=""
+        aria-hidden
+        style={{
+          height: size, width: 'auto',
+          // Redundant while the flags are flag-icons' own 4x3 SVGs, which
+          // carry an intrinsic ratio; insurance if one ever arrives without.
+          aspectRatio: '4 / 3',
+          objectFit: 'cover', borderRadius: 2, flexShrink: 0,
+          // Hairline edge, so a flag with white in it still reads as its own
+          // object against bright footage. The ticker's treatment too.
+          boxShadow: '0 0 0 1px rgba(0,0,0,0.25)',
+        }}
+      />
+    )
+  }
+  if (!emoji) return null
+  return (
+    <span aria-hidden style={{ fontSize: `calc(${size} * 1.25)`, lineHeight: 1.1, flexShrink: 0 }}>
+      {emoji}
+    </span>
+  )
+}
+
+/* ── Badge pill and slide dots ────────────────────────────────────────────
+   Shared by both variants: the framed band pins them to its corners, the
+   immersive band sets them into its bottom row. */
+function BadgePill({ text, dot, style }) {
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6,
+      border: '1px solid rgba(245,224,122,0.7)', borderRadius: 999,
+      padding: '4px 11px',
+      background: 'rgba(10,0,5,0.55)',
+      backdropFilter: 'blur(8px)',
+      fontFamily: "'Manrope', sans-serif",
+      fontSize: 'clamp(8px,1.4vw,11px)', fontWeight: 900,
+      letterSpacing: '0.16em', textTransform: 'uppercase',
+      color: '#F5E07A',
+      ...style,
+    }}>
+      {dot && (
+        <span style={{
+          width: 5, height: 5, borderRadius: '50%', background: '#4ade80',
+          animation: 'pulse-dot 2s infinite', display: 'inline-block',
+        }} />
+      )}
+      {text}
+    </div>
+  )
+}
+
+function SlideDots({ slides, activeIdx, onSelect, style }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, ...style }}>
+      {slides.map((s, i) => (
+        <button
+          key={s.id}
+          onClick={() => onSelect(i)}
+          aria-label={s.name ? `Show ${s.name}` : `Show slide ${i + 1}`}
+          aria-current={i === activeIdx}
+          style={{
+            width: i === activeIdx ? 18 : 6, height: 6, borderRadius: 999,
+            border: 'none', padding: 0, cursor: 'pointer',
+            background: i === activeIdx ? '#F5E07A' : 'rgba(255,255,255,0.4)',
+            transition: 'width 0.3s ease, background 0.3s ease',
+          }}
+        />
+      ))}
+    </div>
   )
 }
 
@@ -428,8 +627,12 @@ export default function HeroMediaShowcase({
   analyticsKind = 'content',
   analyticsIdPrefix = '',
   marginBottom = 'clamp(12px,3vw,24px)',
+  // 'framed', or 'immersive' for the full-bleed band described in the
+  // Immersive variant notes above.
+  variant = 'framed',
 }) {
   const reduceMotion = useReducedMotion()
+  const immersive = variant === 'immersive'
   // Held here, not inside HeroVideo: the video element is keyed by item id and
   // so remounts on every rotation, which would otherwise reset a visitor's
   // mute back to its default each time the slide changed.
@@ -488,6 +691,39 @@ export default function HeroMediaShowcase({
   // and settles into the media's shape rather than jumping from a wrong one.
   const frameRatio = clampRatio(mediaRatio || DEFAULT_MEDIA_RATIO)
 
+  // The immersive band's control row, which the video's mute control is
+  // portalled into. State rather than a ref, so the video re-renders into it
+  // once it has mounted.
+  const [controlSlot, setControlSlot] = useState(null)
+
+  /* ── Immersive sizing ───────────────────────────────────────────────────
+     How much room the band actually has: the screen, less whatever the page
+     stacks above it. Measured rather than assumed — the hero's title block
+     above is built from clamp() sizes that move with the viewport, so its
+     height is not a number this component could carry. Reading the band's
+     own top cannot feed back into its own height, so this settles in one
+     pass.
+
+     A layout effect rather than an effect, because the size is needed before
+     the first paint or the band visibly resizes under the visitor. The
+     element arrives as state rather than a ref so this re-runs when the band
+     actually mounts, which is only once its first slide has arrived. */
+  const [boxEl, setBoxEl] = useState(null)
+  const [measured, setMeasured] = useState(null)
+  useLayoutEffect(() => {
+    if (!immersive || !boxEl) return undefined
+    const measure = () => {
+      const top = boxEl.getBoundingClientRect().top + window.scrollY
+      setMeasured({
+        available: window.innerHeight - top,
+        width: boxEl.parentElement?.clientWidth || window.innerWidth,
+      })
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [immersive, boxEl])
+
   // An item removed in the Back Office can shorten the list under a stale
   // index; snap back rather than showing the clamped last slide forever.
   useEffect(() => {
@@ -533,6 +769,164 @@ export default function HeroMediaShowcase({
 
   const badgeText = current.badge || badgeLabel
 
+  // Whether the footage is kept whole in its box or cropped to fill it. The
+  // framed band is shaped to the footage, so nothing is ever cropped there.
+  // The immersive band is a fixed screen-sized slot: landscape footage fills
+  // it, and only a squarer upload — which filling would reduce to a sliver —
+  // keeps its whole frame.
+  const wholeFrame = !immersive || (!!mediaRatio && mediaRatio < IMMERSIVE_MIN_COVER_RATIO)
+  const fit = wholeFrame ? CONTAIN_FIT : IMMERSIVE_CROP
+
+  // Only the current slide's media is mounted, so several videos are never
+  // fetched, decoded or played at once. Keying on the slide id tears the
+  // previous element down on change, which also stops its audio.
+  const media = current.isVideo ? (
+    <HeroVideo
+      key={current.id}
+      src={current.src}
+      poster={current.poster}
+      contentId={analyticsIdPrefix ? `${analyticsIdPrefix}-${current.id}` : ''}
+      title={current.name || badgeText}
+      contentKind={analyticsKind}
+      active={active}
+      soundOn={soundOn}
+      onSoundChange={setSoundOn}
+      onNaturalSize={setMediaRatio}
+      // A lone slide loops as before; with several, ending is what hands
+      // over to the next one.
+      loop={count < 2}
+      onEnded={count > 1 ? advance : undefined}
+      onError={() => markVideoFailed(current.id)}
+      fit={fit}
+      controlSlot={immersive ? controlSlot : undefined}
+    />
+  ) : (
+    <HeroPhoto
+      key={current.id}
+      slide={current}
+      eager={safeIdx === 0}
+      reduceMotion={reduceMotion}
+      onNaturalSize={setMediaRatio}
+      fit={fit}
+    />
+  )
+
+  if (immersive) {
+    // Edge to edge, and as tall as the screen still is below the hero's
+    // title block: the whole slot, with nothing past the fold. The cap is
+    // for the case where the WIDTH binds instead — a phone — where the
+    // media's own height at full width is the smaller number, and taking it
+    // means the frame arrives whole rather than cropped into a tall box.
+    // The media's true ratio, not the framed band's clamped one.
+    const ratio = mediaRatio || IMMERSIVE_DEFAULT_RATIO
+    const boxH = measured
+      ? Math.max(IMMERSIVE_MIN_HEIGHT, Math.min(measured.available, measured.width / ratio))
+      : null
+    return (
+      <motion.div
+        ref={inViewRef}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: reduceMotion ? 0 : 0.9, ease: [0.25, 0.46, 0.45, 0.94] }}
+        style={{ position: 'relative', width: '100%', marginBottom }}
+      >
+        <div
+          ref={setBoxEl}
+          style={{
+            position: 'relative',
+            width: '100%',
+            // Until the measurement lands, a CSS approximation of the same
+            // thing, so the first paint is already close to its final size.
+            height: boxH ? `${boxH}px` : `min(calc(100vh - 240px), calc(100vw / ${ratio}))`,
+          }}
+        >
+          {/* Two nested masked layers: the outer fades the top and bottom
+              edges into the hero, the inner the left and right — that one
+              only when the picture stops short of the window's own edges,
+              since there is nothing to dissolve into at the edge of a
+              screen. The plate and controls below sit outside both and never
+              fade with them. */}
+          <div style={{
+            position: 'absolute', inset: 0,
+            WebkitMaskImage: IMMERSIVE_MASK_V, maskImage: IMMERSIVE_MASK_V,
+          }}>
+            <div style={{
+              position: 'absolute', inset: 0, overflow: 'hidden',
+              ...(wholeFrame && { WebkitMaskImage: IMMERSIVE_MASK_H, maskImage: IMMERSIVE_MASK_H }),
+            }}>
+              {media}
+              <div style={{
+                position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none',
+                background: IMMERSIVE_SCRIM,
+              }} />
+            </div>
+          </div>
+
+          {/* The bottom row, inside the picture's own edges: the title plate
+              on the left, the slide dots and mute control on the right. The
+              badge becomes the plate's eyebrow instead of being pinned to a
+              corner, since the top edge is masked away. */}
+          <div style={{
+            position: 'absolute', zIndex: 2,
+            left: IMMERSIVE_INSET, right: IMMERSIVE_INSET,
+            bottom: 'clamp(14px, 8%, 72px)',
+            display: 'flex', alignItems: 'flex-end', gap: 16,
+            // Only the controls take clicks.
+            pointerEvents: 'none',
+          }}>
+            {(badgeText || current.name || current.caption) && (
+              <div style={{
+                minWidth: 0, maxWidth: 'min(62%, 640px)',
+                display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
+                gap: 'clamp(6px, 0.8vw, 12px)',
+                fontFamily: "'Manrope', sans-serif",
+              }}>
+                {badgeText && <BadgePill text={badgeText} dot={badgeDot} />}
+                {/* The flag stays outside the sheen span, as in the framed
+                    plate, so it keeps its own colours. */}
+                {current.name && (
+                  <span style={{ display: 'flex', alignItems: 'baseline', gap: 'clamp(6px, 0.8vw, 14px)' }}>
+                    <FlagMark
+                      icon={current.flagIcon}
+                      emoji={current.flag}
+                      size="clamp(15px, 1.8vw, 29px)"
+                    />
+                    <span
+                      className="w365-partner-name"
+                      style={{
+                        fontSize: 'clamp(20px, 2.9vw, 48px)', fontWeight: 800,
+                        lineHeight: 1.04, letterSpacing: '-0.01em',
+                      }}
+                    >
+                      {current.name}
+                    </span>
+                  </span>
+                )}
+                {current.caption && (
+                  <span style={{
+                    fontSize: 'clamp(12px, 1.1vw, 17px)', fontWeight: 600,
+                    lineHeight: 1.4, color: 'rgba(255,255,255,0.86)',
+                    textShadow: '0 1px 14px rgba(10,0,5,0.75)',
+                  }}>
+                    {current.caption}
+                  </span>
+                )}
+              </div>
+            )}
+            <div style={{
+              marginLeft: 'auto', flexShrink: 0,
+              display: 'flex', alignItems: 'center', gap: 14,
+              pointerEvents: 'auto',
+            }}>
+              {count > 1 && <SlideDots slides={slides} activeIdx={safeIdx} onSelect={setIdx} />}
+              <div ref={setControlSlot} style={{ display: 'flex' }} />
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    )
+  }
+
   return (
     <motion.div
       ref={inViewRef}
@@ -574,37 +968,7 @@ export default function HeroMediaShowcase({
           background: 'radial-gradient(ellipse at 50% 40%, #1d0018 0%, #0A0005 100%)',
         }}
       >
-        {/* Only the current slide's media is mounted, so several videos are
-            never fetched, decoded or played at once. Keying on the slide id
-            tears the previous element down on change, which also stops its
-            audio. */}
-        {current.isVideo ? (
-          <HeroVideo
-            key={current.id}
-            src={current.src}
-            poster={current.poster}
-            contentId={analyticsIdPrefix ? `${analyticsIdPrefix}-${current.id}` : ''}
-            title={current.name || badgeText}
-            contentKind={analyticsKind}
-            active={active}
-            soundOn={soundOn}
-            onSoundChange={setSoundOn}
-            onNaturalSize={setMediaRatio}
-            // A lone slide loops as before; with several, ending is what hands
-            // over to the next one.
-            loop={count < 2}
-            onEnded={count > 1 ? advance : undefined}
-            onError={() => markVideoFailed(current.id)}
-          />
-        ) : (
-          <HeroPhoto
-            key={current.id}
-            slide={current}
-            eager={safeIdx === 0}
-            reduceMotion={reduceMotion}
-            onNaturalSize={setMediaRatio}
-          />
-        )}
+        {media}
 
         {/* Bottom scrim — keeps the plate legible over any frame, using the
             same dark magenta the hero grades its background video with. */}
@@ -615,26 +979,11 @@ export default function HeroMediaShowcase({
 
         {/* Badge, in the same gold pill language as the hero's other badges. */}
         {badgeText && (
-          <div style={{
-            position: 'absolute', top: 10, right: 10, zIndex: 2,
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            border: '1px solid rgba(245,224,122,0.7)', borderRadius: 999,
-            padding: '4px 11px',
-            background: 'rgba(10,0,5,0.55)',
-            backdropFilter: 'blur(8px)',
-            fontFamily: "'Manrope', sans-serif",
-            fontSize: 'clamp(8px,1.4vw,11px)', fontWeight: 900,
-            letterSpacing: '0.16em', textTransform: 'uppercase',
-            color: '#F5E07A',
-          }}>
-            {badgeDot && (
-              <span style={{
-                width: 5, height: 5, borderRadius: '50%', background: '#4ade80',
-                animation: 'pulse-dot 2s infinite', display: 'inline-block',
-              }} />
-            )}
-            {badgeText}
-          </div>
+          <BadgePill
+            text={badgeText}
+            dot={badgeDot}
+            style={{ position: 'absolute', top: 10, right: 10, zIndex: 2 }}
+          />
         )}
 
         {/* Title plate. Stacked rather than a single baseline row so the name
@@ -667,18 +1016,15 @@ export default function HeroMediaShowcase({
             {/* The flag sits outside the sheen span on purpose. Everything
                 inside it is painted from a background clipped to the glyphs
                 with the text fill transparent, which is right for lettering
-                and wrong for a colour emoji — this keeps the flag its own
+                and wrong for a flag — this keeps the flag its own
                 artwork and lets only the name catch the light. */}
             {current.name && (
               <span style={{ display: 'flex', alignItems: 'baseline', gap: 7 }}>
-                {current.flag && (
-                  <span
-                    aria-hidden
-                    style={{ fontSize: 'clamp(15px,2.2vw,23px)', lineHeight: 1.12, flexShrink: 0 }}
-                  >
-                    {current.flag}
-                  </span>
-                )}
+                <FlagMark
+                  icon={current.flagIcon}
+                  emoji={current.flag}
+                  size="clamp(12px,1.8vw,18px)"
+                />
                 <span
                   className="w365-partner-name"
                   style={{
@@ -705,25 +1051,12 @@ export default function HeroMediaShowcase({
         {/* Slide dots — only when there is actually more than one slide to move
             between, so a single-item band looks exactly as it did. */}
         {count > 1 && (
-          <div style={{
-            position: 'absolute', bottom: 12, right: 16, zIndex: 3,
-            display: 'flex', alignItems: 'center', gap: 6,
-          }}>
-            {slides.map((s, i) => (
-              <button
-                key={s.id}
-                onClick={() => setIdx(i)}
-                aria-label={s.name ? `Show ${s.name}` : `Show slide ${i + 1}`}
-                aria-current={i === safeIdx}
-                style={{
-                  width: i === safeIdx ? 18 : 6, height: 6, borderRadius: 999,
-                  border: 'none', padding: 0, cursor: 'pointer',
-                  background: i === safeIdx ? '#F5E07A' : 'rgba(255,255,255,0.4)',
-                  transition: 'width 0.3s ease, background 0.3s ease',
-                }}
-              />
-            ))}
-          </div>
+          <SlideDots
+            slides={slides}
+            activeIdx={safeIdx}
+            onSelect={setIdx}
+            style={{ position: 'absolute', bottom: 12, right: 16, zIndex: 3 }}
+          />
         )}
       </div>
     </motion.div>
