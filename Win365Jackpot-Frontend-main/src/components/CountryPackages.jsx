@@ -278,9 +278,21 @@ function ImageCarousel({ images, color, glow, isVisible }) {
   }
 
   return (
-    <div style={{ borderRadius: '14px 14px 0 0', overflow: 'hidden', boxShadow: `0 0 32px ${glow}` }}>
-      {/* Mobile-first height: 240px on small, 340px md, 420px lg */}
-      <div style={{ position: 'relative', height: 'clamp(240px, 52vw, 420px)', overflow: 'hidden', background: 'rgba(255,255,255,0.02)' }}>
+    // Full-bleed: the section is inside a max-w-7xl column with side padding,
+    // and `width:100vw` + a negative half-gutter margin lets the media escape
+    // both and span the whole viewport. Safe here because <body> already sets
+    // overflow-x:hidden, so 100vw cannot open a horizontal scrollbar when a
+    // vertical one is present. No corner radius: a rounded full-bleed band
+    // reads as a mistake rather than a card.
+    <div style={{
+      width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)',
+      overflow: 'hidden', boxShadow: `0 0 60px -12px ${glow}`,
+    }}>
+      {/* Near-viewport height so the destination reads as a cinematic plate
+          rather than a banner; the lower bound keeps it sane on short
+          landscape phones and the upper one stops it ballooning on tall
+          monitors. */}
+      <div style={{ position: 'relative', height: 'clamp(320px, 86vh, 900px)', overflow: 'hidden', background: '#000' }}>
         <AnimatePresence mode="wait">
           <motion.div
             key={idx}
@@ -1113,34 +1125,53 @@ export default function CountryPackages() {
                 <ImageCarousel images={country.images} color={country.color} glow={country.glow} isVisible={carouselVisible} />
               </div>
 
-              {/* Info bar — stacked on mobile, 3-col on desktop */}
+              {/* Info bar — a standalone card now, no longer welded to the
+                  bottom of the media: the carousel above is full-bleed, so a
+                  shared border between them would have to span the viewport
+                  while this stays in the 7xl column.
+
+                  Both data blocks lay their values out as chips on one line
+                  rather than as a stacked bullet list, so "Offline Casino
+                  Destinations" and "Best For" read as two halves of a single
+                  row. It also stops a five-casino country from making this
+                  card three times taller than a two-casino one. */}
               <div className="casino-card cp-infobar"
-                style={{ borderTop: 'none', borderRadius: '0 0 14px 14px', padding: 'clamp(14px,4vw,20px) clamp(14px,4vw,28px)', marginBottom: 'clamp(16px,4vw,40px)', display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr', gap: 'clamp(12px,3vw,24px)' }}>
-                {/* Country name */}
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 'clamp(1.3rem,5vw,1.8rem)' }}>{country.flag}</span>
+                style={{ borderRadius: 14, padding: 'clamp(16px,3.5vw,24px) clamp(16px,4vw,30px)', marginTop: 'clamp(18px,4vw,34px)', marginBottom: 'clamp(16px,4vw,40px)', display: 'grid', gridTemplateColumns: 'minmax(150px,0.75fr) minmax(0,2fr) minmax(0,1.05fr)', gap: 'clamp(14px,3vw,28px)', alignItems: 'stretch' }}>
+                {/* Country name — centred within its own cell so the grid can
+                    stretch (which is what lines the two labels up) without
+                    leaving the flag floating above them. */}
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 'clamp(1.3rem,5vw,1.9rem)' }}>{country.flag}</span>
                     <div>
-                      <div className=" font-bold" style={{ fontSize: 'clamp(0.85rem,3.5vw,1.1rem)', fontWeight: 700, color: country.color, lineHeight: 1 }}>{country.name}</div>
+                      <div className=" font-bold" style={{ fontSize: 'clamp(0.85rem,3.5vw,1.15rem)', fontWeight: 700, color: country.color, lineHeight: 1.15 }}>{country.name}</div>
                       <div className="font-body font-light" style={{ fontSize: 'clamp(0.62rem,2.2vw,0.75rem)', color: 'rgba(var(--w365-text-rgb),0.60)', fontStyle: 'italic' }}>{country.tagline}</div>
                     </div>
                   </div>
                 </div>
                 {/* Top casinos */}
-                <div>
-                  <div className="font-body font-light" style={{ fontSize: 'clamp(0.58rem,2vw,0.65rem)', color: 'rgba(var(--w365-text-rgb),0.50)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>Offline Casino Destinations</div>
-                  {country.casinos.split(', ').map((c2, j) => (
-                    <div key={j} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                      <span style={{ width: 4, height: 4, borderRadius: '50%', background: country.color, flexShrink: 0 }} />
-                      <span className="font-body font-light" style={{ fontSize: 'clamp(0.68rem,2.5vw,0.82rem)', color: 'rgba(var(--w365-text-rgb),0.78)' }}>{c2}</span>
-                    </div>
-                  ))}
+                <div className="cp-col">
+                  <div className="font-body font-light" style={{ fontSize: 'clamp(0.58rem,2vw,0.65rem)', color: 'rgba(var(--w365-text-rgb),0.50)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 9 }}>Offline Casino Destinations</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                    {country.casinos.split(', ').map((c2, j) => (
+                      <span key={j} className="font-body font-light"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(255,255,255,0.04)', border: '1px solid var(--w365-border)', borderRadius: 999, padding: 'clamp(5px,1.4vw,7px) clamp(10px,2.2vw,13px)', fontSize: 'clamp(0.68rem,2.4vw,0.8rem)', color: 'rgba(var(--w365-text-rgb),0.80)', whiteSpace: 'nowrap' }}>
+                        <span style={{ width: 4, height: 4, borderRadius: '50%', background: country.color, flexShrink: 0 }} />
+                        {c2}
+                      </span>
+                    ))}
+                  </div>
                 </div>
                 {/* Best for */}
-                <div>
-                  <div className="font-body font-light" style={{ fontSize: 'clamp(0.58rem,2vw,0.65rem)', color: 'rgba(var(--w365-text-rgb),0.50)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>Best For</div>
-                  <div className="font-body font-light" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: `${country.color}18`, border: `1px solid ${country.color}40`, borderRadius: 8, padding: 'clamp(5px,1.5vw,7px) clamp(8px,2.5vw,13px)', fontSize: 'clamp(0.68rem,2.5vw,0.83rem)', fontWeight: 600, color: country.color }}>
-                    🎯 {country.bestFor}
+                <div className="cp-col">
+                  <div className="font-body font-light" style={{ fontSize: 'clamp(0.58rem,2vw,0.65rem)', color: 'rgba(var(--w365-text-rgb),0.50)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 9 }}>Best For</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                    {String(country.bestFor || '').split(',').map(g => g.trim()).filter(Boolean).map((game, j) => (
+                      <span key={j} className="font-body font-light"
+                        style={{ display: 'inline-flex', alignItems: 'center', background: `${country.color}18`, border: `1px solid ${country.color}40`, borderRadius: 999, padding: 'clamp(5px,1.4vw,7px) clamp(10px,2.2vw,13px)', fontSize: 'clamp(0.68rem,2.4vw,0.8rem)', fontWeight: 600, color: country.color, whiteSpace: 'nowrap' }}>
+                        {game}
+                      </span>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -1155,8 +1186,16 @@ export default function CountryPackages() {
         </div>
 
         <style>{`
-          @media (max-width: 680px) { .cp-infobar { grid-template-columns: 1fr !important; } }
-          @media (max-width: 860px) and (min-width: 681px) { .cp-infobar { grid-template-columns: 1fr 1fr !important; } }
+          /* Vertical rules separate the three blocks only while they really
+             are one row; once the grid wraps, a left border would sit under
+             the block above it instead of beside it, so it becomes a top
+             rule on the stacked layouts. */
+          .cp-col { border-left: 1px solid var(--w365-border); padding-left: clamp(14px,2.5vw,26px); }
+          @media (max-width: 860px) {
+            .cp-col { border-left: none; padding-left: 0; padding-top: 14px; border-top: 1px solid var(--w365-border); }
+          }
+          @media (max-width: 680px) { .cp-infobar { grid-template-columns: 1fr !important; align-items: start !important; } }
+          @media (max-width: 860px) and (min-width: 681px) { .cp-infobar { grid-template-columns: 1fr 1fr !important; align-items: start !important; } }
           div::-webkit-scrollbar { display: none; }
         `}</style>
       </section>

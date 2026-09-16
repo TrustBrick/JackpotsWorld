@@ -227,10 +227,18 @@ function BeyondCard({ item, index, reduceMotion, chips, onGo, onChip }) {
       </div>
 
       <div style={{ padding: 'clamp(16px, 2vw, 20px)', display: 'flex', flexDirection: 'column', flex: 1 }}>
-        {/* Sits just under the media edge, the way the reference does it. */}
+        {/* Sits just under the media edge, the way the reference does it.
+            `position: relative` is load-bearing, not decoration: the negative
+            marginTop lifts this circle up into the media box above, and that
+            box is itself positioned. A static element paints below a
+            positioned sibling regardless of DOM order, so without this the
+            image covered the top third of every badge and each icon read as
+            cropped. Being positioned puts the badge in the same paint layer,
+            where coming later in the DOM wins. */}
         <span
           style={{
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            position: 'relative', zIndex: 1,
             width: 44, height: 44, borderRadius: '50%', marginBottom: 14, marginTop: -34,
             background: 'rgba(10,0,8,0.9)',
             border: `1px solid ${hovered ? accent : `${accent}66`}`,
