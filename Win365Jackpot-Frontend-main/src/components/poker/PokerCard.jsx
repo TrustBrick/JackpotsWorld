@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { Building2, CalendarDays, Clock, MapPin, Coins, Trophy, ArrowRight, ImageOff } from 'lucide-react'
 import { getFallbackImage, fixMojibakeCurrency } from '../../utils/mediaFallback'
+import { hasAmount } from '../../utils/money'
 
 function formatDate(iso) {
   if (!iso) return ''
@@ -96,9 +97,14 @@ function PokerCard({ tournament }) {
         )}
 
         <div className="grid grid-cols-2 gap-2 text-xs font-body text-[rgba(var(--w365-text-rgb),0.60)] mt-1">
-          <div className="flex items-center gap-1.5">
-            <Coins size={13} className="text-gold shrink-0" /> {t('poker.buyIn')}: {fmtMoney(tournament.buy_in)}
-          </div>
+          {/* Optional: an event has no buy-in to state, and a blank one shows
+              nothing rather than a fabricated $0. The grid is auto-flow, so
+              the remaining cells simply close up. */}
+          {hasAmount(tournament.buy_in) && (
+            <div className="flex items-center gap-1.5">
+              <Coins size={13} className="text-gold shrink-0" /> {t('poker.buyIn')}: {fmtMoney(tournament.buy_in)}
+            </div>
+          )}
           <div className="flex items-center gap-1.5">
             <Trophy size={13} className="text-gold shrink-0" /> {fmtMoney(tournament.prize_pool)}
           </div>

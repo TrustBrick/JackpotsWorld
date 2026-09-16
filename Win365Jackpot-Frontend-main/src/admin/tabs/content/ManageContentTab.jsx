@@ -185,7 +185,14 @@ export default function ManageContentTab({
         fd.append(f.name, val ? "true" : "false");
         return;
       }
-      if (val !== undefined && val !== null && val !== "") fd.append(f.name, val);
+      if (val !== undefined && val !== null && val !== "") { fd.append(f.name, val); return; }
+      // A blank value is normally dropped from the payload, which on a PATCH
+      // leaves the stored value untouched. That is right for most fields, but
+      // it makes an optional one impossible to *clear* once set: emptying the
+      // box and saving silently kept the old figure. A `clearable` field sends
+      // an explicit "" instead, which DRF turns into null for any field whose
+      // column allows it (fields.Field.get_value, the allow_null branch).
+      if (f.clearable) fd.append(f.name, "");
     });
 
     const url = editingId ? `${API}${apiPath}${editingId}/` : `${API}${apiPath}`;

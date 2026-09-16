@@ -3,6 +3,7 @@ import { RefreshCw, Search } from "lucide-react";
 import { Btn, Table, rowHover } from "../../components/SharedUI";
 import { adminFetch, API } from "../../helpers";
 import { useAdminTheme } from "../../context/AdminThemeContext";
+import { hasAmount } from "../../../utils/money";
 
 const STATUS_OPTIONS = [
   { value: "confirmed", label: "Confirmed" },
@@ -160,7 +161,12 @@ export default function TeenPattiRegistrationsTable({ onToast }) {
             <td style={{ padding: "11px 14px", fontSize: 12.5 }}>{item.email}</td>
             <td style={{ padding: "11px 14px", fontSize: 12.5 }}>{item.phone || "—"}</td>
             <td style={{ padding: "11px 14px", fontSize: 12.5, whiteSpace: "nowrap" }}>
-              {item.currency} {Number(item.entry_fee_at_registration || 0).toLocaleString()}
+              {/* Null means this event charged nothing, so the registrant was
+                  never quoted a figure. Same dash the poker review table uses
+                  for an unpublished buy-in, rather than an invented 0. */}
+              {hasAmount(item.entry_fee_at_registration)
+                ? `${item.currency} ${Number(item.entry_fee_at_registration).toLocaleString()}`
+                : "—"}
             </td>
             <td style={{ padding: "11px 14px" }}>
               <PlayerSignal item={item} C={C} />

@@ -38,7 +38,11 @@ const FIELDS = [
   { name: "end_date", label: "End Date", type: "date" },
   { name: "start_time", label: "Start Time", type: "time" },
   { name: "end_time", label: "End Time", type: "time" },
-  { name: "entry_fee", label: "Entry Fee", type: "number", placeholder: "100" },
+  // Optional — see the note on PokerManageTab buy_in.
+  {
+    name: "entry_fee", label: "Entry Fee (blank = no entry fee shown)",
+    type: "number", placeholder: "100", clearable: true,
+  },
   { name: "currency", label: "Currency", default: "USD", placeholder: "USD" },
   { name: "prize_pool", label: "Prize Pool", type: "number", placeholder: "25000" },
   { name: "max_participants", label: "Max Participants (blank = unlimited)", type: "number", placeholder: "50" },

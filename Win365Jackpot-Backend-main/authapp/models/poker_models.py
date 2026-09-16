@@ -97,7 +97,11 @@ class PokerTournament(models.Model):
     event_date  = models.DateField(db_index=True)
     event_time  = models.TimeField(null=True, blank=True)
     prize_pool  = models.DecimalField(max_digits=14, decimal_places=2, default=0)
-    buy_in      = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    # Optional, and NULL rather than 0 when unset: a tournament states a
+    # buy-in, an event has none to state, and the two must not look alike.
+    # A stored 0 is a real 'freeroll' claim the public page would print;
+    # NULL means nothing was published, so the page omits the line entirely.
+    buy_in      = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True, default=None)
     status      = models.CharField(max_length=20, choices=STATUS_CHOICES, default="upcoming", db_index=True)
     description = models.TextField(blank=True)
     seats_available = models.PositiveIntegerField(null=True, blank=True)

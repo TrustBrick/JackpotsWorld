@@ -91,7 +91,7 @@ const EVENT_FIELDS = [
   { name: "end_time", label: "End Time", type: "time" },
   {
     name: "min_buy_in", label: "Indicative Table Minimum (blank = not published)",
-    type: "number", placeholder: "500",
+    type: "number", placeholder: "500", clearable: true,
   },
   { name: "currency", label: "Currency", default: "USD", placeholder: "USD" },
   {

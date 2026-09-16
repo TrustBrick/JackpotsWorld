@@ -15,6 +15,7 @@ import { getToken } from '../services/authStorage'
 import Seo from '../components/Seo'
 import Breadcrumbs from '../components/shared/Breadcrumbs'
 import { pokerSchema, breadcrumbSchema } from '../utils/seoSchemas'
+import { hasAmount } from '../utils/money'
 import { toMetaDescription, TITLE_SUFFIX } from '../config/seo'
 
 const STATUS_LABEL_KEYS = {
@@ -159,7 +160,10 @@ export default function PokerDetails() {
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm font-body text-white/78 mb-6">
-                <div className="flex items-center gap-2"><Coins size={15} className="text-gold shrink-0" /> {t('poker.buyIn')}: {fmtMoney(tournament.buy_in)}</div>
+                {/* See PokerCard: omitted outright when no buy-in was entered. */}
+                {hasAmount(tournament.buy_in) && (
+                  <div className="flex items-center gap-2"><Coins size={15} className="text-gold shrink-0" /> {t('poker.buyIn')}: {fmtMoney(tournament.buy_in)}</div>
+                )}
                 <div className="flex items-center gap-2"><Trophy size={15} className="text-gold shrink-0" /> {t('poker.prizePool')}: {fmtMoney(tournament.prize_pool)}</div>
                 <div className="flex items-center gap-2"><CalendarDays size={15} className="text-gold shrink-0" /> {formatDate(tournament.event_date)}</div>
                 {tournament.event_time && <div className="flex items-center gap-2"><Clock size={15} className="text-gold shrink-0" /> {formatTime(tournament.event_time)}</div>}

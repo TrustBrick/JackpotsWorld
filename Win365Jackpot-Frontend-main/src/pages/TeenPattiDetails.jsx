@@ -18,6 +18,7 @@ import { getToken } from '../services/authStorage'
 import { getFallbackImage, fixMojibakeCurrency } from '../utils/mediaFallback'
 import Seo from '../components/Seo'
 import { eventSchema, breadcrumbSchema } from '../utils/seoSchemas'
+import { hasAmount } from '../utils/money'
 import { toMetaDescription, TITLE_SUFFIX } from '../config/seo'
 
 function formatDate(iso) {
@@ -250,7 +251,13 @@ export default function TeenPattiDetails() {
                           : ''
                       }
                     />
-                    <Fact icon={Coins} label={t('teenPatti.entryFee')} value={fmtMoney(event.entry_fee, event.currency)} />
+                    {/* Dropped entirely rather than passed an empty value: a
+                        Fact with no value renders "Not available", which still
+                        tells a visitor to expect a fee. An event simply has
+                        none. */}
+                    {hasAmount(event.entry_fee) && (
+                      <Fact icon={Coins} label={t('teenPatti.entryFee')} value={fmtMoney(event.entry_fee, event.currency)} />
+                    )}
                     <Fact icon={Trophy} label={t('teenPatti.prizePool')} value={fmtMoney(event.prize_pool, event.currency)} />
                     <Fact
                       icon={Users}

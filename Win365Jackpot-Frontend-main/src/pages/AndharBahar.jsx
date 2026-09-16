@@ -20,6 +20,7 @@ import {
 import { useAutoFetch } from '../hooks/useAutoFetch'
 import { getToken } from '../services/authStorage'
 import { scrollToSectionWhenReady } from '../utils/scroll'
+import { hasAmount } from '../utils/money'
 
 /* ─────────────────────────────────────────────────────────────────────────
    Andhar Bahar — the third game destination, alongside Poker and Teen Patti.
@@ -286,7 +287,7 @@ function EventCard({ ev, index, reduceMotion, isLoggedIn, onRegister, registerin
           )}
           {/* Only rendered when a venue has actually published a minimum —
               a blank one shows nothing rather than a guessed zero. */}
-          {ev.min_buy_in != null && Number(ev.min_buy_in) > 0 && (
+          {hasAmount(ev.min_buy_in) && (
             <div className="flex items-center gap-2 text-theme-muted">
               <Layers size={12} style={{ color: GOLD }} className="shrink-0" />
               <span>From {ev.currency || ''} {Number(ev.min_buy_in).toLocaleString()}</span>

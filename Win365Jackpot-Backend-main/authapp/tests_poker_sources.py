@@ -73,7 +73,10 @@ class PokerIngestTests(APITestCase):
         )
         tournament = PokerTournament.objects.get(source_event_id="evt-1")
 
-        self.assertEqual(tournament.buy_in, Decimal("0"))
+        # The point of the test name: a source that publishes no buy-in leaves
+        # the column NULL. It used to land as 0, which the Back Office then
+        # showed as a real figure and could not be told apart from a freeroll.
+        self.assertIsNone(tournament.buy_in)
         self.assertEqual(tournament.organizer, "")
         self.assertEqual(tournament.game_type, "")
         self.assertEqual(tournament.official_url, "")

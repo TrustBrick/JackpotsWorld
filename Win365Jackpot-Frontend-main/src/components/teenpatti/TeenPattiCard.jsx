@@ -7,6 +7,7 @@ import {
   Users, ArrowRight, ImageOff, CheckCircle2, Star,
 } from 'lucide-react'
 import { getFallbackImage, fixMojibakeCurrency } from '../../utils/mediaFallback'
+import { hasAmount } from '../../utils/money'
 
 function formatDate(iso) {
   if (!iso) return ''
@@ -60,6 +61,10 @@ function TeenPattiCard({ event, onRegister, registering }) {
   const place = [event.city, event.country].filter(Boolean).join(', ')
 
   const hasSeatLimit = event.max_participants != null
+  // Optional: an event has no entry fee to state. Used both to drop the
+  // tile and to widen the one beside it, so what is left never reads as a
+  // tile that failed to render.
+  const showEntryFee = hasAmount(event.entry_fee)
   const filledPct = hasSeatLimit && event.max_participants > 0
     ? Math.min(100, Math.round((event.current_participants / event.max_participants) * 100))
     : 0
@@ -155,16 +160,18 @@ function TeenPattiCard({ event, onRegister, registering }) {
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-3 mt-1">
-          <div
-            className="rounded-xl px-3 py-2"
-            style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.18)' }}
-          >
-            <p className="text-[9px] uppercase tracking-widest text-white/60 font-body mb-0.5">{t('teenPatti.entry')}</p>
-            <p className="text-sm font-black text-gold flex items-center gap-1">
-              <Coins size={12} /> {fmtMoney(event.entry_fee, event.currency)}
-            </p>
-          </div>
+        <div className={`grid ${showEntryFee ? 'grid-cols-2' : 'grid-cols-1'} gap-3 mt-1`}>
+          {showEntryFee && (
+            <div
+              className="rounded-xl px-3 py-2"
+              style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.18)' }}
+            >
+              <p className="text-[9px] uppercase tracking-widest text-white/60 font-body mb-0.5">{t('teenPatti.entry')}</p>
+              <p className="text-sm font-black text-gold flex items-center gap-1">
+                <Coins size={12} /> {fmtMoney(event.entry_fee, event.currency)}
+              </p>
+            </div>
+          )}
           <div
             className="rounded-xl px-3 py-2"
             style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.18)' }}

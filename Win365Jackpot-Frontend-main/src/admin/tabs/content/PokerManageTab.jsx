@@ -29,7 +29,13 @@ const FIELDS = [
   { name: "event_date", label: "Start Date", type: "date" },
   { name: "end_date", label: "End Date", type: "date" },
   { name: "event_time", label: "Start Time", type: "time" },
-  { name: "buy_in", label: "Buy-in", type: "number", placeholder: "500" },
+  // Optional: a tournament states a buy-in, an event has none to state.
+  // `clearable` so emptying the box actually removes a buy-in that was
+  // entered earlier, rather than being dropped from the PATCH payload.
+  {
+    name: "buy_in", label: "Buy-in (blank = no buy-in shown)",
+    type: "number", placeholder: "500", clearable: true,
+  },
   { name: "currency", label: "Currency", default: "USD", placeholder: "USD" },
   { name: "prize_pool", label: "Guaranteed Prize Pool", type: "number", placeholder: "1000000" },
   { name: "game_type", label: "Game Type", placeholder: "No-Limit Hold'em" },

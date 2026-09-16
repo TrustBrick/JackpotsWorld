@@ -89,7 +89,12 @@ class TeenPattiEvent(models.Model):
     start_time = models.TimeField(null=True, blank=True)
     end_time = models.TimeField(null=True, blank=True)
 
-    entry_fee = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
+    # Optional, and NULL rather than 0 when unset. An event that charges
+    # nothing to attend has no fee to state; a stored 0 would be a real
+    # 'free entry' claim the public card prints. NULL means nothing was
+    # published, so the card omits the tile. Same contract as
+    # AndharBaharEvent.min_buy_in and PokerTournament.buy_in.
+    entry_fee = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True, default=None)
     currency = models.CharField(max_length=8, default="USD")
     prize_pool = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
 
@@ -205,7 +210,11 @@ class TeenPattiRegistration(models.Model):
     # Snapshot of what the seat cost when it was taken, so a later edit to the
     # event's entry_fee never rewrites what an existing registrant was quoted
     # (same snapshot convention as ReferralCommission.commission_rate).
-    entry_fee_at_registration = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
+    # Nullable for the same reason the event's entry_fee is: a registrant
+    # for a no-fee event was never quoted a figure, and recording 0 would
+    # invent one. Assigning event.entry_fee straight across would also
+    # fail outright against a NOT NULL column.
+    entry_fee_at_registration = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True, default=None)
     currency = models.CharField(max_length=8, default="USD")
 
     admin_note = models.TextField(blank=True)
