@@ -113,7 +113,7 @@ export default function PageHeader({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
           className="gold-text font-black text-3xl md:text-5xl tracking-wide mb-4"
-          style={{ fontFamily: "'Manrope', sans-serif" }}
+          style={{ fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif" }}
         >
           {title}
         </motion.h1>

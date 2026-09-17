@@ -47,7 +47,7 @@ function BannedScreen({ message, supportEmail, onLogout }) {
       minHeight: "100vh",
       display: "flex", alignItems: "center", justifyContent: "center",
       background: "#0a0a0f", flexDirection: "column", gap: 20,
-      fontFamily: "'Manrope', sans-serif",
+      fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
     }}>
       <div style={{ position: "fixed", inset: 0, pointerEvents: "none", overflow: "hidden", zIndex: 0 }}>
         <div style={{
@@ -257,7 +257,7 @@ export default function Dashboard() {
       minHeight: "100vh",
       background: C.bg,
       color: "white",
-      fontFamily: "'Manrope', sans-serif",
+      fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
       display: "flex",
     }}>
       {/* Ambient glow */}

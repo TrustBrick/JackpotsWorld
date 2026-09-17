@@ -90,7 +90,7 @@ select:disabled {
   body {
     background-color: var(--w365-bg);
     color: var(--w365-text);
-    font-family: 'Manrope', sans-serif;
+    font-family: 'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif;
     overflow-x: hidden;
     transition: background-color 0.4s ease, color 0.4s ease;
   }
@@ -135,6 +135,9 @@ select:disabled {
     background-size: 200% auto;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    /* Same descender clipping as .gold-text above. */
+    padding-bottom: 0.18em;
+    margin-bottom: -0.18em;
     background-clip: text;
     font-weight: 600;
     animation: shimmer 6s linear infinite;
@@ -158,6 +161,20 @@ select:disabled {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    /* Playfair's descenders drop far further than the sans this used to be
+       set in: its capital J falls ~19% of the font size below the baseline
+       (Manrope's falls ~2%). background-clip:text paints the gradient only
+       inside this element's own box, so ink outside that box has no gradient
+       to show and the letter reads as cut off — which is exactly what
+       happened to the J in "JACKPOTS" once the typeface changed.
+
+       The padding grows the painted box; the matching negative margin takes
+       the space straight back, so nothing on the page moves. Both are in em
+       so they scale with whatever size the headline is set at. */
+    padding-bottom: 0.22em;
+    margin-bottom: -0.22em;
+    padding-left: 0.05em;
+    margin-left: -0.05em;
     animation: shimmer 3s linear infinite;
   }
   .casino-card {
@@ -183,7 +200,7 @@ select:disabled {
     background: linear-gradient(135deg, #9A7D20, #D4AF37, #F5D060, #D4AF37);
     background-size: 200% auto;
     color: #0A0005;
-    font-family: 'Manrope', sans-serif;
+    font-family: 'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif;
     font-weight: 700;
     letter-spacing: 0.1em;
     transition: all 0.3s ease;
@@ -199,7 +216,7 @@ select:disabled {
     background: transparent;
     border: 2px solid #D4AF37;
     color: #D4AF37;
-    font-family: 'Manrope', sans-serif;
+    font-family: 'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif;
     font-weight: 600;
     letter-spacing: 0.1em;
     transition: all 0.3s ease;
@@ -312,7 +329,7 @@ select:disabled {
 
 /* Responsive nav */
 .nav-link {
-  font-family: 'Manrope', sans-serif;
+  font-family: 'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif;
   font-size: 0.8rem;
   letter-spacing: 0.15em;
   color: rgba(var(--w365-text-rgb), 0.88);
@@ -410,22 +427,61 @@ select:disabled {
   .exp-beyond-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-/* ── Display type ─────────────────────────────────────────────────────────────
-   A serif for HEADLINES ONLY. Manrope keeps every piece of body copy, every
-   button, the navigation and the whole Back Office — a serif reads as classic
-   luxury at 40px and as hard work at 14px, and the brief's §15 asks for the
-   existing typography to be maintained.
+/* ── Capital J only ───────────────────────────────────────────────────────────
+   Playfair Display draws its capital J with a tail that swings BELOW the
+   baseline — 19 units deep at 100px, where its own A sits at 0. That is the
+   typeface's design, not a rendering fault, but in a word like JACKPOTS it
+   reads as a letter that has slipped out of line.
 
-   Applied by opting in with `font-display`, never by restyling h1/h2 globally:
-   the member dashboard, the admin panel and the game pages all use headings
-   too, and none of them asked for a new typeface.
+   This face covers exactly one codepoint, U+004A, and serves it from Bodoni
+   Moda. The choice was measured, not guessed. Every candidate was tested for
+   how far its J drops below the baseline at 100px:
+
+       Playfair Display   19     (the problem)
+       Cormorant Garamond 25
+       Cinzel             21
+       Georgia             2     but a low-contrast screen serif, so the
+                                 substituted J read as flat beside Playfair
+       Bodoni Moda         3     high-contrast Didone, same genre as Playfair
+
+   Bodoni is the only one that both sits on the baseline AND shares Playfair's
+   thick/thin stroke modulation, which is what makes the swap invisible rather
+   than merely aligned.
+
+   size-adjust does the last of the work. Bodoni's caps stand at 75 where
+   Playfair's stand at 71, so 71/75 = 94.7% scales the substituted glyph until
+   the two cap heights match exactly — measured at 71 and 71 afterwards.
+
+   The file is 1,056 bytes: a Google Fonts subset containing the single glyph,
+   self-hosted rather than linked, so no render-blocking request to a third
+   party and no dependence on a gstatic URL that is free to change. */
+@font-face {
+  font-family: 'JW Display J';
+  src: url('/assets/fonts/bodoni-moda-700-J.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+004A;
+  size-adjust: 94.7%;
+}
+
+/* ── Display type ─────────────────────────────────────────────────────────────
+   Playfair Display is now the typeface for the WHOLE public application, not
+   just headlines — asked for directly, replacing the earlier headline-only
+   rule. `.font-display` survives because it still carries the tighter display
+   tracking below, which body copy does not want.
+
+   The Back Office is the one exception and it is deliberate: admin/AdminPanel
+   and admin/SuperAdminPanel pin Manrope on their shell roots, and an inline
+   style on the root beats this. Those screens are dense tabular data, where a
+   high-contrast serif at 12-13px costs real legibility for no brand gain.
 
    The fallback chain matters more than usual here. If Google Fonts is blocked
    or slow the headline still lands on a serif (Georgia is on effectively every
    Windows and Android device, Times on the rest) rather than falling back to
    the body sans, which would make the design look broken rather than plain. */
 .font-display {
-  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  font-family: 'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif;
   /* Tighter than a sans wants to be: large serif display type needs the
      letters closer together or it reads as spaced-out rather than set. */
   letter-spacing: -0.015em;

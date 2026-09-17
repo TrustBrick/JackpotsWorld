@@ -128,7 +128,7 @@ function SectionHeading({ icon: Icon, title, count = null, accent = GOLD }) {
       {Icon && <Icon size={18} style={{ color: accent }} />}
       <h2
         className="font-black text-xl md:text-2xl tracking-wide"
-        style={{ color: accent, fontFamily: "'Manrope', sans-serif" }}
+        style={{ color: accent, fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif" }}
       >
         {title}
       </h2>
@@ -183,7 +183,7 @@ function StepCard({ step, index, reduceMotion }) {
     >
       <span
         className="gold-text font-black text-3xl leading-none"
-        style={{ fontFamily: "'Manrope', sans-serif" }}
+        style={{ fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif" }}
       >
         {String(index + 1).padStart(2, '0')}
       </span>
@@ -343,7 +343,7 @@ function FaqRow({ item, open, onToggle, reduceMotion }) {
           width: '100%', background: 'transparent', border: 'none',
           padding: '18px 4px', cursor: 'pointer', textAlign: 'left',
           display: 'flex', alignItems: 'center', gap: 14,
-          fontFamily: "'Manrope', sans-serif",
+          fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
           color: 'var(--w365-text)',
           fontSize: 'clamp(13px,2.3vw,15px)', fontWeight: 700, lineHeight: 1.4,
         }}
@@ -803,7 +803,7 @@ export default function AndharBahar() {
                 <div className="section-divider max-w-xs mx-auto mb-8" />
                 <h2
                   className="gold-text font-black text-xl md:text-2xl mb-3 tracking-wide"
-                  style={{ fontFamily: "'Manrope', sans-serif" }}
+                  style={{ fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif" }}
                 >
                   {copy.hero_title}
                 </h2>

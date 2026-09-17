@@ -72,7 +72,7 @@ function AffiliateLoginScreen({ onSuccess }) {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Manrope', sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif" }}>
       <div style={{ position: "fixed", inset: 0, pointerEvents: "none" }}>
         <div style={{ position: "absolute", top: "20%", left: "50%", transform: "translate(-50%,-50%)", width: 600, height: 600, borderRadius: "50%", background: `radial-gradient(circle, ${C.gold}18, transparent 60%)` }} />
       </div>
@@ -196,7 +196,7 @@ function AffiliateDashboard({ affiliateUser, onLogout }) {
   }, []);
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Manrope', sans-serif", display: "flex" }}>
+    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif", display: "flex" }}>
       <AffiliateSidebar
         C={C}
         affiliateUser={affiliateUser}

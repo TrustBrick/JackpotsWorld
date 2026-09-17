@@ -151,13 +151,24 @@ const IMMERSIVE_CROP = { objectFit: 'cover', objectPosition: 'center 15%' }
 // all four edges toward the hero's dark, which is the blending this band no
 // longer does. It fades out by the halfway mark, so it never touches the
 // upper part of the frame where partner footage puts its subject.
-const IMMERSIVE_SCRIM =
-  'linear-gradient(to top, rgba(10,0,5,0.9) 0%, rgba(22,0,18,0.45) 24%, rgba(22,0,18,0) 50%)'
+// Weighted at BOTH ends, because that is where the furniture sits now: the
+// sound control and badge along the top, the destination name along the
+// bottom. Clear through the middle, so the picture itself is never dimmed.
+const IMMERSIVE_SCRIM = [
+  'linear-gradient(to bottom, rgba(10,0,5,0.74) 0%, rgba(22,0,18,0.32) 18%, rgba(22,0,18,0) 38%)',
+  'linear-gradient(to top, rgba(10,0,5,0.80) 0%, rgba(22,0,18,0.36) 20%, rgba(22,0,18,0) 44%)',
+].join(', ')
 
 // The plate and controls line up with the navbar's own content column
 // (max-w-7xl, px-4), so the partner's name starts under the logo rather than
 // at some arbitrary distance from the edge of a full-bleed band.
 const IMMERSIVE_INSET = 'max(16px, calc((100% - 1280px) / 2 + 16px))'
+// A TRUE corner inset. IMMERSIVE_INSET above aligns with the 1280px content
+// column, which is right for text that should line up with the rest of the
+// page — but on a 1920 screen it lands 334px inside the frame, which is
+// nowhere near the corner. The furniture pinned to the picture's own
+// corners uses this instead.
+const IMMERSIVE_CORNER = 'clamp(14px, 1.5vw, 30px)'
 
 /* ── Sheen ────────────────────────────────────────────────────────────────
    The plate title is gold lettering with a soft highlight travelling across
@@ -374,11 +385,6 @@ function HeroVideo({
     play(next)
   }
 
-  // The visitor asked for sound and is not getting it: the browser is holding
-  // it back until they interact. Say so, rather than leaving a 34px icon to
-  // carry the message on its own.
-  const blocked = active && soundOn && !audible
-
   const docked = controlSlot !== undefined
   const placeControl = (control) => {
     if (!docked) return control
@@ -436,22 +442,24 @@ function HeroVideo({
           style={{
             ...(!docked && { position: 'absolute', top: 10, left: 10, zIndex: 3 }),
             height: 34, borderRadius: 999,
-            padding: blocked ? '0 12px 0 10px' : 0,
-            width: blocked ? 'auto' : 34,
-            gap: blocked ? 7 : 0,
+            padding: 0,
+            width: 34,
+            gap: 0,
             background: audible ? 'rgba(212,175,55,0.25)' : 'rgba(0,0,0,0.6)',
             backdropFilter: 'blur(8px)',
             border: '1px solid rgba(212,175,55,0.35)',
             color: '#F5E07A', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontFamily: "'Manrope', sans-serif",
+            fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
             fontSize: 10.5, fontWeight: 800,
             letterSpacing: '0.12em', textTransform: 'uppercase',
             whiteSpace: 'nowrap',
           }}
         >
+          {/* Icon only. The written prompt was removed on request: the
+              control still reports the true state, and a blocked autoplay
+              simply shows the muted icon until the visitor clicks it. */}
           {audible ? <Volume2 size={15} /> : <VolumeX size={15} />}
-          {blocked && <span>Tap for sound</span>}
         </motion.button>
       )}
     </>
@@ -544,7 +552,7 @@ function BadgePill({ text, dot, style }) {
       padding: '4px 11px',
       background: 'rgba(10,0,5,0.55)',
       backdropFilter: 'blur(8px)',
-      fontFamily: "'Manrope', sans-serif",
+      fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
       fontSize: 'clamp(8px,1.4vw,11px)', fontWeight: 900,
       letterSpacing: '0.16em', textTransform: 'uppercase',
       color: '#F5E07A',
@@ -834,26 +842,28 @@ export default function HeroMediaShowcase({
             }} />
           </div>
 
-          {/* The bottom row, inside the picture's own edges: the title plate
-              on the left, the slide dots and mute control on the right. The
-              badge becomes the plate's eyebrow instead of being pinned to a
-              corner, since the top edge is masked away. */}
-          <div style={{
-            position: 'absolute', zIndex: 2,
-            left: IMMERSIVE_INSET, right: IMMERSIVE_INSET,
-            bottom: 'clamp(14px, 8%, 72px)',
-            display: 'flex', alignItems: 'flex-end', gap: 16,
-            // Only the controls take clicks.
-            pointerEvents: 'none',
-          }}>
-            {(badgeText || current.name || current.caption) && (
-              <div style={{
-                minWidth: 0, maxWidth: 'min(62%, 640px)',
-                display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
-                gap: 'clamp(6px, 0.8vw, 12px)',
-                fontFamily: "'Manrope', sans-serif",
-              }}>
-                {badgeText && <BadgePill text={badgeText} dot={badgeDot} />}
+          {/* Sound control, in the picture's actual top-left corner. */}
+          <div
+            ref={setControlSlot}
+            style={{
+              position: 'absolute', zIndex: 3,
+              top: IMMERSIVE_CORNER, left: IMMERSIVE_CORNER,
+              display: 'flex', pointerEvents: 'auto',
+            }}
+          />
+
+          {/* Destination name, bottom-left. */}
+          {(current.name || current.caption) && (
+            <div style={{
+              position: 'absolute', zIndex: 2,
+              bottom: IMMERSIVE_CORNER, left: IMMERSIVE_CORNER,
+              minWidth: 0, maxWidth: 'min(62%, 640px)',
+              display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
+              gap: 'clamp(6px, 0.8vw, 12px)',
+              fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
+              // Nothing here is clickable; the picture stays tappable.
+              pointerEvents: 'none',
+            }}>
                 {/* The flag stays outside the sheen span, as in the framed
                     plate, so it keeps its own colours. */}
                 {current.name && (
@@ -883,17 +893,31 @@ export default function HeroMediaShowcase({
                     {current.caption}
                   </span>
                 )}
-              </div>
-            )}
+            </div>
+          )}
+
+          {/* The badge sits alone in the opposite top corner. */}
+          {badgeText && (
             <div style={{
-              marginLeft: 'auto', flexShrink: 0,
-              display: 'flex', alignItems: 'center', gap: 14,
+              position: 'absolute', zIndex: 2,
+              top: IMMERSIVE_CORNER, right: IMMERSIVE_CORNER,
+              display: 'flex', pointerEvents: 'none',
+            }}>
+              <BadgePill text={badgeText} dot={badgeDot} />
+            </div>
+          )}
+
+          {/* Slide dots stay at the bottom, clear of both top corners. */}
+          {count > 1 && (
+            <div style={{
+              position: 'absolute', zIndex: 2,
+              right: IMMERSIVE_CORNER, bottom: IMMERSIVE_CORNER,
+              display: 'flex', alignItems: 'center',
               pointerEvents: 'auto',
             }}>
-              {count > 1 && <SlideDots slides={slides} activeIdx={safeIdx} onSelect={setIdx} />}
-              <div ref={setControlSlot} style={{ display: 'flex' }} />
+              <SlideDots slides={slides} activeIdx={safeIdx} onSelect={setIdx} />
             </div>
-          </div>
+          )}
         </div>
       </motion.div>
     )
@@ -982,7 +1006,7 @@ export default function HeroMediaShowcase({
             zIndex: 2,
             maxWidth: 'min(72%, 460px)',
             display: 'flex', flexDirection: 'column', gap: 3,
-            fontFamily: "'Manrope', sans-serif",
+            fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
             pointerEvents: 'none',
           }}>
             {/* The flag sits outside the sheen span on purpose. Everything

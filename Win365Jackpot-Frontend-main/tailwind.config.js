@@ -3,10 +3,14 @@ export default {
   content: ["./index.html","./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
+      // One typeface across the whole public application, on request. The
+      // Back Office is the deliberate exception: its shell roots pin Manrope
+      // inline (admin/AdminPanel.jsx, admin/SuperAdminPanel.jsx), because a
+      // display serif in dense tabular data costs legibility for no brand gain.
       fontFamily: {
-  heading: ['Manrope', 'sans-serif'],
-  body: ['Manrope', 'sans-serif'],
-  sans: ['Manrope', 'sans-serif'],
+  heading: ['JW Display J', 'Playfair Display', 'Georgia', 'Times New Roman', 'serif'],
+  body: ['JW Display J', 'Playfair Display', 'Georgia', 'Times New Roman', 'serif'],
+  sans: ['JW Display J', 'Playfair Display', 'Georgia', 'Times New Roman', 'serif'],
 },
       colors: {
         gold: { DEFAULT:'#D4AF37', light:'#F5D060', dark:'#9A7D20' },

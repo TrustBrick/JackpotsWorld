@@ -86,7 +86,7 @@ function FaqRow({ item, open, onToggle, reduceMotion }) {
           width: '100%', background: 'transparent', border: 'none',
           padding: '18px 4px', cursor: 'pointer', textAlign: 'left',
           display: 'flex', alignItems: 'center', gap: 14,
-          fontFamily: "'Manrope', sans-serif",
+          fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
           color: 'var(--w365-text)',
           fontSize: 'clamp(13px,2.3vw,15px)', fontWeight: 700, lineHeight: 1.4,
         }}
@@ -158,7 +158,7 @@ export default function BusinessModelFAQ() {
           transition={{ duration: reduceMotion ? 0 : 0.5 }}
           className="gold-text"
           style={{
-            fontFamily: "'Manrope', sans-serif",
+            fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
             fontSize: 'clamp(20px,4vw,34px)', fontWeight: 900,
             textAlign: 'center', margin: '0 0 clamp(24px,4vw,40px)',
           }}

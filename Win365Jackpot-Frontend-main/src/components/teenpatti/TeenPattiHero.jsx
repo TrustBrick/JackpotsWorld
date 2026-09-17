@@ -333,7 +333,7 @@ export default function TeenPattiHero({ liveCount = 0, upcomingCount = 0, onView
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.38 }}
           className="gold-text font-black text-5xl md:text-7xl tracking-wide mb-4"
-          style={{ fontFamily: "'Manrope', sans-serif", filter: 'drop-shadow(0 0 30px rgba(212,175,55,0.35))' }}
+          style={{ fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif", filter: 'drop-shadow(0 0 30px rgba(212,175,55,0.35))' }}
         >
           {t('teenPatti.title')}
         </motion.h1>

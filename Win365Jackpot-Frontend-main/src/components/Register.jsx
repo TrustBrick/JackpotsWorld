@@ -560,7 +560,7 @@ export default function Register() {
         background: 'transparent',
         display: "flex", alignItems: "center", justifyContent: "center",
         padding: "32px 16px",
-        // fontFamily: "'Manrope', sans-serif",
+        // fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
         position: "relative",
         overflow: "hidden",
       }}>

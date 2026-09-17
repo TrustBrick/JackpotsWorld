@@ -100,7 +100,7 @@ export default function SessionTimeoutModal({ open, secondsLeft, onStay, onLogou
             background: P.scrim,
             backdropFilter: 'blur(6px)',
             WebkitBackdropFilter: 'blur(6px)',
-            fontFamily: "'Manrope', sans-serif",
+            fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
           }}
         >
           <motion.div

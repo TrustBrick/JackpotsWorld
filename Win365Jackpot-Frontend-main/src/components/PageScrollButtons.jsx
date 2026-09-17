@@ -33,6 +33,12 @@ export default function PageScrollButtons() {
   // Down arrow for the whole page (top through the last section); only flips
   // to up once the user has actually reached the bottom of the page.
   const [atBottom, setAtBottom] = useState(false)
+  // The control is hidden while the first section (the hero, which is a
+  // full-screen partner video) still owns the viewport. It sat over the
+  // footage otherwise, which is the one place on the page where a floating
+  // gold circle competes with the content rather than helping. Every other
+  // section keeps it.
+  const [overHero, setOverHero] = useState(true)
   // The launcher's measured height, so this control sits clear of it at
   // whatever size it actually is. See the positioning note below.
   const launcherHeight = useLauncherHeight()
@@ -42,6 +48,16 @@ export default function PageScrollButtons() {
   const updateState = useCallback(() => {
     const scrolledToBottom = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - BOTTOM_THRESHOLD_PX
     setAtBottom(scrolledToBottom)
+
+    // Measured, not a scroll-position guess: the hero's height depends on the
+    // video's own shape and the window, so a hardcoded pixel threshold would be
+    // wrong on most screens. Hidden while the hero still covers more than half
+    // of what the visitor can see.
+    const [hero] = getSections()
+    if (!hero) { setOverHero(false); return }
+    const rect = hero.getBoundingClientRect()
+    const visible = Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0)
+    setOverHero(visible > window.innerHeight * 0.5)
   }, [])
 
   useEffect(() => {
@@ -104,6 +120,8 @@ export default function PageScrollButtons() {
     if (!atBottom) scrollToNextSection()
     else scrollToPreviousSection()
   }
+
+  if (overHero) return null
 
   return (
     <motion.div

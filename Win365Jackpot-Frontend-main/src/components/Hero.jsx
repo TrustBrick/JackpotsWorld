@@ -128,7 +128,7 @@ const FloatingCard = memo(({ suit, val, pos, delay, red }) => (
       borderRadius:8,
       display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
       fontWeight:800,
-      fontFamily:"'Manrope', sans-serif",
+      fontFamily:"'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
       fontSize:'clamp(8px,1.4vw,11px)',
       color: red ? '#ff4466' : '#D4AF37',
       animation:`cardGlow 2.5s ${delay}s ease-in-out infinite`,
@@ -190,7 +190,7 @@ const FloatingLuxury = memo(({ Icon, logo, label, pos, delay, color }) => {
         color, opacity:0.85,
         fontWeight:900,
         letterSpacing:'0.13em',
-        fontFamily:"'Manrope', sans-serif",
+        fontFamily:"'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
       }}>
         {label}
       </div>
@@ -506,7 +506,7 @@ export default function Hero() {
             padding:'8px 20px',
             marginBottom: compact ? 'clamp(6px,1.6vw,12px)' : 'clamp(12px,3vw,24px)',
             background:'rgba(212,175,55,0.16)',
-            fontFamily:"'Manrope', sans-serif",
+            fontFamily:"'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
             fontSize:'clamp(9px,2vw,11.5px)', fontWeight:900,
             letterSpacing:'0.16em',
             color:'#F5E07A',
@@ -554,7 +554,7 @@ export default function Hero() {
           initial={{ opacity:0, y:32 }} animate={{ opacity:1, y:0 }}
           transition={{ delay:0.35, duration:0.65, layout: HERO_LAYOUT_TWEEN }}
           style={{
-            fontFamily:"'Manrope', sans-serif",
+            fontFamily:"'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
             fontWeight:700,
             fontSize: compact ? 'clamp(28px,8vw,62px)' : 'clamp(56px,16vw,150px)',
             lineHeight:0.9,
@@ -577,6 +577,15 @@ export default function Hero() {
               background:'linear-gradient(135deg, #D4AF37 0%, #F5E07A 40%, #C9972A 70%, #D4AF37 100%)',
               backgroundSize:'200% auto',
               WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text',
+              // Playfair's capital J drops ~19% of the font size below the
+              // baseline (the sans this used to be set in dropped ~2%), and
+              // background-clip:text only paints inside this element's own box
+              // — so at line-height 0.9 the tail of the J had no gradient to
+              // show and read as a cut-off letter. This element carries its
+              // gradient inline rather than via .gold-text, which is why the
+              // fix on that class did not reach it. The negative margin hands
+              // the space straight back, so the headline does not move.
+              paddingBottom:'0.24em', marginBottom:'-0.24em',
               animation:'shimmer 3.5s linear infinite',
             }}
           >JACKPOTS</motion.span>
@@ -642,7 +651,7 @@ export default function Hero() {
             border:'1px solid rgba(212,175,55,0.35)', borderRadius:999,
             padding:'6px 16px', marginBottom:'clamp(10px,2.5vw,18px)',
             background:'rgba(212,175,55,0.07)',
-            fontFamily:"'Manrope', sans-serif",
+            fontFamily:"'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
             fontSize:'clamp(8px,1.8vw,10px)', fontWeight:700,
             letterSpacing:'0.18em', textTransform:'uppercase',
             color:'rgba(212,175,55,0.8)',
@@ -686,7 +695,7 @@ export default function Hero() {
             backgroundSize:'220% auto',
             animation:'shimmer 4.5s linear infinite',
             boxShadow:'0 0 10px rgba(212,175,55,0.4), 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.5)',
-            fontFamily:"'Manrope', sans-serif",
+            fontFamily:"'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
             fontSize:'clamp(8px,1.1vw,11px)', fontWeight:700,
             letterSpacing:'0.14em', textTransform:'uppercase',
             color:'#1a0010',
@@ -740,7 +749,7 @@ export default function Hero() {
           initial={{ opacity:0 }} animate={{ opacity:1 }}
           transition={{ delay:0.82 }}
           style={{
-            fontFamily:"'Manrope', sans-serif",
+            fontFamily:"'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
             color:'rgba(255,255,255,0.28)',
             fontSize:'clamp(8px,2vw,11px)', letterSpacing:'0.14em',
             marginTop:'clamp(8px,2vw,16px)',
@@ -767,7 +776,7 @@ export default function Hero() {
                 backgroundSize:'200% auto',
                 color:'#1a0010', border:'none', borderRadius:999,
                 padding:'clamp(10px,2.5vw,14px) clamp(18px,4.5vw,38px)',
-                fontFamily:"'Manrope', sans-serif",
+                fontFamily:"'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
                 fontSize:'clamp(9px,2.2vw,13px)', fontWeight:900,
                 letterSpacing:'0.13em', textTransform:'uppercase',
                 cursor:'pointer',
@@ -785,7 +794,7 @@ export default function Hero() {
                 border:'1.5px solid rgba(212,175,55,0.45)',
                 borderRadius:999,
                 padding:'clamp(10px,2.5vw,14px) clamp(18px,4.5vw,38px)',
-                fontFamily:"'Manrope', sans-serif",
+                fontFamily:"'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
                 fontSize:'clamp(9px,2.2vw,13px)', fontWeight:700,
                 letterSpacing:'0.13em', textTransform:'uppercase',
                 cursor:'pointer', touchAction:'manipulation',
@@ -826,7 +835,7 @@ export default function Hero() {
                 border:'1.5px solid rgba(212,175,55,0.45)',
                 borderRadius:999,
                 padding:'clamp(10px,2.5vw,14px) clamp(18px,4.5vw,38px)',
-                fontFamily:"'Manrope', sans-serif",
+                fontFamily:"'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
                 fontSize:'clamp(9px,2.2vw,13px)', fontWeight:700,
                 letterSpacing:'0.13em', textTransform:'uppercase',
                 cursor:'pointer', touchAction:'manipulation',
@@ -870,7 +879,7 @@ export default function Hero() {
     >
       <div
         style={{
-          fontFamily: "'Manrope', sans-serif",
+          fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
           fontWeight: 700,
           fontSize: 'clamp(16px,3.8vw,28px)',
           background: 'linear-gradient(135deg,#D4AF37,#F5E07A)',
@@ -878,6 +887,8 @@ export default function Hero() {
           WebkitTextFillColor: 'transparent',
           backgroundClip: 'text',
           lineHeight: 1,
+          // Same descender clipping as the headline above — see the note there.
+          paddingBottom: '0.22em', marginBottom: '-0.22em',
           whiteSpace: 'nowrap', // prevent value from wrapping
         }}
       >
@@ -885,7 +896,7 @@ export default function Hero() {
       </div>
       <div
         style={{
-          fontFamily: "'Manrope', sans-serif",
+          fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
           color: 'rgba(255,255,255,0.45)',
           fontSize: 'clamp(6px,1.4vw,9px)',
           letterSpacing: '0.16em',
@@ -909,7 +920,7 @@ export default function Hero() {
         animation:'scrollBounce 1.6s 2s ease-in-out infinite',
         transform:'translateX(-50%)',
       }}>
-        <div style={{ fontFamily:"'Manrope', sans-serif", fontSize:7, letterSpacing:'0.2em', textTransform:'uppercase' }}>Scroll</div>
+        <div style={{ fontFamily:"'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif", fontSize:7, letterSpacing:'0.2em', textTransform:'uppercase' }}>Scroll</div>
         <div style={{ width:1, height:'clamp(20px,4vw,40px)', background:'linear-gradient(to bottom, rgba(212,175,55,0.4), transparent)' }} />
       </div>
     </section>

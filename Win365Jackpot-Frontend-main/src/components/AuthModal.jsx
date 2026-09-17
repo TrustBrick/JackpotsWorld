@@ -1093,7 +1093,7 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'login', onAut
           position: 'fixed', inset: 0, zIndex: 200,
           background: 'rgba(1,4,9,0.88)', backdropFilter: 'blur(10px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: 16, fontFamily: "'Manrope', sans-serif",
+          padding: 16, fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
         }}
         onClick={onClose}>
 

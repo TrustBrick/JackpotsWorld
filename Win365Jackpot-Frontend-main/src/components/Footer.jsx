@@ -18,7 +18,16 @@ const ALL_DESTINATIONS     = [...PRIMARY_DESTINATIONS, ...EXTRA_DESTINATIONS]
 
 const SOCIAL_LINKS = [
   {
-    name: 'Instagram', href: 'https://www.instagram.com/jackpotsworld26/',
+    name: 'Facebook', href: 'https://www.facebook.com/profile.php?id=61594656950813',
+    color: '#1877F2', bg: 'rgba(24,119,242,0.08)', border: 'rgba(24,119,242,0.2)',
+    icon: (
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="#1877F2">
+        <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.412c0-3.025 1.792-4.697 4.533-4.697 1.313 0 2.686.236 2.686.236v2.971H15.83c-1.49 0-1.955.931-1.955 1.886v2.265h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z" />
+      </svg>
+    ),
+  },
+  {
+    name: 'Instagram', href: 'https://www.instagram.com/jackpotsworld.vip/',
     color: '#E1306C', bg: 'rgba(225,48,108,0.08)', border: 'rgba(225,48,108,0.2)',
     icon: (
       <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#E1306C" strokeWidth="1.8">
@@ -29,7 +38,7 @@ const SOCIAL_LINKS = [
     ),
   },
   {
-    name: 'Telegram', href: 'https://t.me/+tIl45owhXAwwNzM1',
+    name: 'Telegram', href: 'https://t.me/jackpotsworld_2026',
     color: '#2AABEE', bg: 'rgba(42,171,238,0.08)', border: 'rgba(42,171,238,0.2)',
     icon: (
       <svg viewBox="0 0 24 24" width="15" height="15" fill="#2AABEE">
@@ -38,7 +47,8 @@ const SOCIAL_LINKS = [
     ),
   },
   {
-    name: 'YouTube', href: 'https://www.youtube.com/@JackpotsWorld',
+    name: 'YouTube',
+    href: 'https://www.youtube.com/channel/UCgSKujxp4LKmKLnBuLSCT9Q/posts?pvf=CAE%253D',
     color: '#FF0000', bg: 'rgba(255,0,0,0.08)', border: 'rgba(255,0,0,0.2)',
     icon: (
       <svg viewBox="0 0 24 24" width="15" height="15" fill="#FF0000">

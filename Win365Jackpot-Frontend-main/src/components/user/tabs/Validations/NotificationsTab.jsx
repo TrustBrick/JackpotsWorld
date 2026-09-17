@@ -201,7 +201,7 @@ export default function NotificationsTab({ onToast, onUnreadChange }) {
   const rangeEnd    = Math.min(page * PAGE_SIZE, notifs.length);
 
   return (
-    <div style={{ maxWidth: 720, margin: "0 auto", paddingBottom: 40, fontFamily: "'Manrope', sans-serif" }}>
+    <div style={{ maxWidth: 720, margin: "0 auto", paddingBottom: 40, fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif" }}>
 
       {/* ── Header ── */}
       <div style={{

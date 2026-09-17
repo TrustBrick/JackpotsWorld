@@ -73,7 +73,7 @@ function Step({ step, index, reduceMotion, inView }) {
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         background: 'linear-gradient(135deg,#C9972A,#F5E07A)',
         color: '#1a0010',
-        fontFamily: "'Manrope', sans-serif",
+        fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
         fontSize: 12, fontWeight: 900,
         boxShadow: '0 0 18px rgba(212,175,55,0.35)',
       }}>
@@ -83,7 +83,7 @@ function Step({ step, index, reduceMotion, inView }) {
       <Icon size={22} style={{ color: '#D4AF37', flexShrink: 0 }} aria-hidden="true" />
 
       <h3 style={{
-        fontFamily: "'Manrope', sans-serif",
+        fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
         fontSize: 15, fontWeight: 800, lineHeight: 1.3,
         color: 'var(--w365-text)', margin: 0,
       }}>
@@ -118,7 +118,7 @@ export default function ReferralJourney() {
           style={{ textAlign: 'center', marginBottom: 'clamp(30px,5vw,48px)' }}
         >
           <p style={{
-            fontFamily: "'Manrope', sans-serif",
+            fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
             fontSize: 'clamp(9px,1.9vw,11px)', fontWeight: 800,
             letterSpacing: '0.3em', textTransform: 'uppercase',
             color: 'rgba(212,175,55,0.75)', margin: '0 0 12px',
@@ -127,7 +127,7 @@ export default function ReferralJourney() {
           </p>
 
           <h2 className="gold-text" style={{
-            fontFamily: "'Manrope', sans-serif",
+            fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
             fontSize: 'clamp(22px,4.4vw,40px)', fontWeight: 900,
             lineHeight: 1.18, margin: '0 0 14px',
           }}>

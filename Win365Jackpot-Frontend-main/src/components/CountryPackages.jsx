@@ -25,6 +25,7 @@ import {
 ───────────────────────────────────────────── */
 
 import { useAutoFetch } from '../hooks/useAutoFetch'
+import { flagIconUrl, KNOWN_COUNTRY_CODES } from '../utils/countryFlags'
 import { fetchDestinations, fetchVipServiceImages, fetchTourPackages } from '../services/landingService'
 import { flagFromCountryCode } from '../utils/countryFlags'
 import useEnquiryNumber from '../hooks/useEnquiryNumber'
@@ -194,6 +195,40 @@ function WhatsAppBtn({ label = 'Enquire on WhatsApp', pkg = '' }) {
    • Speaker button still works as a manual override, but resets back to the
      automatic behavior whenever the slide changes or visibility flips.
 ══════════════════════════════════════════════ */
+
+/* Real SVG flag artwork, not the emoji.
+ *
+ * The emoji was rendering as a bare country CODE — "VN", "LK" — on Windows and
+ * on several Android WebViews, because those platforms ship no regional-
+ * indicator glyphs and fall back to drawing the two letters. That is what was
+ * showing under the destination media. The Premium Partners hero already
+ * solved this with flag-icons SVGs; this uses the same artwork so the two
+ * sections agree.
+ *
+ * Falls back to the emoji when a country has no mapped code, which still beats
+ * showing nothing on the platforms that CAN draw it. */
+function CountryFlag({ name, emoji, size }) {
+  const icon = flagIconUrl(KNOWN_COUNTRY_CODES[name])
+  if (icon) {
+    return (
+      <img
+        src={icon}
+        alt=""
+        aria-hidden
+        style={{
+          height: size, width: 'auto', aspectRatio: '4 / 3',
+          objectFit: 'cover', borderRadius: 2, flexShrink: 0,
+          // Hairline edge so a flag containing white still reads as its own
+          // object against the card.
+          boxShadow: '0 0 0 1px rgba(0,0,0,0.25)',
+        }}
+      />
+    )
+  }
+  if (!emoji) return null
+  return <span aria-hidden style={{ fontSize: `calc(${size} * 1.25)`, lineHeight: 1.1, flexShrink: 0 }}>{emoji}</span>
+}
+
 function ImageCarousel({ images, color, glow, isVisible }) {
   const [idx, setIdx]     = useState(0)
   const [muted, setMuted] = useState(true)   // ← always start muted
@@ -312,12 +347,20 @@ function ImageCarousel({ images, color, glow, isVisible }) {
                 // audio state already correct rather than flashing audible
                 // for a frame.
                 autoPlay muted={muted} loop playsInline
-                // contain (not cover) — uploaded destination videos can be any
-                // aspect ratio, and cover crops whatever doesn't match this
-                // fixed-height box. contain always shows the entire frame,
-                // letterboxing against the container background instead of
-                // cutting off the top/bottom or sides.
-                style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', background: '#000' }}
+                // cover, not contain: this band is full-bleed, and a
+                // letterboxed clip left black bars down both sides of the
+                // screen. cover fills the frame edge to edge.
+                //
+                // The trade-off is real: a clip whose shape does not match
+                // the band is CROPPED rather than shrunk. objectPosition
+                // centres that crop horizontally and keeps it high, because
+                // destination footage frames its subject in the upper half
+                // and the bottom is where the caption sits. Footage cut to
+                // roughly the band ratio loses nothing.
+                style={{
+                  width: '100%', height: '100%', objectFit: 'cover',
+                  objectPosition: 'center 35%', display: 'block', background: '#000',
+                }}
               />
             ) : (
               <img
@@ -1109,7 +1152,7 @@ export default function CountryPackages() {
                 }}
                 className="font-body font-light"
               >
-                <span style={{ fontSize: 'clamp(0.9rem,3.5vw,1.25rem)' }}>{c.flag}</span>
+                <CountryFlag name={c.name} emoji={c.flag} size="clamp(13px,1.6vw,17px)" />
                 <span>{c.name}</span>
               </motion.button>
             ))}
@@ -1136,13 +1179,13 @@ export default function CountryPackages() {
                   row. It also stops a five-casino country from making this
                   card three times taller than a two-casino one. */}
               <div className="casino-card cp-infobar"
-                style={{ borderRadius: 14, padding: 'clamp(16px,3.5vw,24px) clamp(16px,4vw,30px)', marginTop: 'clamp(18px,4vw,34px)', marginBottom: 'clamp(16px,4vw,40px)', display: 'grid', gridTemplateColumns: 'minmax(150px,0.75fr) minmax(0,2fr) minmax(0,1.05fr)', gap: 'clamp(14px,3vw,28px)', alignItems: 'stretch' }}>
+                style={{ borderRadius: 14, padding: 'clamp(11px,1.6vw,15px) clamp(13px,1.8vw,20px)', marginTop: 'clamp(12px,2vw,20px)', marginBottom: 'clamp(14px,2.5vw,26px)', display: 'grid', gridTemplateColumns: 'minmax(128px,0.55fr) minmax(0,2.4fr) minmax(0,0.95fr)', gap: 'clamp(10px,1.4vw,18px)', alignItems: 'stretch' }}>
                 {/* Country name — centred within its own cell so the grid can
                     stretch (which is what lines the two labels up) without
                     leaving the flag floating above them. */}
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontSize: 'clamp(1.3rem,5vw,1.9rem)' }}>{country.flag}</span>
+                    <CountryFlag name={country.name} emoji={country.flag} size="clamp(19px,2.4vw,30px)" />
                     <div>
                       <div className=" font-bold" style={{ fontSize: 'clamp(0.85rem,3.5vw,1.15rem)', fontWeight: 700, color: country.color, lineHeight: 1.15 }}>{country.name}</div>
                       <div className="font-body font-light" style={{ fontSize: 'clamp(0.62rem,2.2vw,0.75rem)', color: 'rgba(var(--w365-text-rgb),0.60)', fontStyle: 'italic' }}>{country.tagline}</div>
@@ -1151,11 +1194,11 @@ export default function CountryPackages() {
                 </div>
                 {/* Top casinos */}
                 <div className="cp-col">
-                  <div className="font-body font-light" style={{ fontSize: 'clamp(0.58rem,2vw,0.65rem)', color: 'rgba(var(--w365-text-rgb),0.50)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 9 }}>Offline Casino Destinations</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                  <div className="font-body font-light" style={{ fontSize: 'clamp(0.58rem,2vw,0.65rem)', color: 'rgba(var(--w365-text-rgb),0.50)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>Offline Casino Destinations</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     {country.casinos.split(', ').map((c2, j) => (
                       <span key={j} className="font-body font-light"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(255,255,255,0.04)', border: '1px solid var(--w365-border)', borderRadius: 999, padding: 'clamp(5px,1.4vw,7px) clamp(10px,2.2vw,13px)', fontSize: 'clamp(0.68rem,2.4vw,0.8rem)', color: 'rgba(var(--w365-text-rgb),0.80)', whiteSpace: 'nowrap' }}>
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(255,255,255,0.04)', border: '1px solid var(--w365-border)', borderRadius: 999, padding: '4px clamp(8px,1.1vw,10px)', fontSize: 'clamp(0.66rem,1.5vw,0.745rem)', color: 'rgba(var(--w365-text-rgb),0.80)', whiteSpace: 'nowrap' }}>
                         <span style={{ width: 4, height: 4, borderRadius: '50%', background: country.color, flexShrink: 0 }} />
                         {c2}
                       </span>
@@ -1164,11 +1207,11 @@ export default function CountryPackages() {
                 </div>
                 {/* Best for */}
                 <div className="cp-col">
-                  <div className="font-body font-light" style={{ fontSize: 'clamp(0.58rem,2vw,0.65rem)', color: 'rgba(var(--w365-text-rgb),0.50)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 9 }}>Best For</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                  <div className="font-body font-light" style={{ fontSize: 'clamp(0.58rem,2vw,0.65rem)', color: 'rgba(var(--w365-text-rgb),0.50)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>Best For</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     {String(country.bestFor || '').split(',').map(g => g.trim()).filter(Boolean).map((game, j) => (
                       <span key={j} className="font-body font-light"
-                        style={{ display: 'inline-flex', alignItems: 'center', background: `${country.color}18`, border: `1px solid ${country.color}40`, borderRadius: 999, padding: 'clamp(5px,1.4vw,7px) clamp(10px,2.2vw,13px)', fontSize: 'clamp(0.68rem,2.4vw,0.8rem)', fontWeight: 600, color: country.color, whiteSpace: 'nowrap' }}>
+                        style={{ display: 'inline-flex', alignItems: 'center', background: `${country.color}18`, border: `1px solid ${country.color}40`, borderRadius: 999, padding: '4px clamp(8px,1.1vw,10px)', fontSize: 'clamp(0.66rem,1.5vw,0.745rem)', fontWeight: 600, color: country.color, whiteSpace: 'nowrap' }}>
                         {game}
                       </span>
                     ))}

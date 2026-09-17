@@ -430,7 +430,7 @@ export default function AffiliateRegister() {
         <div style={{
           background: C.surface, borderRadius: 14, border: `1px solid ${C.border}`,
           boxShadow: '0 0 0 1px rgba(212,175,55,0.06), 0 28px 72px rgba(0,0,0,0.45)',
-          padding: '26px 26px 22px', fontFamily: "'Manrope', sans-serif",
+          padding: '26px 26px 22px', fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
         }}>
           <AnimatePresence mode="wait">
             {success

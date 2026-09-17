@@ -1533,13 +1533,13 @@ export default function ChatBot({ portal = "player" }) {
             }}
           >
             <div style={{
-              fontFamily: "'Manrope', sans-serif", fontSize: "clamp(10px,2.4vw,12px)",
+              fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif", fontSize: "clamp(10px,2.4vw,12px)",
               fontWeight: 800, color: "#F5E07A", letterSpacing: "0.02em",
             }}>
               Hi VIP! 👋
             </div>
             <div style={{
-              fontFamily: "'Manrope', sans-serif", fontSize: "clamp(8.5px,2.1vw,10.5px)",
+              fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif", fontSize: "clamp(8.5px,2.1vw,10.5px)",
               color: "rgba(255,255,255,0.75)", lineHeight: 1.45, marginTop: 2,
             }}>
               Need any help?<br />I'm here for you!
