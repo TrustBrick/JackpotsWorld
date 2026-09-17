@@ -7,6 +7,16 @@ import { useAdminTheme } from "../../context/AdminThemeContext";
 /**
  * Email Logs — every message JackpotsWorld has attempted to send.
  *
+ * NOT WIRED UP. This component is deliberately unreferenced: the Back
+ * Office page was removed because the log is wanted as a record in
+ * authapp_emaillog, not as a screen. Nothing else about the feature was
+ * touched — LoggingEmailBackend still logs every outgoing email, and the
+ * /api/admin-panel/email-logs/ endpoints still serve it to an admin.
+ *
+ * To bring the page back: re-add the {id:"email-logs"} entry to the System
+ * group in admin/constants.js and its case in admin/AdminPanel.jsx. Kept
+ * rather than deleted so that is a two-line change instead of a rewrite.
+ *
  * A read-only operations view, deliberately NOT the shared ManageContentTab:
  * that component offers Create, Edit and Delete and none of them belong to a
  * log. The only action here is Retry, and the API refuses most of those on
@@ -188,6 +198,15 @@ function DetailModal({ id, onClose, onToast }) {
             <DetailRow C={C} label="Status" emphasis
               value={<StatusPill status={item.status} label={item.status_display} />} />
             <DetailRow C={C} label="Recipient" value={item.recipient_email} emphasis />
+            {/* Only when there is more than one, so the ordinary single-address
+                case is not padded with a row that repeats the line above it.
+                The column above stores the first/primary address because that
+                is what the index and the search are built on; this is the rest
+                of them, which would otherwise be invisible in the Back Office
+                even though the backend records every one. */}
+            {Array.isArray(item.all_recipients) && item.all_recipients.length > 1 && (
+              <DetailRow C={C} label="All Recipients" value={item.all_recipients.join(", ")} />
+            )}
             <DetailRow C={C} label="Subject" value={item.subject} />
             <DetailRow C={C} label="Email Type" value={item.email_type_display} />
             <DetailRow C={C} label="Provider" value={item.provider} />

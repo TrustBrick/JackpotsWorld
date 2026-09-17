@@ -189,11 +189,12 @@ export const ADMIN_NAV_GROUPS = [
     group: "System",
     items: [
       { id:"system-logs", label:"System Logs", icon:"LineChart" },
-      // EMAIL-LOGS: every message the application has attempted to send,
-      // with the provider outcome for each. Sits here rather than under
-      // Support because it is telemetry about the system, not a queue of
-      // people waiting to be answered.
-      { id:"email-logs", label:"Email Logs", icon:"Mail" },
+      // EMAIL-LOGS: deliberately NOT a sidebar entry. Every outgoing message
+      // is still logged to authapp_emaillog by authapp/email_backend.py and
+      // the admin API behind it is untouched — the Back Office page was taken
+      // out because the log is wanted as a database record, not as a screen.
+      // tabs/content/EmailLogsTab.jsx is kept, unwired, so restoring the page
+      // is this one line plus its case in AdminPanel.jsx.
       // { id:"staff", label:"Staff", icon:"UserCog" },
     ],
   },

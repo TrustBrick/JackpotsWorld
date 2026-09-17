@@ -10,7 +10,6 @@ import {
   MessageCircle, // LIVE-CHAT
   Percent, ChevronDown, // AFFILIATE-APPROVAL: sidebar groups + Commission Engine icon
   Inbox, // Experience Enquiries
-  Mail, // Email Logs
   Club, // Teen Patti
   Layers, // Commission Rules
   LineChart, MousePointerClick, PlayCircle, Megaphone, UserCheck, // ANALYTICS
@@ -37,7 +36,6 @@ import PromotionsManageTab  from "./tabs/content/PromotionsManageTab";
 import LocationsManageTab   from "./tabs/content/LocationsManageTab";
 import LandingManageTab     from "./tabs/content/LandingManageTab";
 import ExperienceEnquiriesTable from "./tabs/content/ExperienceEnquiriesTable";
-import EmailLogsTab from "./tabs/content/EmailLogsTab";
 import AffiliatesTab        from "./tabs/AffiliatesTab";
 import AffiliateWithdrawalsTab from "./tabs/AffiliateWithdrawalsTab"; // AFFILIATE-WITHDRAWALS
 import AffiliateCommissionsTab from "./tabs/AffiliateCommissionsTab"; // Commission Engine
@@ -82,7 +80,6 @@ const ICON_MAP = {
   HelpCircle, // FAQs
   Headset, // Live Support Settings
   Inbox, // Experience Enquiries
-  Mail, // Email Logs
 };
 
 // AFFILIATE-APPROVAL: sessionStorage keys for sidebar state that should
@@ -449,8 +446,10 @@ function AdminPanelInner() {
       // Moved out of Landing Page's sub-tabs into Support & Communication:
       // a queue of people waiting to be answered, not page content.
       case "experience-enquiries": return <ExperienceEnquiriesTable {...props} />;
-      // EMAIL-LOGS: read-only operations view over authapp_emaillog.
-      case "email-logs": return <EmailLogsTab {...props} />;
+      // EMAIL-LOGS: no case on purpose. The logging backend and the
+      // /api/admin-panel/email-logs/ endpoints are untouched; only the screen
+      // is gone. An "email-logs" id arriving from a stale sessionStorage tab
+      // or a ?tab= link falls through to `default` and lands on Overview.
       case "faqs":      return <FaqManageTab         {...props} />;
       case "affiliates":return <AffiliatesTab        {...props} />;
       case "affiliate-withdrawals": return <AffiliateWithdrawalsTab {...props} />; // AFFILIATE-WITHDRAWALS
