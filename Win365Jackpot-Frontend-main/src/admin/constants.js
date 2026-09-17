@@ -156,6 +156,14 @@ export const ADMIN_NAV_GROUPS = [
     items: [
       // MULTILINGUAL-CHAT: 2 new tabs (local preview feature)
       { id:"support-tickets",  label:"Support Tickets",  icon:"LifeBuoy"  },
+      // Leads from the "Enquire Now" forms on the public experience pillars.
+      // Sits here, beside Support Tickets, rather than under Landing Page
+      // where it used to be a sub-tab: the Landing Page tab is for editing
+      // what the page SAYS, and this is a queue of people waiting to be
+      // answered — the same job as the ticket list above it. It carries the
+      // unanswered count as a red badge for the same reason Live Support and
+      // Notifications do.
+      { id:"experience-enquiries", label:"Experience Enquiries", icon:"Inbox" },
       { id:"support-settings", label:"Support Settings", icon:"Languages" },
       // SUPPORT-SCRIPT: the standard live-chat wording from the Call & Live
       // Chat Script Manual. The greeting row is the one message the system
@@ -181,6 +189,11 @@ export const ADMIN_NAV_GROUPS = [
     group: "System",
     items: [
       { id:"system-logs", label:"System Logs", icon:"LineChart" },
+      // EMAIL-LOGS: every message the application has attempted to send,
+      // with the provider outcome for each. Sits here rather than under
+      // Support because it is telemetry about the system, not a queue of
+      // people waiting to be answered.
+      { id:"email-logs", label:"Email Logs", icon:"Mail" },
       // { id:"staff", label:"Staff", icon:"UserCog" },
     ],
   },

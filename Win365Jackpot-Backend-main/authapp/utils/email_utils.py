@@ -10,8 +10,13 @@ import logging
 import os
 from email.mime.image import MIMEImage
 
-from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
+
+from authapp.models.email_log_models import (
+    TYPE_AFFILIATE_APPROVAL,
+    TYPE_AFFILIATE_REGISTRATION_ALERT,
+)
+from authapp.services.email_service import build_message
 
 logger = logging.getLogger(__name__)
 
@@ -200,10 +205,15 @@ def send_affiliate_approval_email(user) -> None:
         .replace("__PORTAL_URL__", AFFILIATE_PORTAL_URL)
         .replace("__SUPPORT_EMAIL__", SUPPORT_EMAIL)
     )
-    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@jackpotsworld.vip")
     try:
-        msg = EmailMultiAlternatives(subject, message, from_email, [user.email])
-        msg.attach_alternative(html_message, "text/html")
+        # Built through the email service so the send is typed and
+        # attributed in authapp_emaillog; the inline-image assembly below
+        # is unchanged, and so is the best-effort failure handling.
+        msg = build_message(
+            subject=subject, body=message, html_body=html_message,
+            to=[user.email], email_type=TYPE_AFFILIATE_APPROVAL,
+            user=user, triggered_by="send_affiliate_approval_email",
+        )
         msg.mixed_subtype = "related"  # required so inline cid: images stay attached to the html part, not split off as separate attachments
         _attach_inline_images(msg)
         msg.send(fail_silently=False)
@@ -312,10 +322,15 @@ def send_affiliate_registration_alert(user, profile) -> None:
         .replace("__REGISTERED_AT__", html.escape(registered_at))
         .replace("__ADMIN_URL__", ADMIN_PORTAL_AFFILIATES_URL)
     )
-    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@jackpotsworld.vip")
     try:
-        msg = EmailMultiAlternatives(subject, message, from_email, [SUPPORT_EMAIL])
-        msg.attach_alternative(html_message, "text/html")
+        # `user` is the applicant this alert is ABOUT, not the recipient —
+        # the recipient is the support inbox. Recording it is what lets an
+        # operator find every email connected to one affiliate.
+        msg = build_message(
+            subject=subject, body=message, html_body=html_message,
+            to=[SUPPORT_EMAIL], email_type=TYPE_AFFILIATE_REGISTRATION_ALERT,
+            user=user, triggered_by="send_affiliate_registration_alert",
+        )
         msg.mixed_subtype = "related"
         _attach_inline_images(msg)
         msg.send(fail_silently=False)

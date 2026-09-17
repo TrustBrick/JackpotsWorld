@@ -179,7 +179,13 @@ DATABASES = {
 # Verification to be enabled on that account — a regular account password
 # will always be rejected by Gmail with "535 5.7.8 Username and Password not
 # accepted" (BadCredentials), regardless of how correct this config is.
-EMAIL_BACKEND       = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
+# Django's SMTP backend plus an authapp_emaillog row per message — see
+# authapp/email_backend.py. Set here rather than left to each caller
+# because it is what makes 'every email is logged' true of code nobody has
+# written yet: send_mail(), EmailMessage.send() and send_mass_mail() all
+# route through the configured backend. Still overridable by EMAIL_BACKEND
+# in the environment, which is how the test suite swaps in locmem.
+EMAIL_BACKEND       = config('EMAIL_BACKEND', default='authapp.email_backend.LoggingEmailBackend')
 EMAIL_HOST          = config('EMAIL_HOST', default='smtp.gmail.com')
 EMAIL_PORT          = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_USE_TLS       = config('EMAIL_USE_TLS', default=True, cast=bool)

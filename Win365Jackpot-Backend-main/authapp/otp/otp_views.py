@@ -23,6 +23,10 @@ from authapp.throttles import OTPSendRateThrottle, OTPVerifyRateThrottle
 from authapp.utils.turnstile import verify_turnstile
 from authapp.views.auth_views import get_client_ip
 from .otp_utils import generate_otp, send_otp_email_html, OTP_TTL_MINUTES
+from authapp.models.email_log_models import (
+    TYPE_OTP_PASSWORD_RESET,
+    TYPE_OTP_VERIFICATION,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +82,10 @@ class SendOTPView(APIView):
         )
 
         try:
-            send_otp_email_html(email, otp)
+            send_otp_email_html(
+                email, otp,
+                email_type=TYPE_OTP_VERIFICATION,
+            )
         except Exception:
             # Full exception detail is already logged inside send_otp_email_html —
             # don't leak SMTP provider internals to the client, and don't
@@ -230,7 +237,10 @@ class ForgotPasswordRequestView(APIView):
         )
 
         try:
-            send_otp_email_html(email, otp)
+            send_otp_email_html(
+                email, otp,
+                email_type=TYPE_OTP_PASSWORD_RESET,
+            )
         except Exception:
             # Full exception detail is already logged inside send_otp_email_html.
             # Still return the generic response — never reveal to the client

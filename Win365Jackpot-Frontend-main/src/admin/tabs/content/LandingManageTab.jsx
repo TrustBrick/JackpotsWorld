@@ -11,7 +11,7 @@ import { motion } from "framer-motion";
 import {
   Settings, BarChart3, Sparkles, ShieldCheck, Gift, ListOrdered,
   Crown, ListChecks, Quote, MapPin, Images, GalleryHorizontal, Plane, Star,
-  Clapperboard, MessageSquare, Gem, Inbox,
+  Clapperboard, MessageSquare, Gem,
 } from "lucide-react";
 import { useAdminTheme } from "../../context/AdminThemeContext";
 
@@ -32,7 +32,6 @@ import FeaturedDestinationShowcaseManageTab from "./FeaturedDestinationShowcaseM
 import VipServiceImagesManageTab from "./VipServiceImagesManageTab";
 import TourPackagesManageTab from "./TourPackagesManageTab";
 import ExperiencesManageTab from "./ExperiencesManageTab";
-import ExperienceEnquiriesTable from "./ExperienceEnquiriesTable";
 
 const SUB_TABS = [
   { id: "settings",   label: "Site Settings",    Icon: Settings,          Comp: LandingSiteSettingsTab },
@@ -53,10 +52,11 @@ const SUB_TABS = [
   { id: "vipgallery", label: "VIP Gallery",       Icon: GalleryHorizontal, Comp: VipServiceImagesManageTab },
   { id: "packages",   label: "Tour Packages",     Icon: Plane,             Comp: TourPackagesManageTab },
   // EXPERIENCES: the four non-casino pillars of the public page (luxury
-  // travel, stays, dining, concierge) and the leads their enquiry forms
-  // capture. One model with a category, so one tab covers all four.
+  // travel, stays, dining, concierge). One model with a category, so one tab
+  // covers all four. The leads their enquiry forms capture are NOT here any
+  // more — they are a queue to work through rather than page content, so they
+  // moved to Support & Communication > Experience Enquiries.
   { id: "experiences", label: "Experiences",      Icon: Gem,               Comp: ExperiencesManageTab },
-  { id: "expenquiries", label: "Experience Enquiries", Icon: Inbox,        Comp: ExperienceEnquiriesTable },
   // The prefilled WhatsApp text behind each enquiry button. Lives here
   // because these buttons are landing-page content, and this is where an
   // admin already comes to edit landing-page content.

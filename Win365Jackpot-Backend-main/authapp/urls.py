@@ -1,7 +1,7 @@
 # authapp/urls.py
 from django.urls import path, include
 
-from authapp.url_patterns import events_urls, poker_urls, promotion_urls, location_urls, affiliate_urls, affiliate_wallet_urls, wallet_request_urls, admin_gift_urls, support_urls, spin_urls, chat_urls, landing_urls, wheel_urls, live_chat_urls, teenpatti_urls, commission_rule_urls, voice_call_urls, analytics_urls, andhar_bahar_urls, faq_urls, experience_urls
+from authapp.url_patterns import events_urls, poker_urls, promotion_urls, location_urls, affiliate_urls, affiliate_wallet_urls, wallet_request_urls, admin_gift_urls, support_urls, spin_urls, chat_urls, landing_urls, wheel_urls, live_chat_urls, teenpatti_urls, commission_rule_urls, voice_call_urls, analytics_urls, andhar_bahar_urls, faq_urls, experience_urls, email_log_urls
 
 urlpatterns = [
     path("", include("authapp.url_patterns.auth_urls")),
@@ -33,6 +33,8 @@ urlpatterns = [
     # ── Andhar Bahar (public page content + events, admin-managed CRUD) ───────
     path("", include(andhar_bahar_urls.public_urlpatterns)),
     path("admin-panel/", include(andhar_bahar_urls.admin_urlpatterns)),
+    # EMAIL-LOGS: admin-only, no public half.
+    path("admin-panel/", include(email_log_urls.admin_urlpatterns)),
 
     # ── FAQ (landing + affiliate page questions, Back Office managed) ────────
     path("", include(faq_urls.public_urlpatterns)),

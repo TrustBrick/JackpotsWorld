@@ -9,6 +9,8 @@ import {
   ArrowDownCircle, ArrowUpCircle, Sparkles, // WALLET-REQUESTS / GIFTS-REWARDS
   MessageCircle, // LIVE-CHAT
   Percent, ChevronDown, // AFFILIATE-APPROVAL: sidebar groups + Commission Engine icon
+  Inbox, // Experience Enquiries
+  Mail, // Email Logs
   Club, // Teen Patti
   Layers, // Commission Rules
   LineChart, MousePointerClick, PlayCircle, Megaphone, UserCheck, // ANALYTICS
@@ -34,6 +36,8 @@ import CommissionRulesTab   from "./tabs/CommissionRulesTab";
 import PromotionsManageTab  from "./tabs/content/PromotionsManageTab";
 import LocationsManageTab   from "./tabs/content/LocationsManageTab";
 import LandingManageTab     from "./tabs/content/LandingManageTab";
+import ExperienceEnquiriesTable from "./tabs/content/ExperienceEnquiriesTable";
+import EmailLogsTab from "./tabs/content/EmailLogsTab";
 import AffiliatesTab        from "./tabs/AffiliatesTab";
 import AffiliateWithdrawalsTab from "./tabs/AffiliateWithdrawalsTab"; // AFFILIATE-WITHDRAWALS
 import AffiliateCommissionsTab from "./tabs/AffiliateCommissionsTab"; // Commission Engine
@@ -77,6 +81,8 @@ const ICON_MAP = {
   LineChart, MousePointerClick, PlayCircle, Megaphone, UserCheck, // ANALYTICS
   HelpCircle, // FAQs
   Headset, // Live Support Settings
+  Inbox, // Experience Enquiries
+  Mail, // Email Logs
 };
 
 // AFFILIATE-APPROVAL: sessionStorage keys for sidebar state that should
@@ -269,6 +275,11 @@ function AdminPanelInner() {
   // layer silently no-ops without REDIS_URL configured, so polling (like the
   // live-chat badge above) is the mechanism that's guaranteed to work.
   const [adminNotifUnread, setAdminNotifUnread] = useState(0);
+  // Experience Enquiries: how many leads nobody has picked up yet. "New"
+  // is the enquiry's own status, moved to contacted/closed by a host
+  // working it — so the badge clears when the work is done rather than
+  // when someone merely opens the tab.
+  const [newEnquiries, setNewEnquiries] = useState(0);
   const [notifPopup, setNotifPopup] = useState(null);
 
   // Sidebar becomes an off-canvas drawer below the tablet breakpoint —
@@ -314,6 +325,27 @@ function AdminPanelInner() {
         const list = Array.isArray(j) ? j : j?.results || [];
         setLiveSupportUnread(list.reduce((sum, s) => sum + (s.unread_count || 0), 0));
       } catch { /* keep previous count on a transient failure */ }
+    };
+    poll();
+    const interval = setInterval(poll, 20000);
+    return () => clearInterval(interval);
+  }, [authed]);
+
+  // Experience Enquiries badge. Polled on the same 20s beat as the live-chat
+  // badge above and for the same reason: the only real-time channel here is
+  // chat-specific and no-ops without REDIS_URL, so polling is what is
+  // guaranteed to work. The server does the counting — ?status=new returns a
+  // paginated page whose `count` is the total, so this reads one number and
+  // never depends on how many rows come back in the page.
+  useEffect(() => {
+    if (!authed) return undefined;
+    const poll = async () => {
+      try {
+        const r = await adminFetch(`${API}/api/admin-panel/experience-enquiries/?status=new`);
+        const j = await r?.json();
+        if (!j) return;
+        setNewEnquiries(Array.isArray(j) ? j.length : (j.count ?? 0));
+      } catch { /* keep the previous count on a transient failure */ }
     };
     poll();
     const interval = setInterval(poll, 20000);
@@ -414,6 +446,11 @@ function AdminPanelInner() {
       case "promotions":return <PromotionsManageTab  {...props} />;
       case "locations": return <LocationsManageTab   {...props} />;
       case "landing":   return <LandingManageTab     {...props} />;
+      // Moved out of Landing Page's sub-tabs into Support & Communication:
+      // a queue of people waiting to be answered, not page content.
+      case "experience-enquiries": return <ExperienceEnquiriesTable {...props} />;
+      // EMAIL-LOGS: read-only operations view over authapp_emaillog.
+      case "email-logs": return <EmailLogsTab {...props} />;
       case "faqs":      return <FaqManageTab         {...props} />;
       case "affiliates":return <AffiliatesTab        {...props} />;
       case "affiliate-withdrawals": return <AffiliateWithdrawalsTab {...props} />; // AFFILIATE-WITHDRAWALS
@@ -552,6 +589,11 @@ function AdminPanelInner() {
                             {t.id === "live-support" && liveSupportUnread > 0 && (
                               <span style={{ marginLeft: "auto", fontSize: 9.5, fontWeight: 800, minWidth: 16, height: 16, borderRadius: 8, padding: "0 4px", background: "#ff3366", color: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
                                 {liveSupportUnread}
+                              </span>
+                            )}
+                            {t.id === "experience-enquiries" && newEnquiries > 0 && (
+                              <span style={{ marginLeft: "auto", fontSize: 9.5, fontWeight: 800, minWidth: 16, height: 16, borderRadius: 8, padding: "0 4px", background: "#ff3366", color: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                {newEnquiries}
                               </span>
                             )}
                             {t.id === "notifications" && adminNotifUnread > 0 && (

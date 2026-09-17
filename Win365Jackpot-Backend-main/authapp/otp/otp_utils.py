@@ -9,9 +9,11 @@ import random
 import logging
 import smtplib
 from email.mime.image import MIMEImage
-from django.core.mail import send_mail, EmailMultiAlternatives
 from django.conf import settings
 from django.template.loader import render_to_string
+
+from authapp.models.email_log_models import TYPE_OTP_VERIFICATION
+from authapp.services.email_service import build_message
 
 logger = logging.getLogger(__name__)
 
@@ -101,10 +103,13 @@ def generate_otp() -> str:
     return str(random.randint(100_000, 999_999))
 
 
-def send_otp_email(email: str, otp: str) -> None:
+def send_otp_email(email: str, otp: str, *, email_type: str = TYPE_OTP_VERIFICATION) -> None:
     """
     Send a plain-text OTP email.
-    Configure EMAIL_* in settings.py (or use SendGrid / Mailgun).
+
+    Routed through the email service so the send is typed and attributed in
+    authapp_emaillog. Only the subject and recipient reach the log -- this
+    body IS the code, and bodies are never stored.
     """
     subject    = "Your JackpotsWorld OTP Code"
     message    = (
@@ -113,16 +118,18 @@ def send_otp_email(email: str, otp: str) -> None:
         f"This code expires in {OTP_TTL_MINUTES} minutes. Do not share it with anyone.\n\n"
         f"— JackpotsWorld Team"
     )
-    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@jackpotsworld.vip")
     try:
-        send_mail(subject, message, from_email, [email], fail_silently=False)
+        build_message(
+            subject=subject, body=message, to=[email],
+            email_type=email_type, triggered_by="send_otp_email",
+        ).send(fail_silently=False)
         logger.info(f"OTP email sent to {email}")
     except Exception as exc:
         _log_send_failure(email, exc)
         raise
 
 
-def send_otp_email_html(email: str, otp: str) -> None:
+def send_otp_email_html(email: str, otp: str, *, email_type: str = TYPE_OTP_VERIFICATION) -> None:
     """
     Send the styled HTML OTP email, rendered from the template named by
     OTP_EMAIL_TEMPLATE under authapp/templates/.
@@ -140,10 +147,9 @@ def send_otp_email_html(email: str, otp: str) -> None:
         f"Jackpots World — PLAY. WIN. REPEAT.\n"
         f"jackpotsworld.vip"
     )
-    # DEFAULT_FROM_EMAIL falls back to EMAIL_HOST_USER in settings, so this is
-    # the same address as before unless it's overridden in the environment.
+    # from_email is resolved inside the email service, to the same
+    # DEFAULT_FROM_EMAIL-or-EMAIL_HOST_USER value this used to compute here.
     # Gmail rewrites a From that isn't the authenticated account anyway.
-    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None) or settings.EMAIL_HOST_USER
     try:
         logo_part = _build_logo_part()
         html_message = render_to_string(
@@ -171,13 +177,17 @@ def send_otp_email_html(email: str, otp: str) -> None:
         # mixed_subtype promotes the outer container from mixed to related,
         # which is what tells a client the image belongs to the HTML rather
         # than being a file the user attached.
-        message = EmailMultiAlternatives(
+        # build_message returns the same EmailMultiAlternatives this used to
+        # construct by hand, with the log metadata attached -- so the inline
+        # logo assembly below is unchanged.
+        message = build_message(
             subject="Your JackpotsWorld Verification Code",
             body=text_message,
-            from_email=from_email,
+            html_body=html_message,
             to=[email],
+            email_type=email_type,
+            triggered_by="send_otp_email_html",
         )
-        message.attach_alternative(html_message, "text/html")
         if logo_part:
             message.mixed_subtype = "related"
             message.attach(logo_part)

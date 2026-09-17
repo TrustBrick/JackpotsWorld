@@ -13,6 +13,7 @@ from .user_model import (
 from .user_model import User
 from .reward_model import Reward
 from .notification_model import Notification
+from .email_log_models import EmailLog
 
 from .wallet_models import (
     WalletAccount,
