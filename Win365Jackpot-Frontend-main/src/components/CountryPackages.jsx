@@ -1186,16 +1186,44 @@ export default function CountryPackages() {
         </div>
 
         <style>{`
-          /* Vertical rules separate the three blocks only while they really
-             are one row; once the grid wraps, a left border would sit under
-             the block above it instead of beside it, so it becomes a top
-             rule on the stacked layouts. */
+          /* Vertical rules separate the blocks only where they really sit
+             side by side; anywhere the grid wraps, a left border would land
+             under the block above it instead of beside it, so it becomes a
+             top rule instead.
+
+             Three columns need ~1080px, not 860px. A country can list five
+             venues (Sri Lanka does), and at 900px three columns leave the
+             venue block so narrow that its chips wrap to three lines while
+             Best For wraps to two — the ragged stack this chip row exists to
+             avoid. */
           .cp-col { border-left: 1px solid var(--w365-border); padding-left: clamp(14px,2.5vw,26px); }
-          @media (max-width: 860px) {
+
+          /* Tablet and small laptop. The venue list is the block that needs
+             width — a country can carry five long names — so it takes the
+             whole second row, while the country identity and the much
+             shorter Best For share the first. Measured at 906px: this gives
+             the venues 813px and fits them on one line, where splitting the
+             row in half gave them 393px and wrapped them onto two, in a card
+             28px taller. Each block still reads as its own row of chips. */
+          @media (max-width: 1080px) and (min-width: 681px) {
+            .cp-infobar { grid-template-columns: 1fr 1fr !important; align-items: start !important; }
+            .cp-infobar > :first-child { grid-column: 1; grid-row: 1; }
+            .cp-infobar > .cp-col:last-child {
+              grid-column: 2; grid-row: 1;
+              border-left: 1px solid var(--w365-border); padding-left: clamp(14px,2.5vw,26px);
+            }
+            .cp-infobar > .cp-col:nth-child(2) {
+              grid-column: 1 / -1; grid-row: 2;
+              border-left: none; padding-left: 0;
+              padding-top: 14px; border-top: 1px solid var(--w365-border);
+            }
+          }
+
+          /* Phone: one block per row, so every rule is a top rule. */
+          @media (max-width: 680px) {
+            .cp-infobar { grid-template-columns: 1fr !important; align-items: start !important; }
             .cp-col { border-left: none; padding-left: 0; padding-top: 14px; border-top: 1px solid var(--w365-border); }
           }
-          @media (max-width: 680px) { .cp-infobar { grid-template-columns: 1fr !important; align-items: start !important; } }
-          @media (max-width: 860px) and (min-width: 681px) { .cp-infobar { grid-template-columns: 1fr 1fr !important; align-items: start !important; } }
           div::-webkit-scrollbar { display: none; }
         `}</style>
       </section>
