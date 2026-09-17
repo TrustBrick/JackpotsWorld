@@ -28,9 +28,8 @@ import { useVideoAnalytics } from '../../hooks/useVideoAnalytics'
 
    The framed band is the default. variant="immersive" renders the same
    slides, rotation, playback and sound policy frameless instead, sized to
-   play a whole frame on one screen and dissolving into the page at every
-   edge. The landing page's Top Premium Partners band uses it; Poker and
-   Teen Patti stay framed. See the Immersive variant notes below.
+   play a whole frame on one screen. The landing page's Top Premium Partners
+   band uses it; Poker and Teen Patti stay framed. See the Immersive variant notes below.
 
    ── The item contract ────────────────────────────────────────────────────
      id       stable identity. Keys the media element, so a rotation tears the
@@ -98,15 +97,16 @@ const clampRatio = (r) => Math.min(MAX_MEDIA_RATIO, Math.max(MIN_MEDIA_RATIO, r)
 const CONTAIN_FIT = { objectFit: 'contain', objectPosition: 'center' }
 
 /* ── Immersive variant ────────────────────────────────────────────────────
-   No frame at all: no border, radius or glow, and all four edges masked so
-   the footage dissolves into the page behind it rather than ending on a
-   line.
+   No frame at all: no border, radius or glow. The footage keeps its own
+   edges and is NOT blended into the page behind it.
 
-   A mask rather than a colour overlay on purpose: behind the band the hero
-   paints a radial gradient, its own background video and slowly turning
-   rings, so a fade to any one flat colour would leave a visible seam where
-   the fade met the real background. The mask makes the footage itself
-   transparent, so whatever is behind it shows through.
+   It used to be: all four edges carried a mask that faded the footage out so
+   it dissolved into the hero. That was deliberate once — behind the band the
+   hero paints a radial gradient, its own background video and slowly turning
+   rings, and fading to any one flat colour would have left a seam — but the
+   result was that the partner video read as part of the background rather
+   than as a video. Hard edges are the ask now, and they sidestep the seam
+   problem entirely rather than working around it.
 
    ── Full screen, and what it costs ───────────────────────────────────────
    The band fills the screen: edge to edge, and from wherever the hero's
@@ -145,34 +145,14 @@ const IMMERSIVE_MIN_COVER_RATIO = 1.3
 // subject it frames, sit high in the shot.
 const IMMERSIVE_CROP = { objectFit: 'cover', objectPosition: 'center 15%' }
 
-/* All four edges fade out. Both gradients use eased rather than linear
-   stops, so neither ends in a visible line, and they go on two nested layers
-   rather than being composited into one mask: mask-composite is still
-   spelled differently in every engine, while a mask on a wrapper and a mask
-   on its child compose everywhere.
-
-   Deliberately short fades: they are here to soften the band's edges into
-   the hero, not to dim footage someone is trying to watch. The top fade is
-   the shorter of the two, because it is the end burned-in titles sit
-   closest to. */
-const IMMERSIVE_MASK_V = `linear-gradient(to bottom, ${[
-  'rgba(0,0,0,0) 0%', 'rgba(0,0,0,0.25) 2%', 'rgba(0,0,0,0.7) 4.5%', '#000 7%',
-  '#000 86%', 'rgba(0,0,0,0.7) 91%', 'rgba(0,0,0,0.25) 96%', 'rgba(0,0,0,0) 100%',
-].join(', ')})`
-
-const IMMERSIVE_MASK_H = `linear-gradient(to right, ${[
-  'rgba(0,0,0,0) 0%', 'rgba(0,0,0,0.3) 1.6%', 'rgba(0,0,0,0.75) 3.6%', '#000 6%',
-  '#000 94%', 'rgba(0,0,0,0.75) 96.4%', 'rgba(0,0,0,0.3) 98.4%', 'rgba(0,0,0,0) 100%',
-].join(', ')})`
-
 // A floor under the title plate, the way a cinematic hero darkens its lower
-// third, plus a soft vignette pulling the edges toward the hero's own dark.
-// Both use the hero's magenta-black and both sit under the mask, so they fade
-// out with the footage rather than leaving a dark band of their own.
-const IMMERSIVE_SCRIM = [
-  'linear-gradient(to top, rgba(10,0,5,0.9) 0%, rgba(22,0,18,0.45) 24%, rgba(22,0,18,0) 50%)',
-  'radial-gradient(ellipse 80% 75% at 50% 40%, rgba(10,0,5,0) 55%, rgba(10,0,5,0.4) 100%)',
-].join(', ')
+// third, so the partner name and caption stay readable over bright footage.
+// Bottom-weighted only: the vignette that used to ride alongside it pulled
+// all four edges toward the hero's dark, which is the blending this band no
+// longer does. It fades out by the halfway mark, so it never touches the
+// upper part of the frame where partner footage puts its subject.
+const IMMERSIVE_SCRIM =
+  'linear-gradient(to top, rgba(10,0,5,0.9) 0%, rgba(22,0,18,0.45) 24%, rgba(22,0,18,0) 50%)'
 
 // The plate and controls line up with the navbar's own content column
 // (max-w-7xl, px-4), so the partner's name starts under the logo rather than
@@ -840,26 +820,18 @@ export default function HeroMediaShowcase({
             height: boxH ? `${boxH}px` : `min(calc(100vh - 240px), calc(100vw / ${ratio}))`,
           }}
         >
-          {/* Two nested masked layers: the outer fades the top and bottom
-              edges into the hero, the inner the left and right — that one
-              only when the picture stops short of the window's own edges,
-              since there is nothing to dissolve into at the edge of a
-              screen. The plate and controls below sit outside both and never
-              fade with them. */}
-          <div style={{
-            position: 'absolute', inset: 0,
-            WebkitMaskImage: IMMERSIVE_MASK_V, maskImage: IMMERSIVE_MASK_V,
-          }}>
+          {/* One layer, no edge masks. This band used to fade all four edges
+              out so the footage dissolved into the hero behind it; the
+              footage now keeps its own edges and ends where it ends. Still
+              frameless — no border, radius or glow — so it reads as
+              full-screen footage rather than a card, but where the picture
+              stops is unambiguous instead of being blended away. */}
+          <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+            {media}
             <div style={{
-              position: 'absolute', inset: 0, overflow: 'hidden',
-              ...(wholeFrame && { WebkitMaskImage: IMMERSIVE_MASK_H, maskImage: IMMERSIVE_MASK_H }),
-            }}>
-              {media}
-              <div style={{
-                position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none',
-                background: IMMERSIVE_SCRIM,
-              }} />
-            </div>
+              position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none',
+              background: IMMERSIVE_SCRIM,
+            }} />
           </div>
 
           {/* The bottom row, inside the picture's own edges: the title plate
