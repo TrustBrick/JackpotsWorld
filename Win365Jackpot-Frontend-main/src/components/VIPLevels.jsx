@@ -3,6 +3,7 @@ import { motion, AnimatePresence, useInView } from 'framer-motion'
 import { Shield } from 'lucide-react'
 import { useAutoFetch } from '../hooks/useAutoFetch'
 import { fetchVipTiers } from '../services/landingService'
+import { SECTION_PAD, CONTAINER } from '../utils/layout'
 
 // Fixed color palette cycled to color the "all benefits" comparison column —
 // a display derivation, not distinct admin-editable content.
@@ -137,7 +138,7 @@ export default function VIPLevels() {
       ref={ref}
       style={{
         position: 'relative',
-        padding: '96px 16px',
+        padding: SECTION_PAD,
         background: 'var(--w365-bg)',
         overflow: 'hidden',
       }}
@@ -149,7 +150,8 @@ export default function VIPLevels() {
         backgroundSize: '80px 80px',
       }}/>
 
-      <div style={{ maxWidth: 900, margin: '0 auto', position: 'relative', zIndex: 1 }}>
+      <div style={{ ...CONTAINER, position: 'relative', zIndex: 1 }}>
+      <div style={{ maxWidth: 900, margin: '0 auto' }}>
 
         {/* ── Header ── */}
         <motion.div
@@ -169,14 +171,13 @@ export default function VIPLevels() {
               Prestige · Loyalty · Legacy
             </span>
           </div>
-          <h2 style={{
+          <h2 className="section-heading" style={{
             fontSize: 'clamp(28px, 5vw, 48px)',
             fontWeight: 800,
-            color: '#D4AF37',
             letterSpacing: '0.04em',
             marginBottom: 10,
           }}>
-            VIP Program Levels
+            VIP Program <span className="gold-text">Levels</span>
           </h2>
           <p style={{ fontSize: 14, color: 'rgba(var(--w365-text-rgb),0.50)', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
             Bronze · Silver · Gold · Jackpot I · II · III · Platinum · Diamond
@@ -321,6 +322,7 @@ export default function VIPLevels() {
           </div>
         </motion.div>
 
+        </div>
       </div>
     </section>
   )

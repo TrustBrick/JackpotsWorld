@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
-import { useExperiencePillar, iconFor, imageFor, SECTION_PAD } from './shared'
+import { useExperiencePillar, iconFor, imageFor, SECTION_PAD, CONTAINER, HEADER_GAP } from './shared'
 import ExperienceEnquiryModal from './ExperienceEnquiryModal'
 
 /**
@@ -43,7 +43,7 @@ export default function DiningEntertainmentSection() {
         background: 'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(20,4,16,0.6) 50%, rgba(0,0,0,0) 100%)',
       }}
     >
-      <div style={{ maxWidth: 1240, margin: '0 auto' }}>
+      <div style={{ ...CONTAINER }}>
         <motion.header
           initial={reduceMotion ? false : { opacity: 0, y: 18 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -52,7 +52,7 @@ export default function DiningEntertainmentSection() {
           style={{
             display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end',
             justifyContent: 'space-between', gap: 20,
-            marginBottom: 'clamp(26px, 5vw, 42px)',
+            marginBottom: HEADER_GAP,
           }}
         >
           <div style={{ maxWidth: 640 }}>
@@ -63,10 +63,10 @@ export default function DiningEntertainmentSection() {
               After The Tables
             </p>
             <h2
-              className="font-display gold-text"
+              className="font-display section-heading"
               style={{ fontSize: 'clamp(1.9rem, 6.2vw, 3.3rem)', fontWeight: 600, lineHeight: 1.06, marginBottom: 14 }}
             >
-              Dining &amp; Entertainment
+              Dining &amp; <span className="gold-text">Entertainment</span>
             </h2>
             <p
               className="font-body"

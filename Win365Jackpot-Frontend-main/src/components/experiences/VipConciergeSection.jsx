@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { MessageCircle, Headset } from 'lucide-react'
-import { useExperiencePillar, iconFor, SECTION_PAD } from './shared'
+import { useExperiencePillar, iconFor, SECTION_PAD, CONTAINER, HEADER_GAP } from './shared'
 import ExperienceEnquiryModal from './ExperienceEnquiryModal'
 import useEnquiryNumber from '../../hooks/useEnquiryNumber'
 import useEnquiryMessage from '../../hooks/useEnquiryMessage'
@@ -47,7 +47,7 @@ export default function VipConciergeSection() {
         background: 'radial-gradient(ellipse 90% 60% at 50% 0%, rgba(212,175,55,0.07) 0%, transparent 70%)',
       }}
     >
-      <div style={{ maxWidth: 980, margin: '0 auto', textAlign: 'center' }}>
+      <div style={{ ...CONTAINER, textAlign: 'center' }}>
         <motion.div
           initial={reduceMotion ? false : { opacity: 0, y: 18 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -71,16 +71,16 @@ export default function VipConciergeSection() {
             One Point Of Contact
           </p>
           <h2
-            className="font-display gold-text"
+            className="font-display section-heading"
             style={{ fontSize: 'clamp(1.9rem, 6.2vw, 3.3rem)', fontWeight: 600, lineHeight: 1.06, marginBottom: 16 }}
           >
-            Your Personal Destination Concierge
+            Your Personal Destination <span className="gold-text">Concierge</span>
           </h2>
           <p
             className="font-body"
             style={{
               color: 'var(--w365-text-muted)', fontSize: 'clamp(0.95rem, 2.5vw, 1.08rem)',
-              lineHeight: 1.75, maxWidth: 680, margin: '0 auto clamp(34px, 6vw, 54px)',
+              lineHeight: 1.75, maxWidth: 680, margin: `0 auto ${HEADER_GAP}`,
             }}
           >
             Travel, stays, introductions, tables and transfers — arranged by one
@@ -89,7 +89,7 @@ export default function VipConciergeSection() {
           </p>
         </motion.div>
 
-        <div className="exp-concierge-grid" style={{ textAlign: 'left', marginBottom: 'clamp(34px, 6vw, 52px)' }}>
+        <div className="exp-concierge-grid" style={{ textAlign: 'left', marginBottom: HEADER_GAP }}>
           {items.map((item, i) => (
             <ConciergeService
               key={item.id}

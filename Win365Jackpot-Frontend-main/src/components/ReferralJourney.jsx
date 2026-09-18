@@ -2,6 +2,7 @@ import React from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import { UserPlus, Ticket, PlaneTakeoff, Building2 } from 'lucide-react'
+import { SECTION_PAD, CONTAINER, HEADER_GAP } from '../utils/layout'
 
 /* ─────────────────────────────────────────────────────────────────────────
    ReferralJourney — what JackpotsWorld actually does, in four steps.
@@ -108,14 +109,14 @@ export default function ReferralJourney() {
     <section
       id="how-it-works"
       ref={ref}
-      style={{ padding: 'clamp(56px,9vw,96px) clamp(16px,5vw,24px)' }}
+      style={{ padding: SECTION_PAD }}
     >
-      <div style={{ maxWidth: 1180, margin: '0 auto' }}>
+      <div style={{ ...CONTAINER }}>
         <motion.div
           initial={{ opacity: 0, y: reduceMotion ? 0 : 14 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: reduceMotion ? 0 : 0.5 }}
-          style={{ textAlign: 'center', marginBottom: 'clamp(30px,5vw,48px)' }}
+          style={{ textAlign: 'center', marginBottom: HEADER_GAP }}
         >
           <p style={{
             fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
@@ -126,12 +127,12 @@ export default function ReferralJourney() {
             Discover. Get Referred. Play Offline.
           </p>
 
-          <h2 className="gold-text" style={{
+          <h2 className="section-heading" style={{
             fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
             fontSize: 'clamp(22px,4.4vw,40px)', fontWeight: 900,
             lineHeight: 1.18, margin: '0 0 14px',
           }}>
-            Your Casino Journey Starts With JackpotsWorld
+            Your Casino Journey Starts With <span className="gold-text">JackpotsWorld</span>
           </h2>
 
           <p style={{

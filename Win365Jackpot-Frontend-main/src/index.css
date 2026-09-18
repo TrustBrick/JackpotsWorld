@@ -87,6 +87,26 @@ select:disabled {
 }
 @layer base {
   * { scroll-behavior: smooth; }
+
+  /* ── Where an in-page jump lands ──────────────────────────────────────────
+     Every route into a section — a nav item, a footer link, a card CTA, a
+     bare #hash in the address bar, the browser restoring a scroll position —
+     ends up asking the browser to put some element's top at the top of the
+     viewport. With a fixed navbar that puts the section's first line UNDER the
+     navbar; utils/scroll.js compensates for the routes it owns, but a plain
+     scrollIntoView() or a #hash never went through it.
+
+     scroll-margin-top is the browser's own answer, and it applies to all of
+     them at once, so a section lands in the same place no matter what asked
+     for it. --w365-nav-h is kept in step with the real navbar height by
+     Navbar.jsx, which measures it; the literal here is only the value used
+     before the navbar has mounted. */
+  :root { --w365-nav-h: 65px; }
+  section[id],
+  main [id],
+  footer[id] {
+    scroll-margin-top: calc(var(--w365-nav-h) + 14px);
+  }
   body {
     background-color: var(--w365-bg);
     color: var(--w365-text);
@@ -98,6 +118,129 @@ select:disabled {
   ::-webkit-scrollbar-track { background: var(--w365-bg); }
   ::-webkit-scrollbar-thumb { background: #D4AF37; border-radius: 3px; }
 }
+
+/* ── Page alignment ────────────────────────────────────────────────────────
+   The class form of utils/layout.js, for markup styled with classes rather
+   than inline styles. Same numbers: "Beyond the Casino" is the reference the
+   whole application lines up with, at 1320px inside a clamp(14px, 4vw, 20px)
+   gutter.
+
+   .w365-page is the drop-in for `max-w-7xl mx-auto px-4`, which put content
+   20px inside everything on the landing page. It carries the gutter AND the
+   width itself, so the max-width has to include the padding (box-sizing is
+   border-box globally) — hence the calc. Content then lands on exactly the
+   same gridline as a .w365-section > .w365-container pair, at every width. */
+.w365-section   { padding: clamp(30px, 4.2vw, 52px) clamp(14px, 4vw, 20px); }
+.w365-container { max-width: 1320px; margin-inline: auto; width: 100%; }
+.w365-page {
+  width: 100%;
+  max-width: calc(1320px + 2 * clamp(14px, 4vw, 20px));
+  margin-inline: auto;
+  padding-inline: clamp(14px, 4vw, 20px);
+}
+
+/* Footer columns. The brand column carries a paragraph, two contact lines and
+   the social row where the other two carry short lists, so it is given roughly
+   twice their width — but only once there is room for three columns.
+
+   This is a media query rather than `minmax(260px, 1.9fr) repeat(auto-fit, …)`
+   because an auto-fit repeat cannot collapse to zero tracks while there are
+   still items to place: on a 375px phone that track list demanded 260 + 28 +
+   150 = 438px and the extra columns were simply clipped by the page's
+   overflow-x: hidden. A single column below the breakpoint cannot overflow. */
+.w365-footer-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 26px 28px;
+}
+@media (min-width: 620px) {
+  .w365-footer-grid { grid-template-columns: 1.8fr 1fr 1fr; }
+}
+
+/* ── Cruise Offline Casino Package ────────────────────────────────────────
+   The page's flagship package, so it gets the whole container width.
+
+   Stacked below the breakpoint, exactly as it was: media on top, details
+   under it. Above it, two columns — because a 1320px-wide card with a 16:9
+   strip across the top is 740px of picture followed by a very wide, very
+   short block of text, and the width makes that worse rather than better.
+   Side by side, the media gets a near-square box (which is what the portrait
+   clips in this carousel actually want) and the details keep a readable
+   two-up grid.
+
+   THE BREAKPOINT IS 1120px FOR A REASON, not roundness. The media column
+   stretches to the height of the details beside it, so the split only pays
+   off while the details still fit two-up. At 1024px the content column came
+   out at 390px of usable width, the 215px detail cards dropped to a single
+   column, and eight of them stacked into a 1216px-tall card with a 1216px-tall
+   picture next to it — taller and worse than the stacked layout it replaced.
+   1120px is the width at which the content column reaches the 441px those two
+   columns need (card >= 1063px, plus the 2x20px page gutter).
+
+   The media column is the slightly larger of the two: it is the reason a
+   visitor stops here. */
+.cruise-card__media { position: relative; }
+
+/* The media strip's shape, which differs by layout — see CruiseCarousel's
+   `fill` prop. Stacked, it keeps the 16:9 it has always had across the top of
+   the card. In the two-column layout below it fills the row instead. */
+.cruise-strip {
+  aspect-ratio: 16 / 9;
+  min-height: 200px;
+}
+
+@media (min-width: 1120px) {
+  .cruise-strip {
+    aspect-ratio: auto;
+    height: 100%;
+    min-height: 440px;
+  }
+
+  .cruise-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1.04fr) minmax(0, 1fr);
+    align-items: stretch;
+  }
+  /* A hairline between the columns, on the accent's own terms — set inline
+     would mean threading withAlpha() through a media query. */
+  .cruise-card__body {
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid rgba(255, 255, 255, 0.07);
+  }
+}
+
+/* Once the container has stopped growing, the split shifts towards the
+   picture: the media is why a visitor stops at this card, and the details do
+   not need the extra width.
+
+   1360px is where the page container reaches its 1320px maximum, so it is the
+   first width at which giving the media more costs the details nothing they
+   still need. 1.3 is the ceiling, measured rather than picked: the widest
+   detail card ("Full Spa & Wellness Centre") needs 239px to stay on one line,
+   so two of them plus the 11px gap need 489px of content width, which at a
+   546px card body (1320 / 2.3, less 80px of padding) leaves 5px in hand.
+   Anything more and three of the eight cards start wrapping to two lines. */
+@media (min-width: 1360px) {
+  .cruise-card { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
+}
+
+/* ── Section headings ──────────────────────────────────────────────────────
+   "Beyond the Casino" is the reference, and it is not a gold heading: it is
+   set in the page's own text colour with ONE accent word carrying the gold
+   gradient — "Beyond the <span class="gold-text">Casino</span>".
+
+   Every other section had put .gold-text on the whole <h2>, so twelve
+   headings ran solid gold on a near-black page while the one the design was
+   agreed against did not, and a few went further still (VIP Program Levels
+   was flat #D4AF37 with no gradient at all). Solid gold at 48-54px is also
+   the worst case for the shimmer animation, which reads as the whole line
+   pulsing rather than as a highlight.
+
+   The rule is now: .section-heading on the <h2>, .gold-text on the last
+   word. Applied to the heading, not baked into h2, because headings inside
+   cards and panels are a different thing and keep their own colour. */
+.section-heading { color: var(--w365-text); }
 
 .bg-surface     { background-color: var(--w365-bg); }
 .bg-surface-mid { background-color: var(--w365-bg-mid); }
@@ -402,10 +545,15 @@ select:disabled {
 .exp-dining-rail::-webkit-scrollbar-thumb { background: rgba(212,175,55,0.45); border-radius: 999px; }
 .exp-dining-rail { scrollbar-width: thin; scrollbar-color: rgba(212,175,55,0.45) rgba(255,255,255,0.05); }
 
-/* Concierge: a quiet two-column service list, single column on mobile. */
+/* Concierge: a quiet service list, single column on mobile.
+   The 230px floor rather than 260px is what the section's new full-width
+   container asks for: at 1320px, 260px tracks give four columns and leave the
+   fifth service alone on a row of its own, where 230px gives five across and
+   one tidy row. It still steps down to four, three and two as the viewport
+   narrows, and an admin adding a sixth card simply wraps. */
 .exp-concierge-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
   gap: clamp(14px, 3vw, 26px);
 }
 

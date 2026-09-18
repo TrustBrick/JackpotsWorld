@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import { attemptPlay, useUserActivation } from '../hooks/useAudioAutoplay'
-import { Link } from 'react-scroll'
 import {
   Plane, Hotel, Coins, Car, UtensilsCrossed, Wine,
   Ticket, Sparkles, ConciergeBell, ShieldCheck
@@ -32,6 +31,7 @@ import useEnquiryNumber from '../hooks/useEnquiryNumber'
 import { buildWhatsAppLink } from '../services/enquiryContact'
 import CruisePackageCard from './CruisePackageCard'
 import useEnquiryMessage, { renderEnquiryTemplate } from '../hooks/useEnquiryMessage'
+import { SECTION_PAD, CONTAINER } from '../utils/layout'
 
 // Enquiry routing is decided by the visitor's country (Sri Lanka vs everywhere
 // else), so this no longer reads whatsapp_number from the landing settings —
@@ -208,6 +208,36 @@ function WhatsAppBtn({ label = 'Enquire on WhatsApp', pkg = '' }) {
  *
  * Falls back to the emoji when a country has no mapped code, which still beats
  * showing nothing on the platforms that CAN draw it. */
+/**
+ * One chip in the destination info bar.
+ *
+ * Both halves of that bar use it. "Best For" used to have a look of its own —
+ * a tinted fill and a border in the country's colour, the label itself in that
+ * colour, and no bullet — so two rows of the same kind of thing, in the same
+ * panel, on the same line, read as two unrelated controls. It now renders
+ * exactly as the venue chips beside it do, and the country's colour survives
+ * where it belongs: in the bullet.
+ */
+function InfoChip({ label, dotColor }) {
+  return (
+    <span
+      className="font-body font-light"
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 7,
+        background: 'rgba(255,255,255,0.04)',
+        border: '1px solid var(--w365-border)',
+        borderRadius: 999, padding: '4px clamp(8px,1.1vw,10px)',
+        fontSize: 'clamp(0.66rem,1.5vw,0.745rem)',
+        color: 'rgba(var(--w365-text-rgb),0.80)',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      <span style={{ width: 4, height: 4, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
+      {label}
+    </span>
+  )
+}
+
 function CountryFlag({ name, emoji, size }) {
   const icon = flagIconUrl(KNOWN_COUNTRY_CODES[name])
   if (icon) {
@@ -314,14 +344,17 @@ function ImageCarousel({ images, color, glow, isVisible }) {
   }
 
   return (
-    // Full-bleed: the section is inside a max-w-7xl column with side padding,
-    // and `width:100vw` + a negative half-gutter margin lets the media escape
-    // both and span the whole viewport. Safe here because <body> already sets
-    // overflow-x:hidden, so 100vw cannot open a horizontal scrollbar when a
-    // vertical one is present. No corner radius: a rounded full-bleed band
-    // reads as a mistake rather than a card.
+    // In the page container, not full-bleed. It used to escape the section
+    // with `width:100vw` and a negative half-gutter margin, so the destination
+    // media was the one band on the page that ignored the 1320px column every
+    // heading, card and the footer line up to — it ran edge to edge while the
+    // info bar directly beneath it stopped 60px short on each side.
+    //
+    // The corner radius comes back with it: the old comment was right that a
+    // rounded full-bleed band reads as a mistake, but a contained plate that
+    // is NOT rounded reads as the odd one out among this page's cards.
     <div style={{
-      width: '100vw', marginLeft: 'calc(50% - 50vw)', marginRight: 'calc(50% - 50vw)',
+      borderRadius: 18,
       overflow: 'hidden', boxShadow: `0 0 60px -12px ${glow}`,
     }}>
       {/* Near-viewport height so the destination reads as a cinematic plate
@@ -451,15 +484,15 @@ function VIPServicesGallery() {
   const { ref: inViewRef, inView } = useInView({ threshold: 0.05, triggerOnce: true })
 
   return (
-    <section id="vip-services" ref={inViewRef} style={{ padding: 'clamp(48px,10vw,80px) clamp(12px,4vw,16px)', background: 'linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(30,10,0,0.4) 50%,rgba(0,0,0,0) 100%)' }}>
-      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+    <section id="vip-services" ref={inViewRef} style={{ padding: SECTION_PAD, background: 'linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(30,10,0,0.4) 50%,rgba(0,0,0,0) 100%)' }}>
+      <div style={{ ...CONTAINER }}>
         <motion.div initial={{ opacity: 0, y: 30 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.7 }}
           style={{ textAlign: 'center', marginBottom: 32 }}>
           <div style={{ display: 'inline-block', border: '1px solid rgba(212,175,55,0.3)', borderRadius: 50, padding: '5px 18px', fontSize: 'clamp(0.6rem,2.5vw,0.72rem)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(212,175,55,0.7)', marginBottom: 12 }}>
             ✦ Exclusive VIP Services
           </div>
-          <h2 className=" font-bold gold-text" style={{ fontSize: 'clamp(1.5rem,6vw,3rem)', fontWeight: 900, marginBottom: 10 }}>
-            THE VIP EXPERIENCE
+          <h2 className=" font-bold section-heading" style={{ fontSize: 'clamp(1.5rem,6vw,3rem)', fontWeight: 900, marginBottom: 10 }}>
+            THE VIP <span className="gold-text">EXPERIENCE</span>
           </h2>
           <p className="font-body font-light" style={{ fontSize: 'clamp(0.82rem,3.2vw,1rem)', color: 'rgba(var(--w365-text-rgb),0.70)', maxWidth: 480, margin: '0 auto' }}>
             Every package includes world-class VIP amenities — from luxury spa retreats to exclusive nightlife.
@@ -501,7 +534,17 @@ function VIPServicesGallery() {
   <div className="font-body font-light" style={{ textAlign: 'center', fontSize: 'clamp(0.6rem,2.2vw,0.72rem)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(var(--w365-text-rgb),0.50)', marginBottom: 16 }}>
     VIP Experience — Video Highlights
   </div>
-  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%,280px),1fr))', gap: 12, justifyContent: 'center', maxWidth: 920, margin: '0 auto' }}>
+  {/* No maxWidth: this row was capped at 920px inside the section's 1320px
+      column, so three video tiles sat visibly narrower than the service grid
+      directly above them and than every other band on the page. It now uses
+      the section container like its neighbours.
+
+      auto-FIT, not auto-fill, which is what the cap was hiding: at 1320px
+      auto-fill lays down four 321px tracks and leaves the fourth empty,
+      because there are only three clips — so the row would have aligned on
+      the left and stopped 333px short on the right. auto-fit collapses the
+      empty track and the three tiles share the full width. */}
+  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,280px),1fr))', gap: 12 }}>
     {[
       // vip-lounge.mp4 is trimmed to 55.16s. The source was a third-party
       // nightclub promo whose last 13s were end cards — a venue address, phone
@@ -624,15 +667,15 @@ function PackagesSection() {
   const PACKAGES = (Array.isArray(packagesData) && packagesData.length > 0 ? packagesData : FALLBACK_PACKAGES).map(mapTourPackage)
 
   return (
-    <section id="packages-all" ref={inViewRef} style={{ padding: 'clamp(48px,10vw,80px) clamp(12px,4vw,16px)', background: 'linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(20,10,0,0.5) 100%)' }}>
-      <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+    <section id="packages-all" ref={inViewRef} style={{ padding: SECTION_PAD, background: 'linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(20,10,0,0.5) 100%)' }}>
+      <div style={{ ...CONTAINER }}>
         <motion.div initial={{ opacity: 0, y: 30 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.7 }}
-          style={{ textAlign: 'center', marginBottom: 40 }}>
+          style={{ textAlign: 'center', marginBottom: 'clamp(22px,3.4vw,36px)' }}>
           <div style={{ display: 'inline-block', border: '1px solid rgba(212,175,55,0.3)', borderRadius: 50, padding: '5px 18px', fontSize: 'clamp(0.6rem,2.5vw,0.72rem)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(212,175,55,0.7)', marginBottom: 12 }}>
             ✦ All Packages
           </div>
-          <h2 className=" font-bold gold-text" style={{ fontSize: 'clamp(1.6rem,7vw,3.2rem)', fontWeight: 900, marginBottom: 12 }}>
-            TOUR PACKAGES
+          <h2 className=" font-bold section-heading" style={{ fontSize: 'clamp(1.6rem,7vw,3.2rem)', fontWeight: 900, marginBottom: 12 }}>
+            CASINO <span className="gold-text">PACKAGES</span>
           </h2>
           <p className="font-body font-light" style={{ color: 'rgba(var(--w365-text-rgb),0.70)', maxWidth: 520, margin: '0 auto', fontSize: 'clamp(0.82rem,3.2vw,1rem)', lineHeight: 1.6 }}>
             Every package includes <strong style={{ color: 'rgba(212,175,55,0.9)' }}>Free Flights · 5-Star Hotel · All Meals · Free Drinks · VIP Offline Casino Access</strong>.
@@ -830,14 +873,14 @@ export default function CountryPackages() {
   return (
     <>
       {/* ─── DESTINATIONS SECTION ─── */}
-      <section id="packages" className="relative px-3 md:px-4"
-        style={{ paddingTop: 'clamp(40px,10vw,96px)', paddingBottom: 'clamp(32px,8vw,64px)' }}
+      <section id="packages" className="relative"
+        style={{ padding: SECTION_PAD }}
         ref={el => { sectionRef.current = el; inViewRef(el) }}>
-        <div className="max-w-7xl mx-auto">
+        <div style={{ ...CONTAINER }}>
 
           {/* Heading */}
           <motion.div initial={{ opacity: 0, y: 30 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.7 }}
-            className="text-center" style={{ marginBottom: 'clamp(24px,6vw,64px)' }}>
+            className="text-center" style={{ marginBottom: 'clamp(22px,3.4vw,36px)' }}>
             <div className="inline-block border border-gold/30 rounded-full px-4 py-1.5 font-body font-light tracking-widest uppercase text-gold/70 mb-3"
               style={{ fontSize: 'clamp(0.6rem,2.5vw,0.75rem)' }}>
               ✈ Choose Your Destination
@@ -846,8 +889,8 @@ export default function CountryPackages() {
                 this grid is the most casino-looking thing on the page, and
                 without them it reads as a list of venues JackpotsWorld runs.
                 They are venues we refer members to. */}
-            <h2 className=" font-bold font-black gold-text" style={{ fontSize: 'clamp(1.7rem,7.5vw,3.2rem)', marginBottom: 10, lineHeight: 1.1 }}>
-              PREMIUM CASINO DESTINATIONS
+            <h2 className=" font-bold font-black section-heading" style={{ fontSize: 'clamp(1.7rem,7.5vw,3.2rem)', marginBottom: 10, lineHeight: 1.1 }}>
+              PREMIUM CASINO <span className="gold-text">DESTINATIONS</span>
             </h2>
             <p className="font-body font-light text-theme-muted max-w-xl mx-auto" style={{ fontSize: 'clamp(0.82rem,3.2vw,1.1rem)' }}>
               Explore selected offline casino destinations across Asia. Each is an independent
@@ -905,9 +948,26 @@ export default function CountryPackages() {
                   rather than as a stacked bullet list, so "Offline Casino
                   Destinations" and "Best For" read as two halves of a single
                   row. It also stops a five-casino country from making this
-                  card three times taller than a two-casino one. */}
+                  card three times taller than a two-casino one.
+
+                  THE TRACKS ARE CONTENT-SIZED, NOT FIXED FRACTIONS. They were
+                  0.55fr / 2.4fr / 0.95fr, which handed the venue column a
+                  share of the width rather than the width it needed: at
+                  1440px it measured 764px for 516px of chips, so the rule
+                  that starts "Best For" sat 248px past the last venue with
+                  nothing in between. max-content lets that column end where
+                  its chips end, so the rule follows them at every width and
+                  for every country — a three-venue Vietnam and a five-venue
+                  Sri Lanka both get a rule that touches their content.
+
+                  The min-content floors are what stop that being fragile: a
+                  max-content track whose floor is 0 can be squeezed to nothing
+                  by the fr track beside it, so each column is guaranteed at
+                  least its widest single chip and wraps rather than collapses.
+                  The leftover width goes to Best For, at the panel's own right
+                  edge, where it reads as padding instead of a hole. */}
               <div className="casino-card cp-infobar"
-                style={{ borderRadius: 14, padding: 'clamp(11px,1.6vw,15px) clamp(13px,1.8vw,20px)', marginTop: 'clamp(12px,2vw,20px)', marginBottom: 'clamp(14px,2.5vw,26px)', display: 'grid', gridTemplateColumns: 'minmax(128px,0.55fr) minmax(0,2.4fr) minmax(0,0.95fr)', gap: 'clamp(10px,1.4vw,18px)', alignItems: 'stretch' }}>
+                style={{ borderRadius: 14, padding: 'clamp(11px,1.6vw,15px) clamp(13px,1.8vw,20px)', marginTop: 'clamp(12px,2vw,20px)', marginBottom: 'clamp(14px,2.5vw,26px)', display: 'grid', gridTemplateColumns: 'minmax(128px,max-content) minmax(min-content,max-content) minmax(min-content,1fr)', gap: 'clamp(10px,1.4vw,18px)', alignItems: 'stretch' }}>
                 {/* Country name — centred within its own cell so the grid can
                     stretch (which is what lines the two labels up) without
                     leaving the flag floating above them. */}
@@ -925,11 +985,7 @@ export default function CountryPackages() {
                   <div className="font-body font-light" style={{ fontSize: 'clamp(0.58rem,2vw,0.65rem)', color: 'rgba(var(--w365-text-rgb),0.50)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>Offline Casino Destinations</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     {country.casinos.split(', ').map((c2, j) => (
-                      <span key={j} className="font-body font-light"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(255,255,255,0.04)', border: '1px solid var(--w365-border)', borderRadius: 999, padding: '4px clamp(8px,1.1vw,10px)', fontSize: 'clamp(0.66rem,1.5vw,0.745rem)', color: 'rgba(var(--w365-text-rgb),0.80)', whiteSpace: 'nowrap' }}>
-                        <span style={{ width: 4, height: 4, borderRadius: '50%', background: country.color, flexShrink: 0 }} />
-                        {c2}
-                      </span>
+                      <InfoChip key={j} label={c2} dotColor={country.color} />
                     ))}
                   </div>
                 </div>
@@ -938,17 +994,14 @@ export default function CountryPackages() {
                   <div className="font-body font-light" style={{ fontSize: 'clamp(0.58rem,2vw,0.65rem)', color: 'rgba(var(--w365-text-rgb),0.50)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>Best For</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     {String(country.bestFor || '').split(',').map(g => g.trim()).filter(Boolean).map((game, j) => (
-                      <span key={j} className="font-body font-light"
-                        style={{ display: 'inline-flex', alignItems: 'center', background: `${country.color}18`, border: `1px solid ${country.color}40`, borderRadius: 999, padding: '4px clamp(8px,1.1vw,10px)', fontSize: 'clamp(0.66rem,1.5vw,0.745rem)', fontWeight: 600, color: country.color, whiteSpace: 'nowrap' }}>
-                        {game}
-                      </span>
+                      <InfoChip key={j} label={game} dotColor={country.color} />
                     ))}
                   </div>
                 </div>
               </div>
 
               {/* WhatsApp CTA */}
-              <div style={{ maxWidth: 340, margin: '0 auto clamp(24px,6vw,40px)' }}>
+              <div style={{ maxWidth: 340, margin: '0 auto' }}>
                 <WhatsAppBtn label={`Enquire – ${country.name} Trip`} pkg={`${country.name} Offline Casino Tour`} />
               </div>
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { ArrowRight } from 'lucide-react'
-import { useExperiencePillar, iconFor, imageFor, SECTION_PAD } from './shared'
+import { useExperiencePillar, iconFor, imageFor, SECTION_PAD, CONTAINER, HEADER_GAP } from './shared'
 import ExperienceEnquiryModal from './ExperienceEnquiryModal'
 
 /**
@@ -37,13 +37,13 @@ export default function LuxuryTravelSection() {
         background: 'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(26,0,21,0.55) 45%, rgba(0,0,0,0) 100%)',
       }}
     >
-      <div style={{ maxWidth: 1180, margin: '0 auto' }}>
+      <div style={{ ...CONTAINER }}>
         <motion.header
           initial={reduceMotion ? false : { opacity: 0, y: 18 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.4 }}
           transition={{ duration: 0.55 }}
-          style={{ marginBottom: 'clamp(34px, 7vw, 60px)', maxWidth: 720 }}
+          style={{ marginBottom: HEADER_GAP, maxWidth: 720 }}
         >
           <p
             className="font-body"
@@ -52,10 +52,10 @@ export default function LuxuryTravelSection() {
             Getting There
           </p>
           <h2
-            className="font-display gold-text"
+            className="font-display section-heading"
             style={{ fontSize: 'clamp(1.9rem, 6.2vw, 3.3rem)', fontWeight: 600, lineHeight: 1.06, marginBottom: 14 }}
           >
-            Luxury Travel
+            Luxury <span className="gold-text">Travel</span>
           </h2>
           <p
             className="font-body"

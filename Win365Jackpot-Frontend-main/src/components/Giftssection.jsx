@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { motion, useInView } from 'framer-motion'
-import { Link } from 'react-scroll'
+import ScrollLink from './shared/ScrollLink'
 import { ChevronRight, Gift } from 'lucide-react'
 import { useAutoFetch } from '../hooks/useAutoFetch'
 import { fetchGiftItems, fetchGiftSteps } from '../services/landingService'
+import { SECTION_PAD, CONTAINER } from '../utils/layout'
 
 // ─── Gift Data (fallback, used only until the API responds) ───────────────────
 // Also doubles as the logo source for admin-managed gift entries that don't
@@ -217,7 +218,7 @@ function FeaturedCard({ gift }) {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Link to="register" smooth duration={600} offset={-80}>
+            <ScrollLink to="register" smooth duration={600} offset={-80}>
               <motion.button
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
@@ -234,7 +235,7 @@ function FeaturedCard({ gift }) {
                 Claim This Prize
                 <ChevronRight size={13} />
               </motion.button>
-            </Link>
+            </ScrollLink>
             <span style={{ fontSize: 11, color: 'rgba(var(--w365-text-rgb),0.25)', letterSpacing: '0.1em' }}>
               Highroller exclusive
             </span>
@@ -344,7 +345,7 @@ function GiftCard({ gift, index }) {
         </div>
 
         {/* CTA */}
-        <Link to="register" smooth duration={600} offset={-80}>
+        <ScrollLink to="register" smooth duration={600} offset={-80}>
           <motion.button
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
@@ -360,7 +361,7 @@ function GiftCard({ gift, index }) {
             Claim This Prize
             <ChevronRight size={12} />
           </motion.button>
-        </Link>
+        </ScrollLink>
       </div>
     </motion.div>
   )
@@ -396,7 +397,7 @@ export default function GiftsSection() {
       id="gifts"
       style={{
         position: 'relative',
-        padding: 'clamp(64px,10vw,120px) 0',
+        padding: SECTION_PAD,
         overflow: 'hidden',
         background: 'var(--w365-bg)',
       }}
@@ -408,10 +409,10 @@ export default function GiftsSection() {
         background: 'radial-gradient(ellipse at 50% 0%, rgba(212,175,55,0.07) 0%, transparent 70%)',
       }} />
 
-      <div style={{ position: 'relative', zIndex: 10, maxWidth: 1200, margin: '0 auto', padding: '0 clamp(16px,4vw,40px)' }}>
+      <div style={{ ...CONTAINER, position: 'relative', zIndex: 10 }}>
 
         {/* ── Header ── */}
-        <div ref={headerRef} style={{ textAlign: 'center', marginBottom: 'clamp(40px,8vw,72px)' }}>
+        <div ref={headerRef} style={{ textAlign: 'center', marginBottom: 'clamp(22px,3.4vw,36px)' }}>
           <motion.div
             initial={{ opacity: 0, y: -12 }}
             animate={headerInView ? { opacity: 1, y: 0 } : {}}
@@ -437,12 +438,10 @@ export default function GiftsSection() {
               color: 'var(--w365-text)',
             }}
           >
-            <span style={{
-              background: 'linear-gradient(135deg, #D4AF37, #F5E07A)',
-              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-            }}>
-              WIN MORE
-            </span>
+            {/* .gold-text, not a second hand-rolled gradient: this heading
+                already had the right shape (text colour plus one gold phrase)
+                but its own gold, a shade off every other accent on the page. */}
+            <span className="gold-text">WIN MORE</span>
             <br />
             <span style={{ fontSize: 'clamp(18px,4vw,40px)', color: 'rgba(var(--w365-text-rgb),0.85)' }}>
               THAN JUST MONEY
@@ -575,7 +574,7 @@ export default function GiftsSection() {
             <span style={{ color: '#D4AF37' }}>50,000+ members</span> are already on their way to something legendary.
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link to="register" smooth duration={600} offset={-80}>
+            <ScrollLink to="register" smooth duration={600} offset={-80}>
               <motion.button
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.97 }}
@@ -591,8 +590,8 @@ export default function GiftsSection() {
                 <Gift size={15} />
                 Start Winning Prizes
               </motion.button>
-            </Link>
-            <Link to="packages" smooth duration={600} offset={-80}>
+            </ScrollLink>
+            <ScrollLink to="packages" smooth duration={600} offset={-80}>
               <motion.button
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.97 }}
@@ -606,7 +605,7 @@ export default function GiftsSection() {
               >
                 View All Packages
               </motion.button>
-            </Link>
+            </ScrollLink>
           </div>
         </motion.div>
 

@@ -142,7 +142,7 @@ export default function Affiliates() {
       </section>
 
       {/* Benefits */}
-      <section className="max-w-7xl mx-auto px-4 pb-20">
+      <section className="w365-page pb-20">
         <h2 className="gold-text font-black text-2xl text-center mb-10 tracking-wide">Why Become an Affiliate</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {benefits.map(({ icon: Icon, title, text }, i) => (
@@ -177,7 +177,7 @@ export default function Affiliates() {
       </div>
 
       {/* How it works */}
-      <section className="max-w-6xl mx-auto px-4 pb-20">
+      <section className="w365-page pb-20">
         <h2 className="gold-text font-black text-2xl text-center mb-10 tracking-wide">How It Works</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {howItWorks.map((step, i) => (

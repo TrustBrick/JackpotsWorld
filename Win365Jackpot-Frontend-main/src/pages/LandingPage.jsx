@@ -16,6 +16,7 @@ import VIPLevels from '../components/VIPLevels'
 import BusinessModelFAQ from '../components/BusinessModelFAQ'
 import Register from '../components/Register'
 import PageScrollButtons from '../components/PageScrollButtons'
+import { SECTION_PAD, CONTAINER } from '../utils/layout'
 // VIP DESTINATION PILLARS: the non-casino half of the story (§4). Each one
 // renders nothing at all until it has Back Office rows, so adding them here
 // cannot leave empty headings on the page.
@@ -85,11 +86,17 @@ export default function LandingPage() {
         <StaysSection />
         {/* id is the Events stop on the journey rail. The grid itself, and all
             three cards in it, are unchanged. */}
-        <div id="events-preview" className="grid md:grid-cols-3 gap-6 max-w-7xl mx-auto px-4 pb-16 items-stretch">
-          <GlobalReachCard />
-          <EventsPreviewSection />
-          <PromotionsPreviewSection />
-        </div>
+        {/* A <section> shell around the grid so this band takes the same
+            gutter + container as every other one: the grid itself carries the
+            padding AND the max-width before, which (border-box) pulled its
+            edges 20px inside everything above and below it. */}
+        <section id="events-preview" style={{ padding: SECTION_PAD }}>
+          <div className="grid md:grid-cols-3 gap-6 items-stretch" style={{ ...CONTAINER }}>
+            <GlobalReachCard />
+            <EventsPreviewSection />
+            <PromotionsPreviewSection />
+          </div>
+        </section>
         {/* After the events grid, because an evening follows a day out. */}
         <DiningEntertainmentSection />
         {/* Closes the destination story — the one host who arranges all of the

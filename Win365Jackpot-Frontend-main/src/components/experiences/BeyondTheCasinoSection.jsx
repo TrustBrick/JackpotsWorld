@@ -2,8 +2,9 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, useReducedMotion } from 'framer-motion'
 import { ArrowRight } from 'lucide-react'
-import { useAllExperiences, iconFor, imageFor, SECTION_PAD } from './shared'
+import { useAllExperiences, iconFor, imageFor, SECTION_PAD, CONTAINER, HEADER_GAP } from './shared'
 import ExperienceEnquiryModal from './ExperienceEnquiryModal'
+import { scrollToSection } from '../../utils/scroll'
 
 /**
  * "Beyond the Casino" — the overview band under the hero.
@@ -56,8 +57,10 @@ export default function BeyondTheCasinoSection() {
   const go = href => {
     if (!href) return
     if (href.startsWith('#')) {
-      const el = document.querySelector(href)
-      if (el) el.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' })
+      // Shared helper, not scrollIntoView(): block:'start' puts the target's
+      // top at the top of the VIEWPORT, which is behind the fixed navbar, so
+      // each pillar's eyebrow and heading were hidden on arrival.
+      scrollToSection(href.slice(1), { behavior: reduceMotion ? 'auto' : 'smooth' })
       return
     }
     if (/^https?:\/\//i.test(href)) {
@@ -76,13 +79,13 @@ export default function BeyondTheCasinoSection() {
         borderTop: '1px solid rgba(212,175,55,0.14)',
       }}
     >
-      <div style={{ maxWidth: 1320, margin: '0 auto' }}>
+      <div style={{ ...CONTAINER }}>
         <motion.header
           initial={reduceMotion ? false : { opacity: 0, y: 18 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.4 }}
           transition={{ duration: 0.55 }}
-          style={{ marginBottom: 'clamp(30px, 6vw, 52px)', maxWidth: 720 }}
+          style={{ marginBottom: HEADER_GAP, maxWidth: 720 }}
         >
           <p
             className="font-body"

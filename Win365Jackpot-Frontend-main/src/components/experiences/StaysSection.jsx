@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { ArrowUpRight } from 'lucide-react'
-import { useExperiencePillar, iconFor, imageFor, SECTION_PAD } from './shared'
+import { useExperiencePillar, iconFor, imageFor, SECTION_PAD, CONTAINER, HEADER_GAP } from './shared'
 import ExperienceEnquiryModal from './ExperienceEnquiryModal'
 
 /**
@@ -33,7 +33,7 @@ export default function StaysSection() {
 
   return (
     <section id="stays" style={{ padding: SECTION_PAD }}>
-      <div style={{ maxWidth: 1080, margin: '0 auto' }}>
+      <div style={{ ...CONTAINER }}>
         <motion.header
           initial={reduceMotion ? false : { opacity: 0, y: 18 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -42,7 +42,7 @@ export default function StaysSection() {
           style={{
             display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end',
             justifyContent: 'space-between', gap: 20,
-            marginBottom: 'clamp(30px, 6vw, 52px)',
+            marginBottom: HEADER_GAP,
             paddingBottom: 'clamp(20px, 4vw, 30px)',
             borderBottom: '1px solid rgba(212,175,55,0.22)',
           }}
@@ -55,10 +55,10 @@ export default function StaysSection() {
               Where You Stay
             </p>
             <h2
-              className="font-display gold-text"
+              className="font-display section-heading"
               style={{ fontSize: 'clamp(1.9rem, 6.2vw, 3.3rem)', fontWeight: 600, lineHeight: 1.06, marginBottom: 14 }}
             >
-              Hotels &amp; Resorts
+              Hotels &amp; <span className="gold-text">Resorts</span>
             </h2>
             <p
               className="font-body"

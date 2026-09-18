@@ -24,6 +24,7 @@ import { fetchLocations } from "../services/locationService";
 import { fetchTourPackages } from "../services/landingService";
 import Logo from "./shared/Logo";
 import BrandMark from "./shared/BrandMark";
+import { SECTION_PAD, CONTAINER } from "../utils/layout";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -555,11 +556,15 @@ export default function Register() {
         ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
       `}</style>
 
-      <div style={{
-        minHeight: "100vh",
+      {/* id="register" lives HERE, on the section shell. It used to sit on the
+          "Exclusive VIP Registration" badge inside the card header, so every
+          nav/CTA link to "register" scrolled the page to a point two thirds of
+          the way down the card — the form's own heading was already above the
+          navbar by the time the scroll settled. */}
+      <section id="register" style={{
         background: 'transparent',
         display: "flex", alignItems: "center", justifyContent: "center",
-        padding: "32px 16px",
+        padding: SECTION_PAD,
         // fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
         position: "relative",
         overflow: "hidden",
@@ -627,7 +632,7 @@ export default function Register() {
   </div>
 
   {/* Badge */}
-  <div id="register" style={{
+  <div style={{
     display: "inline-flex", alignItems: "center", gap: 6,
     background: "rgba(212,175,55,0.1)", border: `1px solid rgba(212,175,55,0.3)`,
     borderRadius: 20, padding: "3px 12px", marginBottom: 10,
@@ -780,7 +785,7 @@ export default function Register() {
             </AnimatePresence>
           </div>
         </motion.div>
-      </div>
+      </section>
     </>
   );
 }

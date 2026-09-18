@@ -4,6 +4,7 @@ import { useInView } from 'react-intersection-observer'
 import { ChevronDown } from 'lucide-react'
 import { useAutoFetch } from '../hooks/useAutoFetch'
 import { fetchFaqs } from '../services/landingService'
+import { SECTION_PAD, CONTAINER } from '../utils/layout'
 
 /* ─────────────────────────────────────────────────────────────────────────
    BusinessModelFAQ — the questions a visitor (or a reviewer) needs answered
@@ -149,21 +150,24 @@ export default function BusinessModelFAQ() {
     <section
       id="faq"
       ref={ref}
-      style={{ padding: 'clamp(48px,8vw,88px) clamp(16px,5vw,24px)' }}
+      style={{ padding: SECTION_PAD }}
     >
+      <div style={{ ...CONTAINER }}>
+      {/* The accordion keeps a readable measure inside the page-wide
+          container: alignment is the container's job, line length is this. */}
       <div style={{ maxWidth: 860, margin: '0 auto' }}>
         <motion.h2
           initial={{ opacity: 0, y: reduceMotion ? 0 : 12 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: reduceMotion ? 0 : 0.5 }}
-          className="gold-text"
+          className="section-heading"
           style={{
             fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
             fontSize: 'clamp(20px,4vw,34px)', fontWeight: 900,
             textAlign: 'center', margin: '0 0 clamp(24px,4vw,40px)',
           }}
         >
-          Frequently Asked Questions
+          Frequently Asked <span className="gold-text">Questions</span>
         </motion.h2>
 
         <motion.div
@@ -185,6 +189,7 @@ export default function BusinessModelFAQ() {
             />
           ))}
         </motion.div>
+        </div>
       </div>
     </section>
   )

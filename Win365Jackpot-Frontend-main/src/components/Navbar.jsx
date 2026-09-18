@@ -6,8 +6,7 @@ import {
   ChevronDown, User, Crown, Wallet,
 } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import Logo from './shared/Logo'
-import BrandMark from './shared/BrandMark'
+import BrandLockup from './shared/BrandLockup'
 import AuthModal from './AuthModal'
 import ChatBot from './ChatBot'
 import { getToken, getUser } from '../services/authStorage'
@@ -29,8 +28,8 @@ const NAV_I18N_KEY = {
 }
 
 // ─── Nav link config ──────────────────────────────────────────────────────────
-// type: 'scroll'  -> existing homepage sections (react-scroll on "/", falls
-//                     back to navigate-then-scroll from any other page)
+// type: 'scroll'  -> existing homepage sections (scrollToSection on "/",
+//                     falling back to navigate-then-scroll from any other page)
 //       'route'   -> dedicated pages, navigated via React Router
 // Events / Destinations / Promotions were removed from here — their content
 // now lives inline on the home page beside the Packages section, reachable
@@ -294,6 +293,38 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
+  // ── Publish the navbar's real height to CSS ────────────────────────────────
+  // index.css gives every section `scroll-margin-top: var(--w365-nav-h) + 14`,
+  // which is what makes a #hash, a scrollIntoView() and a nav click all land
+  // in the same place. The value has to be measured rather than hard-coded:
+  // this bar shrinks once the page is scrolled, and it is taller on the
+  // breakpoints where the row wraps.
+  //
+  // getNavOffset() measures the same way and already adds its own 12px, so
+  // what is written here is the bare bar height.
+  useEffect(() => {
+    const nav = document.querySelector('nav')
+    if (!nav) return undefined
+
+    const publish = () => {
+      // The top bar row only. On mobile the expanded menu is inside the same
+      // <nav>, so offsetHeight would include it and push every section a
+      // screen down.
+      const bar = nav.firstElementChild
+      const styles = window.getComputedStyle(nav)
+      const padding =
+        (parseFloat(styles.paddingTop) || 0) + (parseFloat(styles.paddingBottom) || 0)
+      const height = bar?.offsetHeight ? bar.offsetHeight + padding : nav.offsetHeight
+      if (height) document.documentElement.style.setProperty('--w365-nav-h', `${Math.round(height)}px`)
+    }
+
+    publish()
+    const ro = new ResizeObserver(publish)
+    ro.observe(nav)
+    window.addEventListener('resize', publish)
+    return () => { ro.disconnect(); window.removeEventListener('resize', publish) }
+  }, [])
+
   useEffect(() => {
   const saved = getUser('user')
   if (saved) setUser(saved)
@@ -303,8 +334,8 @@ export default function Navbar() {
   // If a nav item that scrolls to a homepage section (Home, VIP Levels, Why
   // Us, Gifts, Register) is clicked while on a different route (e.g.
   // /andhar-bahar), we navigate home first and then scroll
-  // to the target section once it mounts. On the homepage itself, the
-  // original react-scroll <Link> behaviour is left completely untouched.
+  // to the target section once it mounts. On the homepage itself the click
+  // goes straight to scrollToSection().
   useEffect(() => {
     const target = sessionStorage.getItem('jw_scroll_target')
     if (!target || !isHome) return
@@ -372,16 +403,13 @@ export default function Navbar() {
         }`}
         style={scrolled ? { background: 'rgba(var(--w365-bg-rgb),0.95)' } : undefined}
       >
-        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
+        <div className="w365-page flex items-center justify-between">
 
-         {/* Logo */}
-<span
-  onClick={() => (isHome ? scrollToSection('hero') : navigate('/'))}
-  className="cursor-pointer flex items-center gap-2"
->
-  <BrandMark size={28} />
-  <Logo size="sm" />
-</span>
+          {/* Logo — the shared lockup, identical to the footer's. */}
+          <BrandLockup
+            onClick={() => (isHome ? scrollToSection('hero') : navigate('/'))}
+            className="cursor-pointer"
+          />
 
           {/* Desktop nav links */}
           <ul className="hidden md:flex flex-1 justify-center items-center gap-4 mx-8">

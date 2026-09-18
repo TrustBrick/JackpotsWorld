@@ -38,7 +38,7 @@ export default function Promotions() {
         subtitle={t('promotions.subtitle')}
       />
 
-      <section className="max-w-7xl mx-auto px-4 pb-24">
+      <section className="w365-page pb-16">
         {loading ? (
           <div className="flex flex-col gap-8">
             {Array.from({ length: 2 }).map((_, i) => (

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, memo } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
-import { Link } from 'react-scroll'
+import ScrollLink from './shared/ScrollLink'
 import { useNavigate } from 'react-router-dom'
 import { Gem, CalendarDays, MapPinned, Gift, MapPin } from 'lucide-react'
 import { useAutoFetch } from '../hooks/useAutoFetch'
@@ -768,7 +768,7 @@ export default function Hero() {
             width:'fit-content', maxWidth:'100%', margin:'0 auto',
           }}
         >
-          <Link to="register" smooth duration={600} offset={-80}>
+          <ScrollLink to="register" smooth duration={600} offset={-80}>
             <motion.button
               whileHover={{ scale:1.04 }} whileTap={{ scale:0.97 }}
               style={{
@@ -784,8 +784,8 @@ export default function Hero() {
                 touchAction:'manipulation',
               }}
             >{(settings?.hero_cta_primary_label && !settings.hero_cta_primary_label.includes('?')) ? settings.hero_cta_primary_label : 'Get Your Referral'}</motion.button>
-          </Link>
-          <Link to="packages-all" smooth duration={600} offset={-80}>
+          </ScrollLink>
+          <ScrollLink to="packages-all" smooth duration={600} offset={-80}>
             <motion.button
               whileHover={{ scale:1.04 }} whileTap={{ scale:0.97 }}
               style={{
@@ -800,7 +800,7 @@ export default function Hero() {
                 cursor:'pointer', touchAction:'manipulation',
               }}
             >{(settings?.hero_cta_secondary_label && !settings.hero_cta_secondary_label.includes('?')) ? settings.hero_cta_secondary_label : 'Explore Packages'}</motion.button>
-          </Link>
+          </ScrollLink>
         </motion.div>
 
         {/* Secondary nav — Events / Destinations / Promotions (moved here from

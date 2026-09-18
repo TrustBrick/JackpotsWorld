@@ -134,7 +134,7 @@ export default function TeenPatti() {
           onViewUpcoming={() => { setFilters(f => ({ ...f, status: 'upcoming' })); scrollTo(upcomingRef) }}
         />
 
-        <section className="max-w-7xl mx-auto px-4 pb-24">
+        <section className="w365-page pb-16">
           <TeenPattiAcquisitionCTA
             isLoggedIn={isLoggedIn}
             liveCount={options.counts?.live || 0}
@@ -185,7 +185,11 @@ export default function TeenPatti() {
             </motion.div>
           ) : (
             <div className="flex flex-col gap-14">
-              <div ref={liveRef}>
+              {/* id as well as the ref: index.css gives anything with an id
+                  inside <main> a scroll-margin clearing the fixed navbar, so
+                  scrollTo() below lands the heading under the bar rather than
+                  behind it. */}
+              <div id="teen-patti-live" ref={liveRef}>
                 {visible.live.length > 0 && (
                   <>
                     <SectionHeading icon={Radio} title={t('teenPatti.liveNow')} count={visible.live.length} accent="#ff3366" />
@@ -203,7 +207,7 @@ export default function TeenPatti() {
                 )}
               </div>
 
-              <div ref={upcomingRef}>
+              <div id="teen-patti-upcoming" ref={upcomingRef}>
                 {visible.upcoming.length > 0 && (
                   <>
                     <SectionHeading

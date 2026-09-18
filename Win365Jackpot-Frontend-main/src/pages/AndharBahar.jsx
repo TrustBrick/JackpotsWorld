@@ -116,7 +116,7 @@ function formatDateRange(ev) {
 // ── Section shell ───────────────────────────────────────────────────────────
 function Section({ id, children, className = '' }) {
   return (
-    <section id={id} className={`max-w-7xl mx-auto px-4 pb-16 md:pb-20 ${className}`}>
+    <section id={id} className={`w365-page pb-16 md:pb-20 ${className}`}>
       {children}
     </section>
   )

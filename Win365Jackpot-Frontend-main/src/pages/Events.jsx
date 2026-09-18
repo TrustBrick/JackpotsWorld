@@ -43,7 +43,7 @@ export default function Events() {
         subtitle={t('events.subtitle')}
       />
 
-      <section className="max-w-7xl mx-auto px-4 pb-24">
+      <section className="w365-page pb-16">
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {Array.from({ length: 6 }).map((_, i) => (

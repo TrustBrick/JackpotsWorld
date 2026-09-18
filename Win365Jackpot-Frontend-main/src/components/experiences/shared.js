@@ -134,5 +134,10 @@ export function useAllExperiences() {
   return { grouped, categories: data?.categories || [], loading, error }
 }
 
-/** Section shell padding, so the four sections share the page's vertical rhythm. */
-export const SECTION_PAD = 'clamp(56px, 11vw, 104px) clamp(14px, 4vw, 20px)'
+/**
+ * Section shell padding and container, so the four pillar sections share the
+ * page's rhythm. Both now come from utils/layout.js, which every other section
+ * on the page imports too — this file re-exports them so the pillars' existing
+ * imports keep working.
+ */
+export { SECTION_PAD, CONTAINER, HEADER_GAP } from '../../utils/layout'

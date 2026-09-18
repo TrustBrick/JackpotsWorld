@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Link as ScrollLink } from 'react-scroll'
+import ScrollLink from './shared/ScrollLink'
 import { Link as RouterLink } from 'react-router-dom'
-import Logo from './shared/Logo'
-import BrandMark from './shared/BrandMark'
+import { Globe, Mail } from 'lucide-react'
+import BrandLockup from './shared/BrandLockup'
+import { SECTION_PAD_Y, GUTTER, CONTAINER } from '../utils/layout'
 import useEnquiryNumber from '../hooks/useEnquiryNumber'
 import useEnquiryMessage from '../hooks/useEnquiryMessage'
 import { buildWhatsAppLink } from '../services/enquiryContact'
@@ -15,6 +16,14 @@ const ALL_DESTINATIONS     = [...PRIMARY_DESTINATIONS, ...EXTRA_DESTINATIONS]
 // The message is no longer a literal either: useEnquiryMessage() reads it from
 // the Back Office, falling back to the same wording this constant held. The
 // number is resolved per visitor by useEnquiryNumber(), as before.
+
+// The two contact lines under the brand paragraph. Both are real links: the
+// domain opens the site, the address opens a mail client — they used to be
+// plain <div>s, so a visitor who could make them out still could not use them.
+const CONTACT_LINKS = [
+  { label: 'www.jackpotsworld.vip', href: 'https://www.jackpotsworld.vip', Icon: Globe, external: true },
+  { label: 'support@jackpotsworld.vip', href: 'mailto:support@jackpotsworld.vip', Icon: Mail },
+]
 
 const SOCIAL_LINKS = [
   {
@@ -66,42 +75,68 @@ export default function Footer() {
   const enquiryMessage = useEnquiryMessage('footer_general')
 
   return (
+    // Same gutter and container as every section above it, so the brand
+    // lockup starts on the page's own left edge rather than 60px inside it.
+    // The vertical padding is the shared section rhythm at the top and a
+    // tighter figure at the bottom — nothing follows it.
     <footer id="contact" style={{
       borderTop: '1px solid rgba(212,175,55,0.15)',
-      padding: '64px 24px 32px',
+      padding: `${SECTION_PAD_Y} ${GUTTER} 18px`,
       background: 'rgba(var(--w365-bg-rgb),0.85)',
       backdropFilter: 'blur(6px)',
       WebkitBackdropFilter: 'blur(6px)',
 
     }}>
-      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+      <div style={{ ...CONTAINER }}>
 
         {/* ── Main grid ── */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: '40px 32px',
-          marginBottom: 48,
-        }}>
+        {/* Columns live in index.css (.w365-footer-grid): the brand column is
+            wider than the two link columns, and the whole thing stacks below
+            620px. */}
+        <div className="w365-footer-grid" style={{ marginBottom: 26 }}>
 
           {/* Brand */}
           <div>
-            <div style={{ marginBottom: 16 }}>
-               <div className="flex flex-col leading-none">
-                <BrandMark size={40} />
-    <Logo size="md" />
-  </div>
-
-            </div>
-            <p style={{ fontSize: 13, color: 'var(--w365-text-muted)', lineHeight: 1.7, marginBottom: 12 }}>
+            {/* Emblem BESIDE the wordmark, not stacked above it. The wordmark
+                is itself two stacked lines ("Jackpots" over "World"), so the
+                old flex-col put the mark on a third line and the lockup ran
+                three rows deep for no reason. Side by side it reads as one
+                signature and is 41px tall instead of 81. */}
+            <BrandLockup style={{ marginBottom: 12 }} />
+            <p style={{ fontSize: 12.5, color: 'var(--w365-text-muted)', lineHeight: 1.65, marginBottom: 14, maxWidth: 420 }}>
               Asia's premier Offline casinos promotion platform. Connecting players to world-class gaming experiences across the globe.
             </p>
-            <div style={{ fontSize: 11, color: 'rgba(212,175,55,0.4)', marginBottom: 16 }}>www.jackpotsworld.vip</div>
-            <div style={{ fontSize: 11, color: 'rgba(212,175,55,0.4)', marginBottom: 16 }}>support@jackpotsworld.vip</div>
+
+            {/* The site and the support address were rgba(212,175,55,0.4) —
+                gold at 40% over a near-black background, which measures well
+                under the 4.5:1 contrast floor and is what made them all but
+                invisible. They are also the two things in this column a
+                visitor might actually want to USE, so they are now links: full
+                gold, an icon each, and brightening on hover. */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 16 }}>
+              {CONTACT_LINKS.map(c => (
+                <a
+                  key={c.label}
+                  href={c.href}
+                  target={c.external ? '_blank' : undefined}
+                  rel={c.external ? 'noopener noreferrer' : undefined}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 7,
+                    fontSize: 12.5, color: '#D4AF37', textDecoration: 'none',
+                    width: 'fit-content', transition: 'color 0.15s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.color = '#F5E07A' }}
+                  onMouseLeave={e => { e.currentTarget.style.color = '#D4AF37' }}
+                >
+                  <c.Icon size={13} style={{ flexShrink: 0, opacity: 0.85 }} />
+                  {c.label}
+                </a>
+              ))}
+            </div>
 
             {/* Social icons */}
             {SHOW_SOCIAL_LINKS && (
-              <div style={{ display: 'flex', gap: 10 }}>
+              <div style={{ display: 'flex', gap: 9 }}>
                 {SOCIAL_LINKS.map(s => (
                   <a
                     key={s.name}
@@ -109,7 +144,7 @@ export default function Footer() {
                     target="_blank" rel="noopener noreferrer"
                     aria-label={s.name}
                     style={{
-                      width: 34, height: 34, borderRadius: '50%',
+                      width: 31, height: 31, borderRadius: '50%',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       background: s.bg,
                       border: `1px solid ${s.border}`,
@@ -127,10 +162,10 @@ export default function Footer() {
 
           {/* Destinations */}
           <div>
-            <h4 style={{ fontSize: 11, fontWeight: 700, color: '#D4AF37', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 16 }}>
+            <h4 style={{ fontSize: 11, fontWeight: 700, color: '#D4AF37', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 12 }}>
               Destinations
             </h4>
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 7 }}>
               {PRIMARY_DESTINATIONS.map((d, i) => (
                 <li key={i}>
                   <ScrollLink
@@ -152,7 +187,7 @@ export default function Footer() {
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.25 }}
-                  style={{ listStyle: 'none', padding: 0, margin: '10px 0 0', display: 'flex', flexDirection: 'column', gap: 10, overflow: 'hidden' }}
+                  style={{ listStyle: 'none', padding: 0, margin: '7px 0 0', display: 'flex', flexDirection: 'column', gap: 7, overflow: 'hidden' }}
                 >
                   {EXTRA_DESTINATIONS.map((d, i) => (
                     <motion.li key={i} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}>
@@ -173,7 +208,7 @@ export default function Footer() {
             <button
               onClick={() => setOpen(v => !v)}
               style={{
-                marginTop: 12, background: 'none', border: 'none',
+                marginTop: 10, background: 'none', border: 'none',
                 cursor: 'pointer', fontSize: 12,
                 color: 'rgba(212,175,55,0.55)', padding: 0,
                 display: 'flex', alignItems: 'center', gap: 4,
@@ -189,10 +224,10 @@ export default function Footer() {
 
           {/* Company */}
           <div>
-            <h4 style={{ fontSize: 11, fontWeight: 700, color: '#D4AF37', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 16 }}>
+            <h4 style={{ fontSize: 11, fontWeight: 700, color: '#D4AF37', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 12 }}>
               Company
             </h4>
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 7 }}>
 
               <li>
                 <ScrollLink
@@ -246,17 +281,17 @@ export default function Footer() {
         </div>
 
         {/* ── Divider ── */}
-        <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', marginBottom: 24 }}/>
+        <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', marginBottom: 16 }}/>
 
         {/* ── Disclaimer ── */}
         <div style={{
           border: '1px solid rgba(255,255,255,0.06)',
           borderRadius: 10,
-          padding: '14px 20px',
-          marginBottom: 24,
+          padding: '11px 18px',
+          marginBottom: 16,
           background: 'rgba(255,255,255,0.02)',
         }}>
-          <p style={{ fontSize: 12, color: 'var(--w365-text-muted)', textAlign: 'center', lineHeight: 1.7 }}>
+          <p style={{ fontSize: 11.5, color: 'var(--w365-text-muted)', textAlign: 'center', lineHeight: 1.6, margin: 0 }}>
             <span style={{ color: 'rgba(212,175,55,0.55)', fontWeight: 600 }}>⚠ Responsible Gaming: </span>
             Gambling involves risk. Please play responsibly. Jackpots World promotes responsible gaming and only serves adults aged 21+.
             If you or someone you know has a gambling problem, please seek help. jackpotsworld.vip is a promotional platform only.
@@ -267,7 +302,7 @@ export default function Footer() {
         <div style={{
           display: 'flex', flexWrap: 'wrap',
           justifyContent: 'space-between', alignItems: 'center',
-          gap: 12, fontSize: 12, color: 'var(--w365-text-muted)',
+          gap: 12, fontSize: 11.5, color: 'var(--w365-text-muted)',
         }}>
           <span>© 2026 jackpotsworld.vip — All Rights Reserved</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

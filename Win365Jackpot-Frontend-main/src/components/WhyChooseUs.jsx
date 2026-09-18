@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { useAutoFetch } from '../hooks/useAutoFetch'
 import { fetchWhyChooseUsFeatures } from '../services/landingService'
+import { SECTION_PAD, CONTAINER } from '../utils/layout'
 
 // Maps the admin-editable `icon_name` string to its Lucide component —
 // same string-keyed lookup pattern already used by AdminPanel.jsx's ICON_MAP.
@@ -129,7 +130,7 @@ export default function WhyChooseUs() {
       ref={ref}
       style={{
         position: 'relative',
-        padding: 'clamp(56px,12vw,96px) clamp(14px,4vw,24px)',
+        padding: SECTION_PAD,
       }}
     >
       {/* Subtle bg glow */}
@@ -138,7 +139,7 @@ export default function WhyChooseUs() {
         background: 'radial-gradient(ellipse at 80% 50%, rgba(212,175,55,0.04) 0%, transparent 70%)',
       }} />
 
-      <div style={{ maxWidth: 1280, margin: '0 auto', position: 'relative' }}>
+      <div style={{ ...CONTAINER, position: 'relative' }}>
 
         {/* ── Header ── */}
         <motion.div
@@ -158,11 +159,11 @@ export default function WhyChooseUs() {
             <Zap size={11} color="rgba(212,175,55,0.7)" />
             Our Advantages
           </div>
-          <h2 className="font-bold gold-text" style={{
+          <h2 className="font-bold section-heading" style={{
             fontSize: 'clamp(1.8rem,7vw,3.2rem)',
             fontWeight: 900, marginBottom: 12, lineHeight: 1.1,
           }}>
-            WHY Jackpots World?
+            WHY <span className="gold-text">Jackpots World?</span>
           </h2>
           <p className="font-body font-light" style={{
             fontSize: 'clamp(0.85rem,3.2vw,1.05rem)',

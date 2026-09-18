@@ -5,6 +5,8 @@ import { useInView } from 'react-intersection-observer'
 import { useAutoFetch } from '../hooks/useAutoFetch'
 import { fetchFeaturedDestinationShowcases } from '../services/landingService'
 import { useVideoAnalytics } from '../hooks/useVideoAnalytics'
+import { SECTION_PAD, CONTAINER } from '../utils/layout'
+import { scrollToSection } from '../utils/scroll'
 
 /**
  * Promotional destination blocks on the landing page (CMS-managed).
@@ -174,10 +176,10 @@ function ShowcaseMedia({ item, narrow }) {
 function ShowcaseBlock({ item, index, narrow }) {
   const { ref, inView } = useInView({ threshold: 0.1, triggerOnce: true })
 
-  const goToDestinations = () => {
-    const el = document.getElementById(DESTINATIONS_ANCHOR)
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
+  // scrollToSection() rather than scrollIntoView(): it keeps the navbar's
+  // height clear and re-measures while the page is still growing, so the
+  // destinations heading is the first thing under the bar when it settles.
+  const goToDestinations = () => scrollToSection(DESTINATIONS_ANCHOR)
 
   return (
     <motion.article
@@ -259,9 +261,9 @@ export default function FeaturedDestinationShowcase() {
     <section
       id="featured-destination-showcase"
       className="relative px-3 md:px-4"
-      style={{ padding: 'clamp(40px,8vw,72px) clamp(12px,4vw,16px)' }}
+      style={{ padding: SECTION_PAD }}
     >
-      <div className="max-w-5xl mx-auto flex flex-col gap-6 md:gap-8">
+      <div style={{ ...CONTAINER }} className="flex flex-col gap-6 md:gap-8">
         {showcases.map((item, i) => (
           <ShowcaseBlock key={item.id} item={item} index={i} narrow={narrow} />
         ))}

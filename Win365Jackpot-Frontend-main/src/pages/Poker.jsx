@@ -170,7 +170,7 @@ export default function Poker() {
         </div>
       )}
 
-      <section className="max-w-7xl mx-auto px-4 pb-24">
+      <section className="w365-page pb-16">
         <PokerFilters
           options={options}
           value={filters}
