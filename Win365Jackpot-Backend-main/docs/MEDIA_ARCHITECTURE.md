@@ -138,10 +138,33 @@ theoretical — both failure modes happened:
   1 hour expiry. Used for KYC documents (`doc_front`, `doc_back`, `selfie`,
   `id_proof_file`) and support ticket attachments.
 
-The bucket policy grants anonymous `GetObject` **only** on the known-public
-prefixes (`landing/`, `promotions/`, `teenpatti/`, `poker/`, `events/`,
-`spin/`, `wheel/`, `avatars/`). `private/` is deliberately absent and
+The bucket policy grants anonymous `GetObject` **only** on the prefixes in
+`authapp.storage_backends.PUBLIC_MEDIA_PREFIXES` (`landing/`, `promotions/`,
+`teenpatti/`, `poker/`, `events/`, `spin/`, `wheel/`, `avatars/`,
+`andhar_bahar/`, `support/hold_audio/`). `private/` is deliberately absent and
 returns `403` to anonymous requests — verified.
+
+**A new public upload prefix needs a bucket policy change, not just a model
+field.** `PublicMediaStorage` URLs are unsigned, so a file stored outside
+these prefixes uploads without error and then `403`s in every browser — and
+nothing local reveals it, because FileSystemStorage serves every path. The
+hold audio (`support/hold_audio/`) and the Andhar Bahar images
+(`andhar_bahar/`) both shipped that way. `authapp/tests_media_storage_prefixes.py`
+now fails when a field on default storage uploads outside the list; when it
+does, add the prefix to the tuple **and** to the policy file below.
+
+The policy is [`deploy/s3/media-bucket-policy.json`](../deploy/s3/media-bucket-policy.json),
+and the same test checks that it grants exactly the tuple's prefixes.
+`put-bucket-policy` replaces the whole document, so always apply the complete
+file — from the backend directory:
+
+```bash
+aws s3api put-bucket-policy --bucket jackpotsworld-media --region ap-south-1 --policy file://deploy/s3/media-bucket-policy.json
+```
+
+or paste the file's contents in the S3 console under the bucket's
+**Permissions → Bucket policy**. It takes effect immediately; no deploy is
+involved.
 
 > **Security note:** while media was on local disk, KYC documents were
 > served through the same fully-public, zero-auth path as marketing images.

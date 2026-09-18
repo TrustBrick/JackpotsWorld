@@ -46,6 +46,28 @@ def _s3_configured():
     return bool(getattr(settings, "AWS_STORAGE_BUCKET_NAME", ""))
 
 
+# The key prefixes the bucket policy lets anyone read (its one statement,
+# "PublicReadForMediaPrefixes"). PublicMediaStorage hands out plain unsigned
+# URLs, so a file it stores under any other prefix uploads without an error
+# and is then refused to every browser with a 403 — the upload appears to
+# work and nothing can show or play the file. Local dev cannot reveal this
+# (FileSystemStorage serves every path), which is how the hold audio and the
+# Andhar Bahar images both shipped unreadable.
+#
+# This is the contract the bucket must match, not a reading of it:
+# tests_media_storage_prefixes fails when a field on default storage uploads
+# outside it, or when deploy/s3/media-bucket-policy.json (the policy that is
+# actually applied — see docs/MEDIA_ARCHITECTURE.md) disagrees with it. Keep the
+# entries narrow — `support/hold_audio/`, not `support/` — so a file added
+# later beside a public one is not published by accident.
+PUBLIC_MEDIA_PREFIXES = (
+    "landing/", "promotions/", "teenpatti/", "poker/", "events/",
+    "spin/", "wheel/", "avatars/",
+    "andhar_bahar/",
+    "support/hold_audio/",
+)
+
+
 if S3Boto3Storage is not None:
 
     class PublicMediaStorage(S3Boto3Storage):
