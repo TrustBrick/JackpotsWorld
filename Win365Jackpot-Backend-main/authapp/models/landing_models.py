@@ -554,3 +554,102 @@ class EnquiryMessage(models.Model):
 
     def __str__(self):
         return f"{self.label} ({self.key})"
+
+
+class CruisePackage(models.Model):
+    """The Cruise Offline Casino Package card on the landing page.
+
+    WHY ITS OWN MODEL AND NOT A TourPackage ROW. A tour package is a price
+    tier: name, price, and a fixed set of yes/no inclusions rendered as one
+    row of a comparison table. The cruise card is a different shape entirely —
+    an editorial block with its own media carousel, a grid of labelled
+    detail rows and a free-form checklist — and squeezing it into the tour
+    schema would have meant a dozen nullable columns that mean nothing for
+    every other row in that table.
+
+    PLURAL ON PURPOSE. The page shows one card today, but the whole point of
+    moving this out of the JSX is that an admin can add a second (a different
+    route, a seasonal sailing) without a developer. `is_active` and `order`
+    behave exactly as they do on every other landing model.
+
+    The repeating parts are split by how structured they are: `details` and
+    `media` are real child tables because their rows have several fields
+    each, while `highlights` and `inclusions` are plain lists of strings and
+    live in JSON columns — the same call GiftItem.perks and Promotion.benefits
+    already make, and what the Back Office's "one per line" field type
+    expects.
+    """
+
+    eyebrow_text = models.CharField(
+        max_length=120, blank=True,
+        help_text="Small pill above the card, e.g. 'Limited Availability · Exclusive Experience'.",
+    )
+    title    = models.CharField(max_length=120)
+    subtitle = models.CharField(max_length=200, blank=True)
+
+    # Lucide icon name, resolved against the frontend's own map. An unknown
+    # name falls back to a neutral icon rather than breaking the section.
+    icon_name    = models.CharField(max_length=40, default="Ship")
+    accent_color = models.CharField(max_length=20, default="#22d3ee")
+
+    # Short pills under the title.
+    highlights = models.JSONField(default=list, blank=True)
+    # The ticked checklist lower down the card.
+    inclusions = models.JSONField(default=list, blank=True)
+
+    cta_text = models.CharField(max_length=120, blank=True)
+    # Which EnquiryMessage row supplies the WhatsApp text. Kept as a key
+    # rather than the message itself so the wording stays editable in the one
+    # place every other enquiry button already reads from.
+    enquiry_key = models.CharField(max_length=60, default="cruise_package")
+
+    is_active  = models.BooleanField(default=True, db_index=True)
+    order      = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["order", "id"]
+
+    def __str__(self):
+        return self.title
+
+
+class CruisePackageDetail(models.Model):
+    """One labelled cell of the cruise card's details grid, e.g.
+    Transport / Luxury Cruise Ship."""
+
+    package   = models.ForeignKey(CruisePackage, on_delete=models.CASCADE, related_name="details")
+    icon_name = models.CharField(max_length=40, default="Ship")
+    label     = models.CharField(max_length=60)
+    value     = models.CharField(max_length=120)
+    order     = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order", "id"]
+
+    def __str__(self):
+        return f"{self.label}: {self.value}"
+
+
+class CruisePackageMedia(models.Model):
+    """A slide in the cruise card's auto-scrolling strip.
+
+    Mirrors DestinationMedia rather than inventing a second shape for the
+    same idea: a file, what kind it is, an optional caption and a sort order.
+    """
+
+    MEDIA_TYPE_CHOICES = [("image", "Image"), ("video", "Video")]
+
+    package    = models.ForeignKey(CruisePackage, on_delete=models.CASCADE, related_name="media")
+    media      = models.FileField(upload_to="landing/cruise-packages/", max_length=255)
+    media_type = models.CharField(max_length=10, choices=MEDIA_TYPE_CHOICES, default="image")
+    label      = models.CharField(max_length=150, blank=True)
+    order      = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["order", "id"]
+
+    def __str__(self):
+        return f"{self.package_id} — {self.label or self.media_type}"

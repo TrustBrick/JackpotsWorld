@@ -11,7 +11,7 @@ import { motion } from "framer-motion";
 import {
   Settings, BarChart3, Sparkles, ShieldCheck, Gift, ListOrdered,
   Crown, ListChecks, Quote, MapPin, Images, GalleryHorizontal, Plane, Star,
-  Clapperboard, MessageSquare, Gem,
+  Clapperboard, MessageSquare, Gem, Ship,
 } from "lucide-react";
 import { useAdminTheme } from "../../context/AdminThemeContext";
 
@@ -31,6 +31,7 @@ import DestinationMediaManageTab from "./DestinationMediaManageTab";
 import FeaturedDestinationShowcaseManageTab from "./FeaturedDestinationShowcaseManageTab";
 import VipServiceImagesManageTab from "./VipServiceImagesManageTab";
 import TourPackagesManageTab from "./TourPackagesManageTab";
+import CruisesManageTab from "./CruisesManageTab";
 import ExperiencesManageTab from "./ExperiencesManageTab";
 
 const SUB_TABS = [
@@ -51,6 +52,11 @@ const SUB_TABS = [
   { id: "destshowcase", label: "Featured Showcase", Icon: Clapperboard,    Comp: FeaturedDestinationShowcaseManageTab },
   { id: "vipgallery", label: "VIP Gallery",       Icon: GalleryHorizontal, Comp: VipServiceImagesManageTab },
   { id: "packages",   label: "Tour Packages",     Icon: Plane,             Comp: TourPackagesManageTab },
+  // CRUISES: the highlighted card under the tour packages. It is a parent
+  // row plus two child tables, but all three are pills INSIDE this one tab
+  // rather than three entries in this list — three nav entries for one card
+  // buried the unrelated tabs around them.
+  { id: "cruises",    label: "Cruises",           Icon: Ship,              Comp: CruisesManageTab },
   // EXPERIENCES: the four non-casino pillars of the public page (luxury
   // travel, stays, dining, concierge). One model with a category, so one tab
   // covers all four. The leads their enquiry forms capture are NOT here any

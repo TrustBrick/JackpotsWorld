@@ -9,6 +9,7 @@ from authapp.models.landing_models import (
     GiftItem, GiftStep, VipTier, VipTierBenefit, Testimonial,
     Destination, DestinationMedia, VipServiceImage, TourPackage,
     PremiumPartner, SectionMedia, FeaturedDestinationShowcase,
+    CruisePackage, CruisePackageDetail, CruisePackageMedia,
 )
 from authapp.serializers.landing_serializers import (
     EnquiryMessageSerializer, PublicEnquiryMessageSerializer,
@@ -20,6 +21,7 @@ from authapp.serializers.landing_serializers import (
     TourPackageSerializer,
     FeaturedDestinationShowcaseSerializer,
     PublicFeaturedDestinationShowcaseSerializer,
+    CruisePackageSerializer, CruisePackageDetailSerializer, CruisePackageMediaSerializer,
 )
 from authapp.permissions.super_admin_permissions import IsAdminOrSuperAdmin
 
@@ -207,6 +209,16 @@ class TourPackageListView(APIView):
         return Response(TourPackageSerializer(qs, many=True, context={"request": request}).data)
 
 
+class CruisePackageListView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        # prefetch because the serializer nests both child sets; without it
+        # each card costs two extra queries.
+        qs = CruisePackage.objects.filter(is_active=True).prefetch_related("details", "media")
+        return Response(CruisePackageSerializer(qs, many=True, context={"request": request}).data)
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Admin-managed CRUD (Admin Panel "Landing Page")
 # ─────────────────────────────────────────────────────────────────────────────
@@ -284,6 +296,9 @@ AdminVipServiceImageListCreateView, AdminVipServiceImageDetailView = _admin_crud
 AdminTourPackageListCreateView, AdminTourPackageDetailView = _admin_crud_views(TourPackage, TourPackageSerializer)
 AdminPremiumPartnerListCreateView, AdminPremiumPartnerDetailView = _admin_crud_views(PremiumPartner, PremiumPartnerSerializer)
 AdminFeaturedDestinationShowcaseListCreateView, AdminFeaturedDestinationShowcaseDetailView = _admin_crud_views(FeaturedDestinationShowcase, FeaturedDestinationShowcaseSerializer)
+AdminCruisePackageListCreateView, AdminCruisePackageDetailView = _admin_crud_views(CruisePackage, CruisePackageSerializer, prefetch=["details", "media"])
+AdminCruisePackageDetailRowListCreateView, AdminCruisePackageDetailRowDetailView = _admin_crud_views(CruisePackageDetail, CruisePackageDetailSerializer)
+AdminCruisePackageMediaListCreateView, AdminCruisePackageMediaDetailView = _admin_crud_views(CruisePackageMedia, CruisePackageMediaSerializer)
 
 
 class _SectionMediaAdminListCreateBase(generics.ListCreateAPIView):

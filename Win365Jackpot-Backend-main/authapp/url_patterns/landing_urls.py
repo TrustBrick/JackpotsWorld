@@ -23,6 +23,9 @@ public_urlpatterns = [
     path("section-media/", v.SectionMediaListView.as_view()),
     path("vip-service-images/", v.VipServiceImageListView.as_view()),
     path("tour-packages/", v.TourPackageListView.as_view()),
+    # The Cruise Offline Casino Package card. Its detail rows and media
+    # slides arrive nested in this payload, so they need no public route.
+    path("cruise-packages/", v.CruisePackageListView.as_view()),
     # The prefilled WhatsApp text for each enquiry button. Public because it is
     # the message the visitor is about to send themselves.
     path("enquiry-messages/", v.EnquiryMessageListView.as_view()),
@@ -80,4 +83,14 @@ admin_urlpatterns = [
 
     path("tour-packages/", v.AdminTourPackageListCreateView.as_view()),
     path("tour-packages/<int:pk>/", v.AdminTourPackageDetailView.as_view()),
+
+    # Cruise package: the card itself, then its two child tables. Split the
+    # same way Destination/DestinationMedia and VipTier/VipTierBenefit are,
+    # so each gets an ordinary Back Office table.
+    path("cruise-packages/", v.AdminCruisePackageListCreateView.as_view()),
+    path("cruise-packages/<int:pk>/", v.AdminCruisePackageDetailView.as_view()),
+    path("cruise-package-details/", v.AdminCruisePackageDetailRowListCreateView.as_view()),
+    path("cruise-package-details/<int:pk>/", v.AdminCruisePackageDetailRowDetailView.as_view()),
+    path("cruise-package-media/", v.AdminCruisePackageMediaListCreateView.as_view()),
+    path("cruise-package-media/<int:pk>/", v.AdminCruisePackageMediaDetailView.as_view()),
 ]

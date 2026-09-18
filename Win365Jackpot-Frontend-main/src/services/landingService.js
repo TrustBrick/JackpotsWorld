@@ -54,6 +54,11 @@ export const fetchPremiumPartners   = cached("/api/premium-partners/")
 export const fetchSectionMedia      = cached("/api/section-media/")
 export const fetchVipServiceImages  = cached("/api/vip-service-images/")
 export const fetchTourPackages      = cached("/api/tour-packages/")
+// The Cruise Offline Casino Package card. Its detail rows and media slides
+// come nested in this one payload, so the section needs no second request.
+// Active rows only, in `order`. An empty array is a normal answer — the
+// section renders nothing rather than an empty card.
+export const fetchCruisePackages    = cached("/api/cruise-packages/")
 // Back-Office-managed FAQ entries. Call as fetchFaqs({ category: "landing" })
 // or { category: "affiliate" } -- the category is part of the cache key, so
 // the landing page and the Affiliates page never collide. Returns active rows

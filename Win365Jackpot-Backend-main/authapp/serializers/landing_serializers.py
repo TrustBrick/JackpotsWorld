@@ -5,6 +5,7 @@ from authapp.models.landing_models import (
     GiftItem, GiftStep, VipTier, VipTierBenefit, Testimonial,
     Destination, DestinationMedia, VipServiceImage, TourPackage,
     PremiumPartner, SectionMedia, FeaturedDestinationShowcase,
+    CruisePackage, CruisePackageDetail, CruisePackageMedia,
 )
 from authapp.utils.file_validation import validate_uploaded_image, validate_uploaded_video
 
@@ -368,3 +369,74 @@ class PublicEnquiryMessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = EnquiryMessage
         fields = ["key", "template", "placeholders"]
+
+
+class CruisePackageDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CruisePackageDetail
+        fields = ["id", "package", "icon_name", "label", "value", "order"]
+        read_only_fields = ["id"]
+
+
+class CruisePackageMediaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CruisePackageMedia
+        fields = ["id", "package", "media", "media_type", "label", "order", "created_at"]
+        read_only_fields = ["id", "created_at"]
+
+    def validate(self, attrs):
+        # Same two-field problem DestinationMediaSerializer has: which
+        # validator applies depends on the sibling media_type, and a PATCH
+        # carrying only a new file has to fall back to the saved one.
+        media_file = attrs.get("media")
+        if media_file:
+            media_type = attrs.get("media_type") or getattr(self.instance, "media_type", "image")
+            if media_type == "video":
+                validate_uploaded_video(media_file)
+            else:
+                validate_uploaded_image(media_file)
+        return attrs
+
+
+class CruisePackageSerializer(serializers.ModelSerializer):
+    is_active = serializers.BooleanField(default=True, required=False)
+    details = CruisePackageDetailSerializer(many=True, read_only=True)
+    media = CruisePackageMediaSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = CruisePackage
+        fields = [
+            "id", "eyebrow_text", "title", "subtitle", "icon_name", "accent_color",
+            "highlights", "inclusions", "cta_text", "enquiry_key",
+            "details", "media",
+            "is_active", "order", "created_at", "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+    def _clean_lines(self, value, field_name):
+        """`highlights` and `inclusions` are plain lists of non-empty strings.
+
+        The Back Office sends them as a JSON array built from a textarea, so
+        blank lines and stray whitespace are the normal case rather than an
+        error — they are dropped. Anything that is not a list of scalars is
+        rejected outright, because storing a dict in here would render as
+        [object Object] on the public page.
+        """
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            raise serializers.ValidationError({field_name: "Expected a list of lines."})
+        cleaned = []
+        for entry in value:
+            if isinstance(entry, (dict, list)):
+                raise serializers.ValidationError({field_name: "Each line must be plain text."})
+            text = str(entry).strip()
+            if text:
+                cleaned.append(text)
+        return cleaned
+
+    def validate_highlights(self, value):
+        return self._clean_lines(value, "highlights")
+
+    def validate_inclusions(self, value):
+        return self._clean_lines(value, "inclusions")

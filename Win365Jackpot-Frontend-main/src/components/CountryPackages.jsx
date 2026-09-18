@@ -26,10 +26,11 @@ import {
 
 import { useAutoFetch } from '../hooks/useAutoFetch'
 import { flagIconUrl, KNOWN_COUNTRY_CODES } from '../utils/countryFlags'
-import { fetchDestinations, fetchVipServiceImages, fetchTourPackages } from '../services/landingService'
+import { fetchDestinations, fetchVipServiceImages, fetchTourPackages, fetchCruisePackages } from '../services/landingService'
 import { flagFromCountryCode } from '../utils/countryFlags'
 import useEnquiryNumber from '../hooks/useEnquiryNumber'
 import { buildWhatsAppLink } from '../services/enquiryContact'
+import CruisePackageCard from './CruisePackageCard'
 import useEnquiryMessage, { renderEnquiryTemplate } from '../hooks/useEnquiryMessage'
 
 // Enquiry routing is decided by the visitor's country (Sri Lanka vs everywhere
@@ -545,91 +546,6 @@ function VIPServicesGallery() {
     </section>
   )
 }
-const CRUISE_IMAGES = [
-  // { src: '/assets/images/vip/luxury-cruise.jpg', label: 'Luxury Cruise Ship'      },
-  // { src: '/assets/images/vip/private-boat.jpg',  label: 'Private Deck Experience' },
-  // { src: '/assets/images/cruise-casino.jpg',     label: 'Onboard Casino Floor'    },
-  { src: '/assets/images/vip/msc-cruise.jpg',      label: ' '        },
-  { src: '/assets/images/vip/star-cruises.jpg',     label: ' '      },
-  // { src: '/assets/images/cruise-pool.jpg',       label: 'Sky Deck & Pool'         },
-]
-
-function CruiseCarousel() {
-  const [idx, setIdx] = useState(0)
-  const timerRef = useRef(null)
-
-  useEffect(() => {
-    timerRef.current = setInterval(() => {
-      setIdx(p => (p + 1) % CRUISE_IMAGES.length)
-    }, 3000)
-    return () => clearInterval(timerRef.current)
-  }, [])
-
-  const jump = (i) => {
-    setIdx(i)
-    clearInterval(timerRef.current)
-    timerRef.current = setInterval(() => {
-      setIdx(p => (p + 1) % CRUISE_IMAGES.length)
-    }, 3000)
-  }
-
-  return (
-    <div style={{ position: 'relative', height: 'clamp(220px,45vw,400px)', overflow: 'hidden' }}>
-      <AnimatePresence mode="wait">
-        <motion.img
-          key={idx}
-          src={CRUISE_IMAGES[idx].src}
-          alt={CRUISE_IMAGES[idx].label}
-          initial={{ opacity: 0, scale: 1.04 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.97 }}
-          transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-        />
-      </AnimatePresence>
-
-      {/* Gradient overlay */}
-      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 50%)' }} />
-
-      {/* Caption + dots */}
-      <div style={{ position: 'absolute', bottom: 12, left: 14, right: 14, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 }}>
-        <span style={{
-          fontSize: 'clamp(0.7rem,2.5vw,0.82rem)', fontWeight: 600, color: '#fff',
-          background: 'rgba(0,0,0,0.45)', padding: '3px 10px', borderRadius: 6,
-        }}>
-          {CRUISE_IMAGES[idx].label}
-        </span>
-        <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-          {CRUISE_IMAGES.map((_, i) => (
-            <button key={i} onClick={() => jump(i)} style={{
-              padding: 0, border: 'none', cursor: 'pointer',
-              borderRadius: i === idx ? 4 : '50%',
-              width: i === idx ? 18 : 6, height: 6,
-              background: i === idx ? '#22d3ee' : 'rgba(255,255,255,0.3)',
-              transition: 'all 0.25s', touchAction: 'manipulation',
-            }} />
-          ))}
-        </div>
-      </div>
-
-      {/* Prev / Next */}
-      {[
-        { label: '‹', fn: () => jump((idx - 1 + CRUISE_IMAGES.length) % CRUISE_IMAGES.length), side: { left: 10 } },
-        { label: '›', fn: () => jump((idx + 1) % CRUISE_IMAGES.length), side: { right: 10 } },
-      ].map(a => (
-        <button key={a.label} onClick={a.fn} style={{
-          position: 'absolute', top: '50%', transform: 'translateY(-50%)', ...a.side,
-          width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,0.5)',
-          border: '1px solid rgba(255,255,255,0.2)', color: '#fff',
-          fontSize: '1.2rem', cursor: 'pointer', display: 'flex',
-          alignItems: 'center', justifyContent: 'center', touchAction: 'manipulation',
-        }}>
-          {a.label}
-        </button>
-      ))}
-    </div>
-  )
-}
 
 
 /* ── PACKAGE CARDS SECTION — mobile-first ── */
@@ -700,7 +616,10 @@ function mapTourPackage(p) {
 function PackagesSection() {
   const { ref: inViewRef, inView } = useInView({ threshold: 0.05, triggerOnce: true })
   const whatsappNumber = useWhatsAppNumber()
-  const cruiseMsg = useEnquiryMessage('cruise_package')
+  // The cruise card(s). Its detail rows and media slides arrive nested in
+  // this one payload, so the card needs no second request of its own.
+  const { data: cruiseData } = useAutoFetch(fetchCruisePackages, {}, { intervalMs: 0 })
+  const cruisePackages = Array.isArray(cruiseData) ? cruiseData : []
   const { data: packagesData } = useAutoFetch(fetchTourPackages, {}, { intervalMs: 60_000 })
   const PACKAGES = (Array.isArray(packagesData) && packagesData.length > 0 ? packagesData : FALLBACK_PACKAGES).map(mapTourPackage)
 
@@ -834,206 +753,15 @@ function PackagesSection() {
         </div>
 
 
-        {/* ── CRUISE CASINO PACKAGE — special highlighted card ── */}
-  
-<motion.div
-  initial={{ opacity: 0, y: 40 }}
-  animate={inView ? { opacity: 1, y: 0 } : {}}
-  transition={{ duration: 0.7, delay: 0.3 }}
-  style={{ marginTop: 48, maxWidth: 820, marginLeft: 'auto', marginRight: 'auto' }}
->
-  {/* Label above */}
-  <div style={{ textAlign: 'center', marginBottom: 16 }}>
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 6,
-      fontSize: 'clamp(0.6rem,2.2vw,0.7rem)',
-      letterSpacing: '0.18em', textTransform: 'uppercase',
-      color: 'rgba(34,211,238,0.7)', border: '1px solid rgba(34,211,238,0.25)',
-      borderRadius: 50, padding: '4px 16px',
-    }}>
-      <Anchor size={11} color="rgba(34,211,238,0.7)" />
-      Limited Availability · Exclusive Experience
-    </span>
-  </div>
-
-  <div style={{
-    borderRadius: 20,
-    border: '1px solid rgba(34,211,238,0.35)',
-    background: 'rgba(34,211,238,0.03)',
-    overflow: 'hidden',
-    boxShadow: '0 0 60px rgba(34,211,238,0.08)',
-  }}>
-    {/* Auto-scrolling image strip */}
-    <CruiseCarousel />
-
-    {/* Content */}
-    <div style={{ padding: 'clamp(20px,5vw,36px) clamp(18px,5vw,40px)' }}>
-
-      {/* Header row */}
-      <div style={{
-        display: 'flex', alignItems: 'flex-start',
-        justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: 20,
-      }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-            <div style={{
-              width: 52, height: 52, borderRadius: 14, flexShrink: 0,
-              background: 'rgba(34,211,238,0.08)',
-              border: '1px solid rgba(34,211,238,0.25)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <Ship size={26} color="#22d3ee" strokeWidth={1.5} />
-            </div>
-            <div>
-              <div style={{
-                fontSize: 'clamp(1.2rem,5vw,1.7rem)', fontWeight: 900,
-                color: '#22d3ee', lineHeight: 1,
-              }}>
-                Cruise Offline Casino Package
-              </div>
-              <div style={{
-                fontSize: 'clamp(0.65rem,2.2vw,0.75rem)',
-                color: 'rgba(var(--w365-text-rgb),0.60)', marginTop: 4, fontStyle: 'italic',
-              }}>
-                International Waters · Casino at Sea · Full Luxury Experience
-              </div>
-            </div>
-          </div>
-
-          {/* Route pills */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-            {['Luxury gaming experience at Cruise Casinos all over the World'].map(r => (
-              <span key={r} style={{
-                display: 'inline-flex', alignItems: 'center', gap: 5,
-                fontSize: 'clamp(0.62rem,2vw,0.72rem)', padding: '3px 10px', borderRadius: 20,
-                background: 'rgba(34,211,238,0.08)', border: '1px solid rgba(34,211,238,0.2)',
-                color: 'rgba(34,211,238,0.8)',
-              }}>
-                <Waves size={10} color="rgba(34,211,238,0.8)" />
-                {r}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Divider */}
-      <div style={{ borderTop: '1px solid rgba(34,211,238,0.12)', marginBottom: 20 }} />
-
-      {/* Details grid */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%,220px),1fr))',
-        gap: 14, marginBottom: 24,
-      }}>
-        {[
-          { icon: <Ship            size={18} color="#22d3ee" strokeWidth={1.5} />, label: 'Transport',     val: 'Luxury Cruise Ship'         },
-          { icon: <Bed             size={18} color="#22d3ee" strokeWidth={1.5} />, label: 'Cabin',         val: 'Ocean View / Suite Cabin'   },
-          { icon: <UtensilsCrossed size={18} color="#22d3ee" strokeWidth={1.5} />, label: 'Dining',        val: 'All-inclusive Fine Dining'  },
-          { icon: <Wine            size={18} color="#22d3ee" strokeWidth={1.5} />, label: 'Drinks',        val: 'Unlimited Premium Bar'      },
-          { icon: <Coins           size={18} color="#22d3ee" strokeWidth={1.5} />, label: 'Offline Casino', val: 'Onboard Casino (24/7)'      },
-          { icon: <Drama           size={18} color="#22d3ee" strokeWidth={1.5} />, label: 'Entertainment', val: 'Live Shows & Nightclub'     },
-          { icon: <Sparkles        size={18} color="#22d3ee" strokeWidth={1.5} />, label: 'Spa',           val: 'Full Spa & Wellness Centre' },
-          { icon: <Waves           size={18} color="#22d3ee" strokeWidth={1.5} />, label: 'Amenities',     val: 'Pool, Gym, Sun Deck'        },
-        ].map((row, j) => (
-          <div key={j} style={{
-            display: 'flex', alignItems: 'flex-start', gap: 10,
-            padding: '10px 12px', borderRadius: 10,
-            background: 'rgba(255,255,255,0.02)',
-            border: '1px solid rgba(34,211,238,0.08)',
-          }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-              background: 'rgba(34,211,238,0.06)',
-              border: '1px solid rgba(34,211,238,0.12)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              {row.icon}
-            </div>
-            <div>
-              <div style={{
-                fontSize: '0.62rem', color: 'rgba(var(--w365-text-rgb),0.50)',
-                textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2,
-              }}>
-                {row.label}
-              </div>
-              <div style={{
-                fontSize: 'clamp(0.72rem,2.5vw,0.8rem)',
-                color: 'rgba(var(--w365-text-rgb),0.72)', fontWeight: 500,
-              }}>
-                {row.val}
-              </div>
-            </div>
-          </div>
+        {/* ── CRUISE CASINO PACKAGE ──
+            Back Office content now (authapp.CruisePackage). Every string,
+            icon, detail row, checklist line and carousel slide used to be a
+            literal in this file; the card itself lives in CruisePackageCard.
+            Renders nothing when no package is active, rather than an empty
+            frame — the same contract the rest of this section follows. */}
+        {cruisePackages.map(pkg => (
+          <CruisePackageCard key={pkg.id} pkg={pkg} inView={inView} />
         ))}
-      </div>
-
-      {/* Inclusions checklist */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%,180px),1fr))',
-        gap: 8, marginBottom: 28,
-      }}>
-        {[
-          'Casino Credits Arranged With Venue',
-          'VIP Boarding Lounge',
-          'Port Excursions',
-          'Professional Dealer Tables',
-          'High Roller Rooms',
-          'Jackpot Rewards Program',
-          'Onboard Photography',
-          '24/7 Concierge',
-        ].map((item, j) => (
-          <div key={j} style={{
-            display: 'flex', alignItems: 'center', gap: 7,
-            fontSize: 'clamp(0.68rem,2.5vw,0.76rem)',
-            color: 'rgba(var(--w365-text-rgb),0.80)',
-          }}>
-            <CheckCircle2 size={14} color="#22d3ee" strokeWidth={2.5} style={{ flexShrink: 0 }} />
-            {item}
-          </div>
-        ))}
-      </div>
-
-      {/* CTA */}
-      <div style={{ maxWidth: 380, margin: '0 auto' }}>
-  <a
-    href={buildWhatsAppLink(whatsappNumber, cruiseMsg)}
-    target="_blank"
-    rel="noopener noreferrer"
-    style={{ display: 'block', textDecoration: 'none' }}
-  >
-    <motion.button
-      whileHover={{ scale: 1.04, boxShadow: '0 0 30px rgba(37,211,102,0.5)' }}
-      whileTap={{ scale: 0.97 }}
-      style={{
-        width: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        padding: '13px 20px',
-        borderRadius: 50,
-        background: 'linear-gradient(135deg,#25D366,#128C7E)',
-        border: 'none',
-        color: '#fff',
-        fontWeight: 700,
-        fontSize: 'clamp(0.75rem,3vw,0.85rem)',
-        letterSpacing: '0.06em',
-        textTransform: 'uppercase',
-        cursor: 'pointer',
-      }}
-    >
-      <Ship size={16} color="white" />
-      <MessageCircle size={16} color="white" />
-      Enquire – Cruise Offline Casino Package
-    </motion.button>
-  </a>
-</div>
-
-    </div>
-  </div>
-</motion.div>
 
         {/* Bottom CTA */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.7, delay: 0.5 }}
