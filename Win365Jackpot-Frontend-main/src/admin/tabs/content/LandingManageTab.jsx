@@ -51,8 +51,11 @@ const SUB_TABS = [
   // per-destination gallery, this is the promotional landing-page block.
   { id: "destshowcase", label: "Featured Showcase", Icon: Clapperboard,    Comp: FeaturedDestinationShowcaseManageTab },
   { id: "vipgallery", label: "VIP Gallery",       Icon: GalleryHorizontal, Comp: VipServiceImagesManageTab },
-  { id: "packages",   label: "Tour Packages",     Icon: Plane,             Comp: TourPackagesManageTab },
-  // CRUISES: the highlighted card under the tour packages. It is a parent
+  // "Casino Packages", matching the public heading this tab edits. The
+  // component, the model and the /api/admin-panel/tour-packages/ path keep
+  // their names — only the label a Back Office user reads changed.
+  { id: "packages",   label: "Casino Packages",   Icon: Plane,             Comp: TourPackagesManageTab },
+  // CRUISES: the highlighted card under the casino packages. It is a parent
   // row plus two child tables, but all three are pills INSIDE this one tab
   // rather than three entries in this list — three nav entries for one card
   // buried the unrelated tabs around them.
