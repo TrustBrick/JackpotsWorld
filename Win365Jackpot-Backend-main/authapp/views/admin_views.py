@@ -577,6 +577,12 @@ class AdminActivityLogView(APIView):
             "admin_login", "admin_logout",
             "staff_created", "notification_sent",
             "rolling_points_added",
+            # FULL-ADMIN-AUDIT: the catch-all verbs written by
+            # middleware/admin_audit.py for admin requests no view described
+            # itself. Without these the filter would answer "what did the
+            # admins do?" with only the fraction of endpoints that log by
+            # hand — which is the gap the middleware was added to close.
+            "admin_create", "admin_update", "admin_delete", "admin_action",
         ]
 
         if log_type == "user":

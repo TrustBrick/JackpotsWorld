@@ -238,7 +238,7 @@ POST /api/admin-panel/affiliates/grant/  (admin)
 | `authapp_user` | `User` | `id` | `user_uid`(u), `email`(u), `name`, `country`, `phone`, `vip_level`, `wallet_balance`, `bonus_balance`, `total_deposited/withdrawn/won`, `rolling_points_total`, `referral_code`(u), `referral_count`, `kyc_status`, `is_verified/active/staff`, `date_joined`, `last_login*` | `referred_by → User` (self, SET_NULL) |
 | `authapp_adminprofile` | `AdminProfile` | `id` | `role`, `mobile`, `department`, `can_edit_users/manage_finance/approve_kyc/send_notifs/manage_vip`, `is_active`, `theme_preference` | `user → User` (O2O, CASCADE) |
 | `authapp_otprecord` | `OTPRecord` | `id` | `email`, `phone`, `otp`, `mode`, `is_used`, `expires_at` | none |
-| `authapp_activitylog` | `ActivityLog` | `id` | `action`(60+ choices), `description`, `amount`, `cr_dr`, `wallet_type`, `before/after_balance`, `meta`(JSON), `ip_address` | `actor → User`(SET_NULL), `target_user → User`(SET_NULL) |
+| `authapp_activitylog` | `ActivityLog` | `id` | `action`(70+ choices), `description`, `amount`, `cr_dr`, `wallet_type`, `before/after_balance`, `meta`(JSON), `ip_address`, `endpoint`, `method`, `actor_type`, `status_code` | `actor → User`(SET_NULL), `target_user → User`(SET_NULL) |
 | `authapp_pendingadmincreation` | `PendingAdminCreation` | `id` | `email`(u), `password`, `role`, `otp`, `expires_at` | `initiated_by → User`(SET_NULL) |
 
 *u = unique constraint*
@@ -392,7 +392,10 @@ Email/SMS OTP              → authapp_otprecord
 Support tickets           → authapp_supportticket / authapp_supportsettings
 Responsible gambling      → authapp_responsiblegamblingsettings
 Notifications             → authapp_notification
-Activity / audit log      → authapp_activitylog
+Activity / audit log      → authapp_activitylog   (every admin write; see
+                             authapp/middleware/admin_audit.py — the Back
+                             Office page for reading it was removed, the
+                             recording was widened to all endpoints)
 Marketing lead form       → authapp_registration   (⚠ NOT user signup — see correction banner)
 Supported locations       → authapp_supportedlocation
 Casino catalog            → authapp_casino

@@ -26,11 +26,15 @@ import AnalyticsDiagnosticTab from "./analytics/AnalyticsDiagnosticTab";
  * still counts the same url_click events -- see the note in
  * services/analytics_service.py for what stayed and why.
  *
- * Deliberately distinct from Activity Logs (tabs/LogsTab.jsx). That page is
- * the who-did-what audit trail — User Logs and Admin Logs — and answers
- * questions about people. This one answers questions about the system:
- * traffic, campaigns, links, media, engagement. They stay two destinations
- * because they are two different questions.
+ * This page answers questions about the system: traffic, campaigns, links,
+ * media, engagement.
+ *
+ * It used to be paired with an Activity Logs destination (tabs/LogsTab.jsx)
+ * that answered the other question — who did what. That page was removed on
+ * request; the who-did-what trail is now kept as a database record only, and
+ * is written for every admin action rather than the subset of endpoints that
+ * logged by hand (authapp/middleware/admin_audit.py). LogsTab.jsx is still in
+ * the tree, unwired, so the screen can come back without rebuilding it.
  *
  * The panel is kept mounted-on-demand (only the active tab renders), so
  * switching tabs does not leave every other panel's requests running behind

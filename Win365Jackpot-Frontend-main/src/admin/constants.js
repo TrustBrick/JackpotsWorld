@@ -198,16 +198,18 @@ export const ADMIN_NAV_GROUPS = [
       // { id:"staff", label:"Staff", icon:"UserCog" },
     ],
   },
-  {
-    // Deliberately its own group, and deliberately not merged into System
-    // Logs above: Activity Logs is the who-did-what audit trail (User Logs /
-    // Admin Logs) and answers questions about people, where System Logs
-    // answers questions about the system.
-    group: "Activity / Logs",
-    items: [
-      { id:"logs", label:"Activity Logs", icon:"Activity" },
-    ],
-  },
+  // ACTIVITY-LOGS: the "Activity / Logs" group was removed from this list on
+  // request, the same way EMAIL-LOGS was above and for the same reason — the
+  // who-did-what trail is wanted as a database record, not as a screen.
+  //
+  // Nothing behind it was taken out. tabs/LogsTab.jsx is kept, unwired, and
+  // /api/admin-panel/activity-logs/ still serves it, so restoring the page is
+  // this group plus its case in AdminPanel.jsx.
+  //
+  // The recording side went the other way and got *wider*: every admin write
+  // is now logged by authapp/middleware/admin_audit.py, not just the ~95
+  // endpoints that remembered to. Removing the screen removed a way to read
+  // the trail; it did not remove the trail.
 ];
 
 // Flat list derived from the groups above — kept as ADMIN_TABS so every

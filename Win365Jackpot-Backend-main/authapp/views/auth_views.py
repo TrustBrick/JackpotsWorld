@@ -264,11 +264,21 @@ class LogoutView(APIView):
         # Drop the inactivity record so the next login starts from a clean
         # slate rather than inheriting this session's last-seen time.
         session_activity.clear(request.user.id)
+        # Staff log out as "admin_logout", players as "logout". The login side
+        # has always made this distinction ("admin_login" vs "login") and
+        # AdminActivityLogView's ADMIN_ACTIONS filter has always asked for
+        # "admin_logout" — but nothing wrote it, so every admin sign-out was
+        # filed as player activity and the Admin Logs view showed sessions
+        # that began and never ended.
+        is_admin = bool(getattr(request.user, "is_staff", False))
         ActivityLog.log(
-            action="logout",
+            action="admin_logout" if is_admin else "logout",
             actor=request.user,
             target_user=request.user,
-            description="User logged out",
+            actor_type="admin" if is_admin else "user",
+            description="Admin logged out" if is_admin else "User logged out",
+            endpoint=request.path[:255],
+            method=request.method,
             ip_address=get_client_ip(request),
             user_agent=get_ua(request),
         )

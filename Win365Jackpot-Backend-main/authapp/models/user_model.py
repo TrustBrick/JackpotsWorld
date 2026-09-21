@@ -11,6 +11,8 @@ from django.db import models
 from django.utils import timezone
 from django.conf import settings
 
+from authapp.utils import audit_context
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # UID / Referral helpers
@@ -324,6 +326,23 @@ class ActivityLog(models.Model):
         # Bonus Wheel and granting it to a target audience.
         ("wheel_bonus_wheel_created", "Bonus Wheel Created Or Edited"),
         ("wheel_bonus_assigned", "Bonus Wheel Assigned To Players"),
+        # Written by admin_kyc_views/admin_views (ban) and the offline deposit
+        # views (rolling points) since long before this list caught up with
+        # them. They were always in AdminActivityLogView's ADMIN_ACTIONS
+        # filter, so the rows were being read back by label while the label
+        # itself was missing here; metadata-only, no data migration.
+        ("user_banned", "User Banned"),
+        ("user_unbanned", "User Unbanned"),
+        ("rolling_points_added", "Rolling Points Added"),
+        # FULL-ADMIN-AUDIT: the catch-all verbs written by
+        # middleware/admin_audit.py for any admin request that no view
+        # described itself. Deliberately coarse — the endpoint, method,
+        # payload and status live on the row's own fields, so these only have
+        # to say which kind of change it was.
+        ("admin_create", "Admin Created A Record"),
+        ("admin_update", "Admin Updated A Record"),
+        ("admin_delete", "Admin Deleted A Record"),
+        ("admin_action", "Admin Action"),
         ("other", "Other"),
     ]
 
@@ -357,7 +376,35 @@ class ActivityLog(models.Model):
     meta           = models.JSONField(default=dict, blank=True)
     ip_address     = models.GenericIPAddressField(null=True, blank=True)
     user_agent     = models.TextField(null=True, blank=True)
+
+    # FULL-ADMIN-AUDIT: request-shaped columns.
+    #
+    # `endpoint` and `actor_type` are NOT new arguments — log() has accepted
+    # both since it was written and silently dropped them on the floor,
+    # because create() below was never given them. Four call sites
+    # (reward_views, user_views x3) have been passing them all along into
+    # nothing. They are columns now, so those calls start recording what they
+    # always meant to.
+    endpoint    = models.CharField(max_length=255, null=True, blank=True)
+    method      = models.CharField(max_length=10, null=True, blank=True)
+    actor_type  = models.CharField(max_length=20, null=True, blank=True)
+    status_code = models.PositiveSmallIntegerField(null=True, blank=True)
+
     created_at     = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        # The audit trail is only ever read newest-first, and is filtered by
+        # actor, by target or by action (AdminActivityLogView, the per-user
+        # ban history in admin_kyc_views). Once the middleware is writing a
+        # row per admin request this table becomes the busiest one on the
+        # platform, so those three reads get an index each rather than a
+        # growing sequential scan.
+        indexes = [
+            models.Index(fields=["-created_at"], name="actlog_created_idx"),
+            models.Index(fields=["actor", "-created_at"], name="actlog_actor_idx"),
+            models.Index(fields=["target_user", "-created_at"], name="actlog_target_idx"),
+            models.Index(fields=["action", "-created_at"], name="actlog_action_idx"),
+        ]
 
     def __str__(self):
         return f"{self.action} | {self.target_user} | {self.created_at.strftime('%Y-%m-%d %H:%M')}"
@@ -370,20 +417,36 @@ class ActivityLog(models.Model):
         casino_name=None, description=None,
         reference_id=None, meta=None,
         ip_address=None, user_agent=None,
-        endpoint=None, actor_type=None,
+        endpoint=None, actor_type=None, method=None, status_code=None,
     ):
         if amount is not None and amount < 0:
             amount = abs(amount)
         if amount and before_balance is not None and after_balance is not None and not cr_dr:
             cr_dr = "CR" if after_balance > before_balance else "DR"
-        return cls.objects.create(
+
+        # An actor that wasn't named explicitly still tells us what it was, so
+        # derive it rather than leaving the column null: every row can then be
+        # split into staff vs player activity without joining back to the user
+        # table and re-deriving is_staff (which would read the actor's
+        # privileges *now*, not at the time they acted).
+        if actor_type is None and actor is not None:
+            actor_type = "admin" if getattr(actor, "is_staff", False) else "user"
+
+        row = cls.objects.create(
             actor=actor, target_user=target_user, action=action,
             amount=amount, cr_dr=cr_dr, wallet_type=wallet_type,
             before_balance=before_balance, after_balance=after_balance,
             casino_name=casino_name, description=description,
             reference_id=reference_id, meta=meta or {},
             ip_address=ip_address, user_agent=user_agent,
+            endpoint=endpoint, method=method,
+            actor_type=actor_type, status_code=status_code,
         )
+        # Tell the audit middleware this request has already described itself,
+        # so its catch-all row doesn't land next to this one. See
+        # utils/audit_context.py.
+        audit_context.note_explicit_log()
+        return row
 
 
 # ─────────────────────────────────────────────────────────────────────────────

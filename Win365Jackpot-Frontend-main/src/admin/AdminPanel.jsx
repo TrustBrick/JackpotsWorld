@@ -26,7 +26,8 @@ import WheelsTab         from "./tabs/WheelsTab";
 import NotifsTab         from "./tabs/NotifsTab";
 import TxnsTab           from "./tabs/TxnsTab";
 import KycTab            from "./tabs/KycTab";
-import LogsTab           from "./tabs/LogsTab";
+// ACTIVITY-LOGS: LogsTab is intentionally no longer imported — see the note
+// at its old `case "logs"` below. The file stays in the tree, unwired.
 import StaffTab          from "./tabs/StaffTab";
 import EventsManageTab      from "./tabs/content/EventsManageTab";
 import PokerManageTab       from "./tabs/content/PokerManageTab";
@@ -471,7 +472,12 @@ function AdminPanelInner() {
       case "analytics-videos":
       case "analytics-campaigns":
       case "analytics-members":   return <SystemLogsTab        {...props} />;
-      case "logs":      return <LogsTab           {...props} />;
+      // ACTIVITY-LOGS: no case on purpose, matching EMAIL-LOGS above. The
+      // /api/admin-panel/activity-logs/ endpoint and every log written to
+      // authapp_activitylog are untouched — only the screen is gone, and the
+      // recording side is now wider than it was (see constants.js). A "logs"
+      // id arriving from a stale sessionStorage tab or a ?tab= link falls
+      // through to `default` and lands on Overview.
       case "staff":     return <StaffTab          {...props} />;
       default:          return <OverviewTab       {...props} />;
     }

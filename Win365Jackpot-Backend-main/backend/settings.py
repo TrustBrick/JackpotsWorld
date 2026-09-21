@@ -83,6 +83,12 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # FULL-ADMIN-AUDIT: writes an ActivityLog row for every state-changing
+    # request a staff account makes. Last on purpose — it must sit inside
+    # AuthenticationMiddleware (so request.user exists) and it reads the
+    # response status, so it wants to be the innermost wrapper around the
+    # view. See authapp/middleware/admin_audit.py.
+    'authapp.middleware.admin_audit.AdminAuditMiddleware',
 ]
 
 AUTH_USER_MODEL = 'authapp.User'
