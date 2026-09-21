@@ -42,6 +42,8 @@ import { useVideoAnalytics } from '../../hooks/useVideoAnalytics'
               given — see FlagMark for why.
      caption  optional line under the name.
      badge    optional per-item pill text, overriding `badgeLabel`.
+     plain    optional. Plays the media with no badge, name, flag or caption
+              over it; `name` still titles the video for analytics.
 
    An item with neither `video` nor `image` is dropped rather than rendered as
    an empty frame.
@@ -262,6 +264,7 @@ function buildSlides(items, videoFailedIds) {
         flagIcon: item.flagIcon || '',
         caption: item.caption || '',
         badge: item.badge || '',
+        plain: !!item.plain,
       }
     })
     .filter(Boolean)
@@ -600,6 +603,9 @@ export default function HeroMediaShowcase({
   // The small green dot inside the pill. It is decoration, not a live-status
   // claim, so it is opt-out rather than tied to any data.
   badgeDot = true,
+  // Backstop for a video slide that never fires `ended` (stalled, or never
+  // started). A band whose videos should play in full passes a longer one.
+  maxVideoSlideMs = MAX_VIDEO_SLIDE_MS,
   // Namespaces the visitor's mute choice, so two showcases keep independent
   // preferences.
   soundKey,
@@ -733,13 +739,13 @@ export default function HeroMediaShowcase({
   useEffect(() => {
     if (!active || count < 2 || currentId === undefined) return
     if (currentIsVideo) {
-      const id = setTimeout(advance, MAX_VIDEO_SLIDE_MS)
+      const id = setTimeout(advance, maxVideoSlideMs)
       return () => clearTimeout(id)
     }
     if (reduceMotion) return
     const id = setTimeout(advance, SLIDE_MS)
     return () => clearTimeout(id)
-  }, [active, count, currentId, currentIsVideo, advance, reduceMotion])
+  }, [active, count, currentId, currentIsVideo, advance, reduceMotion, maxVideoSlideMs])
 
   const markVideoFailed = useCallback((id) => {
     setVideoFailedIds(prev => {
@@ -755,7 +761,8 @@ export default function HeroMediaShowcase({
   // this.
   if (!current) return null
 
-  const badgeText = current.badge || badgeLabel
+  const badgeText = current.plain ? '' : (current.badge || badgeLabel)
+  const showPlate = !current.plain && !!(current.name || current.caption)
 
   // Whether the footage is kept whole in its box or cropped to fill it. The
   // framed band is shaped to the footage, so nothing is ever cropped there.
@@ -853,7 +860,7 @@ export default function HeroMediaShowcase({
           />
 
           {/* Destination name, bottom-left. */}
-          {(current.name || current.caption) && (
+          {showPlate && (
             <div style={{
               position: 'absolute', zIndex: 2,
               bottom: IMMERSIVE_CORNER, left: IMMERSIVE_CORNER,
@@ -998,7 +1005,7 @@ export default function HeroMediaShowcase({
 
             pointerEvents none so it never intercepts a click meant for the
             slide dots sharing this edge. */}
-        {(current.name || current.caption) && (
+        {showPlate && (
           <div style={{
             position: 'absolute',
             left: 'clamp(12px,2vw,18px)',

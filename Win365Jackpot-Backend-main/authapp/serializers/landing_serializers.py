@@ -181,6 +181,7 @@ class PremiumPartnerSerializer(serializers.ModelSerializer):
     # serializers give is_active.
     is_active           = serializers.BooleanField(default=True, required=False)
     is_featured_in_hero = serializers.BooleanField(default=True, required=False)
+    show_as_partner     = serializers.BooleanField(default=True, required=False)
     # Derived, so the hero never has to guess from a file extension.
     media_type          = serializers.CharField(read_only=True)
 
@@ -189,7 +190,7 @@ class PremiumPartnerSerializer(serializers.ModelSerializer):
         fields = [
             "id", "name", "country", "city", "flag_country_code", "description",
             "logo", "hero_image", "hero_video", "media_type",
-            "partner_type", "is_featured_in_hero", "is_active", "order",
+            "partner_type", "is_featured_in_hero", "show_as_partner", "is_active", "order",
             "created_at", "updated_at",
         ]
         read_only_fields = ["id", "media_type", "created_at", "updated_at"]

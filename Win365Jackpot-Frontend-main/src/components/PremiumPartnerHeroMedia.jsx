@@ -48,6 +48,9 @@ export default function PremiumPartnerHeroMedia() {
           // Falls back to the place when no description is set, so the caption
           // line is never empty — but never invents either.
           caption: p.description || [p.city, p.country].filter(Boolean).join(', '),
+          // A slot the admin has marked "not a partner" (e.g. a site intro)
+          // plays bare, with no badge or caption. Absent = older API = partner.
+          plain: p.show_as_partner === false,
         }))
       : []
   ), [partners])
@@ -66,6 +69,9 @@ export default function PremiumPartnerHeroMedia() {
       // playback is usually already permitted by then. When it isn't, the
       // control inside says so.
       defaultSoundOn
+      // Each video plays to its end before the next slide (the site intro
+      // runs ~2 minutes); the backstop only catches one that stalls.
+      maxVideoSlideMs={5 * 60_000}
       analyticsKind="premium_partner"
       analyticsIdPrefix="partner"
     />

@@ -56,6 +56,10 @@ const FIELDS = [
     name: "is_featured_in_hero", label: "Featured in Hero",
     type: "boolean", default: true,
   },
+  {
+    name: "show_as_partner", label: "Show as Partner (badge, name & caption). Turn off for a plain intro video.",
+    type: "boolean", default: true,
+  },
   { name: "order", label: "Display Order", type: "number", placeholder: "1" },
 ];
 

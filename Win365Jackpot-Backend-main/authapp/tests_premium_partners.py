@@ -97,6 +97,15 @@ class PremiumPartnerPublicApiTests(APITestCase):
         # A video wins over the image, which becomes its poster.
         self.assertEqual(by_name["With Video"]["media_type"], "video")
 
+    def test_a_plain_intro_slot_is_returned_and_flagged(self):
+        make_partner(name="Intro", order=1, show_as_partner=False, hero_video=make_video())
+        make_partner(name="Bellagio Casino", order=2)
+
+        data = self.client.get(PUBLIC_URL).data
+
+        self.assertEqual([p["name"] for p in data], ["Intro", "Bellagio Casino"])
+        self.assertEqual([p["show_as_partner"] for p in data], [False, True])
+
     def test_empty_when_nothing_is_featured(self):
         self.assertEqual(self.client.get(PUBLIC_URL).data, [])
 

@@ -314,6 +314,9 @@ class PremiumPartner(models.Model):
         max_length=20, choices=PARTNER_TYPE_CHOICES, default="top_premium", db_index=True,
     )
     is_featured_in_hero = models.BooleanField(default=True, db_index=True)
+    # Off = the slot plays as a plain clip (e.g. a site intro) with no
+    # "Partner Destination" badge, name, flag or caption over it.
+    show_as_partner     = models.BooleanField(default=True)
     is_active           = models.BooleanField(default=True, db_index=True)
     order               = models.PositiveIntegerField(default=0)
 
