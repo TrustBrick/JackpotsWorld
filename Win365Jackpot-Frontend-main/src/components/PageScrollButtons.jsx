@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef, useId } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { useLauncherHeight } from './support/launcherMetrics'
-import { ChevronUp, ChevronDown } from 'lucide-react'
 
-const BTN = 'clamp(44px, 8.4vw, 52px)'
-// Ray plus gem. The viewBox is 12 wide by 34 tall, of which the gem is the
-// bottom 12 - so a 28px ornament puts a 9.9px gem under a ~18px ray, which is
-// the reference's proportion against a 50px ring.
-const ORNAMENT = 'clamp(24px, 5vw, 30px)'
-const ORNAMENT_GAP = 'clamp(2px, 0.5vw, 3px)'
+// The mark's rendered width. Everything else is proportional to it, because
+// the whole thing is one viewBox.
+const MARK_W = 'clamp(30px, 6vw, 36px)'
+// Tap target. The mark is ~20px tall, well under what a finger reliably
+// lands on, so the button carries an invisible box around it. Padding rather
+// than size: growing the mark would defeat the brief.
+const HIT_PAD = '11px 13px'
 
 // Matches the launcher's own corner inset so the two read as one column.
 const INSET_BOTTOM = 'clamp(20px, 4vw, 26px)'
@@ -20,50 +20,65 @@ const LONG_PRESS_MS = 500
 const FIRST_SECTION_FALLBACK_PX = 80 // used only before the DOM has any sections to measure
 
 /**
- * The ornament above and below the ring: a faceted gem on a thin ray.
+ * The whole control, drawn once.
  *
- * MEASURED OFF THE REFERENCE, not estimated. Cropping the supplied image and
- * scanning it gave, against a ring diameter D: gem 0.18D wide by 0.20D tall,
- * gem-to-ring gap 0.06D, ring band 0.08D, and a hairline ray running roughly
- * another 0.2D outward from the gem before it fades. On this control that is a
- * 9x10px gem, a 3px gap and a ~10px ray.
+ * WHY THESE ARE FILLED PATHS AND NOT STROKES. A stroke has one weight along
+ * its length, which is exactly what makes a framework icon look like a
+ * framework icon. Every line here is a closed shape that swells in the middle
+ * and sharpens to a point at its ends, which is how an engraver cuts a
+ * hairline and a chevron - the weight carries the eye to the centre of the
+ * mark instead of stopping dead at two round caps.
  *
- * Two earlier passes missed because they read the ornament as a four-pointed
- * STAR and sized it off the whole shape - so the arms became the body, and a
- * 16px star sat where a 9px gem belonged. The star look comes from the gem
- * plus its ray, not from the gem.
+ * The chevron is four points, not five: left tip, outer elbow, right tip,
+ * inner elbow. The tips are single coordinates, so they taper to genuinely
+ * nothing rather than to a half-pixel cap, and the elbow is 2.2 units thick
+ * against tips of zero - thinner than it first looked right at 1x, because
+ * against hairlines this fine anything heavier reads as a separate object.
  *
- * The four triangles are what make it read as cut rather than drawn: upper
- * left catches the light, lower right falls away, and the girdle between them
- * is the only hard line in the shape.
+ * THE RULES ARE UNEQUAL ON PURPOSE. A long rule over a short one tapers the
+ * mark in the direction the chevron points. Rotating the whole SVG by half a
+ * turn therefore flips the taper and the chevron together, so one drawing
+ * serves both states and they can never disagree.
+ *
+ * The lozenge on the long rule is the one ornament: a rule with a jewel at
+ * its centre is a printer's device, and at this size it reads as intent
+ * rather than decoration. It also lands the brand's diamond in the mark
+ * without putting a container around anything.
  */
-function Ornament({ flip = false }) {
-  // Two of these render at once and SVG gradient ids must be document-unique.
-  const uid = useId()
-  const rayId = `jw-ray-${uid}`
+function Mark({ gradientId }) {
+  const rule = `${gradientId}-rule`
+  const chev = `${gradientId}-chev`
   return (
     <svg
-      viewBox="0 0 12 34"
-      aria-hidden="true"
-      focusable="false"
-      style={{
-        height: ORNAMENT, width: `calc(${ORNAMENT} * 0.353)`, display: 'block', flexShrink: 0,
-        transform: flip ? 'scaleY(-1)' : undefined,
-        filter: 'drop-shadow(0 0 4px rgba(245,224,122,0.75)) drop-shadow(0 0 10px rgba(212,175,55,0.45))',
-      }}
+      width={MARK_W} viewBox="0 0 44 26"
+      aria-hidden="true" focusable="false"
+      style={{ display: 'block', overflow: 'visible' }}
     >
       <defs>
-        <linearGradient id={rayId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#D4AF37" stopOpacity="0" />
-          <stop offset="70%" stopColor="#E8C65A" stopOpacity="0.55" />
-          <stop offset="100%" stopColor="#F7E48D" stopOpacity="0.95" />
+        {/* Dim at the ends, bright at the centre - the geometry tapers, and
+            the gradient makes the taper read as metal rather than as a shape
+            that simply got thinner. */}
+        <linearGradient id={rule} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#8A6E1B" />
+          <stop offset="50%" stopColor="#F7E9A8" />
+          <stop offset="100%" stopColor="#8A6E1B" />
+        </linearGradient>
+        <linearGradient id={chev} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#F9EEC0" />
+          <stop offset="55%" stopColor="#E8C65A" />
+          <stop offset="100%" stopColor="#B08F25" />
         </linearGradient>
       </defs>
-      <rect x="5.6" y="0" width="0.8" height="22" fill={`url(#${rayId})`} />
-      <path d="M6 22 L6 28 L1 28 Z" fill="#FFF2C4" />
-      <path d="M6 22 L11 28 L6 28 Z" fill="#E8C65A" />
-      <path d="M1 28 L6 28 L6 34 Z" fill="#D2AC34" />
-      <path d="M6 28 L11 28 L6 34 Z" fill="#A6841F" />
+
+      {/* Long rule, with its jewel */}
+      <path d="M2 3 Q22 1.9 42 3 Q22 4.1 2 3 Z" fill={`url(#${rule})`} />
+      <path d="M22 0.9 L23.4 3 L22 5.1 L20.6 3 Z" fill="#FFF6D8" />
+
+      {/* Chevron */}
+      <path d="M12.5 10.8 L22 18.2 L31.5 10.8 L22 16 Z" fill={`url(#${chev})`} />
+
+      {/* Short rule */}
+      <path d="M14 23 Q22 22.16 30 23 Q22 23.84 14 23 Z" fill={`url(#${rule})`} />
     </svg>
   )
 }
@@ -96,6 +111,9 @@ export default function PageScrollButtons() {
   // The launcher's measured height, so this control sits clear of it at
   // whatever size it actually is. See the positioning note below.
   const launcherHeight = useLauncherHeight()
+  // One gradient serves both chevron states; the id has to be
+  // document-unique, so it comes from useId() rather than a literal.
+  const chevronGradientId = `jw-chevron-${useId()}`
   const pressTimer = useRef(null)
   const longPressFired = useRef(false)
 
@@ -182,7 +200,7 @@ export default function PageScrollButtons() {
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.25 }}
-      className="fixed z-40 flex flex-col items-center justify-center pointer-events-none"
+      className="fixed z-40 flex items-center justify-center"
       style={{
         // Bottom RIGHT, stacked clear of the Live Support launcher.
         //
@@ -203,19 +221,22 @@ export default function PageScrollButtons() {
         // opens and collapses the launcher to its small close button.
         bottom: `calc(${INSET_BOTTOM} + ${launcherHeight}px + ${STACK_GAP})`,
         right: INSET_SIDE,
-        gap: ORNAMENT_GAP,
       }}
     >
-      {/* Decoration, and pointer-events:none on the column keeps it that way -
-          only the ring below takes the pointer back, so the stars never eat a
-          click meant for the page behind them. */}
-      <Ornament />
-      {/* A gold RING on the page's own dark, not a gold disc. The earlier
-          version was a 16%-opacity wash behind a hairline border, which read
-          as a browser default; a solid btn-gold face was the other extreme and
-          sat on the content like a token. The ring is the brand's quieter
-          register - the same treatment the destination chips and the pillar
-          card badges use - and the section behind it still shows through. */}
+      {/* NO CONTAINER. Not a ring, not a disc, not a framed shape of any
+          kind: a chevron between two gold hairlines that fade out at both
+          ends, which is the same ornament the cruise card's section labels
+          use further up the page.
+
+          It is the quietest thing that can still be a control, and on a page
+          this dark a floating frame of any shape reads as a widget bolted on
+          afterwards. The rules do the work a border would: they give the
+          chevron a width and a horizon without drawing a box around it.
+
+          The hit area is padding, not size. The mark is about 26px tall,
+          which is below what a finger reliably lands on, so the button
+          carries an invisible margin around it - growing the mark instead
+          would defeat the point of the brief. */}
       <motion.button
         onClick={handleClick}
         onPointerDown={startPress}
@@ -223,69 +244,49 @@ export default function PageScrollButtons() {
         onPointerLeave={cancelPress}
         onPointerCancel={cancelPress}
         onContextMenu={(e) => e.preventDefault()}
-        whileHover={{ scale: 1.08 }}
-        whileTap={{ scale: 0.94 }}
+        whileHover={{ scale: 1.12 }}
+        whileTap={{ scale: 0.9 }}
         aria-label={!atBottom ? 'Scroll to next section (hold to jump to bottom)' : 'Scroll to previous section (hold to jump to top)'}
-        className="flex items-center justify-center rounded-full pointer-events-auto"
+        className="flex flex-col items-center justify-center"
         style={{
-          width: BTN, height: BTN,
-          // Two background layers: the first paints the face inside the
-          // padding box, the second paints the metal under the border box,
-          // and a transparent border lets it through.
-          background: [
-            // A glossy dark stone, lit from the upper left, rather than a flat
-            // wash - the reference's face is not one colour.
-            'radial-gradient(circle at 36% 28%, #1E150C 0%, #0A0503 58%, #050101 100%) padding-box',
-            // The band is turned metal, so it runs bright, mid, dark, bright
-            // around the circumference instead of holding one gold. The dark
-            // stop is what reads as the far side of a torus; without it the
-            // ring is a flat outline however bright you make it.
-            'linear-gradient(140deg, #FCEFB8 0%, #E8C65A 20%, #C9A227 44%, #8A6E1B 58%, #D4AF37 80%, #F7E48D 100%) border-box',
-          ].join(', '),
-          // 4px on a 50px ring: the reference's band is 0.08 of its diameter,
-          // and at the 2.2px of the previous pass it read as a drawn circle
-          // rather than a turned one.
-          border: '4px solid transparent',
-          color: '#F7E9A8',
-          // A SECOND, thinner arc inside the band, separated from it by a
-          // dark gap - the detail that makes the reference read as two
-          // concentric rings catching light rather than one drawn circle.
-          // Inset shadows paint outside-in and later ones sit under earlier
-          // ones, so the 1.5px dark covers the inner half of the 2.5px gold
-          // and what survives is a 1px gold line inboard of a dark gap.
-          boxShadow: [
-            'inset 0 0 0 1.5px rgba(6,3,0,0.95)',
-            'inset 0 0 0 2.5px rgba(232,198,90,0.8)',
-            '0 0 20px rgba(212,175,55,0.42)',
-            '0 0 46px rgba(212,175,55,0.18)',
-            '0 0 80px rgba(196,140,40,0.16)',
-          ].join(', '),
-          backdropFilter: 'blur(3px)',
-          WebkitBackdropFilter: 'blur(3px)',
+          padding: HIT_PAD,
+          background: 'none',
+          border: 'none',
+          color: '#F3D671',
           cursor: 'pointer',
-          transition: 'box-shadow 0.25s',
           touchAction: 'manipulation',
           WebkitUserSelect: 'none',
           userSelect: 'none',
           WebkitTouchCallout: 'none',
-          overflow: 'hidden',
+          filter: 'drop-shadow(0 0 4px rgba(212,175,55,0.4)) drop-shadow(0 0 12px rgba(212,175,55,0.16))',
         }}
       >
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.span
-            key={!atBottom ? 'down' : 'up'}
-            initial={{ opacity: 0, rotate: -90, scale: 0.6 }}
-            animate={{ opacity: 1, rotate: 0, scale: 1 }}
-            exit={{ opacity: 0, rotate: 90, scale: 0.6 }}
-            transition={{ duration: 0.25 }}
-            style={{ display: 'flex' }}
-          >
-            {!atBottom ? <ChevronDown size={24} strokeWidth={2.75} /> : <ChevronUp size={24} strokeWidth={2.75} />}
-          </motion.span>
-        </AnimatePresence>
-      </motion.button>
+        {/* The MARK turns over as one piece, and the turn is a plain CSS
+            transform rather than an animated one.
 
-      <Ornament flip />
+            Both of those are corrections. An AnimatePresence with
+            mode="wait" had the up state never arrive while the document is
+            hidden: the exit never finishes, so the enter never runs and the
+            mark is left pointing the wrong way with no way back. Replacing it
+            with framer-motion's `animate` fixed the dead end but not the
+            dependency - that writes the transform from a rAF loop, which is
+            also suspended, so the rotation simply never applied. A plain
+            style is committed by the style system whether or not frames are
+            running; the transition only decides whether you SEE it turn.
+
+            Rotating the whole drawing rather than just the chevron is what
+            keeps the long rule leading: half a turn flips the taper and the
+            arrow together, so they cannot end up disagreeing. */}
+        <span
+          style={{
+            display: 'flex',
+            transform: atBottom ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 0.32s cubic-bezier(0.4, 0, 0.2, 1)',
+          }}
+        >
+          <Mark gradientId={chevronGradientId} />
+        </span>
+      </motion.button>
     </motion.div>
   )
 }
