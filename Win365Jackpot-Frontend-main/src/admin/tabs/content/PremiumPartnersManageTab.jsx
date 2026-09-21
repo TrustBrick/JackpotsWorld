@@ -23,13 +23,15 @@ const IMAGE_ACCEPT = ".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp";
 const VIDEO_ACCEPT = ".mp4,.webm,.mov,video/mp4,video/webm,video/quicktime";
 
 const FIELDS = [
-  { name: "name", label: "Partner Name", placeholder: "Bellagio Casino" },
-  { name: "country", label: "Country", placeholder: "Sri Lanka" },
-  { name: "city", label: "City", placeholder: "Colombo" },
-  { name: "flag_country_code", label: "Country Code (ISO-2, for caption flag)", placeholder: "LK" },
+  // clearable: emptying a box and saving really clears it, so whatever is
+  // left blank is left off the video.
+  { name: "name", label: "Partner Name", placeholder: "Bellagio Casino", clearable: true },
+  { name: "country", label: "Country", placeholder: "Sri Lanka", clearable: true },
+  { name: "city", label: "City", placeholder: "Colombo", clearable: true },
+  { name: "flag_country_code", label: "Country Code (ISO-2, for caption flag)", placeholder: "LK", clearable: true },
   {
     name: "description", label: "Description (shown beside the name)",
-    placeholder: "Jewel of the Indian Ocean", wide: true,
+    placeholder: "Jewel of the Indian Ocean", wide: true, clearable: true,
   },
   {
     name: "hero_image", label: "Hero Image (JPG, PNG, WEBP — max 5MB)",
@@ -44,20 +46,19 @@ const FIELDS = [
     type: "file", accept: IMAGE_ACCEPT, wide: true,
   },
   {
-    name: "partner_type", label: "Partner Type", type: "select",
+    name: "partner_type",
+    label: "Partner Type — \"Others\": no partner badge on the video, nothing required, only the details you fill in are shown",
+    type: "select",
     default: "top_premium",
     options: [
       { value: "top_premium", label: "Top Premium Partner" },
       { value: "premium", label: "Premium Partner" },
       { value: "standard", label: "Standard Partner" },
+      { value: "others", label: "Others" },
     ],
   },
   {
     name: "is_featured_in_hero", label: "Featured in Hero",
-    type: "boolean", default: true,
-  },
-  {
-    name: "show_as_partner", label: "Show as Partner (badge, name & caption). Turn off for a plain intro video.",
     type: "boolean", default: true,
   },
   { name: "order", label: "Display Order", type: "number", placeholder: "1" },

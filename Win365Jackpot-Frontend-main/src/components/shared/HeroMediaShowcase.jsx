@@ -42,8 +42,9 @@ import { useVideoAnalytics } from '../../hooks/useVideoAnalytics'
               given — see FlagMark for why.
      caption  optional line under the name.
      badge    optional per-item pill text, overriding `badgeLabel`.
-     plain    optional. Plays the media with no badge, name, flag or caption
-              over it; `name` still titles the video for analytics.
+     noBadge  optional. Suppresses the pill for this slide, including the
+              `badgeLabel` fallback. Name, flag and caption still show when
+              given; nothing is drawn for what is empty.
 
    An item with neither `video` nor `image` is dropped rather than rendered as
    an empty frame.
@@ -264,7 +265,7 @@ function buildSlides(items, videoFailedIds) {
         flagIcon: item.flagIcon || '',
         caption: item.caption || '',
         badge: item.badge || '',
-        plain: !!item.plain,
+        noBadge: !!item.noBadge,
       }
     })
     .filter(Boolean)
@@ -761,8 +762,9 @@ export default function HeroMediaShowcase({
   // this.
   if (!current) return null
 
-  const badgeText = current.plain ? '' : (current.badge || badgeLabel)
-  const showPlate = !current.plain && !!(current.name || current.caption)
+  const badgeText = current.noBadge ? '' : (current.badge || badgeLabel)
+  const hasFlag = !!(current.flag || current.flagIcon)
+  const showPlate = !!(current.name || current.caption || hasFlag)
 
   // Whether the footage is kept whole in its box or cropped to fill it. The
   // framed band is shaped to the footage, so nothing is ever cropped there.
@@ -873,22 +875,24 @@ export default function HeroMediaShowcase({
             }}>
                 {/* The flag stays outside the sheen span, as in the framed
                     plate, so it keeps its own colours. */}
-                {current.name && (
+                {(current.name || hasFlag) && (
                   <span style={{ display: 'flex', alignItems: 'baseline', gap: 'clamp(6px, 0.8vw, 14px)' }}>
                     <FlagMark
                       icon={current.flagIcon}
                       emoji={current.flag}
                       size="clamp(15px, 1.8vw, 29px)"
                     />
-                    <span
-                      className="w365-partner-name"
-                      style={{
-                        fontSize: 'clamp(20px, 2.9vw, 48px)', fontWeight: 800,
-                        lineHeight: 1.04, letterSpacing: '-0.01em',
-                      }}
-                    >
-                      {current.name}
-                    </span>
+                    {current.name && (
+                      <span
+                        className="w365-partner-name"
+                        style={{
+                          fontSize: 'clamp(20px, 2.9vw, 48px)', fontWeight: 800,
+                          lineHeight: 1.04, letterSpacing: '-0.01em',
+                        }}
+                      >
+                        {current.name}
+                      </span>
+                    )}
                   </span>
                 )}
                 {current.caption && (
@@ -1021,22 +1025,24 @@ export default function HeroMediaShowcase({
                 with the text fill transparent, which is right for lettering
                 and wrong for a flag — this keeps the flag its own
                 artwork and lets only the name catch the light. */}
-            {current.name && (
+            {(current.name || hasFlag) && (
               <span style={{ display: 'flex', alignItems: 'baseline', gap: 7 }}>
                 <FlagMark
                   icon={current.flagIcon}
                   emoji={current.flag}
                   size="clamp(12px,1.8vw,18px)"
                 />
-                <span
-                  className="w365-partner-name"
-                  style={{
-                    fontSize: 'clamp(17px,2.6vw,27px)', fontWeight: 700,
-                    lineHeight: 1.12, letterSpacing: '0.005em',
-                  }}
-                >
-                  {current.name}
-                </span>
+                {current.name && (
+                  <span
+                    className="w365-partner-name"
+                    style={{
+                      fontSize: 'clamp(17px,2.6vw,27px)', fontWeight: 700,
+                      lineHeight: 1.12, letterSpacing: '0.005em',
+                    }}
+                  >
+                    {current.name}
+                  </span>
+                )}
               </span>
             )}
             {current.caption && (

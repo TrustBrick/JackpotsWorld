@@ -157,7 +157,7 @@ class PremiumPartnerListView(APIView):
 
     Eligibility is decided here, not on the client: a partner reaches the
     hero only when it is active, explicitly featured, and typed as a top
-    premium partner. Un-featuring one therefore removes it from the API
+    premium partner or "others". Un-featuring one therefore removes it from the API
     response outright rather than relying on the frontend to filter
     correctly.
 
@@ -170,7 +170,7 @@ class PremiumPartnerListView(APIView):
         qs = PremiumPartner.objects.filter(
             is_active=True,
             is_featured_in_hero=True,
-            partner_type=PremiumPartner.HERO_PARTNER_TYPE,
+            partner_type__in=PremiumPartner.HERO_PARTNER_TYPES,
         )
         return Response(
             PremiumPartnerSerializer(qs, many=True, context={"request": request}).data

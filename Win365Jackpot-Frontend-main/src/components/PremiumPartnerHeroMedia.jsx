@@ -48,9 +48,9 @@ export default function PremiumPartnerHeroMedia() {
           // Falls back to the place when no description is set, so the caption
           // line is never empty — but never invents either.
           caption: p.description || [p.city, p.country].filter(Boolean).join(', '),
-          // A slot the admin has marked "not a partner" (e.g. a site intro)
-          // plays bare, with no badge or caption. Absent = older API = partner.
-          plain: p.show_as_partner === false,
+          // "Others" (e.g. a site intro) isn't a partner, so no badge; any
+          // name or caption the admin did enter still shows.
+          noBadge: p.partner_type === 'others',
         }))
       : []
   ), [partners])

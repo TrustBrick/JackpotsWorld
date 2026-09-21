@@ -97,14 +97,15 @@ class PremiumPartnerPublicApiTests(APITestCase):
         # A video wins over the image, which becomes its poster.
         self.assertEqual(by_name["With Video"]["media_type"], "video")
 
-    def test_a_plain_intro_slot_is_returned_and_flagged(self):
-        make_partner(name="Intro", order=1, show_as_partner=False, hero_video=make_video())
+    def test_an_others_slot_reaches_the_hero_in_display_order(self):
+        make_partner(name="", order=1, partner_type="others", hero_video=make_video(),
+                     country="", city="", flag_country_code="")
         make_partner(name="Bellagio Casino", order=2)
 
         data = self.client.get(PUBLIC_URL).data
 
-        self.assertEqual([p["name"] for p in data], ["Intro", "Bellagio Casino"])
-        self.assertEqual([p["show_as_partner"] for p in data], [False, True])
+        self.assertEqual([p["partner_type"] for p in data], ["others", "top_premium"])
+        self.assertEqual(data[0]["name"], "")
 
     def test_empty_when_nothing_is_featured(self):
         self.assertEqual(self.client.get(PUBLIC_URL).data, [])
@@ -263,6 +264,29 @@ class PremiumPartnerAdminTests(APITestCase):
         partner.refresh_from_db()
         self.assertEqual(partner.order, 5)
         self.assertTrue(partner.hero_image.name)
+
+    def test_an_others_entry_needs_nothing(self):
+        self.client.force_authenticate(self.admin)
+        res = self.client.post(ADMIN_URL, {"partner_type": "others"}, format="multipart")
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED, res.data)
+        self.assertEqual(res.data["name"], "")
+
+    def test_a_top_premium_partner_still_needs_media(self):
+        self.client.force_authenticate(self.admin)
+        res = self.client.post(ADMIN_URL, {"name": "X", "partner_type": "top_premium"}, format="multipart")
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_a_text_field_can_be_cleared(self):
+        self.client.force_authenticate(self.admin)
+        partner = make_partner(name="Casino Intro", partner_type="others")
+
+        res = self.client.patch(f"{ADMIN_URL}{partner.id}/", {"name": ""}, format="multipart")
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK, res.data)
+        partner.refresh_from_db()
+        self.assertEqual(partner.name, "")
 
     def test_admin_can_delete_a_partner(self):
         partner = make_partner()

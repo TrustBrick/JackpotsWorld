@@ -181,7 +181,6 @@ class PremiumPartnerSerializer(serializers.ModelSerializer):
     # serializers give is_active.
     is_active           = serializers.BooleanField(default=True, required=False)
     is_featured_in_hero = serializers.BooleanField(default=True, required=False)
-    show_as_partner     = serializers.BooleanField(default=True, required=False)
     # Derived, so the hero never has to guess from a file extension.
     media_type          = serializers.CharField(read_only=True)
 
@@ -190,7 +189,7 @@ class PremiumPartnerSerializer(serializers.ModelSerializer):
         fields = [
             "id", "name", "country", "city", "flag_country_code", "description",
             "logo", "hero_image", "hero_video", "media_type",
-            "partner_type", "is_featured_in_hero", "show_as_partner", "is_active", "order",
+            "partner_type", "is_featured_in_hero", "is_active", "order",
             "created_at", "updated_at",
         ]
         read_only_fields = ["id", "media_type", "created_at", "updated_at"]
@@ -222,6 +221,14 @@ class PremiumPartnerSerializer(serializers.ModelSerializer):
         featured = attrs.get(
             "is_featured_in_hero", getattr(instance, "is_featured_in_hero", True),
         )
+        partner_type = attrs.get(
+            "partner_type", getattr(instance, "partner_type", "top_premium"),
+        )
+        # "Others" has nothing mandatory. Saved without media it is simply
+        # left out of the hero (the showcase drops media-less slides), so it
+        # still can't render an empty frame.
+        if partner_type == PremiumPartner.OTHERS_TYPE:
+            return attrs
         if featured and not resolved("hero_image") and not resolved("hero_video"):
             raise serializers.ValidationError({
                 "hero_image": "A partner featured in the hero needs an image or a video.",

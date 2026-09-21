@@ -284,12 +284,17 @@ class PremiumPartner(models.Model):
         ("top_premium", "Top Premium Partner"),
         ("premium", "Premium Partner"),
         ("standard", "Standard Partner"),
+        # Not a partner at all (e.g. a site intro clip): shown in the hero
+        # with no "Partner Destination" badge, every field optional, and only
+        # the details actually entered drawn over the media.
+        ("others", "Others"),
     ]
 
-    #: Only this type is eligible for the hero (see PremiumPartnerListView).
-    HERO_PARTNER_TYPE = "top_premium"
+    OTHERS_TYPE = "others"
+    #: Only these types are eligible for the hero (see PremiumPartnerListView).
+    HERO_PARTNER_TYPES = ("top_premium", OTHERS_TYPE)
 
-    name              = models.CharField(max_length=150)
+    name              = models.CharField(max_length=150, blank=True)
     country           = models.CharField(max_length=100, blank=True)
     city              = models.CharField(max_length=100, blank=True)
     # ISO-2, used for the caption flag. Same convention as Destination's own
@@ -314,9 +319,6 @@ class PremiumPartner(models.Model):
         max_length=20, choices=PARTNER_TYPE_CHOICES, default="top_premium", db_index=True,
     )
     is_featured_in_hero = models.BooleanField(default=True, db_index=True)
-    # Off = the slot plays as a plain clip (e.g. a site intro) with no
-    # "Partner Destination" badge, name, flag or caption over it.
-    show_as_partner     = models.BooleanField(default=True)
     is_active           = models.BooleanField(default=True, db_index=True)
     order               = models.PositiveIntegerField(default=0)
 
@@ -330,7 +332,7 @@ class PremiumPartner(models.Model):
         ]
 
     def __str__(self):
-        return self.name
+        return self.name or f"{self.get_partner_type_display()} #{self.pk}"
 
     @property
     def media_type(self):
