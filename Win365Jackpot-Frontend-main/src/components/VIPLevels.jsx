@@ -150,8 +150,11 @@ export default function VIPLevels() {
         backgroundSize: '80px 80px',
       }}/>
 
+      {/* No inner 900px cap any more. Aligning the page put this section's
+          CONTAINER on the same 1320px column as Beyond the Casino, but the
+          old 900px width was left nested inside it - so the heading and the
+          tiers still stopped 210px short of every other section's edge. */}
       <div style={{ ...CONTAINER, position: 'relative', zIndex: 1 }}>
-      <div style={{ maxWidth: 900, margin: '0 auto' }}>
 
         {/* ── Header ── */}
         <motion.div
@@ -184,26 +187,30 @@ export default function VIPLevels() {
           </p>
         </motion.div>
 
-        {/* ── Tier Selector Row 1 ── */}
+        {/* ── Tier Selector ──
+            ONE grid of all eight, not two hardcoded rows of four.
+
+            The two rows were sized for the 900px column this section used to
+            sit in. On the page's full 1320px they became eight 324px pills
+            each holding a single short word - a tier button four times wider
+            than its label reads as an empty bar, not a control. auto-fit lets
+            the row be eight across where there is room and fold to four, then
+            two, where there is not, so the width is used rather than just
+            absorbed.
+
+            row1/row2 are still the source order, concatenated, so the tier
+            sequence is unchanged. */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.5, delay: 0.15 }}
-          style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 8 }}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))',
+            gap: 8, marginBottom: 32,
+          }}
         >
-          {row1.map(tier => (
-            <TierButton key={tier.id} tier={tier} isActive={activeId === tier.id} onClick={() => setActive(tier.id)}/>
-          ))}
-        </motion.div>
-
-        {/* ── Tier Selector Row 2 ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 32 }}
-        >
-          {row2.map(tier => (
+          {[...row1, ...row2].map(tier => (
             <TierButton key={tier.id} tier={tier} isActive={activeId === tier.id} onClick={() => setActive(tier.id)}/>
           ))}
         </motion.div>
@@ -322,7 +329,6 @@ export default function VIPLevels() {
           </div>
         </motion.div>
 
-        </div>
       </div>
     </section>
   )

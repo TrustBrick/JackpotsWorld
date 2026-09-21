@@ -802,6 +802,33 @@ function PackagesSection() {
             literal in this file; the card itself lives in CruisePackageCard.
             Renders nothing when no package is active, rather than an empty
             frame — the same contract the rest of this section follows. */}
+        {/* The band gets its own heading, in the page's heading treatment:
+            text colour with one gold word, same as every other section.
+            Rendered only when there is a package, so it can never head an
+            empty space - the same contract the card itself follows.
+
+            It sits here and not inside CruisePackageCard because the card is
+            mapped: a heading in there would repeat once per package. */}
+        {cruisePackages.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.7, delay: 0.35 }}
+            style={{ textAlign: 'center', marginTop: 'clamp(36px,5vw,56px)' }}
+          >
+            {/* Smaller than the section's own CASINO PACKAGES above it: this
+                heads a band inside that section, and matching it exactly
+                would leave the page with two equal headings and no hierarchy
+                between them. */}
+            <h2 className=" font-bold section-heading" style={{ fontSize: 'clamp(1.3rem,5vw,2.4rem)', fontWeight: 900, marginBottom: 10, lineHeight: 1.12 }}>
+              EXCLUSIVE CRUISE <span className="gold-text">CASINOS</span>
+            </h2>
+            <p className="font-body font-light" style={{ color: 'rgba(var(--w365-text-rgb),0.70)', maxWidth: 520, margin: '0 auto', fontSize: 'clamp(0.8rem,3vw,0.95rem)', lineHeight: 1.6 }}>
+              Gaming floors at sea, with the itinerary, the cabin and the transfers arranged as one trip.
+            </p>
+          </motion.div>
+        )}
+
         {cruisePackages.map(pkg => (
           <CruisePackageCard key={pkg.id} pkg={pkg} inView={inView} />
         ))}
