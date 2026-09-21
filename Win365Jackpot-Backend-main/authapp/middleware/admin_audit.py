@@ -292,12 +292,24 @@ class AdminAuditMiddleware(MiddlewareMixin):
         verb = _ACTION_BY_METHOD.get(request.method, "admin_action")
         outcome = "" if (status or 0) < 400 else f" (failed: HTTP {status})"
 
+        # Say what happened in words when the endpoint is recognised, and fall
+        # back to the raw request line when it is not. "Picked up a call"
+        # answers the question the table gets asked; "POST
+        # /api/admin-panel/live-chat/calls/41/accept/" only contains the
+        # answer. An unknown path stays raw rather than being forced into the
+        # nearest label -- see services/audit_labels.py.
+        from authapp.services.audit_labels import describe
+        phrase = describe(request.method, path)
+        described = f"{phrase}{outcome}" if phrase else f"{request.method} {path}{outcome}"
+        if phrase:
+            meta["request"] = f"{request.method} {path}"
+
         ActivityLog.log(
             actor=user,
             target_user=self._resolve_target_user(request, payload),
             action=verb,
             actor_type="admin",
-            description=f"{request.method} {path}{outcome}",
+            description=described,
             endpoint=path[:255],
             method=request.method,
             status_code=status,
