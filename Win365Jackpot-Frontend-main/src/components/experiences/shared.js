@@ -57,7 +57,7 @@ export function iconFor(name) {
  * the repo, and no second resort or hotel one.
  */
 export const FALLBACK_IMAGES = {
-  Plane: '/assets/images/vip/private-jet.png',
+  Plane: '/assets/images/vip/private-jet.jpg',
   Ship: '/assets/images/vip/luxury-cruise.jpg',
   // The repo's one genuine resort photograph, given to the lead card of the
   // Stays section rather than to a later one. Home and Building2 are left
@@ -68,19 +68,19 @@ export const FALLBACK_IMAGES = {
   // A private gaming room, no branding visible — the offline-casino signpost.
   Spade: '/assets/images/vip/vip-room-1.jpg',
   UtensilsCrossed: '/assets/images/vip/dance-2.jpg',
-  Martini: '/assets/images/vip/lounge-1.jpg',
-  Drama: '/assets/images/vip/dance-1.jpg',
-  Sparkles: '/assets/images/vip/bar-1.jpg',
+  Martini: '/assets/images/vip/lounge-1.jpg?v=2',
+  Drama: '/assets/images/vip/dance-1.jpg?v=2',
+  Sparkles: '/assets/images/vip/bar-1.jpg?v=2',
   // A private wine cellar: unbranded, and the closest thing in the repo to
   // "somebody is looking after this for you". Crown is also the Casino
   // Introductions icon, but the concierge section renders no imagery, so this
   // only ever surfaces on the overview band.
-  Crown: '/assets/images/vip/bar-2.jpg',
+  Crown: '/assets/images/vip/bar-2.jpg?v=2',
   // A live stage performance — genuinely an event. It is the same photograph
   // "Shows & Performances" uses further down the page, which is not ideal;
   // there is no second event photograph in the repo. Uploading one against the
   // Events card in Back Office replaces this and removes the repetition.
-  CalendarDays: '/assets/images/vip/dance-1.jpg',
+  CalendarDays: '/assets/images/vip/dance-1.jpg?v=2',
 }
 
 /**

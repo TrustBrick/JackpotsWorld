@@ -117,16 +117,16 @@ const FALLBACK_COUNTRY_IMAGE_SRC_BY_LABEL = new Map(
 
 const FALLBACK_VIP_SERVICES = [
   { src: '/assets/images/vip/massage-1.jpg',   label: 'Classic Massage',     category: 'Wellness' },
-  { src: '/assets/images/vip/massage-2.png',   label: 'Luxury Spa',          category: 'Wellness' },
-  { src: '/assets/images/vip/bar-1.jpg',       label: 'Premium Bar Counter',  category: 'Bar & Drinks' },
-  { src: '/assets/images/vip/bar-2.jpg',       label: 'Exclusive Cellar',     category: 'Bar & Drinks' },
-  { src: '/assets/images/vip/dance-1.jpg',     label: 'Live Dance Show',      category: 'Entertainment' },
+  { src: '/assets/images/vip/massage-2.jpg',   label: 'Luxury Spa',          category: 'Wellness' },
+  { src: '/assets/images/vip/bar-1.jpg?v=2',       label: 'Premium Bar Counter',  category: 'Bar & Drinks' },
+  { src: '/assets/images/vip/bar-2.jpg?v=2',       label: 'Exclusive Cellar',     category: 'Bar & Drinks' },
+  { src: '/assets/images/vip/dance-1.jpg?v=2',     label: 'Live Dance Show',      category: 'Entertainment' },
   { src: '/assets/images/vip/dance-2.jpg',     label: 'VIP Stage & Lounge',   category: 'Entertainment' },
-  { src: '/assets/images/vip/lounge-1.jpg',    label: 'VIP Lounge Access',    category: 'VIP Lounge' },
+  { src: '/assets/images/vip/lounge-1.jpg?v=2',    label: 'VIP Lounge Access',    category: 'VIP Lounge' },
   { src: '/assets/images/vip/lounge-2.jpg',    label: 'Private Suite Lounge', category: 'VIP Lounge' },
   { src: '/assets/images/vip/vip-room-1.jpg',  label: 'Exclusive VIP Room',   category: 'VIP Rooms' },
   { src: '/assets/images/vip/vip-room-2.avif', label: 'High Roller Room',     category: 'VIP Rooms' },
-  { src: '/assets/images/vip/private-jet.png', label: 'Private Jet',     category: 'Luxury Travel' },
+  { src: '/assets/images/vip/private-jet.jpg', label: 'Private Jet',     category: 'Luxury Travel' },
   { src: '/assets/images/vip/luxury-cruise.jpg', label: 'Luxury Cruises',     category: 'Luxury Travel' },
   { src: '/assets/images/vip/private-boat.jpg', label: 'Private Boats',     category: 'Luxury Travel' },
 ]
@@ -218,6 +218,34 @@ function WhatsAppBtn({ label = 'Enquire on WhatsApp', pkg = '' }) {
  * exactly as the venue chips beside it do, and the country's colour survives
  * where it belongs: in the bullet.
  */
+/* A muted looping clip that costs nothing until it is near the screen.
+   These tiles sit far below the hero, but as plain autoPlay <video>s all
+   three started downloading on page load, competing with the hero and
+   partner videos the visitor is actually watching. No src until first near
+   the viewport; paused whenever scrolled away. */
+function InViewVideo({ src, style }) {
+  const videoRef = useRef(null)
+  const { ref: inViewRef, inView } = useInView({ rootMargin: '200px 0px' })
+  const [loaded, setLoaded] = useState(false)
+  useEffect(() => { if (inView) setLoaded(true) }, [inView])
+  useEffect(() => {
+    const v = videoRef.current
+    if (!v || !loaded) return
+    if (inView) v.play().catch(() => {})
+    else v.pause()
+  }, [inView, loaded])
+  return (
+    <div ref={inViewRef} style={{ width: '100%', height: '100%' }}>
+      <video
+        ref={videoRef}
+        src={loaded ? src : undefined}
+        muted loop playsInline preload="none"
+        style={style}
+      />
+    </div>
+  )
+}
+
 function InfoChip({ label, dotColor }) {
   return (
     <span
@@ -242,7 +270,7 @@ function CountryFlag({ name, emoji, size }) {
   const icon = flagIconUrl(KNOWN_COUNTRY_CODES[name])
   if (icon) {
     return (
-      <img
+      <img loading="lazy" decoding="async"
         src={icon}
         alt=""
         aria-hidden
@@ -397,7 +425,7 @@ function ImageCarousel({ images, color, glow, isVisible }) {
                 }}
               />
             ) : (
-              <img
+              <img loading="lazy" decoding="async"
                 src={images[idx].src} alt={images[idx].label}
                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
               />
@@ -518,7 +546,7 @@ function VIPServicesGallery() {
                 exit={{ opacity: 0, scale: 0.9 }} transition={{ duration: 0.3, delay: i * 0.04 }}
                 whileHover={{ scale: 1.02, y: -3 }}
                 style={{ borderRadius: 12, overflow: 'hidden', position: 'relative', boxShadow: '0 6px 24px rgba(0,0,0,0.4)', cursor: 'pointer', border: '1px solid rgba(212,175,55,0.1)', aspectRatio: '16/10' }}>
-                <img src={item.src} alt={item.label} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                <img loading="lazy" decoding="async" src={item.src} alt={item.label} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                 <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 50%)' }} />
                 <div style={{ position: 'absolute', bottom: 10, left: 12, right: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 6 }}>
                   <span className=" font-bold" style={{ fontSize: 'clamp(0.7rem,2.5vw,0.82rem)', fontWeight: 700, color: '#fff', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>
@@ -568,7 +596,7 @@ function VIPServicesGallery() {
             portrait, and `cover` was showing about a third of it. The tile
             keeps its grid shape and the clip keeps all of its frame, against
             the tile's own dark surface. */}
-        <video src={v.src} autoPlay muted loop playsInline style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+        <InViewVideo src={v.src} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
         <div style={{ position: 'absolute', bottom: 8, left: 10, right: 10 }}>
           <span className=" font-bold" style={{ fontSize: 'clamp(0.68rem,2.5vw,0.78rem)', color: '#fff', fontWeight: 700, background: 'rgba(0,0,0,0.55)', padding: '3px 9px', borderRadius: 6 }}>{v.label}</span>
         </div>

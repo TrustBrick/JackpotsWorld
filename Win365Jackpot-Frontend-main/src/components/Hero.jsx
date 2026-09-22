@@ -156,7 +156,7 @@ const rolexItems = [
 
 const luxuryItems = [
   { logo:'/assets/images/logos/benz.png',  label:'BENZ',  pos:{left:'9%',  top:'36%'}, delay:0.5, color:'#C8C8C8' },
-  { logo:'/assets/images/logos/bmw.png',   label:'BMW',   pos:{right:'14%',top:'30%'}, delay:2.0, color:'#4FC3F7' },
+  { logo:'/assets/images/logos/bmw.png?v=2',   label:'BMW',   pos:{right:'14%',top:'30%'}, delay:2.0, color:'#4FC3F7' },
   { logo:'/assets/images/logos/apple.png', label:'APPLE', pos:{left:'11%', top:'62%'}, delay:1.2, color:'#E8E8E8' },
   { Icon: Gem,                       label:'VIP',   pos:{right:'3%', top:'60%'}, delay:4.2, color:'#B47FFF' },
 ]
@@ -374,7 +374,13 @@ export default function Hero() {
           objectFit:'cover', zIndex:0, pointerEvents:'none',
         }}
       >
-        <source src={settings?.hero_background_video || "/assets/videos/hero-background.mp4"} type="video/mp4" />
+        {/* 720p30 at ~0.75 Mbps. The original was 1080p60 at 6.4 Mbps (39MB),
+            and it kept streaming and decoding behind the partner band, starving
+            the video on top of bandwidth and decoder time. Under this overlay
+            the two are indistinguishable (SSIM 0.988). A new filename, not an
+            overwrite: /assets/ is cached for a year at Cloudflare and in
+            browsers, so the old URL would keep serving the heavy file. */}
+        <source src={settings?.hero_background_video || "/assets/videos/hero-background-720.mp4"} type="video/mp4" />
       </video>
 
       {/* Color-grading overlay — keeps the video in the site's dark magenta/gold

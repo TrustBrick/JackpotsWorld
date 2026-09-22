@@ -67,7 +67,7 @@ function Avatar({ src, name, color }) {
       style={{ borderColor: `${color}88`, background: `${color}22` }}
     >
       {src && !err && (
-        <img
+        <img loading="lazy" decoding="async"
           src={src} alt=""
           onLoad={() => setLoaded(true)}
           onError={() => setErr(true)}

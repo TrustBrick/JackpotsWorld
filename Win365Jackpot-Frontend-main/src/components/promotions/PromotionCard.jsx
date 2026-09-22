@@ -48,7 +48,7 @@ function PromotionCard({ promotion, onClaim, onViewDetails }) {
         {(promotion.casino_logo || promotion.casino_name || promotion.country) && (
           <div className="absolute bottom-3 left-4 flex items-center gap-2">
             {promotion.casino_logo && (
-              <img
+              <img loading="lazy" decoding="async"
                 src={promotion.casino_logo}
                 alt=""
                 className="w-8 h-8 rounded-full object-cover border"

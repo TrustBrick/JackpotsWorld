@@ -35,7 +35,7 @@ const FALLBACK_GIFTS = [
     tierColor: '#4FC3F7',
     name:      'BMW M3 Competition',
     subtitle:  '510 HP · Twin-Turbo · The Ultimate Machine',
-    logoSrc:   '/assets/images/logos/bmw.png',
+    logoSrc:   '/assets/images/logos/bmw.png?v=2',
     logoAlt:   'BMW',
     value:     '$120K+',
     description: 'Pure M. The BMW M3 Competition — 510 horsepower, 0–100 in 3.9 seconds. Win it, drive it, live it.',
@@ -180,7 +180,7 @@ function FeaturedCard({ gift }) {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             marginBottom: 20,
           }}>
-            <img
+            <img loading="lazy" decoding="async"
               src={gift.logoSrc} alt={gift.logoAlt}
               style={{ width: 157, height: 157, objectFit: 'contain' }}
               onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'flex' }}
@@ -295,7 +295,7 @@ function GiftCard({ gift, index }) {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           marginBottom: 14,
         }}>
-          <img
+          <img loading="lazy" decoding="async"
             src={gift.logoSrc} alt={gift.logoAlt}
             style={{ width: 88, height: 88, objectFit: 'contain' }}
             onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'flex' }}
