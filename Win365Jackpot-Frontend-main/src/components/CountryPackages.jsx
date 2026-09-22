@@ -29,6 +29,9 @@ import { fetchDestinations, fetchVipServiceImages, fetchTourPackages, fetchCruis
 import { flagFromCountryCode } from '../utils/countryFlags'
 import useEnquiryNumber from '../hooks/useEnquiryNumber'
 import { buildWhatsAppLink } from '../services/enquiryContact'
+// WHATSAPP-CAPTURE: intercepts the press to ask for a name and number
+// first. WhatsApp still opens whatever happens -- see WhatsAppGate.jsx.
+import { useWhatsAppGate } from './whatsapp/WhatsAppGate'
 import CruisePackageCard from './CruisePackageCard'
 import useEnquiryMessage, { renderEnquiryTemplate } from '../hooks/useEnquiryMessage'
 import { SECTION_PAD, CONTAINER } from '../utils/layout'
@@ -160,8 +163,14 @@ function WhatsAppBtn({ label = 'Enquire on WhatsApp', pkg = '' }) {
   const generalMsg = useEnquiryMessage('tour_packages_general')
   // Raw text — buildWhatsAppLink() does the URL encoding.
   const msg = pkg ? namedMsg : generalMsg
+  const openWhatsApp = useWhatsAppGate()
   return (
-    <a href={buildWhatsAppLink(whatsappNumber, msg)} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textDecoration: 'none' }}>
+    <a
+      href={buildWhatsAppLink(whatsappNumber, msg)}
+      target="_blank" rel="noopener noreferrer"
+      onClick={e => { e.preventDefault(); openWhatsApp({ source: pkg ? 'tour_package_named' : 'tour_packages_general', message: msg }) }}
+      style={{ display: 'block', textDecoration: 'none' }}
+    >
       <motion.button
         whileHover={{ scale: 1.04, boxShadow: '0 0 30px rgba(37,211,102,0.5)' }}
         whileTap={{ scale: 0.97 }}

@@ -45,7 +45,12 @@ function randomId() {
 
 // Prefixed with a letter so it always matches the server's opaque-id shape
 // ([A-Za-z0-9_-]{8,64}) and can never be mistaken for anything meaningful.
-function getAnonId() {
+// Exported for the WhatsApp lead recorder (services/whatsappEnquiryService.js),
+// which needs the same visitor and session ids so a press and the form that
+// may follow it resolve to one lead rather than two. Shared rather than
+// re-derived: two copies of these storage keys would drift, and the dedupe
+// would quietly stop working with nothing to show for it.
+export function getAnonId() {
   try {
     let id = localStorage.getItem(ANON_KEY);
     if (!id) { id = `v${randomId()}`; localStorage.setItem(ANON_KEY, id); }
@@ -53,7 +58,7 @@ function getAnonId() {
   } catch { return `v${randomId()}`; }
 }
 
-function getSessionId() {
+export function getSessionId() {
   try {
     let id = sessionStorage.getItem(SESSION_KEY);
     if (!id) { id = `s${randomId()}`; sessionStorage.setItem(SESSION_KEY, id); }
@@ -98,7 +103,7 @@ export function captureUtm(search) {
   } catch { /* storage blocked — attribution simply degrades to none */ }
 }
 
-function getUtm() {
+export function getUtm() {
   try { return JSON.parse(sessionStorage.getItem(UTM_KEY) || "{}"); } catch { return {}; }
 }
 

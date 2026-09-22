@@ -6,6 +6,7 @@ import ExperienceEnquiryModal from './ExperienceEnquiryModal'
 import useEnquiryNumber from '../../hooks/useEnquiryNumber'
 import useEnquiryMessage from '../../hooks/useEnquiryMessage'
 import { buildWhatsAppLink } from '../../services/enquiryContact'
+import { enquiryContext, recordWhatsAppClick } from '../../services/whatsappEnquiryService'
 
 /**
  * §12 VIP CONCIERGE — the glue between everything above it.
@@ -123,6 +124,12 @@ export default function VipConciergeSection() {
             href={buildWhatsAppLink(number, waMessage)}
             target="_blank"
             rel="noopener noreferrer"
+            // WHATSAPP-LEADS: records the press without altering the link.
+            onClick={() => recordWhatsAppClick(enquiryContext({
+              source: 'vip_concierge',
+              message: waMessage,
+              destinationNumber: number,
+            }))}
             className="btn-outline-gold"
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 9,

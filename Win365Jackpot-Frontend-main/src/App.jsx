@@ -8,6 +8,10 @@ import { ThemeProvider } from './context/ThemeContext'
 import { authFetch, API } from './components/user/helpers'
 import { getToken } from './services/authStorage'
 import SessionTimeoutProvider from './components/SessionTimeoutProvider'
+// WHATSAPP-CAPTURE: one modal for every WhatsApp button on the site. Asks
+// for a name and a number, writes the lead, then opens wa.me. See
+// components/whatsapp/WhatsAppGate.jsx -- WhatsApp opens either way.
+import { WhatsAppGateProvider } from './components/whatsapp/WhatsAppGate'
 import { HelmetProvider } from 'react-helmet-async'
 import RouteSeo from './components/RouteSeo'
 import ScrollToTop from './components/ScrollToTop'
@@ -150,6 +154,7 @@ export default function App() {
       {/* One global inactivity manager for every route and every panel —
           see src/config/session.js for the timeout values. */}
       <SessionTimeoutProvider>
+      <WhatsAppGateProvider>
       <Suspense fallback={<RouteFallback />}>
       <Routes>
         <Route path="/" element={<LandingPage />} />
@@ -191,6 +196,7 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />  {/* ← Always last */}
       </Routes>
       </Suspense>
+      </WhatsAppGateProvider>
       </SessionTimeoutProvider>
     </BrowserRouter>
     </ThemeProvider>

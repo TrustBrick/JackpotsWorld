@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import useEnquiryNumber from '../hooks/useEnquiryNumber'
 import { buildWhatsAppLink } from '../services/enquiryContact'
+import { enquiryContext, recordWhatsAppClick } from '../services/whatsappEnquiryService'
 import useEnquiryMessage from '../hooks/useEnquiryMessage'
 
 const TG_USERNAME = 'yourwinningdestination888'
@@ -95,6 +96,17 @@ export default function WhatsAppButton() {
         href={buildWhatsAppLink(enquiryNumber, enquiryMessage)}
         target="_blank"
         rel="noopener noreferrer"
+        // WHATSAPP-LEADS: record which button was pressed, without touching
+        // the click. No preventDefault, nothing awaited — the anchor stays a
+        // plain anchor, so the native app still opens, middle-click still
+        // works, and nothing can be popup-blocked. Routing this through the
+        // capture modal instead would have put a form in front of the site's
+        // primary call to action, which is explicitly not wanted here.
+        onClick={() => recordWhatsAppClick(enquiryContext({
+          source: 'floating_button',
+          message: enquiryMessage,
+          destinationNumber: enquiryNumber,
+        }))}
         onHoverStart={() => setHoveredWA(true)}
         onHoverEnd={() => setHoveredWA(false)}
         whileHover={{ scale: 1.15 }}

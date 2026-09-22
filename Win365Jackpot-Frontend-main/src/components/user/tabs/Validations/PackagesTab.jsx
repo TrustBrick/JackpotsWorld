@@ -11,6 +11,10 @@ import { fetchTourPackages } from "../../../../services/landingService";
 import useEnquiryNumber from "../../../../hooks/useEnquiryNumber";
 import useEnquiryMessage, { renderEnquiryTemplate } from "../../../../hooks/useEnquiryMessage";
 import { buildWhatsAppLink } from "../../../../services/enquiryContact";
+// WHATSAPP-CAPTURE: records the enquiry before the handoff. A signed-in
+// member is never prompted -- the API fills their details from the
+// account. See components/whatsapp/WhatsAppGate.jsx.
+import { useWhatsAppGate } from "../../../whatsapp/WhatsAppGate";
 
 const FALLBACK_PACKAGES = [
   { name: "VIP", price: "$5,000", icon: <Layers size={26} color="#9E9E9E" />, color: "#9E9E9E", badge: null,
@@ -92,6 +96,7 @@ export default function PackagesTab() {
   const whatsappNumber = useEnquiryNumber();
   // No vars here on purpose: this is the raw template, rendered per package below.
   const purchaseTemplate = useEnquiryMessage("package_purchase");
+  const openWhatsApp = useWhatsAppGate();
   return (
     <div>
       <div style={{ marginBottom: 18 }}>
@@ -159,7 +164,9 @@ export default function PackagesTab() {
                   ))}
                 </div>
 
-                <a href={purchaseLink(pkg, whatsappNumber, purchaseTemplate)} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+                <a href={purchaseLink(pkg, whatsappNumber, purchaseTemplate)} target="_blank" rel="noopener noreferrer"
+                   onClick={e => { e.preventDefault(); openWhatsApp({ source: "member_package_purchase", message: purchaseTemplate }); }}
+                   style={{ textDecoration: "none" }}>
                   <button style={{
                     width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                     padding: "11px 0", borderRadius: 10, border: "none", cursor: "pointer",

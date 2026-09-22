@@ -51,6 +51,9 @@ export const DEFAULT_ENQUIRY_MESSAGES = {
 
 const ENDPOINT = '/api/enquiry-messages/'
 
+// key -> capture_details, filled by the same load() below.
+const captureFlags = {}
+
 let cache = null          // { key: template } once loaded
 let inFlight = null       // shared promise while loading
 const subscribers = new Set()
@@ -77,9 +80,29 @@ async function load() {
   const rows = await apiGet(ENDPOINT)
   const next = {}
   if (Array.isArray(rows)) {
-    rows.forEach(r => { if (r?.key && r?.template) next[r.key] = r.template })
+    rows.forEach(r => {
+      if (r?.key && r?.template) next[r.key] = r.template
+      // WHATSAPP-LEADS: the same request already carries whether this button
+      // should ask a logged-out visitor for their details, so the gate reads
+      // it from here rather than making a second call at the moment of a
+      // click -- which would mean deciding what to do after the visitor has
+      // already pressed the button.
+      if (r?.key) captureFlags[r.key] = Boolean(r.capture_details)
+    })
   }
   return next
+}
+
+/**
+ * Should this button ask a logged-out visitor for their details first?
+ *
+ * Defaults to FALSE for an unknown key, on the first paint before the fetch
+ * resolves, and if the request fails outright. That default is deliberate:
+ * not knowing must mean "hand off exactly as before", never "put a form in
+ * front of the site's primary call to action".
+ */
+export function shouldCaptureDetails(key) {
+  return Boolean(captureFlags[key])
 }
 
 /** Resolves to the loaded map, or {} when unavailable. Never rejects. */

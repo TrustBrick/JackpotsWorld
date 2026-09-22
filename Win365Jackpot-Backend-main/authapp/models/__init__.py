@@ -105,6 +105,15 @@ from .experience_models import (
     ENQUIRY_STATUS_CHOICES as EXPERIENCE_ENQUIRY_STATUS_CHOICES,
 )
 
+# WHATSAPP-CAPTURE: the lead behind any WhatsApp button press, captured on the
+# near side of the wa.me handoff. Distinct from ExperienceEnquiry above, which
+# asks for travel dates and party sizes a floating button has no business
+# asking for.
+from .whatsapp_enquiry_models import (
+    WhatsAppEnquiry,
+    STATUS_CHOICES as WHATSAPP_ENQUIRY_STATUS_CHOICES,
+)
+
 # SUPPORT-COMMUNICATION: departments, call transfer/hold records and per-player
 # chat/call restrictions, layered on the live-chat + voice-call stack above.
 # Imported after call_models because CallTransfer/CallHoldEvent point at
@@ -183,6 +192,9 @@ __all__ = [
     # EXPERIENCES
     "Experience",
     "ExperienceEnquiry",
+    # WHATSAPP-CAPTURE
+    "WhatsAppEnquiry",
+    "WHATSAPP_ENQUIRY_STATUS_CHOICES",
     # SUPPORT-COMMUNICATION
     "SupportDepartment",
     "CallTransfer",

@@ -37,6 +37,7 @@ import PromotionsManageTab  from "./tabs/content/PromotionsManageTab";
 import LocationsManageTab   from "./tabs/content/LocationsManageTab";
 import LandingManageTab     from "./tabs/content/LandingManageTab";
 import ExperienceEnquiriesTable from "./tabs/content/ExperienceEnquiriesTable";
+import WhatsAppEnquiriesTable from "./tabs/content/WhatsAppEnquiriesTable";  // WHATSAPP-LEADS
 import AffiliatesTab        from "./tabs/AffiliatesTab";
 import AffiliateWithdrawalsTab from "./tabs/AffiliateWithdrawalsTab"; // AFFILIATE-WITHDRAWALS
 import AffiliateCommissionsTab from "./tabs/AffiliateCommissionsTab"; // Commission Engine
@@ -447,6 +448,7 @@ function AdminPanelInner() {
       // Moved out of Landing Page's sub-tabs into Support & Communication:
       // a queue of people waiting to be answered, not page content.
       case "experience-enquiries": return <ExperienceEnquiriesTable {...props} />;
+      case "whatsapp-enquiries": return <WhatsAppEnquiriesTable {...props} />;  // WHATSAPP-LEADS
       // EMAIL-LOGS: no case on purpose. The logging backend and the
       // /api/admin-panel/email-logs/ endpoints are untouched; only the screen
       // is gone. An "email-logs" id arriving from a stale sessionStorage tab

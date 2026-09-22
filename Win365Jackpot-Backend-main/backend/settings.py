@@ -837,3 +837,13 @@ REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["chat-message"] = config(
 REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["experience-enquiry"] = config(
     "EXPERIENCE_ENQUIRY_RATE", default="6/hour",
 )
+
+# ── WhatsApp enquiries ───────────────────────────────────────────────────────
+# WHATSAPP-CAPTURE: per-IP ceiling on the pre-chat capture form that runs
+# before every wa.me handoff. Looser than the experience-enquiry limit because
+# this form is on every WhatsApp button rather than one page, so asking about
+# two packages in a session is ordinary. Still low enough that the lead list
+# cannot be filled with noise until the real enquiries are unfindable.
+REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["whatsapp-enquiry"] = config(
+    "WHATSAPP_ENQUIRY_RATE", default="12/hour",
+)

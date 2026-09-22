@@ -56,6 +56,17 @@ const FIELDS = [
     label: "Key — must match the button in the site code; changing it unbinds this message",
     placeholder: "tour_packages_general",
   },
+  {
+    // WHATSAPP-LEADS: off by default, and worth leaving off unless this
+    // particular button earns the friction. A form in front of a one-tap
+    // enquiry button costs some visitors; whether that trade is worth it
+    // differs per button, which is why this is a switch rather than a setting
+    // for the whole site. Signed-in members are never asked either way.
+    name: "capture_details",
+    label: "Ask guests for their details first",
+    type: "boolean",
+    checkboxLabel: "Show a short form before opening WhatsApp (guests only)",
+  },
   { name: "order", label: "Sort Order", type: "number", placeholder: "0" },
 ];
 
@@ -63,6 +74,11 @@ const COLUMNS = [
   { key: "label", label: "Enquiry Type / Button" },
   { key: "template", label: "Message" },
   { key: "key", label: "Key" },
+  {
+    key: "capture_details",
+    label: "Asks for details",
+    render: (r) => (r.capture_details ? "Yes" : "No"),
+  },
   { key: "updated_at", label: "Last Updated", render: (r) => stamp(r.updated_at) },
 ];
 

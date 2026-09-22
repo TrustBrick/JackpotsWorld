@@ -8,6 +8,7 @@ import { SECTION_PAD_Y, GUTTER, CONTAINER } from '../utils/layout'
 import useEnquiryNumber from '../hooks/useEnquiryNumber'
 import useEnquiryMessage from '../hooks/useEnquiryMessage'
 import { buildWhatsAppLink } from '../services/enquiryContact'
+import { enquiryContext, recordWhatsAppClick } from '../services/whatsappEnquiryService'
 
 const PRIMARY_DESTINATIONS = ['Vietnam', 'Macau', 'India (Goa)', 'Sri Lanka', 'Philippines']
 const EXTRA_DESTINATIONS   = ['Las Vegas', 'Malaysia', 'Singapore', 'Armenia', 'Georgia']
@@ -244,6 +245,13 @@ export default function Footer() {
                 <a
                   href={buildWhatsAppLink(enquiryNumber, enquiryMessage)}
                   target="_blank" rel="noopener noreferrer"
+                  // WHATSAPP-LEADS: records the press; deliberately does not
+                  // preventDefault, so the link behaves exactly as before.
+                  onClick={() => recordWhatsAppClick(enquiryContext({
+                    source: 'footer_general',
+                    message: enquiryMessage,
+                    destinationNumber: enquiryNumber,
+                  }))}
                   style={{ fontSize: 13, color: 'var(--w365-text-muted)', textDecoration: 'none', transition: 'color 0.15s' }}
                   onMouseEnter={e => e.currentTarget.style.color = '#D4AF37'}
                   onMouseLeave={e => e.currentTarget.style.color = 'var(--w365-text-muted)'}

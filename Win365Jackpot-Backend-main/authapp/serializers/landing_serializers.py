@@ -361,7 +361,8 @@ class EnquiryMessageSerializer(serializers.ModelSerializer):
         model = EnquiryMessage
         fields = [
             "id", "key", "label", "description", "template", "placeholders",
-            "is_active", "order", "created_at", "updated_at", "updated_by_email",
+            "is_active", "capture_details", "order",
+            "created_at", "updated_at", "updated_by_email",
         ]
         read_only_fields = ["id", "created_at", "updated_at", "updated_by_email"]
 
@@ -372,11 +373,16 @@ class PublicEnquiryMessageSerializer(serializers.ModelSerializer):
     Deliberately narrower than the admin serializer. The public endpoint is
     unauthenticated, so it returns only what a button needs to build its link
     -- no ids, no timestamps, no record of which admin last edited it.
+
+    `capture_details` is included because a button cannot decide whether to
+    ask for details without it, and it discloses nothing sensitive: it says
+    only whether this button shows a form, which the visitor is about to find
+    out by pressing it.
     """
 
     class Meta:
         model = EnquiryMessage
-        fields = ["key", "template", "placeholders"]
+        fields = ["key", "template", "placeholders", "capture_details"]
 
 
 class CruisePackageDetailSerializer(serializers.ModelSerializer):

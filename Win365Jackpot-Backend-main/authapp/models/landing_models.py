@@ -547,6 +547,31 @@ class EnquiryMessage(models.Model):
     is_active = models.BooleanField(default=True, db_index=True)
     order = models.PositiveIntegerField(default=0)
 
+    # WHATSAPP-LEADS: ask a logged-out visitor for their details before
+    # opening WhatsApp.
+    #
+    # DEFAULT False, AND THAT DEFAULT IS THE POINT. A form in front of a
+    # one-tap enquiry button costs some visitors, and whether that trade is
+    # worth it differs per button — worth it on a package enquiry somebody has
+    # been reading about for a minute, probably not on the floating button
+    # somebody taps on impulse. Making it a column rather than a constant puts
+    # that judgement in Back Office, where it can be changed per button and
+    # reversed without a deploy.
+    #
+    # Off by default means turning this feature on changes nothing about the
+    # live site until somebody deliberately enables it for a button.
+    #
+    # Signed-in members are never shown the form whatever this says: the
+    # platform already holds their name, email and number, so asking again
+    # would be asking for something it has.
+    capture_details = models.BooleanField(
+        default=False,
+        help_text=(
+            "Ask logged-out visitors for their name, WhatsApp number and email "
+            "before opening WhatsApp. Members are never asked."
+        ),
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     updated_by = models.ForeignKey(

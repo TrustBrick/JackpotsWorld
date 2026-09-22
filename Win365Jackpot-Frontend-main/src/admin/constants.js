@@ -164,6 +164,11 @@ export const ADMIN_NAV_GROUPS = [
       // unanswered count as a red badge for the same reason Live Support and
       // Notifications do.
       { id:"experience-enquiries", label:"Experience Enquiries", icon:"Inbox" },
+      // WHATSAPP-LEADS: every press of a WhatsApp enquiry button, whether or
+      // not the visitor left details. Sits beside Experience Enquiries
+      // because both are people waiting to be answered, which is the same
+      // job; they are two tables only because they collect different things.
+      { id:"whatsapp-enquiries", label:"WhatsApp Enquiries", icon:"MessageCircle" },
       { id:"support-settings", label:"Support Settings", icon:"Languages" },
       // SUPPORT-SCRIPT: the standard live-chat wording from the Call & Live
       // Chat Script Manual. The greeting row is the one message the system

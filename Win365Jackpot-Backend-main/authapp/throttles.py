@@ -125,3 +125,21 @@ class ExperienceEnquiryThrottle(SimpleRateThrottle):
     def get_cache_key(self, request, view):
         ident = request.user.pk if request.user and request.user.is_authenticated else self.get_ident(request)
         return self.cache_format % {"scope": self.scope, "ident": ident}
+
+
+class WhatsAppEnquiryThrottle(SimpleRateThrottle):
+    """WHATSAPP-CAPTURE: per-IP cap on the public pre-chat capture form.
+
+    Same reasoning as ExperienceEnquiryThrottle above, and deliberately a
+    little looser: this form sits on every WhatsApp button rather than one
+    page, so a visitor comparing two packages and asking about both is
+    ordinary behaviour, not abuse.
+
+    Keyed per account when signed in, so one office network behind a shared
+    address cannot lock its own members out of enquiring.
+    """
+    scope = "whatsapp-enquiry"
+
+    def get_cache_key(self, request, view):
+        ident = request.user.pk if request.user and request.user.is_authenticated else self.get_ident(request)
+        return self.cache_format % {"scope": self.scope, "ident": ident}

@@ -8,6 +8,8 @@ import {
 } from 'lucide-react'
 import { attemptPlay, useSoundPreference } from '../hooks/useAudioAutoplay'
 import { buildWhatsAppLink } from '../services/enquiryContact'
+// WHATSAPP-CAPTURE: see CountryPackages.jsx for the same interception.
+import { useWhatsAppGate } from './whatsapp/WhatsAppGate'
 import useEnquiryMessage from '../hooks/useEnquiryMessage'
 // Enquiry routing is decided by the visitor's country, not by a stored
 // number — see services/enquiryContact.js. Same hook CountryPackages wraps
@@ -577,6 +579,7 @@ function SectionLabel({ children, accent }) {
 export default function CruisePackageCard({ pkg, inView }) {
   const whatsappNumber = useEnquiryNumber()
   const enquiryMsg = useEnquiryMessage(pkg.enquiry_key || 'cruise_package')
+  const openWhatsApp = useWhatsAppGate()
 
   const accent = pkg.accent_color || '#22d3ee'
   const TitleIcon = iconFor(pkg.icon_name)
@@ -784,6 +787,7 @@ export default function CruisePackageCard({ pkg, inView }) {
                 href={buildWhatsAppLink(whatsappNumber, enquiryMsg)}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={e => { e.preventDefault(); openWhatsApp({ source: pkg.enquiry_key || 'cruise_package', message: enquiryMsg }) }}
                 style={{ display: 'block', textDecoration: 'none' }}
               >
                 <motion.button

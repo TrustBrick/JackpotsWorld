@@ -54,7 +54,7 @@ nothing the second time.
 import logging
 
 from django.apps import apps
-from django.db import transaction
+from django.db import DatabaseError, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -142,41 +142,28 @@ def backfill(dry_run=False, stdout=None):
     for model, who, when, action, verb in _plan():
         table = model._meta.db_table
         label = model.__name__
-        qs = (model.objects
-              .filter(**{f"{who}__isnull": False, f"{who}__is_staff": True})
-              .select_related(who)
-              .order_by("pk"))
-
-        pending, stamp_by_ref, skipped = [], {}, 0
-        for obj in qs.iterator(chunk_size=BATCH):
-            ref = f"backfill:{table}:{obj.pk}:{who}"[:100]
-            if ref in already:
-                skipped += 1
-                continue
-            ts = getattr(obj, when, None)
-            if ts is None:
-                continue
-            actor = getattr(obj, who)
-            pending.append(ActivityLog(
-                actor=actor,
-                action=action,
-                actor_type="admin",
-                description=f"Reconstructed: {verb} {label} #{obj.pk}",
-                reference_id=ref,
-                meta={
-                    "source": "backfill",
-                    "model": label,
-                    "table": table,
-                    # str(): some models use a UUID primary key, and meta is
-                    # JSON. A dry run will not catch this, because it never
-                    # serialises.
-                    "object_id": str(obj.pk),
-                    "basis": f"{who} + {when}",
-                    "note": "Derived from an existing record, not observed at "
-                            "the time. See services/audit_backfill.py.",
-                },
-            ))
-            stamp_by_ref[ref] = ts
+        try:
+            pending, stamp_by_ref, skipped = _collect(
+                model, who, when, action, verb, table, label, already,
+            )
+        except DatabaseError:
+            # This runs from migration 0104 against the CURRENT models (see
+            # that migration's docstring, which flags exactly this). Replaying
+            # the chain on a fresh database therefore reaches 0104 while a
+            # column added by a LATER migration is still missing, and querying
+            # this model raises.
+            #
+            # Skip that model rather than abandoning the whole reconstruction:
+            # one table whose schema has since moved on must not cost the
+            # backfill every other table it could still read. Caught per model
+            # for that reason, not around the loop.
+            logger.warning(
+                "admin audit backfill: skipping %s — its schema has moved on "
+                "since migration 0104 (a later migration adds a column this "
+                "query needs). Run `manage.py backfill_admin_audit` afterwards "
+                "to pick it up.", label,
+            )
+            continue
 
         results["skipped_existing"] += skipped
         if not pending:
@@ -187,26 +174,77 @@ def backfill(dry_run=False, stdout=None):
         if dry_run:
             continue
 
-        with transaction.atomic():
-            # created_at is auto_now_add, so bulk_create stamps it with "now"
-            # regardless of what the instance says. bulk_update does honour
-            # it, so the real timestamp is written in a second pass -- without
-            # which every reconstructed row would claim to have happened at
-            # the moment of the backfill, which would be a lie in the one
-            # column an audit trail is most often read by.
-            ActivityLog.objects.bulk_create(pending, batch_size=BATCH)
-
-            # MySQL has no RETURNING, so bulk_create hands back objects with
-            # no primary key and bulk_update refuses them. Re-read the rows
-            # by the deterministic reference_id instead -- which is also what
-            # makes the second pass safe to interrupt and repeat.
-            written = list(
-                ActivityLog.objects.filter(reference_id__in=list(stamp_by_ref))
-            )
-            for row in written:
-                row.created_at = stamp_by_ref[row.reference_id]
-            ActivityLog.objects.bulk_update(written, ["created_at"], batch_size=BATCH)
+        _write(pending, stamp_by_ref)
 
     say(f"reconstructed: {results['reconstructed']} "
         f"(skipped {results['skipped_existing']} already present)")
     return results
+
+
+def _collect(model, who, when, action, verb, table, label, already):
+    """Rows to write for one model. Raises DatabaseError if its schema has
+    drifted past what migration 0104 can read — see the caller."""
+    from authapp.models import ActivityLog
+
+    qs = (model.objects
+          .filter(**{f"{who}__isnull": False, f"{who}__is_staff": True})
+          .select_related(who)
+          .order_by("pk"))
+
+    pending, stamp_by_ref, skipped = [], {}, 0
+    for obj in qs.iterator(chunk_size=BATCH):
+        ref = f"backfill:{table}:{obj.pk}:{who}"[:100]
+        if ref in already:
+            skipped += 1
+            continue
+        ts = getattr(obj, when, None)
+        if ts is None:
+            continue
+        actor = getattr(obj, who)
+        pending.append(ActivityLog(
+            actor=actor,
+            action=action,
+            actor_type="admin",
+            description=f"Reconstructed: {verb} {label} #{obj.pk}",
+            reference_id=ref,
+            meta={
+                "source": "backfill",
+                "model": label,
+                "table": table,
+                # str(): some models use a UUID primary key, and meta is
+                # JSON. A dry run will not catch this, because it never
+                # serialises.
+                "object_id": str(obj.pk),
+                "basis": f"{who} + {when}",
+                "note": "Derived from an existing record, not observed at "
+                        "the time. See services/audit_backfill.py.",
+            },
+        ))
+        stamp_by_ref[ref] = ts
+
+    return pending, stamp_by_ref, skipped
+
+
+def _write(pending, stamp_by_ref):
+    """Insert the reconstructed rows, then correct their timestamps."""
+    from authapp.models import ActivityLog
+
+    with transaction.atomic():
+        # created_at is auto_now_add, so bulk_create stamps it with "now"
+        # regardless of what the instance says. bulk_update does honour it, so
+        # the real timestamp is written in a second pass -- without which every
+        # reconstructed row would claim to have happened at the moment of the
+        # backfill, which would be a lie in the one column an audit trail is
+        # most often read by.
+        ActivityLog.objects.bulk_create(pending, batch_size=BATCH)
+
+        # MySQL has no RETURNING, so bulk_create hands back objects with no
+        # primary key and bulk_update refuses them. Re-read the rows by the
+        # deterministic reference_id instead -- which is also what makes the
+        # second pass safe to interrupt and repeat.
+        written = list(
+            ActivityLog.objects.filter(reference_id__in=list(stamp_by_ref))
+        )
+        for row in written:
+            row.created_at = stamp_by_ref[row.reference_id]
+        ActivityLog.objects.bulk_update(written, ["created_at"], batch_size=BATCH)
