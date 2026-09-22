@@ -3,6 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 
+from authapp.data.destination_countries import DESTINATION_COUNTRIES
 from authapp.models.casino_models import Casino
 from authapp.models.location_models import SupportedLocation
 from authapp.serializers.location_serializers import SupportedLocationSerializer
@@ -49,13 +50,18 @@ class AdminCasinoCatalogView(APIView):
     Back Office's generic asyncSelect field can consume both lists with the
     same option shape (its `id` is the country name, since that is what the
     country columns actually store).
+
+    The country list is the site's destination countries (the footer's list)
+    plus any other country an active casino is in, so a country is pickable
+    before its first casino is added.
     """
     permission_classes = [IsAdminOrSuperAdmin]
 
     def get(self, request):
         casinos = Casino.objects.filter(is_active=True).order_by("country", "name")
         rows = [{"id": c.id, "name": c.name, "country": c.country, "location": c.location} for c in casinos]
-        countries = sorted({r["country"] for r in rows if r["country"]})
+        extra = sorted({r["country"] for r in rows if r["country"]} - set(DESTINATION_COUNTRIES))
+        countries = DESTINATION_COUNTRIES + extra
         return Response({
             "countries": [{"id": c, "name": c} for c in countries],
             "results": rows,
