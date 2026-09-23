@@ -203,6 +203,14 @@ export const ADMIN_NAV_GROUPS = [
       // { id:"staff", label:"Staff", icon:"UserCog" },
     ],
   },
+  {
+    // ADMIN-PROFILE: the signed-in admin's own details + OTP-verified
+    // password change (tabs/ProfileTab.jsx).
+    group: "Account",
+    items: [
+      { id:"profile", label:"My Profile", icon:"UserCircle" },
+    ],
+  },
   // ACTIVITY-LOGS: the "Activity / Logs" group was removed from this list on
   // request, the same way EMAIL-LOGS was above and for the same reason — the
   // who-did-what trail is wanted as a database record, not as a screen.

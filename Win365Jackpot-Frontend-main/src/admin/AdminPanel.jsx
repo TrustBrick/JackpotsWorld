@@ -15,6 +15,7 @@ import {
   LineChart, MousePointerClick, PlayCircle, Megaphone, UserCheck, // ANALYTICS
   Menu, X, // mobile off-canvas drawer controls
   HelpCircle, Headset,
+  UserCircle, // ADMIN-PROFILE
 } from "lucide-react";
 
 import OverviewTab       from "./tabs/OverviewTab";
@@ -53,6 +54,7 @@ import SystemLogsTab       from "./tabs/SystemLogsTab";
 import AndharBaharManageTab from "./tabs/content/AndharBaharManageTab";
 import FaqManageTab        from "./tabs/content/FaqManageTab";
 import LiveSupportSettingsTab from "./tabs/content/LiveSupportSettingsTab";
+import ProfileTab          from "./tabs/ProfileTab";  // ADMIN-PROFILE
 
 import { Card, Toast, NotificationPopup } from "./components/SharedUI";
 import { API, adminFetch } from "./helpers";
@@ -82,6 +84,7 @@ const ICON_MAP = {
   HelpCircle, // FAQs
   Headset, // Live Support Settings
   Inbox, // Experience Enquiries
+  UserCircle, // ADMIN-PROFILE
 };
 
 // AFFILIATE-APPROVAL: sessionStorage keys for sidebar state that should
@@ -481,6 +484,7 @@ function AdminPanelInner() {
       // id arriving from a stale sessionStorage tab or a ?tab= link falls
       // through to `default` and lands on Overview.
       case "staff":     return <StaffTab          {...props} />;
+      case "profile":   return <ProfileTab        {...props} />;  // ADMIN-PROFILE
       default:          return <OverviewTab       {...props} />;
     }
   };
@@ -542,10 +546,11 @@ function AdminPanelInner() {
 
           {/* Admin user badge — also fixed */}
           {adminUser && (
-            <div style={{ flexShrink: 0, marginBottom: 16, padding: "10px 12px", borderRadius: 10, background: `${C.gold}10`, border: `1px solid ${C.gold}20` }}>
-              <div style={{ fontSize: 11, color: C.gold, fontWeight: 700 }}>{adminUser.email}</div>
+            <button onClick={() => setTab("profile")} title="My Profile"
+              style={{ flexShrink: 0, marginBottom: 16, padding: "10px 12px", borderRadius: 10, background: `${C.gold}10`, border: `1px solid ${C.gold}20`, textAlign: "left", cursor: "pointer", width: "100%" }}>
+              <div style={{ fontSize: 11, color: C.gold, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis" }}>{adminUser.email}</div>
               <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>{adminUser.role || "Admin"}</div>
-            </div>
+            </button>
           )}
 
           {/* Nav groups — the only part that scrolls, so logo/badge above and

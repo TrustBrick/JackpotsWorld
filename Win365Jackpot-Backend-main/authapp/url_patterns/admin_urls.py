@@ -47,6 +47,11 @@ from authapp.views.admin_offline_deposit_views import (
 )
 
 from authapp.views.casino_wallet_views import CasinoWalletBalanceView
+from authapp.views.admin_profile_views import (  # ADMIN-PROFILE
+    AdminProfileView,
+    AdminChangePasswordRequestOTPView,
+    AdminChangePasswordView,
+)
 from authapp.views.gift_level_views import AdminUserLevelView
 
 from authapp.views.wallet_views import (
@@ -63,6 +68,9 @@ urlpatterns = [
 
     # ── Admin self ────────────────────────────────────
     path("me/theme/", AdminThemePreferenceView.as_view()),
+    path("me/profile/", AdminProfileView.as_view()),
+    path("me/change-password/request-otp/", AdminChangePasswordRequestOTPView.as_view()),
+    path("me/change-password/", AdminChangePasswordView.as_view()),
 
     # ── Users ─────────────────────────────────────────
     path("users/", AdminUserListView.as_view()),
