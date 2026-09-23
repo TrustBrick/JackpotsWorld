@@ -19,7 +19,7 @@ import { getFallbackImage, fixMojibakeCurrency } from '../utils/mediaFallback'
 import Seo from '../components/Seo'
 import { eventSchema, breadcrumbSchema } from '../utils/seoSchemas'
 import { hasAmount } from '../utils/money'
-import { toMetaDescription, TITLE_SUFFIX } from '../config/seo'
+import { toMetaDescription, TITLE_SUFFIX, ROUTE_SEO } from '../config/seo'
 
 function formatDate(iso) {
   if (!iso) return ''
@@ -134,6 +134,7 @@ export default function TeenPattiDetails() {
           )}
           path={`/teen-patti/${event.id}`}
           image={event.image || event.banner}
+          keywords={ROUTE_SEO['/teen-patti']?.keywords}
           type="article"
           jsonLd={[
             // eventSchema reads event_date/event_time (the CasinoEvent column

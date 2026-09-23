@@ -15,7 +15,7 @@ import { getToken } from '../services/authStorage'
 import Seo from '../components/Seo'
 import Breadcrumbs from '../components/shared/Breadcrumbs'
 import { eventSchema, breadcrumbSchema } from '../utils/seoSchemas'
-import { toMetaDescription, TITLE_SUFFIX } from '../config/seo'
+import { toMetaDescription, TITLE_SUFFIX, ROUTE_SEO } from '../config/seo'
 
 function formatDate(iso) {
   if (!iso) return ''
@@ -90,6 +90,7 @@ export default function EventDetails() {
           description={toMetaDescription(event.short_description || event.description)}
           path={`/events/${event.id}`}
           image={event.image}
+          keywords={ROUTE_SEO['/events']?.keywords}
           type="article"
           jsonLd={[eventSchema(event), breadcrumbSchema(trail)].filter(Boolean)}
         />

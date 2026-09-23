@@ -16,7 +16,7 @@ import Seo from '../components/Seo'
 import Breadcrumbs from '../components/shared/Breadcrumbs'
 import { pokerSchema, breadcrumbSchema } from '../utils/seoSchemas'
 import { hasAmount } from '../utils/money'
-import { toMetaDescription, TITLE_SUFFIX } from '../config/seo'
+import { toMetaDescription, TITLE_SUFFIX, ROUTE_SEO } from '../config/seo'
 
 const STATUS_LABEL_KEYS = {
   upcoming: 'common.statusUpcoming',
@@ -90,6 +90,7 @@ export default function PokerDetails() {
           )}
           path={`/poker/${tournament.id}`}
           image={tournament.image}
+          keywords={ROUTE_SEO['/poker']?.keywords}
           type="article"
           jsonLd={[
             pokerSchema(tournament),

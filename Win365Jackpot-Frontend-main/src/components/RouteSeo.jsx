@@ -73,6 +73,7 @@ export default function RouteSeo() {
     <Seo
       title={entry?.title || (dynamic ? undefined : DEFAULT_TITLE)}
       description={entry?.description || (dynamic ? undefined : DEFAULT_DESCRIPTION)}
+      keywords={entry?.keywords}
       path={pathname}
       noindex={entry?.noindex || isNoindexPath(pathname) || unknown}
       lang={i18n?.resolvedLanguage || i18n?.language || 'en'}

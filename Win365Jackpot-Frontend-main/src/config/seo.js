@@ -38,53 +38,88 @@ export const DEFAULT_DESCRIPTION =
 
 export const TWITTER_HANDLE = '' // set once a real @handle exists
 
+// Site-wide fallback for <meta name="keywords">, sourced from the casino/
+// gaming keyword research sheet. Google has ignored this tag for ranking
+// since 2009, but Bing and several directory/aggregator crawlers still read
+// it, and it costs nothing to keep accurate — so every public route gets one,
+// either this default or a page-specific list below.
+export const DEFAULT_KEYWORDS = [
+  'casino', 'best casino', 'best casino near me', 'casino near me',
+  'land based casino', 'physical casino', 'luxury casino', 'premium casino',
+  'vip casino', 'casino experience', 'casino rewards', 'casino events',
+  'casino world', 'gambling',
+].join(', ')
+
 /**
  * Static per-route metadata, keyed by exact pathname.
  *
  * `noindex: true` keeps a route out of search results. Applied to every
  * authenticated surface and to credential-entry forms, which have no search
  * value and should never be a landing page from organic search.
+ *
+ * `keywords`, where present, replaces DEFAULT_KEYWORDS with terms specific
+ * to that page's content instead of the site-wide list.
  */
 export const ROUTE_SEO = {
   '/': {
     title: DEFAULT_TITLE,
     description: DEFAULT_DESCRIPTION,
+    keywords: DEFAULT_KEYWORDS,
   },
   '/events': {
     title: `Casino Events & Gaming Expos${TITLE_SUFFIX}`,
     description:
       'Browse upcoming casino events, gaming expos and VIP gala nights across Asia. ' +
       'Dates, venues and ticket access for every event on the JackpotsWorld calendar.',
+    keywords: [
+      'casino events', 'casino gaming expo', 'gaming night casino',
+      'weekend casino', 'casino party', 'casino night', 'night life casino',
+      'vip casino experience', 'casino games expo',
+    ].join(', '),
   },
   '/promotions': {
     title: `Casino Promotions & Welcome Bonuses${TITLE_SUFFIX}`,
     description:
       'Exclusive casino promotions, rolling bonuses and welcome offers from partner ' +
       'casinos in India, Macau, Vietnam, Sri Lanka and the Philippines.',
+    keywords: [
+      'casino bonus', 'casino rewards', 'casino 777', 'best casino games',
+      'premium casino', 'vip casino', 'casino all games',
+    ].join(', '),
   },
   '/poker': {
     title: `Poker Tournaments & Schedules${TITLE_SUFFIX}`,
     description:
       'Upcoming poker tournaments with buy-ins, prize pools and seat availability at ' +
       'premier casinos across Asia and beyond. Register through JackpotsWorld.',
+    keywords: [
+      'poker', 'poker live', 'poker table', 'casino poker',
+      'live dealing games', 'live dealing',
+    ].join(', '),
   },
   '/teen-patti': {
     title: `Teen Patti Events & Registration${TITLE_SUFFIX}`,
     description:
       'Live and upcoming Teen Patti events at partner casinos across Asia. ' +
       'Entry fees, prize pools and seat availability — reserve your seat on JackpotsWorld.',
+    keywords: [
+      'teen patti', 'casino games', 'live dealing games', 'casino live',
+      'casino poker',
+    ].join(', '),
   },
   '/affiliates': {
     title: `Casino Affiliate Program — Earn Commission${TITLE_SUFFIX}`,
     description:
       'Join the JackpotsWorld affiliate program. Competitive commission plans, ' +
       'real-time campaign tracking and reliable payouts for casino traffic partners.',
+    keywords: DEFAULT_KEYWORDS,
   },
   '/affiliate-register': {
     title: `Become an Affiliate Partner${TITLE_SUFFIX}`,
     description:
       'Apply to the JackpotsWorld affiliate program and start earning commission on ' +
       'referred players. Fast approval and a full campaign tracking dashboard.',
+    keywords: DEFAULT_KEYWORDS,
   },
   '/privacy-policy': {
     title: `Privacy Policy${TITLE_SUFFIX}`,

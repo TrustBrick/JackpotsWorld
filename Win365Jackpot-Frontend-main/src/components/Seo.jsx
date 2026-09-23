@@ -6,6 +6,7 @@ import {
   DEFAULT_TITLE,
   DEFAULT_DESCRIPTION,
   DEFAULT_OG_IMAGE,
+  DEFAULT_KEYWORDS,
   TWITTER_HANDLE,
   absoluteUrl,
   absoluteImage,
@@ -23,6 +24,7 @@ import {
  *   title, description — plain strings, already truncated by the caller
  *   path               — pathname for canonical/og:url (defaults to current)
  *   image              — og:image; relative paths are made absolute
+ *   keywords           — comma-separated string for <meta name="keywords">
  *   noindex            — keep this page out of search results
  *   type               — og:type ('website' | 'article' | 'event')
  *   jsonLd             — one schema.org object, or an array of them
@@ -33,6 +35,7 @@ export default function Seo({
   description,
   path,
   image,
+  keywords,
   noindex = false,
   type = 'website',
   jsonLd,
@@ -44,6 +47,7 @@ export default function Seo({
     path ?? (typeof window !== 'undefined' ? window.location.pathname : '/')
   )
   const resolvedImage = absoluteImage(image || DEFAULT_OG_IMAGE)
+  const resolvedKeywords = keywords || DEFAULT_KEYWORDS
 
   const schemas = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : []
 
@@ -62,6 +66,7 @@ export default function Seo({
     >
       <title>{resolvedTitle}</title>
       <meta name="description" content={resolvedDescription} />
+      {resolvedKeywords ? <meta name="keywords" content={resolvedKeywords} /> : null}
 
       {/* A noindex page still gets a canonical: it stops the URL being
           treated as a duplicate if it is ever linked externally. */}

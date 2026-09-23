@@ -10,7 +10,7 @@ import { getCasinoFallbackImage } from '../utils/mediaFallback'
 import Seo from '../components/Seo'
 import Breadcrumbs from '../components/shared/Breadcrumbs'
 import { promotionSchema, breadcrumbSchema, promotionMetaDescription } from '../utils/seoSchemas'
-import { TITLE_SUFFIX } from '../config/seo'
+import { TITLE_SUFFIX, ROUTE_SEO } from '../config/seo'
 // ANALYTICS: this is the one content video in the app that wasn't wired up —
 // see the video-analytics inspection report. Same instrumentation as
 // FeaturedDestinationShowcase / PremiumPartnerHeroMedia.
@@ -62,6 +62,7 @@ export default function PromotionDetails() {
           description={promotionMetaDescription(promo)}
           path={`/promotions/${promo.id}`}
           image={promo.image}
+          keywords={ROUTE_SEO['/promotions']?.keywords}
           type="article"
           jsonLd={[promotionSchema(promo), breadcrumbSchema(trail)].filter(Boolean)}
         />

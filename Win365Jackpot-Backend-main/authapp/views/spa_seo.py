@@ -64,49 +64,82 @@ DEFAULT_DESCRIPTION = (
     'destinations across Vietnam, Macau, India, Sri Lanka and the Philippines, get '
     'your JackpotsWorld referral, and play directly at the casino. Register free.'
 )
+# Mirror of the frontend's DEFAULT_KEYWORDS in src/config/seo.js. Google has
+# ignored <meta name="keywords"> for ranking since 2009, but Bing and several
+# directory/aggregator crawlers still read it, and social scrapers only ever
+# see this server-rendered shell -- never the client-side <RouteSeo> version.
+DEFAULT_KEYWORDS = (
+    'casino, best casino, best casino near me, casino near me, '
+    'land based casino, physical casino, luxury casino, premium casino, '
+    'vip casino, casino experience, casino rewards, casino events, '
+    'casino world, gambling'
+)
 
+# (title, description, keywords) per route -- keywords defaults to
+# DEFAULT_KEYWORDS via ROUTE_SEO.get() below, so entries below only override
+# it when the page has more specific terms (mirrors config/seo.js's ROUTE_SEO).
 ROUTE_SEO = {
-    '/': (DEFAULT_TITLE, DEFAULT_DESCRIPTION),
+    '/': (DEFAULT_TITLE, DEFAULT_DESCRIPTION, DEFAULT_KEYWORDS),
     '/events': (
         f'Casino Events & Gaming Expos{TITLE_SUFFIX}',
         'Browse upcoming casino events, gaming expos and VIP gala nights across Asia. '
         'Dates, venues and ticket access for every event on the JackpotsWorld calendar.',
+        'casino events, casino gaming expo, gaming night casino, weekend casino, '
+        'casino party, casino night, night life casino, vip casino experience, '
+        'casino games expo',
     ),
     '/promotions': (
         f'Casino Promotions & Welcome Bonuses{TITLE_SUFFIX}',
         'Exclusive casino promotions, rolling bonuses and welcome offers from partner '
         'casinos in India, Macau, Vietnam, Sri Lanka and the Philippines.',
+        'casino bonus, casino rewards, casino 777, best casino games, premium casino, '
+        'vip casino, casino all games',
     ),
     '/poker': (
         f'Poker Tournaments & Schedules{TITLE_SUFFIX}',
         'Upcoming poker tournaments with buy-ins, prize pools and seat availability at '
         'premier casinos across Asia and beyond. Register through JackpotsWorld.',
+        'poker, poker live, poker table, casino poker, live dealing games, live dealing',
     ),
     '/andhar-bahar': (
         f'Andhar Bahar — Play At Partner Casinos{TITLE_SUFFIX}',
         'Andhar Bahar at JackpotsWorld partner casinos. How the game works, where it is '
         'played and which destinations are running tables. Play at the casino, never online.',
+        DEFAULT_KEYWORDS,
     ),
     '/affiliates': (
         f'Casino Affiliate Program — Earn Commission{TITLE_SUFFIX}',
         'Join the JackpotsWorld affiliate program. Competitive commission plans, '
         'real-time campaign tracking and reliable payouts for casino traffic partners.',
+        DEFAULT_KEYWORDS,
     ),
     '/affiliate-register': (
         f'Become an Affiliate Partner{TITLE_SUFFIX}',
         'Apply to the JackpotsWorld affiliate program and start earning commission on '
         'referred players. Fast approval and a full campaign tracking dashboard.',
+        DEFAULT_KEYWORDS,
     ),
     '/privacy-policy': (
         f'Privacy Policy{TITLE_SUFFIX}',
         'How JackpotsWorld collects, uses, stores and protects your personal data, and '
         'the rights you have over it.',
+        None,
     ),
     '/cookies-policy': (
         f'Cookies Policy{TITLE_SUFFIX}',
         'Which cookies JackpotsWorld uses, what each one is for, and how to control them '
         'in your browser.',
+        None,
     ),
+}
+
+# Per detail-route-kind keywords, since /events/:id etc. have no static
+# ROUTE_SEO entry -- mirrors the keywords passed to <Seo> from the frontend's
+# EventDetails/PromotionDetails/PokerDetails/TeenPattiDetails pages.
+_DETAIL_KEYWORDS = {
+    'events': ROUTE_SEO['/events'][2],
+    'promotions': ROUTE_SEO['/promotions'][2],
+    'poker': ROUTE_SEO['/poker'][2],
 }
 
 # Authenticated surfaces and credential-entry forms. Checked before any route
@@ -427,11 +460,16 @@ def _json_ld(payload):
     )
 
 
-def _public_head(title, description, canonical, og_type='website', image=None, schemas=()):
+def _public_head(title, description, canonical, og_type='website', image=None,
+                  schemas=(), keywords=DEFAULT_KEYWORDS):
     image_url = image or DEFAULT_OG_IMAGE
     tags = [
         f'    <title>{escape(title)}</title>',
         _meta('name', 'description', description),
+    ]
+    if keywords:
+        tags.append(_meta('name', 'keywords', keywords))
+    tags += [
         f'    <link data-rh="true" rel="canonical" href="{escape(canonical)}" />',
         _meta('name', 'robots', 'index, follow, max-image-preview:large'),
         _meta('property', 'og:site_name', SITE_NAME),
@@ -521,6 +559,7 @@ def _detail_meta(kind, pk):
         'canonical': absolute_url(f'/{kind}/{row.id}'),
         'image': absolute_image(image) if image else None,
         'schemas': [organization_schema(), entity, breadcrumb_schema(trail)],
+        'keywords': _DETAIL_KEYWORDS.get(kind, DEFAULT_KEYWORDS),
     }
 
 
@@ -546,10 +585,10 @@ def head_tags_for(path):
 
     static_entry = ROUTE_SEO.get(path)
     if static_entry is not None:
-        title, description = static_entry
+        title, description, keywords = static_entry
         return _public_head(
             title, description, absolute_url(path),
-            schemas=[organization_schema()],
+            schemas=[organization_schema()], keywords=keywords,
         )
 
     match = _DETAIL_RE.match(path)
@@ -563,6 +602,7 @@ def head_tags_for(path):
         return _public_head(
             meta['title'], meta['description'], meta['canonical'],
             og_type='article', image=meta['image'], schemas=meta['schemas'],
+            keywords=meta['keywords'],
         )
 
     # Unknown path -- the SPA's catch-all redirect target. Keep it out of the
