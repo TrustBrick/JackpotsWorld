@@ -118,7 +118,12 @@ function withAlpha(color, alpha) {
 
 const SLIDE_MS = 4200
 const MAX_VIDEO_MS = 20000
-const MAX_UPSCALE = 1.35
+// Raised from 1.35 with the 3:2 frame. The frame now matches the media, so
+// the scale a slide needs to FILL it is much smaller than it was against the
+// old near-square box - and the two files that still exceed this (a 478x318
+// and a 452x678) are genuinely too small to fill anything this size without
+// turning to mush, so they keep their whole frame instead.
+const MAX_UPSCALE = 1.6
 
 /* The strip's own shape. 16:9, so a landscape clip exported at the ordinary
    video ratio fills it EXACTLY — every pixel of the container covered, no
@@ -132,7 +137,12 @@ const STRIP_RATIO = 16 / 9
    1.76 uploads) fill the strip, while a square or portrait upload — where
    filling would throw away a third to two thirds of the picture — is shown
    whole rather than butchered. */
-const COVER_MAX_CROP = 0.22
+// 0.35, up from 0.22. That earlier figure was set against a 2.05-wide strip,
+// where filling meant discarding most of a portrait frame. Against a 3:2 frame
+// the same slides need far less: the widest landscape upload (1.76) loses 15%
+// and a square loses 33%, both of which read as framing rather than as damage.
+// A 0.56 portrait would lose 63% and is still refused.
+const COVER_MAX_CROP = 0.35
 
 /** What fraction of a frame `cover` would cut off in a box of `boxRatio`. */
 function cropFraction(mediaRatio, boxRatio) {

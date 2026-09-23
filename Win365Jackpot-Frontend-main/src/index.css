@@ -190,10 +190,39 @@ select:disabled {
 }
 
 @media (min-width: 1120px) {
+  /* 3:2, NOT "fill whatever height the details column happens to be".
+     Stretching it made the media box 745x823 - a ratio of 0.90 - which is the
+     shape of the text beside it, not the shape of anything in the carousel.
+     The uploads are 8 landscape (mostly 1.50), 2 square and 4 portrait, so a
+     near-square frame suited neither cluster and object-fit: contain was
+     leaving ~40% of the box as blurred filler on every single slide.
+
+     23/20 (1.15) is a measured compromise, not a guess. Two things pull
+     against each other: a frame shaped like the media wastes none of the
+     picture, and a frame shaped like the column leaves no empty card under
+     it. Pure 3:2 fits the pictures perfectly but is only 497px tall against
+     an 823px column, stranding 163px of bare card above and below the plate.
+
+     At 1.15 every landscape upload still clears the crop allowance - 1.50
+     loses 23%, 1.53 loses 25%, the widest at 1.76 loses 35% - while the plate
+     grows to 648px and the leftover drops to 87px a side, which reads as
+     padding rather than as a hole. Ten of the fourteen slides fill it edge to
+     edge; the four genuine portraits keep their whole frame against the
+     blurred backdrop, because cropping a 0.56 clip into a landscape frame
+     cuts people in half.
+
+     The column centres it, so what is left is the card's own surface rather
+     than a stretched picture. */
   .cruise-strip {
-    aspect-ratio: auto;
-    height: 100%;
-    min-height: 440px;
+    aspect-ratio: 23 / 20;
+    height: auto;
+    width: 100%;
+    max-height: 100%;
+    min-height: 0;
+  }
+  .cruise-card__media {
+    display: flex;
+    align-items: center;
   }
 
   .cruise-card {
