@@ -172,6 +172,7 @@ function Btn({ children, onClick, color="#D4AF37", variant="solid", disabled, st
   const base = { display:"flex", alignItems:"center", justifyContent:"center", gap:7, padding:pad, borderRadius:9, border:"none", fontWeight:700, fontSize:fs, cursor:disabled?"not-allowed":"pointer", fontFamily:"'Manrope', sans-serif", transition:"all 0.15s", opacity: disabled ? 0.45 : 1, ...style };
   if (variant === "ghost") return <button onClick={!disabled ? onClick : undefined} style={{ ...base, background:"transparent", border:"1px solid var(--border2)", color:"var(--muted)" }}>{children}</button>;
   if (variant === "danger") return <button onClick={!disabled ? onClick : undefined} style={{ ...base, background:"rgba(248,113,113,0.1)", border:"1px solid rgba(248,113,113,0.3)", color:"#f87171" }}>{children}</button>;
+  if (variant === "success") return <button onClick={!disabled ? onClick : undefined} style={{ ...base, background:"rgba(52,211,153,0.1)", border:"1px solid rgba(52,211,153,0.3)", color:"#34d399" }}>{children}</button>;
   return <button onClick={!disabled ? onClick : undefined} style={{ ...base, background:color, color: color === "#D4AF37" || color === "#34d399" ? "#050709" : "white" }}>{children}</button>;
 }
 
@@ -813,6 +814,16 @@ function AdminsTab({ toast }) {
     if (r.ok) load();                       // ← refresh table
   };
 
+  // ── Activate (undo a deactivation) ───────────────────────────────────────
+  const activate = async (id, email) => {
+    if (!window.confirm(`Activate ${email}? They will be able to log in to the Admin Panel again.`)) return;
+    const r = await saFetch(`/api/super-admin/admins/${id}/reactivate/`, { method: "POST" });
+    if (!r) { toast("Session expired", false); return; }
+    const j = await r.json();
+    toast(j.message || j.error, r.ok);
+    if (r.ok) load();                       // ← refresh table
+  };
+
   const formFields = [
     { key:"name",     label:"Full Name",    type:"text",     placeholder:"John Smith",       Icon: User   },
     { key:"user_uid", label:"Admin UID", type:"text", placeholder:"ADM-001", Icon: CreditCard },
@@ -922,9 +933,13 @@ function AdminsTab({ toast }) {
                   <td style={{ padding:"12px 16px", color:"rgba(255,255,255,0.4)", fontSize:11 }}>{fmtDT(a.date_joined)}</td>
                   <td style={{ padding:"12px 16px", color:"rgba(255,255,255,0.4)", fontSize:11 }}>{fmtDT(a.last_login)}</td>
                   <td style={{ padding:"12px 16px" }}>
-                    {a.is_active && (
+                    {a.is_active ? (
                       <Btn variant="danger" size="sm" onClick={() => deactivate(a.id, a.email)}>
                         <X size={11}/> Deactivate
+                      </Btn>
+                    ) : (
+                      <Btn variant="success" size="sm" onClick={() => activate(a.id, a.email)}>
+                        <CheckCircle size={11}/> Activate
                       </Btn>
                     )}
                   </td>
