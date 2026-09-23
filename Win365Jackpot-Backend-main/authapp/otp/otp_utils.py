@@ -44,8 +44,11 @@ OTP_EMAIL_TEMPLATE = "emails/otp_verification_gold.html"
 # because the PNG is the palette-optimised 32 KB cut (~44 KB base64), not the
 # 152 KB original it replaced.
 LOGO_CID = "jwlogo"
+# Under assets/ since the 2026-08-18 /assets/ media migration. The old images/
+# path silently stopped existing then, so every OTP went out on the linked
+# fallback -- which Cloudflare answers with a 403 at the old URL.
 LOGO_PATH = os.path.join(
-    settings.BASE_DIR, "jackpotsworld_frontend_dist", "images", "jackpotsworld-logo-256.png"
+    settings.BASE_DIR, "jackpotsworld_frontend_dist", "assets", "images", "jackpotsworld-logo-256.png"
 )
 
 

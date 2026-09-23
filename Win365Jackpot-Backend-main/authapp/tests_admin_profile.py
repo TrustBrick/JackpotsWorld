@@ -12,10 +12,13 @@ The properties that matter:
   * success actually changes the password and signs out every session.
 """
 
+import os
 from datetime import timedelta
 from unittest.mock import patch
 
+from django.core import mail
 from django.core.cache import cache
+from django.test import override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
@@ -24,6 +27,7 @@ from django.test import TestCase
 
 from authapp.models import ActivityLog, OTPRecord, User
 from authapp.models.user_model import AdminProfile
+from authapp.otp.otp_utils import LOGO_CID, LOGO_PATH
 from authapp.views.admin_profile_views import MAX_OTP_ATTEMPTS, OTP_MODE
 
 SEND = "authapp.views.admin_profile_views.send_otp_email_html"
@@ -81,6 +85,22 @@ class AdminProfileTests(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertEqual(send.call_args.args[0], self.admin.email)
         self.assertTrue(OTPRecord.objects.filter(email=self.admin.email, mode=OTP_MODE).exists())
+
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_the_real_email_carries_the_code_and_the_inline_logo(self):
+        """Unpatched send: the message that would reach the admin's inbox.
+        The logo assertion guards LOGO_PATH -- when the bundle moved it, OTP
+        emails lost their logo silently for weeks."""
+        res = self.client.post(REQUEST_URL, {"email": self.admin.email}, format="json")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(len(mail.outbox), 1)
+        msg = mail.outbox[0]
+        self.assertEqual(msg.to, [self.admin.email])
+        code = OTPRecord.objects.get(mode=OTP_MODE).otp
+        self.assertIn(code, msg.body)
+        self.assertTrue(os.path.exists(LOGO_PATH), LOGO_PATH)
+        self.assertIn('src="cid:%s"' % LOGO_CID, msg.alternatives[0][0])
+        self.assertEqual(len(msg.attachments), 1)
 
     def test_failed_delivery_leaves_no_usable_code(self):
         with patch(SEND, side_effect=OSError("smtp down")):
