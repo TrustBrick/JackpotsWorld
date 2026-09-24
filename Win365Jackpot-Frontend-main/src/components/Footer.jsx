@@ -301,7 +301,7 @@ export default function Footer() {
         }}>
           <p style={{ fontSize: 11.5, color: 'var(--w365-text-muted)', textAlign: 'center', lineHeight: 1.6, margin: 0 }}>
             <span style={{ color: 'rgba(212,175,55,0.55)', fontWeight: 600 }}>⚠ Responsible Gaming: </span>
-            Gambling involves risk. Please play responsibly. Jackpots World promotes responsible gaming and only serves adults aged 21+.
+            Gambling involves risk. Please play responsibly. Jackpotsworld promotes responsible gaming and only serves adults aged 21+.
             If you or someone you know has a gambling problem, please seek help. jackpotsworld.vip is a promotional platform only.
           </p>
         </div>

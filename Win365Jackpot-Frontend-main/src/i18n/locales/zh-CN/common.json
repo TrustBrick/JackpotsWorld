@@ -92,7 +92,7 @@
     "accumulatedPoints": "已累积 {{count}} 积分",
     "pointsToNext": "距 {{level}} 还差 {{points}} 积分",
     "topTier": "最高等级",
-    "accountBalances": "Jackpots World — 账户余额",
+    "accountBalances": "Jackpotsworld — 账户余额",
     "mainBalance": "主余额",
     "mainBalanceSub": "可用于赌场存款或提现",
     "totalMainBalance": "总主余额",
@@ -368,7 +368,7 @@
     "header": "负责任博彩",
     "toolsSubtitle": "帮助您保持自控的工具",
     "policyTitle": "负责任游戏政策",
-    "policyText": "Jackpots World 致力于推广负责任博彩。博彩应该是一种娱乐，而不是赚钱的方式。请只投入您能承受损失的金额，如果您觉得自己的游戏行为正在变成问题，请使用下方的工具。",
+    "policyText": "Jackpotsworld 致力于推广负责任博彩。博彩应该是一种娱乐，而不是赚钱的方式。请只投入您能承受损失的金额，如果您觉得自己的游戏行为正在变成问题，请使用下方的工具。",
     "depositLimits": "存款限额",
     "daily": "每日",
     "weekly": "每周",
@@ -453,7 +453,7 @@
     "exploreUpcoming": "浏览即将开始"
   },
   "events": {
-    "eyebrow": "Jackpots World 呈现",
+    "eyebrow": "Jackpotsworld 呈现",
     "title": "赌场活动",
     "subtitle": "由我们遍布全球的合作赌场举办的独家锦标赛、盛会和高额筹码周末活动。",
     "loadError": "暂时无法加载活动。请重试。",

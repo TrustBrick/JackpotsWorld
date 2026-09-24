@@ -94,7 +94,7 @@ class SmallTalkTests(ChatBotTestBase):
     def test_hi(self):
         r = self.ask("hi")
         self.assertEqual(r["matched_topic"], "small_talk_greeting")
-        self.assertIn("Jackpots World", r["reply"])
+        self.assertIn("Jackpotsworld", r["reply"])
 
     def test_hello(self):
         self.assertEqual(self.ask("hello")["matched_topic"], "small_talk_greeting")

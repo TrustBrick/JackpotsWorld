@@ -549,7 +549,13 @@ export default function Hero() {
           reflow a font-size or <br> swap on its own would produce.
           flexWrap is the guard that keeps the wordmark from ever
           overflowing a narrow viewport — it drops back to two lines rather
-          than spilling sideways. */}
+          than spilling sideways.
+
+          ONE WORD since 2026-09-24: the brand is "Jackpotsworld", never
+          "Jackpots World", so the two halves now sit flush on one line in
+          both states (row, no gap) — they stay two nodes only so "Jackpots"
+          is heading white and "world" carries the gold, like every other heading. The
+          intro size is set so the whole word fits the 92vw box. */}
       <div style={{
         position:'relative', zIndex:10, width:'100%',
         display:'flex', flexDirection:'column', alignItems:'center',
@@ -557,49 +563,47 @@ export default function Hero() {
       }}>
         <motion.h1
           layout
+          // The halves are two flex items, which screen readers and
+          // innerText read as "Jackpots world". The label says it is one word.
+          aria-label="Jackpotsworld"
           initial={{ opacity:0, y:32 }} animate={{ opacity:1, y:0 }}
           transition={{ delay:0.35, duration:0.65, layout: HERO_LAYOUT_TWEEN }}
           style={{
             fontFamily:"'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
             fontWeight:700,
-            fontSize: compact ? 'clamp(28px,8vw,62px)' : 'clamp(56px,16vw,150px)',
+            fontSize: compact ? 'clamp(28px,8vw,62px)' : 'clamp(40px,12vw,132px)',
             lineHeight:0.9,
             margin:'0 0 6px 0',
             letterSpacing:'-0.01em',
             display:'flex',
-            flexDirection: compact ? 'row' : 'column',
+            flexDirection:'row',
             alignItems:'center', justifyContent:'center',
             flexWrap:'wrap',
-            gap: compact ? '0.26em' : 0,
+            gap:0,
             width:'100%',
             maxWidth:'min(92vw, 980px)',
           }}
         >
+          {/* Same colours as every other heading on the site (index.css
+              .section-heading): heading white first, the LAST word in the
+              .gold-text gradient. This headline used to run the other way
+              round -- a hand-rolled gold "Jackpots" then white "world" --
+              and was the one heading that did not match (2026-09-24).
+              #f5f0e8 is the heading white of the dark theme, fixed rather
+              than var(--w365-text) because the hero is always dark.
+              .gold-text also carries the shimmer and the descender padding
+              this span used to set inline. */}
           <motion.span
             layout
             transition={{ layout: HERO_LAYOUT_TWEEN }}
-            style={{
-              whiteSpace:'nowrap',
-              background:'linear-gradient(135deg, #D4AF37 0%, #F5E07A 40%, #C9972A 70%, #D4AF37 100%)',
-              backgroundSize:'200% auto',
-              WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text',
-              // Playfair's capital J drops ~19% of the font size below the
-              // baseline (the sans this used to be set in dropped ~2%), and
-              // background-clip:text only paints inside this element's own box
-              // — so at line-height 0.9 the tail of the J had no gradient to
-              // show and read as a cut-off letter. This element carries its
-              // gradient inline rather than via .gold-text, which is why the
-              // fix on that class did not reach it. The negative margin hands
-              // the space straight back, so the headline does not move.
-              paddingBottom:'0.24em', marginBottom:'-0.24em',
-              animation:'shimmer 3.5s linear infinite',
-            }}
-          >JACKPOTS</motion.span>
+            style={{ whiteSpace:'nowrap', color:'#f5f0e8' }}
+          >Jackpots</motion.span>
           <motion.span
             layout
             transition={{ layout: HERO_LAYOUT_TWEEN }}
-            style={{ whiteSpace:'nowrap', color:'rgba(255,255,255,0.92)' }}
-          >WORLD</motion.span>
+            className="gold-text"
+            style={{ whiteSpace:'nowrap' }}
+          >world</motion.span>
         </motion.h1>
       </div>
 

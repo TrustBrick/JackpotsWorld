@@ -92,7 +92,7 @@
     "accumulatedPoints": "{{count}} puntos acumulados",
     "pointsToNext": "faltan {{points}} puntos para {{level}}",
     "topTier": "NIVEL MÁXIMO",
-    "accountBalances": "Jackpots World — Saldos de la cuenta",
+    "accountBalances": "Jackpotsworld — Saldos de la cuenta",
     "mainBalance": "Saldo principal",
     "mainBalanceSub": "Disponible para depósito en casino o retiro",
     "totalMainBalance": "Saldo principal total",
@@ -368,7 +368,7 @@
     "header": "Juego Responsable",
     "toolsSubtitle": "Herramientas para ayudarte a mantener el control",
     "policyTitle": "Política de Juego Responsable",
-    "policyText": "Jackpots World se compromete a promover el juego responsable. Jugar debe ser un entretenimiento, no una forma de ganar dinero. Apuesta solo lo que puedas permitirte perder y usa las herramientas a continuación si sientes que tu juego se está convirtiendo en un problema.",
+    "policyText": "Jackpotsworld se compromete a promover el juego responsable. Jugar debe ser un entretenimiento, no una forma de ganar dinero. Apuesta solo lo que puedas permitirte perder y usa las herramientas a continuación si sientes que tu juego se está convirtiendo en un problema.",
     "depositLimits": "Límites de depósito",
     "daily": "Diario",
     "weekly": "Semanal",
@@ -453,7 +453,7 @@
     "exploreUpcoming": "Explorar próximos"
   },
   "events": {
-    "eyebrow": "Jackpots World Presenta",
+    "eyebrow": "Jackpotsworld Presenta",
     "title": "Eventos de Casino",
     "subtitle": "Torneos exclusivos, galas y fines de semana de altas apuestas organizados por nuestros casinos asociados en todo el mundo.",
     "loadError": "No se pudieron cargar los eventos en este momento. Inténtalo de nuevo.",

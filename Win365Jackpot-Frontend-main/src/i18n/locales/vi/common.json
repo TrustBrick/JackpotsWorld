@@ -92,7 +92,7 @@
     "accumulatedPoints": "{{count}} điểm tích lũy",
     "pointsToNext": "còn {{points}} điểm để lên {{level}}",
     "topTier": "HẠNG CAO NHẤT",
-    "accountBalances": "Jackpots World — Số dư tài khoản",
+    "accountBalances": "Jackpotsworld — Số dư tài khoản",
     "mainBalance": "Số dư chính",
     "mainBalanceSub": "Có thể dùng để nạp tại casino hoặc rút tiền",
     "totalMainBalance": "Tổng số dư chính",
@@ -368,7 +368,7 @@
     "header": "Cờ bạc có trách nhiệm",
     "toolsSubtitle": "Công cụ giúp bạn giữ kiểm soát",
     "policyTitle": "Chính sách chơi game có trách nhiệm",
-    "policyText": "Jackpots World cam kết thúc đẩy cờ bạc có trách nhiệm. Cờ bạc nên mang tính giải trí, không phải cách kiếm tiền. Chỉ đặt cược số tiền bạn có thể mất, và sử dụng các công cụ dưới đây nếu bạn cảm thấy việc chơi của mình đang trở thành vấn đề.",
+    "policyText": "Jackpotsworld cam kết thúc đẩy cờ bạc có trách nhiệm. Cờ bạc nên mang tính giải trí, không phải cách kiếm tiền. Chỉ đặt cược số tiền bạn có thể mất, và sử dụng các công cụ dưới đây nếu bạn cảm thấy việc chơi của mình đang trở thành vấn đề.",
     "depositLimits": "Giới hạn nạp tiền",
     "daily": "Hàng ngày",
     "weekly": "Hàng tuần",
@@ -453,7 +453,7 @@
     "exploreUpcoming": "Khám phá sắp diễn ra"
   },
   "events": {
-    "eyebrow": "Jackpots World Giới Thiệu",
+    "eyebrow": "Jackpotsworld Giới Thiệu",
     "title": "Sự Kiện Casino",
     "subtitle": "Các giải đấu độc quyền, dạ tiệc và cuối tuần cược lớn được tổ chức bởi các sòng bạc đối tác của chúng tôi trên khắp thế giới.",
     "loadError": "Không thể tải sự kiện lúc này. Vui lòng thử lại.",

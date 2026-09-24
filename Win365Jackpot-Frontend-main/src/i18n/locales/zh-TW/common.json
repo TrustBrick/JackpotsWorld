@@ -92,7 +92,7 @@
     "accumulatedPoints": "已累積 {{count}} 點",
     "pointsToNext": "距 {{level}} 還差 {{points}} 點",
     "topTier": "最高等級",
-    "accountBalances": "Jackpots World — 帳戶餘額",
+    "accountBalances": "Jackpotsworld — 帳戶餘額",
     "mainBalance": "主餘額",
     "mainBalanceSub": "可用於賭場存款或提款",
     "totalMainBalance": "總主餘額",
@@ -368,7 +368,7 @@
     "header": "理性博彩",
     "toolsSubtitle": "協助您自我掌控的工具",
     "policyTitle": "負責任博彩政策",
-    "policyText": "Jackpots World 致力於推廣理性博彩。博彩應該是一種娛樂，而非賺錢的方式。請僅投注您能承擔損失的金額，若您感覺自己的博彩行為已成問題，請使用以下工具。",
+    "policyText": "Jackpotsworld 致力於推廣理性博彩。博彩應該是一種娛樂，而非賺錢的方式。請僅投注您能承擔損失的金額，若您感覺自己的博彩行為已成問題，請使用以下工具。",
     "depositLimits": "存款限額",
     "daily": "每日",
     "weekly": "每週",
@@ -453,7 +453,7 @@
     "exploreUpcoming": "瀏覽即將開始"
   },
   "events": {
-    "eyebrow": "Jackpots World 呈現",
+    "eyebrow": "Jackpotsworld 呈現",
     "title": "賭場活動",
     "subtitle": "由全球合作賭場主辦的獨家錦標賽、盛會與高額籌碼週末活動。",
     "loadError": "目前無法載入活動資訊，請稍後再試。",

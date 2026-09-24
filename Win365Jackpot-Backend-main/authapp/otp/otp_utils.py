@@ -147,7 +147,7 @@ def send_otp_email_html(email: str, otp: str, *, email_type: str = TYPE_OTP_VERI
         f"Use this code to verify your email address.\n"
         f"Please make sure you never share this code with anyone.\n\n"
         f"Note: The code will expire in {OTP_TTL_MINUTES} minutes.\n\n"
-        f"Jackpots World — PLAY. WIN. REPEAT.\n"
+        f"Jackpotsworld — PLAY. WIN. REPEAT.\n"
         f"jackpotsworld.vip"
     )
     # from_email is resolved inside the email service, to the same

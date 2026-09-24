@@ -26,7 +26,7 @@ class LandingSettings(models.Model):
     # is members, not winners.
     trust_banner_heading     = models.CharField(max_length=200, default="Join 50,000+ Members Across Asia")
     # "your trusted partner for every bet" put JackpotsWorld on the bet.
-    trust_banner_subtext     = models.TextField(blank=True, default="From first-time casino visitors to high-rollers — Jackpots World is your trusted partner for every trip.")
+    trust_banner_subtext     = models.TextField(blank=True, default="From first-time casino visitors to high-rollers — Jackpotsworld is your trusted partner for every trip.")
     whatsapp_number          = models.CharField(max_length=20, default="919573807779")
     updated_at                = models.DateTimeField(auto_now=True)
 

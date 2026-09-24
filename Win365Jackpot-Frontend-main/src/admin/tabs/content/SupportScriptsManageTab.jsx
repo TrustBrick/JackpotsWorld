@@ -26,7 +26,7 @@ function stamp(value) {
 
 const FIELDS = [
   { name: "label", label: "Script", placeholder: "Live Chat Greeting" },
-  { name: "body", label: "Message", type: "textarea", placeholder: "Hello! Welcome to Jackpots World VIP Support. How can I help you today?" },
+  { name: "body", label: "Message", type: "textarea", placeholder: "Hello! Welcome to Jackpotsworld VIP Support. How can I help you today?" },
   {
     name: "is_auto_send",
     label: "Auto-send when a live chat opens (greeting only)",

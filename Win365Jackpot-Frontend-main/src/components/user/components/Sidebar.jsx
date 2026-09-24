@@ -230,7 +230,7 @@ function IconRail({ vipColor, unread, activeTab, profile, onTabChange, onHamburg
       height: "100vh", zIndex: 100,
       overflowY: "auto",
     }}>
-      <div onClick={() => window.location.href = "/"} title="JACKPOTS WORLD" style={{
+      <div onClick={() => window.location.href = "/"} title="Jackpotsworld" style={{
         width: 36, height: 36, borderRadius: 9,
         background: `${C.gold}15`, border: `1px solid ${C.gold}30`,
         display: "flex", alignItems: "center", justifyContent: "center",

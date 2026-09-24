@@ -1,6 +1,6 @@
 import React from 'react'
 
-// ─── Brand mark (the circular Jackpots World emblem) ────────────────────────
+// ─── Brand mark (the circular Jackpotsworld emblem) ────────────────────────
 // The single place the emblem image is referenced. Pairs with Logo.jsx, which
 // is the "Jackpots / World" *text* lockup — most headers show both.
 //
@@ -22,7 +22,7 @@ export const BRAND_MARK_SRC_FULL = '/assets/images/jackpotsworld-logo.png'
 export default function BrandMark({
   size = 40,
   full = false,
-  alt = 'Jackpots World',
+  alt = 'Jackpotsworld',
   className = '',
   style,
   ...rest

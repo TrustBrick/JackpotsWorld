@@ -42,7 +42,7 @@ export const DEFAULT_ENQUIRY_MESSAGES = {
   cruise_package:
     "Hi! I'm interested in the *Cruise Offline Casino Package*. Please share more details.",
   footer_general:
-    "Hi! I'd like to get in touch with Jackpots World 🎰",
+    "Hi! I'd like to get in touch with Jackpotsworld 🎰",
   floating_button:
     "Hi! I'm interested in a casino package from jackpotsworld.com 🎰 Please help me!",
   package_purchase:

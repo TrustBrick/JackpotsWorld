@@ -92,7 +92,7 @@
     "accumulatedPoints": "{{count}} Naipong Puntos",
     "pointsToNext": "{{points}} puntos na lang papuntang {{level}}",
     "topTier": "PINAKAMATAAS NA ANTAS",
-    "accountBalances": "Jackpots World — Balanse ng Account",
+    "accountBalances": "Jackpotsworld — Balanse ng Account",
     "mainBalance": "Pangunahing Balanse",
     "mainBalanceSub": "Available para sa deposito sa casino o payout",
     "totalMainBalance": "Kabuuang Pangunahing Balanse",
@@ -368,7 +368,7 @@
     "header": "Responsableng Pagsusugal",
     "toolsSubtitle": "Mga tool na tutulong sa iyo na manatiling may kontrol",
     "policyTitle": "Patakaran sa Responsableng Paglalaro",
-    "policyText": "Nangangako ang Jackpots World na itaguyod ang responsableng pagsusugal. Ang pagsusugal ay dapat maging libangan lang, hindi paraan para kumita ng pera. Magtaya lamang ng halagang kaya mong mawala, at gamitin ang mga tool sa ibaba kung nararamdaman mong nagiging problema na ang iyong paglalaro.",
+    "policyText": "Nangangako ang Jackpotsworld na itaguyod ang responsableng pagsusugal. Ang pagsusugal ay dapat maging libangan lang, hindi paraan para kumita ng pera. Magtaya lamang ng halagang kaya mong mawala, at gamitin ang mga tool sa ibaba kung nararamdaman mong nagiging problema na ang iyong paglalaro.",
     "depositLimits": "Mga Limitasyon sa Deposito",
     "daily": "Araw-araw",
     "weekly": "Lingguhan",
@@ -453,7 +453,7 @@
     "exploreUpcoming": "Tingnan ang Paparating"
   },
   "events": {
-    "eyebrow": "Ipinakikilala ng Jackpots World",
+    "eyebrow": "Ipinakikilala ng Jackpotsworld",
     "title": "Mga Kaganapan sa Casino",
     "subtitle": "Mga eksklusibong tournament, gala, at high-stakes na weekend na inihanda ng aming mga partner casino sa buong mundo.",
     "loadError": "Hindi ma-load ang mga event sa ngayon. Pakisubukang muli.",

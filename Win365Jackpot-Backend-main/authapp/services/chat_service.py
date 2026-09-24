@@ -11,7 +11,7 @@
 # "hi"/"thanks"/"ok" all fell through to the generic fallback, and `history`
 # was accepted but never read). None of this invents account-specific facts —
 # see NEVER INVENT below; it only makes the SHAPE of the conversation natural.
-# Source of truth for all of this wording: the Jackpots World VIP Customer
+# Source of truth for all of this wording: the Jackpotsworld VIP Customer
 # Support Call & Live Chat Script Manual (Aug 2026) — cited by section number
 # in comments below. Its golden rule, CHECK FIRST. RESPOND SECOND., is why
 # every account-specific branch below still only ever states what was
@@ -128,9 +128,9 @@ def _is_bare_mention(message, bare_forms):
 # ─────────────────────────────────────────────────────────────────────────
 _SMALL_TALK = [
     ("greeting", re.compile(r"^(hi+|hello+|hey+|hiya|yo|howdy|good\s?(morning|afternoon|evening))[\s!.,]*$", re.I), (
-        "Hi! Welcome to Jackpots World VIP Support 😊 How can I help you today?",
-        "Hello! Welcome to Jackpots World VIP Support. How can I assist you today?",
-        "Hi there! Welcome to Jackpots World VIP. What can I help you with today?",
+        "Hi! Welcome to Jackpotsworld VIP Support 😊 How can I help you today?",
+        "Hello! Welcome to Jackpotsworld VIP Support. How can I assist you today?",
+        "Hi there! Welcome to Jackpotsworld VIP. What can I help you with today?",
     )),
     ("thanks", re.compile(r"^(thanks?( you)?|thank\s?u|ty|much\s?appreciated|appreciate\s?it)[\s!.,]*$", re.I), (
         "You're very welcome! Is there anything else I can help you with?",

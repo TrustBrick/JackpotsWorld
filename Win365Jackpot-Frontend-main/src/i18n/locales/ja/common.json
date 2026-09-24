@@ -92,7 +92,7 @@
     "accumulatedPoints": "累計{{count}}ポイント",
     "pointsToNext": "{{level}}まであと{{points}}ポイント",
     "topTier": "最高ランク",
-    "accountBalances": "Jackpots World — アカウント残高",
+    "accountBalances": "Jackpotsworld — アカウント残高",
     "mainBalance": "メイン残高",
     "mainBalanceSub": "カジノでの入金または払い出しに利用可能",
     "totalMainBalance": "合計メイン残高",
@@ -368,7 +368,7 @@
     "header": "責任あるギャンブル",
     "toolsSubtitle": "自己管理をサポートするツール",
     "policyTitle": "責任あるギャンブルに関する方針",
-    "policyText": "Jackpots Worldは責任あるギャンブルの推進に取り組んでいます。ギャンブルは娯楽であるべきで、お金を稼ぐ手段ではありません。負担できる範囲内でのみ賭け、プレイが問題になっていると感じた場合は以下のツールをご利用ください。",
+    "policyText": "Jackpotsworldは責任あるギャンブルの推進に取り組んでいます。ギャンブルは娯楽であるべきで、お金を稼ぐ手段ではありません。負担できる範囲内でのみ賭け、プレイが問題になっていると感じた場合は以下のツールをご利用ください。",
     "depositLimits": "入金限度額",
     "daily": "日次",
     "weekly": "週次",
@@ -453,7 +453,7 @@
     "exploreUpcoming": "開催予定を見る"
   },
   "events": {
-    "eyebrow": "Jackpots World プレゼンツ",
+    "eyebrow": "Jackpotsworld プレゼンツ",
     "title": "カジノイベント",
     "subtitle": "世界各地の提携カジノが主催する特別なトーナメント、ガラ、ハイステークスウィークエンド。",
     "loadError": "現在イベントを読み込めません。もう一度お試しください。",

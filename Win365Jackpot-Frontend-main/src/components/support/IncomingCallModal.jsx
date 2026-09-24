@@ -110,7 +110,7 @@ export default function IncomingCallModal({
 
         {isCallback ? (
           <p style={{ margin: "0 0 3px", fontSize: 12.5, color: theme.sub }}>
-            Jackpots World is returning your call
+            Jackpotsworld is returning your call
           </p>
         ) : (
           <p style={{

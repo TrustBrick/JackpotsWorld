@@ -38,6 +38,7 @@ BANNED_PHRASES = [
     "Betting Sessions",               # same
     "fully licensed and regulated",   # blanket licensing claim
     "only on Jackpots World",         # casino offers presented as ours
+    "only on Jackpotsworld",          # same claim, current spelling
     "Deposit and withdraw",           # implies we move gambling money
     "added to your balance",          # implies we hold a gambling balance
     "every bet",                      # "your partner for every bet"

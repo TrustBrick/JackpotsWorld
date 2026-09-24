@@ -92,7 +92,7 @@
     "accumulatedPoints": "{{count}} gesammelte Punkte",
     "pointsToNext": "noch {{points}} Punkte bis {{level}}",
     "topTier": "HÖCHSTE STUFE",
-    "accountBalances": "Jackpots World — Kontoguthaben",
+    "accountBalances": "Jackpotsworld — Kontoguthaben",
     "mainBalance": "Hauptguthaben",
     "mainBalanceSub": "Verfügbar für Casino-Einzahlung oder Auszahlung",
     "totalMainBalance": "Gesamtes Hauptguthaben",
@@ -368,7 +368,7 @@
     "header": "Verantwortungsvolles Spielen",
     "toolsSubtitle": "Tools, die Ihnen helfen, die Kontrolle zu behalten",
     "policyTitle": "Richtlinie für verantwortungsvolles Spielen",
-    "policyText": "Jackpots World setzt sich für verantwortungsvolles Spielen ein. Glücksspiel sollte unterhaltsam sein, kein Weg, um Geld zu verdienen. Setzen Sie nur das ein, was Sie sich leisten können zu verlieren, und nutzen Sie die untenstehenden Tools, wenn Sie das Gefühl haben, dass Ihr Spielverhalten zum Problem wird.",
+    "policyText": "Jackpotsworld setzt sich für verantwortungsvolles Spielen ein. Glücksspiel sollte unterhaltsam sein, kein Weg, um Geld zu verdienen. Setzen Sie nur das ein, was Sie sich leisten können zu verlieren, und nutzen Sie die untenstehenden Tools, wenn Sie das Gefühl haben, dass Ihr Spielverhalten zum Problem wird.",
     "depositLimits": "Einzahlungslimits",
     "daily": "Täglich",
     "weekly": "Wöchentlich",
@@ -453,7 +453,7 @@
     "exploreUpcoming": "Bevorstehende ansehen"
   },
   "events": {
-    "eyebrow": "Jackpots World Präsentiert",
+    "eyebrow": "Jackpotsworld Präsentiert",
     "title": "Casino-Veranstaltungen",
     "subtitle": "Exklusive Turniere, Galas und Hochstake-Wochenenden, veranstaltet von unseren Partnercasinos weltweit.",
     "loadError": "Veranstaltungen konnten momentan nicht geladen werden. Bitte versuchen Sie es erneut.",

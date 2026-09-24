@@ -93,7 +93,7 @@
     "accumulatedPoints": "{{count}} Accumulated Points",
     "pointsToNext": "{{points}} points to {{level}}",
     "topTier": "TOP TIER",
-    "accountBalances": "Jackpots World — Account balances",
+    "accountBalances": "Jackpotsworld — Account balances",
     "mainBalance": "Main Balance",
     "mainBalanceSub": "Available to deposit at casino or payout",
     "totalMainBalance": "Total Main Balance",
@@ -375,7 +375,7 @@
     "header": "Responsible Gambling",
     "toolsSubtitle": "Tools to help you stay in control",
     "policyTitle": "Responsible Gaming Policy",
-    "policyText": "Jackpots World is committed to promoting responsible gambling. Gambling should be entertaining, not a way to make money. Only wager what you can afford to lose, and use the tools below if you feel your play is becoming a problem.",
+    "policyText": "Jackpotsworld is committed to promoting responsible gambling. Gambling should be entertaining, not a way to make money. Only wager what you can afford to lose, and use the tools below if you feel your play is becoming a problem.",
     "depositLimits": "Deposit Limits",
     "daily": "Daily",
     "weekly": "Weekly",
@@ -462,7 +462,7 @@
     "exploreUpcoming": "Explore Upcoming"
   },
   "events": {
-    "eyebrow": "Jackpots World Presents",
+    "eyebrow": "Jackpotsworld Presents",
     "title": "Offline Casino Events",
     "subtitle": "Exclusive tournaments, galas, and high-stakes weekends hosted by our partner casinos around the world.",
     "loadError": "Couldn't load events right now. Please try again.",
