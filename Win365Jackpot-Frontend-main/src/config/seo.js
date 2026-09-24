@@ -39,7 +39,7 @@ export const DEFAULT_DESCRIPTION =
 export const TWITTER_HANDLE = '' // set once a real @handle exists
 
 // Site-wide fallback for <meta name="keywords">, sourced from the casino/
-// gaming keyword research sheet. Google has ignored this tag for ranking
+// gaming keyword research sheets. Google has ignored this tag for ranking
 // since 2009, but Bing and several directory/aggregator crawlers still read
 // it, and it costs nothing to keep accurate — so every public route gets one,
 // either this default or a page-specific list below.
@@ -48,6 +48,10 @@ export const DEFAULT_KEYWORDS = [
   'land based casino', 'physical casino', 'luxury casino', 'premium casino',
   'vip casino', 'casino experience', 'casino rewards', 'casino events',
   'casino world', 'gambling',
+  'jackpotsworld', 'jackpotsworld vip', 'jackpotsworld casino', 'jackpots world',
+  'casino tours', 'casino travel', 'vip casino travel', 'casino trip',
+  'vietnam casino', 'macau casino', 'goa casino', 'sri lanka casino',
+  'philippines casino', 'india casino',
 ].join(', ')
 
 /**
@@ -75,6 +79,8 @@ export const ROUTE_SEO = {
       'casino events', 'casino gaming expo', 'gaming night casino',
       'weekend casino', 'casino party', 'casino night', 'night life casino',
       'vip casino experience', 'casino games expo',
+      'casino events asia', 'gaming expo asia', 'casino exhibition',
+      'casino tournament 2026', 'vip gala night asia',
     ].join(', '),
   },
   '/promotions': {
@@ -85,6 +91,8 @@ export const ROUTE_SEO = {
     keywords: [
       'casino bonus', 'casino rewards', 'casino 777', 'best casino games',
       'premium casino', 'vip casino', 'casino all games',
+      'casino welcome bonus', 'casino cashback', 'casino offers',
+      'casino promo code', 'casino vip bonus', 'casino loyalty rewards',
     ].join(', '),
   },
   '/poker': {
@@ -95,6 +103,9 @@ export const ROUTE_SEO = {
     keywords: [
       'poker', 'poker live', 'poker table', 'casino poker',
       'live dealing games', 'live dealing',
+      'poker tournament', 'poker tournaments asia', 'texas holdem',
+      'poker buy in', 'poker prize pool', 'high stakes poker',
+      'live poker room', 'asian poker tour',
     ].join(', '),
   },
   '/teen-patti': {
@@ -105,6 +116,19 @@ export const ROUTE_SEO = {
     keywords: [
       'teen patti', 'casino games', 'live dealing games', 'casino live',
       'casino poker',
+      'teen patti tournament', 'teen patti events', 'live teen patti',
+      '3 patti', 'teen patti championship',
+    ].join(', '),
+  },
+  '/andhar-bahar': {
+    title: `Andhar Bahar — Play At Partner Casinos${TITLE_SUFFIX}`,
+    description:
+      'Andhar Bahar at JackpotsWorld partner casinos. How the game works, where it is ' +
+      'played and which destinations are running tables. Play at the casino, never online.',
+    keywords: [
+      'andhar bahar', 'andar bahar', 'andhar bahar casino', 'andar bahar live',
+      'andhar bahar rules', 'how to play andar bahar', 'andar bahar table',
+      'andar bahar tournament',
     ].join(', '),
   },
   '/affiliates': {
@@ -112,14 +136,22 @@ export const ROUTE_SEO = {
     description:
       'Join the JackpotsWorld affiliate program. Competitive commission plans, ' +
       'real-time campaign tracking and reliable payouts for casino traffic partners.',
-    keywords: DEFAULT_KEYWORDS,
+    keywords: [
+      'casino affiliate program', 'casino affiliate', 'casino referral commission',
+      'casino partner program', 'casino agent', 'earn commission casino',
+      'casino affiliate marketing', 'best casino affiliate program',
+    ].join(', '),
   },
   '/affiliate-register': {
     title: `Become an Affiliate Partner${TITLE_SUFFIX}`,
     description:
       'Apply to the JackpotsWorld affiliate program and start earning commission on ' +
       'referred players. Fast approval and a full campaign tracking dashboard.',
-    keywords: DEFAULT_KEYWORDS,
+    keywords: [
+      'become casino agent', 'casino partner registration',
+      'casino affiliate dashboard', 'casino affiliate payout',
+      'casino affiliate program', 'casino agent commission',
+    ].join(', '),
   },
   '/privacy-policy': {
     title: `Privacy Policy${TITLE_SUFFIX}`,

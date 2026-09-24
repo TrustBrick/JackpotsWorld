@@ -72,7 +72,11 @@ DEFAULT_KEYWORDS = (
     'casino, best casino, best casino near me, casino near me, '
     'land based casino, physical casino, luxury casino, premium casino, '
     'vip casino, casino experience, casino rewards, casino events, '
-    'casino world, gambling'
+    'casino world, gambling, '
+    'jackpotsworld, jackpotsworld vip, jackpotsworld casino, jackpots world, '
+    'casino tours, casino travel, vip casino travel, casino trip, '
+    'vietnam casino, macau casino, goa casino, sri lanka casino, '
+    'philippines casino, india casino'
 )
 
 # (title, description, keywords) per route -- keywords defaults to
@@ -86,38 +90,55 @@ ROUTE_SEO = {
         'Dates, venues and ticket access for every event on the JackpotsWorld calendar.',
         'casino events, casino gaming expo, gaming night casino, weekend casino, '
         'casino party, casino night, night life casino, vip casino experience, '
-        'casino games expo',
+        'casino games expo, casino events asia, gaming expo asia, casino exhibition, '
+        'casino tournament 2026, vip gala night asia',
     ),
     '/promotions': (
         f'Casino Promotions & Welcome Bonuses{TITLE_SUFFIX}',
         'Exclusive casino promotions, rolling bonuses and welcome offers from partner '
         'casinos in India, Macau, Vietnam, Sri Lanka and the Philippines.',
         'casino bonus, casino rewards, casino 777, best casino games, premium casino, '
-        'vip casino, casino all games',
+        'vip casino, casino all games, casino welcome bonus, casino cashback, '
+        'casino offers, casino promo code, casino vip bonus, casino loyalty rewards',
     ),
     '/poker': (
         f'Poker Tournaments & Schedules{TITLE_SUFFIX}',
         'Upcoming poker tournaments with buy-ins, prize pools and seat availability at '
         'premier casinos across Asia and beyond. Register through JackpotsWorld.',
-        'poker, poker live, poker table, casino poker, live dealing games, live dealing',
+        'poker, poker live, poker table, casino poker, live dealing games, live dealing, '
+        'poker tournament, poker tournaments asia, texas holdem, poker buy in, '
+        'poker prize pool, high stakes poker, live poker room, asian poker tour',
+    ),
+    '/teen-patti': (
+        f'Teen Patti Events & Registration{TITLE_SUFFIX}',
+        'Live and upcoming Teen Patti events at partner casinos across Asia. '
+        'Entry fees, prize pools and seat availability — reserve your seat on JackpotsWorld.',
+        'teen patti, casino games, live dealing games, casino live, casino poker, '
+        'teen patti tournament, teen patti events, live teen patti, 3 patti, '
+        'teen patti championship',
     ),
     '/andhar-bahar': (
         f'Andhar Bahar — Play At Partner Casinos{TITLE_SUFFIX}',
         'Andhar Bahar at JackpotsWorld partner casinos. How the game works, where it is '
         'played and which destinations are running tables. Play at the casino, never online.',
-        DEFAULT_KEYWORDS,
+        'andhar bahar, andar bahar, andhar bahar casino, andar bahar live, '
+        'andhar bahar rules, how to play andar bahar, andar bahar table, '
+        'andar bahar tournament',
     ),
     '/affiliates': (
         f'Casino Affiliate Program — Earn Commission{TITLE_SUFFIX}',
         'Join the JackpotsWorld affiliate program. Competitive commission plans, '
         'real-time campaign tracking and reliable payouts for casino traffic partners.',
-        DEFAULT_KEYWORDS,
+        'casino affiliate program, casino affiliate, casino referral commission, '
+        'casino partner program, casino agent, earn commission casino, '
+        'casino affiliate marketing, best casino affiliate program',
     ),
     '/affiliate-register': (
         f'Become an Affiliate Partner{TITLE_SUFFIX}',
         'Apply to the JackpotsWorld affiliate program and start earning commission on '
         'referred players. Fast approval and a full campaign tracking dashboard.',
-        DEFAULT_KEYWORDS,
+        'become casino agent, casino partner registration, casino affiliate dashboard, '
+        'casino affiliate payout, casino affiliate program, casino agent commission',
     ),
     '/privacy-policy': (
         f'Privacy Policy{TITLE_SUFFIX}',
