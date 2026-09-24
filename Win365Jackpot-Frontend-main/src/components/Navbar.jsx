@@ -5,7 +5,7 @@ import {
   Menu, X, Gift, UserPlus, LogOut,
   ChevronDown, User, Crown, Wallet,
 } from 'lucide-react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import BrandLockup from './shared/BrandLockup'
 import AuthModal from './AuthModal'
 import ChatBot from './ChatBot'
@@ -415,9 +415,21 @@ export default function Navbar() {
           <ul className="hidden md:flex flex-1 justify-center items-center gap-4 mx-8">
             {navLinks.map(link => (
               <li key={link.label}>
-                <span onClick={() => handleNavClick(link)} className="cursor-pointer">
-                  <NavLabel link={link} isActive={isLinkActive(link)} />
-                </span>
+                {/* Route entries are real <a href> links so crawlers can follow them. */}
+                {link.type === 'route' ? (
+                  <Link
+                    to={link.path}
+                    onClick={() => setClickedLabel(link.label)}
+                    className="cursor-pointer"
+                    style={{ textDecoration: 'none', color: 'inherit' }}
+                  >
+                    <NavLabel link={link} isActive={isLinkActive(link)} />
+                  </Link>
+                ) : (
+                  <span onClick={() => handleNavClick(link)} className="cursor-pointer">
+                    <NavLabel link={link} isActive={isLinkActive(link)} />
+                  </span>
+                )}
               </li>
             ))}
           </ul>
@@ -511,12 +523,23 @@ export default function Navbar() {
               <ul className="py-5 px-6 flex flex-col gap-1">
                 {navLinks.map(link => (
                   <li key={link.label}>
-                    <span
-                      className="cursor-pointer block"
-                      onClick={() => { setMobileOpen(false); handleNavClick(link) }}
-                    >
-                      <NavLabelMobile link={link} isActive={isLinkActive(link)} />
-                    </span>
+                    {link.type === 'route' ? (
+                      <Link
+                        to={link.path}
+                        className="cursor-pointer block"
+                        style={{ textDecoration: 'none', color: 'inherit' }}
+                        onClick={() => { setMobileOpen(false); setClickedLabel(link.label) }}
+                      >
+                        <NavLabelMobile link={link} isActive={isLinkActive(link)} />
+                      </Link>
+                    ) : (
+                      <span
+                        className="cursor-pointer block"
+                        onClick={() => { setMobileOpen(false); handleNavClick(link) }}
+                      >
+                        <NavLabelMobile link={link} isActive={isLinkActive(link)} />
+                      </span>
+                    )}
                   </li>
                 ))}
               </ul>

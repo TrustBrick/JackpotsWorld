@@ -14,6 +14,15 @@ const PRIMARY_DESTINATIONS = ['Vietnam', 'Macau', 'India (Goa)', 'Sri Lanka', 'P
 const EXTRA_DESTINATIONS   = ['Las Vegas', 'Malaysia', 'Singapore', 'Armenia', 'Georgia']
 const ALL_DESTINATIONS     = [...PRIMARY_DESTINATIONS, ...EXTRA_DESTINATIONS]
 
+const SITE_PAGE_LINKS = [
+  { label: 'Events',       path: '/events'       },
+  { label: 'Promotions',   path: '/promotions'   },
+  { label: 'Poker',        path: '/poker'        },
+  { label: 'Teen Patti',   path: '/teen-patti'   },
+  { label: 'Andhar Bahar', path: '/andhar-bahar' },
+  { label: 'Affiliates',   path: '/affiliates'   },
+]
+
 // The message is no longer a literal either: useEnquiryMessage() reads it from
 // the Back Office, falling back to the same wording this constant held. The
 // number is resolved per visitor by useEnquiryNumber(), as before.
@@ -229,6 +238,23 @@ export default function Footer() {
               Company
             </h4>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 7 }}>
+
+              {/* Plain <a href> links to every public page, so the homepage
+                  passes crawlers a path to them (the nav's route items were
+                  click handlers with no href, and Events/Promotions have no
+                  nav entry at all). */}
+              {SITE_PAGE_LINKS.map(({ label, path }) => (
+                <li key={path}>
+                  <RouterLink
+                    to={path}
+                    style={{ fontSize: 13, color: 'var(--w365-text-muted)', textDecoration: 'none', transition: 'color 0.15s' }}
+                    onMouseEnter={e => e.currentTarget.style.color = '#D4AF37'}
+                    onMouseLeave={e => e.currentTarget.style.color = 'var(--w365-text-muted)'}
+                  >
+                    {label}
+                  </RouterLink>
+                </li>
+              ))}
 
               <li>
                 <ScrollLink
