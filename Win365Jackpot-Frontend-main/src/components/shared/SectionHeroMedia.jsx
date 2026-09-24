@@ -97,11 +97,12 @@ export default function SectionHeroMedia({
   // the admin's own wording ("FEATURED", "CASINO EXPERIENCE"); this is what
   // shows when they left it empty.
   badgeLabel = '',
-  // Off, unlike the landing band. The hold below usually ends on a real
-  // gesture, but it can also just time out — and a card that opens by itself
-  // and starts talking is not what anyone asked for. The control is right
-  // there to turn it on.
-  defaultSoundOn = false,
+  // On, like the landing band (was off until 2026-09-24, on request: the
+  // Poker, Teen Patti and Andhar Bahar hero audio should play by itself).
+  // Browsers refuse audible autoplay before the visitor has interacted with
+  // the page, so HeroMediaShowcase starts muted in that case and switches to
+  // sound on the first click/tap/key -- see hooks/useAudioAutoplay.
+  defaultSoundOn = true,
   marginBottom,
   // How long the background gets the screen to itself before the card opens.
   // 0 shows it immediately.
