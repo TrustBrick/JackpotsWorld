@@ -19,6 +19,7 @@ from django.views.decorators.cache import cache_page
 from authapp.models.events_models import CasinoEvent
 from authapp.models.poker_models import PokerTournament
 from authapp.models.promotion_models import Promotion
+from authapp.models.teenpatti_models import PUBLIC_EVENT_STATUSES, TeenPattiEvent
 
 
 # Canonical public origin. Overridable via .env so the dev/staging deploys
@@ -85,6 +86,16 @@ def sitemap_xml(request):
     for tournament in PokerTournament.objects.filter(is_active=True).only('id', 'updated_at'):
         entries.append(_url_entry(
             f'/poker/{tournament.id}', lastmod=tournament.updated_at,
+            changefreq='weekly', priority='0.8',
+        ))
+
+    # Same filter as spa_seo._detail_meta: a URL is listed only if the server
+    # would also serve it an indexable head.
+    for event in TeenPattiEvent.objects.filter(
+        is_active=True, status__in=PUBLIC_EVENT_STATUSES,
+    ).only('id', 'updated_at'):
+        entries.append(_url_entry(
+            f'/teen-patti/{event.id}', lastmod=event.updated_at,
             changefreq='weekly', priority='0.8',
         ))
 
