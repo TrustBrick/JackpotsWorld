@@ -17,6 +17,7 @@ import Breadcrumbs from '../components/shared/Breadcrumbs'
 import { pokerSchema, breadcrumbSchema } from '../utils/seoSchemas'
 import { hasAmount } from '../utils/money'
 import { toMetaDescription, TITLE_SUFFIX, ROUTE_SEO } from '../config/seo'
+import GoldLastWord from '../components/shared/GoldLastWord'
 
 const STATUS_LABEL_KEYS = {
   upcoming: 'common.statusUpcoming',
@@ -151,7 +152,7 @@ export default function PokerDetails() {
             </div>
 
             <div className="p-6 md:p-8">
-              <h1 className="font-black text-2xl md:text-3xl text-white/90 mb-4">{fixMojibakeCurrency(tournament.name)}</h1>
+              <h1 className="section-heading text-2xl md:text-3xl mb-4"><GoldLastWord text={fixMojibakeCurrency(tournament.name)} /></h1>
 
               {(tournament.casino_name || tournament.location) && (
                 <p className="text-white/74 text-sm font-body flex items-center gap-2 mb-4">

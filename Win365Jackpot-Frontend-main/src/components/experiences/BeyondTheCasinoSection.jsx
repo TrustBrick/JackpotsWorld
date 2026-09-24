@@ -94,8 +94,8 @@ export default function BeyondTheCasinoSection() {
             More Than Just Casinos
           </p>
           <h2
-            className="font-display"
-            style={{ fontSize: 'clamp(2rem, 6.5vw, 3.4rem)', fontWeight: 600, lineHeight: 1.06, marginBottom: 16, color: 'var(--w365-text)' }}
+            className="section-heading"
+            style={{ fontSize: 'clamp(2rem, 6.5vw, 3.4rem)', lineHeight: 1.06, marginBottom: 16 }}
           >
             Beyond the <span className="gold-text">Casino</span>
           </h2>

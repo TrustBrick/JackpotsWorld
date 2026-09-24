@@ -32,7 +32,7 @@ const ICON_MAP = {
      • "Seamless Buying / Deposit and withdraw ... at casinos" — read as
        JackpotsWorld moving gambling money. Any such transaction is between
        the member and the casino.
-     • "available only on Jackpots World" — offers are the casino's to give.
+     • "available only on Jackpotsworld" — offers are the casino's to give.
      • "Every Booking to Every Bet" — put JackpotsWorld on the bet.
      • "Smart Tools to Track Your Betting Sessions" / "Win Rate Analytics" —
        REMOVED outright, not renamed. It described monitoring of gambling
@@ -159,11 +159,10 @@ export default function WhyChooseUs() {
             <Zap size={11} color="rgba(212,175,55,0.7)" />
             Our Advantages
           </div>
-          <h2 className="font-bold section-heading" style={{
-            fontSize: 'clamp(1.8rem,7vw,3.2rem)',
-            fontWeight: 900, marginBottom: 12, lineHeight: 1.1,
+          <h2 className="section-heading" style={{
+            fontSize: 'clamp(1.8rem,7vw,3.2rem)', marginBottom: 12, lineHeight: 1.1,
           }}>
-            WHY <span className="gold-text">Jackpots World?</span>
+            WHY <span className="gold-text">Jackpotsworld?</span>
           </h2>
           <p className="font-body font-light" style={{
             fontSize: 'clamp(0.85rem,3.2vw,1.05rem)',

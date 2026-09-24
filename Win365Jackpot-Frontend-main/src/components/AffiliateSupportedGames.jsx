@@ -80,8 +80,8 @@ export default function AffiliateSupportedGames() {
         <div className="inline-block border border-gold/30 rounded-full px-5 py-1.5 text-xs font-body font-light tracking-widest uppercase text-gold/70 mb-4">
           What You Can Refer
         </div>
-        <h2 className="gold-text font-black text-2xl tracking-wide mb-3">
-          Three Games, One Affiliate Account
+        <h2 className="section-heading text-2xl tracking-wide mb-3">
+          Three Games, One Affiliate <span className="gold-text">Account</span>
         </h2>
         <p className="text-white/70 font-body text-sm max-w-2xl mx-auto leading-relaxed">
           Your link works across all three. Commission is attributed to whichever game your

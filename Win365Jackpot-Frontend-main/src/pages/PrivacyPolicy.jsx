@@ -133,14 +133,15 @@ export default function PrivacyPolicy() {
             </span>
           </div>
 
-          <h1 style={{
+          {/* White kept inline: this page paints its own fixed dark
+              background, so the theme text colour would be wrong here. */}
+          <h1 className="section-heading" style={{
             fontSize: 'clamp(28px, 5vw, 42px)',
-            fontWeight: 700,
             color: 'white',
             marginBottom: 16,
             lineHeight: 1.2,
           }}>
-            Privacy Policy
+            Privacy <span className="gold-text">Policy</span>
           </h1>
 
           <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', lineHeight: 1.7, maxWidth: 560 }}>

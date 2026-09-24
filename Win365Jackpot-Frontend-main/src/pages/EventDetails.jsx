@@ -16,6 +16,7 @@ import Seo from '../components/Seo'
 import Breadcrumbs from '../components/shared/Breadcrumbs'
 import { eventSchema, breadcrumbSchema } from '../utils/seoSchemas'
 import { toMetaDescription, TITLE_SUFFIX, ROUTE_SEO } from '../config/seo'
+import GoldLastWord from '../components/shared/GoldLastWord'
 
 function formatDate(iso) {
   if (!iso) return ''
@@ -143,7 +144,7 @@ export default function EventDetails() {
             </div>
 
             <div className="p-6 md:p-8">
-              <h1 className="font-black text-2xl md:text-3xl text-white/90 mb-4">{fixMojibakeCurrency(event.name)}</h1>
+              <h1 className="section-heading text-2xl md:text-3xl mb-4"><GoldLastWord text={fixMojibakeCurrency(event.name)} /></h1>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm font-body text-white/78 mb-6">
                 <div className="flex items-center gap-2"><MapPin size={15} className="text-gold shrink-0" /> {event.city ? `${event.city}, ` : ''}{event.country}</div>

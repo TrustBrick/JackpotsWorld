@@ -16,6 +16,7 @@ import { TITLE_SUFFIX, ROUTE_SEO } from '../config/seo'
 // FeaturedDestinationShowcase / PremiumPartnerHeroMedia.
 import { useVideoAnalytics } from '../hooks/useVideoAnalytics'
 import { trackVideoCtaClick } from '../services/analytics'
+import GoldLastWord from '../components/shared/GoldLastWord'
 
 export default function PromotionDetails() {
   const { id } = useParams()
@@ -170,7 +171,7 @@ export default function PromotionDetails() {
             )}
 
             <div className="p-6 md:p-8">
-              <h1 className="font-black text-2xl md:text-3xl text-white/90 mb-4">{promo.title}</h1>
+              <h1 className="section-heading text-2xl md:text-3xl mb-4"><GoldLastWord text={promo.title} /></h1>
 
               {promo.description && <p className="text-white/78 text-sm font-body leading-relaxed mb-5">{promo.description}</p>}
 

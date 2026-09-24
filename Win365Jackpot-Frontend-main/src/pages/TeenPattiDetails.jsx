@@ -20,6 +20,7 @@ import Seo from '../components/Seo'
 import { eventSchema, breadcrumbSchema } from '../utils/seoSchemas'
 import { hasAmount } from '../utils/money'
 import { toMetaDescription, TITLE_SUFFIX, ROUTE_SEO } from '../config/seo'
+import GoldLastWord from '../components/shared/GoldLastWord'
 
 function formatDate(iso) {
   if (!iso) return ''
@@ -226,8 +227,8 @@ export default function TeenPattiDetails() {
                 </div>
 
                 <div className="p-6 md:p-8">
-                  <h1 className="font-black text-2xl md:text-3xl text-[rgba(var(--w365-text-rgb),0.92)] mb-2">
-                    {fixMojibakeCurrency(event.name)}
+                  <h1 className="section-heading text-2xl md:text-3xl mb-2">
+                    <GoldLastWord text={fixMojibakeCurrency(event.name)} />
                   </h1>
                   {event.short_description && (
                     <p className="text-white/74 font-body text-sm mb-6">{event.short_description}</p>

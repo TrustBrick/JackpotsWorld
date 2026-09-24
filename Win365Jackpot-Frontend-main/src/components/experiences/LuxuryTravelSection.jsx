@@ -52,8 +52,8 @@ export default function LuxuryTravelSection() {
             Getting There
           </p>
           <h2
-            className="font-display section-heading"
-            style={{ fontSize: 'clamp(1.9rem, 6.2vw, 3.3rem)', fontWeight: 600, lineHeight: 1.06, marginBottom: 14 }}
+            className="section-heading"
+            style={{ fontSize: 'clamp(1.9rem, 6.2vw, 3.3rem)', lineHeight: 1.06, marginBottom: 14 }}
           >
             Luxury <span className="gold-text">Travel</span>
           </h2>

@@ -60,10 +60,10 @@ export default function TeenPattiAcquisitionCTA({
             </span>
           </div>
 
-          <h2 className="font-black text-2xl md:text-4xl leading-tight mb-3" style={{ fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif" }}>
+          <h2 className="section-heading text-2xl md:text-4xl leading-tight mb-3">
             {isLoggedIn ? (
               <>
-                {firstName ? `${firstName}, ` : ''}<span className="gold-text">Your Table Is Waiting</span>
+                {firstName ? `${firstName}, ` : ''}Your Table Is <span className="gold-text">Waiting</span>
               </>
             ) : (
               <>Play. Connect. <span className="gold-text">Compete.</span></>

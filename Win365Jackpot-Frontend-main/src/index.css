@@ -268,8 +268,22 @@ select:disabled {
 
    The rule is now: .section-heading on the <h2>, .gold-text on the last
    word. Applied to the heading, not baked into h2, because headings inside
-   cards and panels are a different thing and keep their own colour. */
-.section-heading { color: var(--w365-text); }
+   cards and panels are a different thing and keep their own colour.
+
+   2026-09-24: widened from colour-only to the whole look, on request that
+   "every heading should have the same colour and design". An audit of every
+   public page found page titles and section headings in four styles (all
+   gold, flat #D4AF37, white+gold, plain white in Manrope) and weights from
+   600 to 900. Every page title and section heading now carries this class,
+   and components/shared/GoldLastWord puts the gold on the last word when
+   the text arrives as a plain string (translations, Back Office copy).
+   Weight 900 is the one most headings already used. Size stays per heading:
+   a page title and a section heading are meant to differ in size. */
+.section-heading {
+  color: var(--w365-text);
+  font-family: 'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif;
+  font-weight: 900;
+}
 
 .bg-surface     { background-color: var(--w365-bg); }
 .bg-surface-mid { background-color: var(--w365-bg-mid); }

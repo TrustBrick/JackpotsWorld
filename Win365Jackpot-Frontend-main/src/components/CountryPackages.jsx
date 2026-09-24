@@ -528,7 +528,7 @@ function VIPServicesGallery() {
           <div style={{ display: 'inline-block', border: '1px solid rgba(212,175,55,0.3)', borderRadius: 50, padding: '5px 18px', fontSize: 'clamp(0.6rem,2.5vw,0.72rem)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(212,175,55,0.7)', marginBottom: 12 }}>
             ✦ Exclusive VIP Services
           </div>
-          <h2 className=" font-bold section-heading" style={{ fontSize: 'clamp(1.5rem,6vw,3rem)', fontWeight: 900, marginBottom: 10 }}>
+          <h2 className="section-heading" style={{ fontSize: 'clamp(1.5rem,6vw,3rem)', marginBottom: 10 }}>
             THE VIP <span className="gold-text">EXPERIENCE</span>
           </h2>
           <p className="font-body font-light" style={{ fontSize: 'clamp(0.82rem,3.2vw,1rem)', color: 'rgba(var(--w365-text-rgb),0.70)', maxWidth: 480, margin: '0 auto' }}>
@@ -711,7 +711,7 @@ function PackagesSection() {
           <div style={{ display: 'inline-block', border: '1px solid rgba(212,175,55,0.3)', borderRadius: 50, padding: '5px 18px', fontSize: 'clamp(0.6rem,2.5vw,0.72rem)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(212,175,55,0.7)', marginBottom: 12 }}>
             ✦ All Packages
           </div>
-          <h2 className=" font-bold section-heading" style={{ fontSize: 'clamp(1.6rem,7vw,3.2rem)', fontWeight: 900, marginBottom: 12 }}>
+          <h2 className="section-heading" style={{ fontSize: 'clamp(1.6rem,7vw,3.2rem)', marginBottom: 12 }}>
             CASINO <span className="gold-text">PACKAGES</span>
           </h2>
           <p className="font-body font-light" style={{ color: 'rgba(var(--w365-text-rgb),0.70)', maxWidth: 520, margin: '0 auto', fontSize: 'clamp(0.82rem,3.2vw,1rem)', lineHeight: 1.6 }}>
@@ -857,7 +857,7 @@ function PackagesSection() {
                 heads a band inside that section, and matching it exactly
                 would leave the page with two equal headings and no hierarchy
                 between them. */}
-            <h2 className=" font-bold section-heading" style={{ fontSize: 'clamp(1.3rem,5vw,2.4rem)', fontWeight: 900, marginBottom: 10, lineHeight: 1.12 }}>
+            <h2 className="section-heading" style={{ fontSize: 'clamp(1.3rem,5vw,2.4rem)', marginBottom: 10, lineHeight: 1.12 }}>
               EXCLUSIVE CRUISE <span className="gold-text">CASINOS</span>
             </h2>
             <p className="font-body font-light" style={{ color: 'rgba(var(--w365-text-rgb),0.70)', maxWidth: 520, margin: '0 auto', fontSize: 'clamp(0.8rem,3vw,0.95rem)', lineHeight: 1.6 }}>
@@ -953,7 +953,7 @@ export default function CountryPackages() {
                 this grid is the most casino-looking thing on the page, and
                 without them it reads as a list of venues JackpotsWorld runs.
                 They are venues we refer members to. */}
-            <h2 className=" font-bold font-black section-heading" style={{ fontSize: 'clamp(1.7rem,7.5vw,3.2rem)', marginBottom: 10, lineHeight: 1.1 }}>
+            <h2 className="section-heading" style={{ fontSize: 'clamp(1.7rem,7.5vw,3.2rem)', marginBottom: 10, lineHeight: 1.1 }}>
               PREMIUM CASINO <span className="gold-text">DESTINATIONS</span>
             </h2>
             <p className="font-body font-light text-theme-muted max-w-xl mx-auto" style={{ fontSize: 'clamp(0.82rem,3.2vw,1.1rem)' }}>

@@ -432,20 +432,17 @@ export default function GiftsSection() {
             initial={{ opacity: 0, y: 24 }}
             animate={headerInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.6, delay: 0.1 }}
+            className="section-heading"
             style={{
-              fontSize: 'clamp(28px,6vw,60px)', fontWeight: 900,
+              fontSize: 'clamp(28px,6vw,60px)',
               lineHeight: 1.1, marginBottom: 16,
-              color: 'var(--w365-text)',
             }}
           >
-            {/* .gold-text, not a second hand-rolled gradient: this heading
-                already had the right shape (text colour plus one gold phrase)
-                but its own gold, a shade off every other accent on the page. */}
-            <span className="gold-text">WIN MORE</span>
-            <br />
-            <span style={{ fontSize: 'clamp(18px,4vw,40px)', color: 'rgba(var(--w365-text-rgb),0.85)' }}>
-              THAN JUST MONEY
-            </span>
+            {/* The site heading standard (index.css .section-heading): one
+                size, text colour, gold on the last word. This used to lead
+                with a gold "WIN MORE" over a smaller second line, the only
+                landing heading shaped that way. */}
+            WIN MORE THAN JUST <span className="gold-text">MONEY</span>
           </motion.h2>
 
           <motion.div

@@ -72,8 +72,8 @@ export default function VipConciergeSection() {
             One Point Of Contact
           </p>
           <h2
-            className="font-display section-heading"
-            style={{ fontSize: 'clamp(1.9rem, 6.2vw, 3.3rem)', fontWeight: 600, lineHeight: 1.06, marginBottom: 16 }}
+            className="section-heading"
+            style={{ fontSize: 'clamp(1.9rem, 6.2vw, 3.3rem)', lineHeight: 1.06, marginBottom: 16 }}
           >
             Your Personal Destination <span className="gold-text">Concierge</span>
           </h2>

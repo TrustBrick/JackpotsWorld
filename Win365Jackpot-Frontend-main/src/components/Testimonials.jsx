@@ -151,8 +151,8 @@ export default function Testimonials() {
           <div className="inline-block border border-gold/30 rounded-full px-5 py-1.5 text-xs font-body font-light tracking-widest uppercase text-gold/70 mb-4">
             ★ Member Stories
           </div>
-          <h2 className="font-bold text-4xl md:text-5xl font-black gold-text mb-4">
-            IN THEIR OWN WORDS
+          <h2 className="section-heading text-4xl md:text-5xl mb-4">
+            IN THEIR OWN <span className="gold-text">WORDS</span>
           </h2>
           <p className="font-body font-light text-lg text-theme-muted">
             Members on the destinations, the venues and the concierge service.

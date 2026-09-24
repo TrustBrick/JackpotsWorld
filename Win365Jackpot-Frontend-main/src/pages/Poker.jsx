@@ -16,12 +16,13 @@ import { fetchSectionMedia } from '../services/landingService'
 import { HERO_WATERMARKS } from '../config/heroWatermarks'
 import { useAutoFetch } from '../hooks/useAutoFetch'
 import { getToken } from '../services/authStorage'
+import GoldLastWord from '../components/shared/GoldLastWord'
 
 function SectionHeading({ icon: Icon, title, count, accent }) {
   return (
     <div className="flex items-center gap-3 mb-6">
       <Icon size={18} style={{ color: accent }} />
-      <h2 className="font-black text-xl tracking-wide" style={{ color: accent }}>{title}</h2>
+      <h2 className="section-heading text-xl tracking-wide"><GoldLastWord text={title} /></h2>
       <span
         className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-widest"
         style={{ background: `${accent}15`, border: `1px solid ${accent}44`, color: accent }}

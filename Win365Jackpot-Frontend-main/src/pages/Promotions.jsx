@@ -11,6 +11,7 @@ import PromotionCard from '../components/promotions/PromotionCard'
 import { fetchPromotions } from '../services/promotionService'
 import { useAutoFetch } from '../hooks/useAutoFetch'
 import { flagFromCountryCode } from '../utils/countryFlags'
+import GoldLastWord from '../components/shared/GoldLastWord'
 
 const EMPTY_PARAMS = {}
 
@@ -68,7 +69,7 @@ export default function Promotions() {
               <div key={country}>
                 <div className="flex items-center gap-3 mb-5">
                   <span className="flag text-2xl leading-none">{flagFromCountryCode(promotions[0]?.country_code)}</span>
-                  <h2 className="gold-text font-black text-xl md:text-2xl tracking-wide">{country}</h2>
+                  <h2 className="section-heading text-xl md:text-2xl tracking-wide"><GoldLastWord text={country} /></h2>
                   <span className="text-white/50 text-xs font-body">{t('promotions.offersCount', { count: promotions.length })}</span>
                 </div>
 

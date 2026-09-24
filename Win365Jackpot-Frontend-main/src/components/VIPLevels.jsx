@@ -176,7 +176,6 @@ export default function VIPLevels() {
           </div>
           <h2 className="section-heading" style={{
             fontSize: 'clamp(28px, 5vw, 48px)',
-            fontWeight: 800,
             letterSpacing: '0.04em',
             marginBottom: 10,
           }}>

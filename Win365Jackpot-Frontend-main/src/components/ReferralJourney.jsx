@@ -128,8 +128,7 @@ export default function ReferralJourney() {
           </p>
 
           <h2 className="section-heading" style={{
-            fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif",
-            fontSize: 'clamp(22px,4.4vw,40px)', fontWeight: 900,
+            fontSize: 'clamp(22px,4.4vw,40px)',
             lineHeight: 1.18, margin: '0 0 14px',
           }}>
             Your Casino Journey Starts With <span className="gold-text">JackpotsWorld</span>

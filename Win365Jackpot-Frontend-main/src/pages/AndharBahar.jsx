@@ -21,6 +21,7 @@ import { useAutoFetch } from '../hooks/useAutoFetch'
 import { getToken } from '../services/authStorage'
 import { scrollToSectionWhenReady } from '../utils/scroll'
 import { hasAmount } from '../utils/money'
+import GoldLastWord from '../components/shared/GoldLastWord'
 
 /* ─────────────────────────────────────────────────────────────────────────
    Andhar Bahar — the third game destination, alongside Poker and Teen Patti.
@@ -126,11 +127,8 @@ function SectionHeading({ icon: Icon, title, count = null, accent = GOLD }) {
   return (
     <div className="flex items-center gap-3 mb-7">
       {Icon && <Icon size={18} style={{ color: accent }} />}
-      <h2
-        className="font-black text-xl md:text-2xl tracking-wide"
-        style={{ color: accent, fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif" }}
-      >
-        {title}
+      <h2 className="section-heading text-xl md:text-2xl tracking-wide">
+        <GoldLastWord text={title} />
       </h2>
       {count !== null && (
         <span
@@ -801,11 +799,8 @@ export default function AndharBahar() {
             {Boolean(hasAnyContent) && copy.hero_cta_secondary_label && (
               <Section className="text-center">
                 <div className="section-divider max-w-xs mx-auto mb-8" />
-                <h2
-                  className="gold-text font-black text-xl md:text-2xl mb-3 tracking-wide"
-                  style={{ fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif" }}
-                >
-                  {copy.hero_title}
+                <h2 className="section-heading text-xl md:text-2xl mb-3 tracking-wide">
+                  <GoldLastWord text={copy.hero_title} />
                 </h2>
                 <p className="text-theme-muted font-body text-sm mb-8 max-w-xl mx-auto">
                   {copy.hero_subtitle}

@@ -9,6 +9,7 @@ import SectionHeroMedia from '../shared/SectionHeroMedia'
 import { fetchSectionMedia } from '../../services/landingService'
 import { HERO_WATERMARKS } from '../../config/heroWatermarks'
 import { useAutoFetch } from '../../hooks/useAutoFetch'
+import GoldLastWord from '../shared/GoldLastWord'
 
 /**
  * TeenPattiHero — the Part 18 hero. Built from the site's existing utility
@@ -332,10 +333,9 @@ export default function TeenPattiHero({ liveCount = 0, upcomingCount = 0, onView
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.38 }}
-          className="gold-text font-black text-5xl md:text-7xl tracking-wide mb-4"
-          style={{ fontFamily: "'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif", filter: 'drop-shadow(0 0 30px rgba(212,175,55,0.35))' }}
+          className="section-heading text-5xl md:text-7xl tracking-wide mb-4"
         >
-          {t('teenPatti.title')}
+          <GoldLastWord text={t('teenPatti.title')} />
         </motion.h1>
 
         {/* Hero media card, in the same framed template as the landing page's
