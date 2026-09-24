@@ -820,6 +820,40 @@ class AdminAffiliateListView(APIView):
         return Response({"results": results, "count": len(results)})
 
 
+class AdminAffiliateLevelView(APIView):
+    """PATCH /api/admin-panel/affiliates/<user_id>/level/ { level }
+
+    AFFILIATE-LEVELS: sets an affiliate's level by hand. Any level can be
+    chosen, up or down — until the level-up conditions exist, the admin is
+    the rule. Recorded by the admin audit middleware like every admin write.
+    """
+    permission_classes = [IsAdminOrSuperAdmin]
+
+    def patch(self, request, user_id):
+        profile = AffiliateProfile.objects.select_related("user").filter(user_id=user_id).first()
+        if not profile:
+            return Response({"error": "Affiliate not found"}, status=404)
+
+        level = (request.data.get("level") or "").strip().lower()
+        if level not in AffiliateProfile.LEVEL_ORDER:
+            return Response(
+                {"error": "level must be one of: " + ", ".join(AffiliateProfile.LEVEL_ORDER)},
+                status=400,
+            )
+
+        if profile.level != level:
+            profile.level = level
+            profile.level_updated_at = timezone.now()
+            profile.save(update_fields=["level", "level_updated_at", "updated_at"])
+
+        return Response({
+            "user_id": profile.user_id,
+            "level": profile.level,
+            "level_label": profile.get_level_display(),
+            "level_updated_at": profile.level_updated_at,
+        })
+
+
 class AdminPendingCommissionsListView(APIView):
     permission_classes = [IsAdminOrSuperAdmin]
 

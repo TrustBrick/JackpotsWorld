@@ -13,12 +13,16 @@ from authapp.services.affiliate_commission_service import commission_display_sta
 
 class AffiliateProfileSerializer(serializers.ModelSerializer):
     total_pending = serializers.SerializerMethodField()
+    # AFFILIATE-LEVELS: read here by both the admin list and the affiliate's
+    # own dashboard. Changed only through AdminAffiliateLevelView.
+    level_label = serializers.CharField(source="get_level_display", read_only=True)
 
     class Meta:
         model = AffiliateProfile
         fields = [
             "commission_rate", "is_active", "approved_by", "total_earned", "total_paid",
             "total_pending", "can_view_player_transactions", "created_at",
+            "level", "level_label", "level_updated_at",
         ]
 
     def get_total_pending(self, obj):

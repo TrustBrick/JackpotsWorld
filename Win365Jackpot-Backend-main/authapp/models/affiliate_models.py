@@ -23,6 +23,22 @@ class AffiliateProfile(models.Model):
     total_paid = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     can_view_player_transactions = models.BooleanField(default=False)
 
+    # AFFILIATE-LEVELS: every affiliate joins at VIP and moves up in this
+    # order. Set by an admin for now; the conditions for moving up (and any
+    # perks a level carries) are to be added later, so nothing else reads
+    # this yet. LEVEL_ORDER is the single source for "which is higher".
+    LEVEL_VIP = "vip"
+    LEVEL_CHOICES = [
+        (LEVEL_VIP, "VIP"),
+        ("bronze",  "Bronze"),
+        ("silver",  "Silver"),
+        ("gold",    "Gold"),
+        ("diamond", "Diamond"),
+    ]
+    LEVEL_ORDER = [value for value, _ in LEVEL_CHOICES]
+    level = models.CharField(max_length=10, choices=LEVEL_CHOICES, default=LEVEL_VIP, db_index=True)
+    level_updated_at = models.DateTimeField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

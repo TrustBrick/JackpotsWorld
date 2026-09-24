@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { RefreshCw, Check, Ban } from "lucide-react";
+import { createPortal } from "react-dom";
+import { RefreshCw, Check, Ban, ChevronDown } from "lucide-react";
 import { Card, Btn, Table, rowHover } from "../components/SharedUI";
 import { adminFetch, API, fmt, fmtD } from "../helpers";
 import { useAdminTheme } from "../context/AdminThemeContext";
+import { AFFILIATE_LEVELS, affiliateLevel } from "../../config/affiliateLevels";
 
 const STATUS_TABS = [
   { id: "all", label: "All" },
@@ -30,6 +32,86 @@ function StatusPill({ status }) {
   );
 }
 
+// AFFILIATE-LEVELS: the level pill doubles as the picker. Custom popup rather
+// than a native <select>, for the same reason SharedUI.Select is custom: the
+// native option list ignores the theme and renders white. The popup is
+// position:fixed at the pill's on-screen spot because SharedUI.Table wraps
+// rows in an overflow container that would clip it on the last rows -- and
+// portalled to <body>, because the tab content sits inside a framer-motion
+// wrapper whose transform turns "fixed" into "relative to that wrapper",
+// which put the menu 254px right of the pill (measured).
+function LevelPicker({ value, onChange, disabled }) {
+  const { C } = useAdminTheme();
+  const [pos, setPos] = useState(null);   // null = closed
+  const ref = React.useRef(null);
+  const menuRef = React.useRef(null);
+  const current = affiliateLevel(value);
+  const open = pos !== null;
+
+  const toggle = () => {
+    if (open) { setPos(null); return; }
+    const r = ref.current.getBoundingClientRect();
+    const menuH = AFFILIATE_LEVELS.length * 32 + 10;
+    const top = r.bottom + 4 + menuH > window.innerHeight ? r.top - 4 - menuH : r.bottom + 4;
+    setPos({ top, left: r.left });
+  };
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const close = e => {
+      if (ref.current?.contains(e.target) || menuRef.current?.contains(e.target)) return;
+      setPos(null);
+    };
+    const esc = e => { if (e.key === "Escape") setPos(null); };
+    const shut = () => setPos(null);   // a fixed popup would drift from its pill
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", esc);
+    window.addEventListener("scroll", shut, true);
+    window.addEventListener("resize", shut);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", esc);
+      window.removeEventListener("scroll", shut, true);
+      window.removeEventListener("resize", shut);
+    };
+  }, [open]);
+
+  return (
+    <div ref={ref} style={{ position: "relative", display: "inline-block" }}>
+      <button type="button" disabled={disabled} onClick={toggle} title="Change level"
+        style={{
+          display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 800,
+          padding: "3px 8px 3px 10px", borderRadius: 20, cursor: disabled ? "wait" : "pointer",
+          background: `${current.color}1c`, color: current.color, border: `1px solid ${current.color}55`,
+        }}>
+        {current.label} <ChevronDown size={11} />
+      </button>
+      {open && createPortal(
+        <div ref={menuRef} style={{
+          position: "fixed", top: pos.top, left: pos.left, zIndex: 60, minWidth: 130,
+          background: C.panelBg, border: `1px solid ${C.border}`, borderRadius: 10, padding: 4,
+          boxShadow: "0 12px 32px rgba(0,0,0,0.45)",
+          fontFamily: "'Manrope', sans-serif",   // outside the panel root, so set it here
+        }}>
+          {AFFILIATE_LEVELS.map(l => (
+            <button key={l.id} type="button"
+              onClick={() => { setPos(null); if (l.id !== current.id) onChange(l.id); }}
+              style={{
+                display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left",
+                padding: "7px 9px", borderRadius: 7, fontSize: 12, cursor: "pointer", border: "none",
+                background: l.id === current.id ? `${l.color}18` : "transparent", color: C.text,
+              }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: l.color, flexShrink: 0 }} />
+              {l.label}
+            </button>
+          ))}
+        </div>,
+        document.body,
+      )}
+    </div>
+  );
+}
+
 export default function AffiliatesTab({ onToast }) {
   const { C } = useAdminTheme();
   const rateInputStyle = {
@@ -41,6 +123,7 @@ export default function AffiliatesTab({ onToast }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [rates, setRates] = useState({});
+  const [savingLevel, setSavingLevel] = useState(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -63,6 +146,21 @@ export default function AffiliatesTab({ onToast }) {
     const j = await r.json().catch(() => ({}));
     if (r.ok) { onToast?.(j.message || "Updated", true); load(); }
     else onToast?.(j.error || "Failed to update affiliate", false);
+  };
+
+  const setLevel = async (row, level) => {
+    setSavingLevel(row.user_id);
+    try {
+      const r = await adminFetch(`${API}/api/admin-panel/affiliates/${row.user_id}/level/`, {
+        method: "PATCH", body: JSON.stringify({ level }),
+      });
+      if (!r) { onToast?.("Session expired", false); return; }
+      const j = await r.json().catch(() => ({}));
+      if (r.ok) {
+        setItems(prev => prev.map(it => it.user_id === row.user_id ? { ...it, ...j } : it));
+        onToast?.(`${row.email} is now ${j.level_label}`, true);
+      } else onToast?.(j.error || "Failed to update level", false);
+    } finally { setSavingLevel(null); }
   };
 
   return (
@@ -89,9 +187,9 @@ export default function AffiliatesTab({ onToast }) {
       </div>
 
       <Table
-        headers={["UID", "Email", "Name", "Country", "Commission Rate", "Earned", "Paid", "Applied On", "Status", ""]}
+        headers={["UID", "Email", "Name", "Country", "Level", "Commission Rate", "Earned", "Paid", "Applied On", "Status", ""]}
         loading={loading}
-        colSpan={10}
+        colSpan={11}
         emptyText="No affiliates in this view"
       >
         {items.map(row => {
@@ -102,6 +200,9 @@ export default function AffiliatesTab({ onToast }) {
               <td style={{ padding: "11px 14px", fontSize: 12.5 }}>{row.email}</td>
               <td style={{ padding: "11px 14px", fontSize: 12.5 }}>{row.name || "—"}</td>
               <td style={{ padding: "11px 14px", fontSize: 12.5 }}>{row.country || "—"}</td>
+              <td style={{ padding: "11px 14px" }}>
+                <LevelPicker value={row.level} disabled={savingLevel === row.user_id} onChange={lvl => setLevel(row, lvl)} />
+              </td>
               <td style={{ padding: "11px 14px" }}>
                 <input
                   type="number" step="0.01"

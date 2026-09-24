@@ -5,6 +5,41 @@ import {
 } from "lucide-react";
 import { API, affiliateFetch, fmt } from "../helpers";
 import { C, Card, Table, Tr, Td, Pagination } from "../components/SharedUI";
+import { AFFILIATE_LEVELS, affiliateLevel } from "../../config/affiliateLevels";
+
+// AFFILIATE-LEVELS: where the affiliate stands on the ladder. Informational
+// only for now -- the conditions for moving up are still to be defined, so
+// this says who sets the level rather than promising a target.
+function LevelCard({ level }) {
+  const current = affiliateLevel(level);
+  const idx = AFFILIATE_LEVELS.findIndex(l => l.id === current.id);
+  return (
+    <Card>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "white" }}>
+          Your Level: <span style={{ color: current.color, fontWeight: 900 }}>{current.label}</span>
+        </div>
+        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)" }}>Level-ups are reviewed by our team.</div>
+      </div>
+      <div style={{ display: "flex", gap: 6 }}>
+        {AFFILIATE_LEVELS.map((l, i) => {
+          const reached = i <= idx;
+          const isCurrent = i === idx;
+          return (
+            <div key={l.id} style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ height: 6, borderRadius: 3, background: reached ? l.color : "rgba(255,255,255,0.08)", boxShadow: isCurrent ? `0 0 10px ${l.color}80` : "none" }} />
+              <div style={{
+                marginTop: 7, fontSize: 10.5, textAlign: "center", letterSpacing: "0.04em",
+                fontWeight: isCurrent ? 900 : 600, color: reached ? l.color : "rgba(255,255,255,0.35)",
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+              }}>{l.label}</div>
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
 
 // Kept in sync with admin/tabs/UsersTab.jsx's LEVEL_NAMES — affiliate and
 // admin panels intentionally don't share components, so this is a local copy.
@@ -112,8 +147,10 @@ export default function OverviewTab() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <p style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", maxWidth: 640 }}>
-        Earn recurring commission on every player you refer to Jackpots World's network of partner casinos.
+        Earn recurring commission on every player you refer to Jackpotsworld's network of partner casinos.
       </p>
+
+      {stats && <LevelCard level={stats.affiliate_profile?.level} />}
 
       {/* Affiliate Link widget */}
       <Card style={{ background: `${C.gold}08`, border: `1px solid ${C.gold}25` }}>

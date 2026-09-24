@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { LogOut, Menu, X } from "lucide-react";
 import Logo from "../components/shared/Logo";
 import BrandMark from "../components/shared/BrandMark";
+import { affiliateLevel } from "../config/affiliateLevels";
 
 export const SIDEBAR_WIDTH = 228;
 
@@ -17,7 +18,7 @@ export function useBreakpoint() {
   return bp;
 }
 
-export default function AffiliateSidebar({ C, affiliateUser, activeTab, onTabChange, onLogout, unread, tabs }) {
+export default function AffiliateSidebar({ C, affiliateUser, level, activeTab, onTabChange, onLogout, unread, tabs }) {
   const bp = useBreakpoint();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -73,6 +74,18 @@ export default function AffiliateSidebar({ C, affiliateUser, activeTab, onTabCha
               background: `${C.gold}20`, border: `1px solid ${C.gold}40`, color: C.gold,
               textTransform: "uppercase", letterSpacing: "0.05em",
             }}>Affiliate</span>
+            {/* AFFILIATE-LEVELS: hidden until the dashboard call answers,
+                rather than flashing VIP for a Diamond affiliate. */}
+            {level && (() => {
+              const l = affiliateLevel(level);
+              return (
+                <span style={{
+                  marginLeft: 5, fontSize: 9, fontWeight: 800, padding: "2px 7px", borderRadius: 4,
+                  background: `${l.color}1f`, border: `1px solid ${l.color}55`, color: l.color,
+                  textTransform: "uppercase", letterSpacing: "0.05em",
+                }}>{l.label}</span>
+              );
+            })()}
           </div>
         </div>
       </div>

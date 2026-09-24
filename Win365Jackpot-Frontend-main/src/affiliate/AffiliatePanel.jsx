@@ -166,6 +166,7 @@ function AffiliateDashboard({ affiliateUser, onLogout }) {
   const [unread, setUnread] = useState(0);
   const [toast, setToast] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [level, setLevel] = useState(null);   // AFFILIATE-LEVELS: sidebar badge
   const active = TABS.find(t => t.id === tab) || TABS[0];
   const Active = active.Component;
   const mainMarginLeft = bp === "desktop" ? SIDEBAR_WIDTH : 0;
@@ -178,6 +179,18 @@ function AffiliateDashboard({ affiliateUser, onLogout }) {
     const t = setTimeout(() => setToast(null), 3000);
     return () => clearTimeout(t);
   }, [toast]);
+
+  // AFFILIATE-LEVELS: the level an admin set, for the sidebar badge. Re-read
+  // on the same refreshKey the tabs use, so a pull-to-refresh picks up a
+  // level change without a reload.
+  useEffect(() => {
+    let cancelled = false;
+    affiliateFetch(`${API}/api/affiliate/dashboard/`)
+      .then(r => (r?.ok ? r.json() : null))
+      .then(j => { if (j && !cancelled) setLevel(j.affiliate_profile?.level || null); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [refreshKey]);
 
   // Poll the unread notification count independently of which tab is active,
   // so the sidebar bell badge stays live even while NotificationsTab isn't mounted.
@@ -200,6 +213,7 @@ function AffiliateDashboard({ affiliateUser, onLogout }) {
       <AffiliateSidebar
         C={C}
         affiliateUser={affiliateUser}
+        level={level}
         activeTab={tab}
         onTabChange={setTab}
         onLogout={onLogout}
