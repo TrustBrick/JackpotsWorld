@@ -161,6 +161,7 @@ _DETAIL_KEYWORDS = {
     'events': ROUTE_SEO['/events'][2],
     'promotions': ROUTE_SEO['/promotions'][2],
     'poker': ROUTE_SEO['/poker'][2],
+    'teen-patti': ROUTE_SEO['/teen-patti'][2],
 }
 
 # Authenticated surfaces and credential-entry forms. Checked before any route
@@ -179,7 +180,7 @@ NOINDEX_PREFIXES = (
 
 # The only paths that trigger a database read. Bounded digits: an unbounded
 # \d+ would let a caller hand MySQL an arbitrarily long integer literal.
-_DETAIL_RE = re.compile(r'^/(events|promotions|poker)/(\d{1,18})$')
+_DETAIL_RE = re.compile(r'^/(events|promotions|poker|teen-patti)/(\d{1,18})$')
 
 
 def absolute_url(pathname='/'):
@@ -291,6 +292,36 @@ def event_schema(event):
         'location': place if len(place) > 1 else None,
         'image': absolute_image(image) if image else None,
         'url': absolute_url(f'/events/{event.id}'),
+        'organizer': _PUBLISHER,
+    })
+
+
+def teen_patti_schema(event):
+    """Teen Patti event -> schema.org Event. Same shape as event_schema(); the
+    columns are start_date/start_time rather than event_date/event_time, and
+    the URL lives under /teen-patti."""
+    place = _compact({
+        '@type': 'Place',
+        'name': event.venue or event.city or event.country,
+        'address': _compact({
+            '@type': 'PostalAddress',
+            'addressLocality': event.city,
+            'addressCountry': event.country,
+            'streetAddress': event.venue,
+        }),
+    })
+    image = _image_url(event.image)
+    return _compact({
+        '@context': 'https://schema.org',
+        '@type': 'Event',
+        'name': event.name,
+        'description': to_meta_description(event.description or event.short_description, 300),
+        'startDate': _iso_datetime(event.start_date, event.start_time),
+        'eventStatus': _STATUS_MAP.get(event.status),
+        'eventAttendanceMode': 'https://schema.org/OfflineEventAttendanceMode',
+        'location': place if len(place) > 1 else None,
+        'image': absolute_image(image) if image else None,
+        'url': absolute_url(f'/teen-patti/{event.id}'),
         'organizer': _PUBLISHER,
     })
 
@@ -556,6 +587,30 @@ def _detail_meta(kind, pk):
         trail = [('Home', '/'), ('Promotions', '/promotions'), (row.title, f'/promotions/{row.id}')]
         entity = promotion_schema(row)
         image = _image_url(row.image)
+
+    elif kind == 'teen-patti':
+        from authapp.models.teenpatti_models import PUBLIC_EVENT_STATUSES, TeenPattiEvent
+        # Same is_active + status filter as teenpatti_views._public_queryset,
+        # so a draft or cancelled event 404s here exactly as it does in the API.
+        row = TeenPattiEvent.objects.filter(
+            pk=pk, is_active=True, status__in=PUBLIC_EVENT_STATUSES,
+        ).select_related('casino').only(
+            'id', 'name', 'description', 'short_description', 'country', 'city',
+            'venue', 'start_date', 'start_time', 'status', 'image', 'banner',
+            'casino', 'casino__name',
+        ).first()
+        if row is None:
+            return None
+        venue = (row.casino.name if row.casino else '') or row.venue
+        place = ', '.join(p for p in (row.city, row.country) if p)
+        title = f'{row.name}{TITLE_SUFFIX}'
+        description = to_meta_description(
+            row.description or row.short_description
+            or f'{row.name} at {venue or ""}{f", {place}" if place else ""}.'
+        )
+        trail = [('Home', '/'), ('Teen Patti', '/teen-patti'), (row.name, f'/teen-patti/{row.id}')]
+        entity = teen_patti_schema(row)
+        image = _image_url(row.image) or _image_url(row.banner)
 
     else:  # poker
         from authapp.models.poker_models import PokerTournament
