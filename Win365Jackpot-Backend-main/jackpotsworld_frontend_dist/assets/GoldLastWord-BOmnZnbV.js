@@ -1,1 +1,0 @@
-import{j as r}from"./index-UCzoFjbH.js";function i({text:t}){if(typeof t!="string")return t??null;const s=t.trim(),n=s.lastIndexOf(" ");return n===-1?r.jsx("span",{className:"gold-text",children:s}):r.jsxs(r.Fragment,{children:[s.slice(0,n)," ",r.jsx("span",{className:"gold-text",children:s.slice(n+1)})]})}export{i as G};
