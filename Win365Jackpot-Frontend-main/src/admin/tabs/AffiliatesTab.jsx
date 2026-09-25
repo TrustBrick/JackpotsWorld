@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { RefreshCw, Check, Ban, ChevronDown } from "lucide-react";
+import { RefreshCw, Check, Ban, ChevronDown, Lock, Zap } from "lucide-react";
 import { Card, Btn, Table, rowHover } from "../components/SharedUI";
 import { adminFetch, API, fmt, fmtD } from "../helpers";
 import { useAdminTheme } from "../context/AdminThemeContext";
@@ -40,7 +40,11 @@ function StatusPill({ status }) {
 // portalled to <body>, because the tab content sits inside a framer-motion
 // wrapper whose transform turns "fixed" into "relative to that wrapper",
 // which put the menu 254px right of the pill (measured).
-function LevelPicker({ value, onChange, disabled }) {
+//
+// A level picked here is LOCKED (lock icon): automatic level-ups leave that
+// affiliate alone. "Automatic" at the top of the menu unlocks it and re-checks
+// against the Affiliate Levels conditions straight away.
+function LevelPicker({ value, locked, onChange, onAutomatic, disabled }) {
   const { C } = useAdminTheme();
   const [pos, setPos] = useState(null);   // null = closed
   const ref = React.useRef(null);
@@ -51,7 +55,7 @@ function LevelPicker({ value, onChange, disabled }) {
   const toggle = () => {
     if (open) { setPos(null); return; }
     const r = ref.current.getBoundingClientRect();
-    const menuH = AFFILIATE_LEVELS.length * 32 + 10;
+    const menuH = (AFFILIATE_LEVELS.length + 1) * 32 + 16;
     const top = r.bottom + 4 + menuH > window.innerHeight ? r.top - 4 - menuH : r.bottom + 4;
     setPos({ top, left: r.left });
   };
@@ -84,7 +88,7 @@ function LevelPicker({ value, onChange, disabled }) {
           padding: "3px 8px 3px 10px", borderRadius: 20, cursor: disabled ? "wait" : "pointer",
           background: `${current.color}1c`, color: current.color, border: `1px solid ${current.color}55`,
         }}>
-        {current.label} <ChevronDown size={11} />
+        {locked && <Lock size={10} />}{current.label} <ChevronDown size={11} />
       </button>
       {open && createPortal(
         <div ref={menuRef} style={{
@@ -93,6 +97,18 @@ function LevelPicker({ value, onChange, disabled }) {
           boxShadow: "0 12px 32px rgba(0,0,0,0.45)",
           fontFamily: "'Manrope', sans-serif",   // outside the panel root, so set it here
         }}>
+          <button type="button"
+            onClick={() => { setPos(null); if (locked) onAutomatic(); }}
+            title="Follow the Affiliate Levels conditions"
+            style={{
+              display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left",
+              padding: "7px 9px", borderRadius: 7, fontSize: 12, cursor: "pointer", border: "none",
+              background: !locked ? `${C.gold}18` : "transparent", color: C.text,
+            }}>
+            <Zap size={11} style={{ color: C.gold, flexShrink: 0 }} />
+            Automatic{!locked ? " ✓" : ""}
+          </button>
+          <div style={{ height: 1, background: C.border, margin: "3px 4px" }} />
           {AFFILIATE_LEVELS.map(l => (
             <button key={l.id} type="button"
               onClick={() => { setPos(null); if (l.id !== current.id) onChange(l.id); }}
@@ -148,17 +164,20 @@ export default function AffiliatesTab({ onToast }) {
     else onToast?.(j.error || "Failed to update affiliate", false);
   };
 
-  const setLevel = async (row, level) => {
+  // body is { level } (set by hand and lock) or { automatic: true } (unlock).
+  const setLevel = async (row, body) => {
     setSavingLevel(row.user_id);
     try {
       const r = await adminFetch(`${API}/api/admin-panel/affiliates/${row.user_id}/level/`, {
-        method: "PATCH", body: JSON.stringify({ level }),
+        method: "PATCH", body: JSON.stringify(body),
       });
       if (!r) { onToast?.("Session expired", false); return; }
       const j = await r.json().catch(() => ({}));
       if (r.ok) {
         setItems(prev => prev.map(it => it.user_id === row.user_id ? { ...it, ...j } : it));
-        onToast?.(`${row.email} is now ${j.level_label}`, true);
+        onToast?.(body.automatic
+          ? `${row.email} follows the level conditions again (${j.level_label})`
+          : `${row.email} is now ${j.level_label} (set by hand)`, true);
       } else onToast?.(j.error || "Failed to update level", false);
     } finally { setSavingLevel(null); }
   };
@@ -201,7 +220,11 @@ export default function AffiliatesTab({ onToast }) {
               <td style={{ padding: "11px 14px", fontSize: 12.5 }}>{row.name || "—"}</td>
               <td style={{ padding: "11px 14px", fontSize: 12.5 }}>{row.country || "—"}</td>
               <td style={{ padding: "11px 14px" }}>
-                <LevelPicker value={row.level} disabled={savingLevel === row.user_id} onChange={lvl => setLevel(row, lvl)} />
+                <LevelPicker
+                  value={row.level} locked={row.level_locked} disabled={savingLevel === row.user_id}
+                  onChange={lvl => setLevel(row, { level: lvl })}
+                  onAutomatic={() => setLevel(row, { automatic: true })}
+                />
               </td>
               <td style={{ padding: "11px 14px" }}>
                 <input

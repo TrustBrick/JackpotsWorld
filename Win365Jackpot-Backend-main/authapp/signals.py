@@ -128,3 +128,44 @@ def delete_replaced_media_files(sender, instance, created, **kwargs):
     instance._media_file_snapshot = {
         f.name: (getattr(instance, f.name).name or None) for f in fields
     }
+
+# ── AFFILIATE-LEVELS: re-check an affiliate's level when one of the figures
+# its conditions are measured on changes. Hooked on the rows themselves, not
+# on the views that write them, because deposits alone are written from
+# several places (wallet requests, offline deposits, bet slips) and a new
+# flow would otherwise silently never promote anyone. Each check runs after
+# the transaction commits and never raises -- see affiliate_level_service.
+from .models.affiliate_models import ReferralCommission as _ReferralCommission  # noqa: E402
+from .models.casino_wallet_models import CasinoWalletTransaction as _CasinoWalletTransaction  # noqa: E402
+from .models.wallet_request_models import DepositRequest as _DepositRequest  # noqa: E402
+
+
+@receiver(post_save, sender=_DepositRequest)
+def _affiliate_level_on_deposit_request(sender, instance, **kwargs):
+    if instance.status == "approved":
+        from .services.affiliate_level_service import evaluate_for_player
+        evaluate_for_player(instance.user_id, source="deposit_request")
+
+
+@receiver(post_save, sender=_CasinoWalletTransaction)
+def _affiliate_level_on_casino_deposit(sender, instance, created, **kwargs):
+    if created and instance.transaction_type == "DAC":
+        from .services.affiliate_level_service import evaluate_for_player
+        evaluate_for_player(instance.user_id, source="casino_deposit")
+
+
+@receiver(post_save, sender=_ReferralCommission)
+def _affiliate_level_on_commission(sender, instance, **kwargs):
+    from .services.affiliate_level_service import evaluate_for_affiliate
+    evaluate_for_affiliate(instance.affiliate_id, source="commission")
+
+
+@receiver(post_save, sender=settings.AUTH_USER_MODEL)
+def _affiliate_level_on_referral_signup(sender, instance, created, update_fields=None, **kwargs):
+    # Users are saved on every login; only a save that sets referred_by can
+    # change an affiliate's referred-player count.
+    if not instance.referred_by_id:
+        return
+    if created or (update_fields and "referred_by" in update_fields):
+        from .services.affiliate_level_service import evaluate_for_affiliate
+        evaluate_for_affiliate(instance.referred_by_id, source="referral_signup")

@@ -7,10 +7,20 @@ import { API, affiliateFetch, fmt } from "../helpers";
 import { C, Card, Table, Tr, Td, Pagination } from "../components/SharedUI";
 import { AFFILIATE_LEVELS, affiliateLevel } from "../../config/affiliateLevels";
 
-// AFFILIATE-LEVELS: where the affiliate stands on the ladder. Informational
-// only for now -- the conditions for moving up are still to be defined, so
-// this says who sets the level rather than promising a target.
-function LevelCard({ level }) {
+// AFFILIATE-LEVELS: where the affiliate stands on the ladder, and what the
+// next level asks for (dashboard `level_progress`, from the conditions admins
+// set in Back Office -> Affiliate Levels). Moving up is automatic once every
+// listed minimum is reached.
+const METRIC_LABELS = {
+  referred_players: "Referred players",
+  qualified_players: "Qualified players",
+  deposit_volume: "Deposit volume",
+  commission_earned: "Commission earned",
+};
+const MONEY_METRICS = new Set(["deposit_volume", "commission_earned"]);
+const showMetric = (metric, v) => (MONEY_METRICS.has(metric) ? fmt(v) : Number(v).toLocaleString("en-IN"));
+
+function LevelCard({ level, progress }) {
   const current = affiliateLevel(level);
   const idx = AFFILIATE_LEVELS.findIndex(l => l.id === current.id);
   return (
@@ -19,7 +29,11 @@ function LevelCard({ level }) {
         <div style={{ fontSize: 12, fontWeight: 700, color: "white" }}>
           Your Level: <span style={{ color: current.color, fontWeight: 900 }}>{current.label}</span>
         </div>
-        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)" }}>Level-ups are reviewed by our team.</div>
+        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)" }}>
+          {progress
+            ? `Next: ${progress.level_label} — reach every target below to move up automatically.`
+            : idx === AFFILIATE_LEVELS.length - 1 ? "You're at the top level." : "Targets for the next level will appear here."}
+        </div>
       </div>
       <div style={{ display: "flex", gap: 6 }}>
         {AFFILIATE_LEVELS.map((l, i) => {
@@ -37,6 +51,27 @@ function LevelCard({ level }) {
           );
         })}
       </div>
+      {progress && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 12, marginTop: 18 }}>
+          {progress.requirements.map(r => {
+            const pct = Math.min(100, r.required > 0 ? (r.current / r.required) * 100 : 100);
+            const next = affiliateLevel(progress.level).color;
+            return (
+              <div key={r.metric}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 11, marginBottom: 5 }}>
+                  <span style={{ color: "rgba(255,255,255,0.6)" }}>{METRIC_LABELS[r.metric] || r.metric}</span>
+                  <span style={{ color: r.met ? "#34D399" : "white", fontWeight: 700, whiteSpace: "nowrap" }}>
+                    {showMetric(r.metric, r.current)} / {showMetric(r.metric, r.required)}{r.met ? " ✓" : ""}
+                  </span>
+                </div>
+                <div style={{ height: 5, borderRadius: 3, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
+                  <div style={{ width: `${pct}%`, height: "100%", background: r.met ? "#34D399" : next }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </Card>
   );
 }
@@ -150,7 +185,7 @@ export default function OverviewTab() {
         Earn recurring commission on every player you refer to Jackpotsworld's network of partner casinos.
       </p>
 
-      {stats && <LevelCard level={stats.affiliate_profile?.level} />}
+      {stats && <LevelCard level={stats.affiliate_profile?.level} progress={stats.level_progress} />}
 
       {/* Affiliate Link widget */}
       <Card style={{ background: `${C.gold}08`, border: `1px solid ${C.gold}25` }}>

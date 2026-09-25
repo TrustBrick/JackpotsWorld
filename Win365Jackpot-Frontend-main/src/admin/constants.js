@@ -103,6 +103,8 @@ export const ADMIN_NAV_GROUPS = [
     group: "Affiliate Management",
     items: [
       { id:"affiliates", label:"Affiliates", icon:"Handshake" },
+      // AFFILIATE-LEVELS: the minimums for Bronze..Diamond (tabs/AffiliateLevelsTab.jsx).
+      { id:"affiliate-levels", label:"Affiliate Levels", icon:"Crown" },
       // Commission Engine (Deposit / Losing / Rolling) — safe to remove this
       // line along with AffiliateCommissionsTab.jsx and its case in
       // AdminPanel.jsx to remove the feature.

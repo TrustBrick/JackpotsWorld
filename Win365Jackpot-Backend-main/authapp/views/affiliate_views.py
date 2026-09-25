@@ -39,7 +39,7 @@ from authapp.models.affiliate_commission_models import (
 from authapp.constants.games import GAME_CHOICES, GAME_ROUTES, normalise_game
 from authapp.services import affiliate_dashboard_service
 from authapp.models.affiliate_models import (
-    AffiliateProfile, ReferralCommission, AffiliateClickLog, AffiliateLoginLog, AffiliateCampaign,
+    AffiliateLevelCondition, AffiliateProfile, ReferralCommission, AffiliateClickLog, AffiliateLoginLog, AffiliateCampaign,
 )
 from authapp.models.gift_level_models import UserLevel
 from authapp.permissions.affiliate_permissions import IsAffiliate
@@ -295,6 +295,18 @@ class AffiliateApplyView(APIView):
 
 # ─── Affiliate dashboard ─────────────────────────────────────────────────────
 
+def _level_progress(profile):
+    from authapp.services import affiliate_level_service
+    progress = affiliate_level_service.next_level_progress(profile)
+    if progress:
+        for req in progress["requirements"]:
+            # Decimals as floats, the same as every other figure this
+            # dashboard returns.
+            req["required"] = float(req["required"])
+            req["current"] = float(req["current"])
+    return progress
+
+
 class AffiliateDashboardView(APIView):
     permission_classes = [IsAffiliate]
 
@@ -365,6 +377,10 @@ class AffiliateDashboardView(APIView):
                 "distribution": distribution,
                 "total_leveled_players": total_leveled,
             },
+            # AFFILIATE-LEVELS: what the next level up asks for and where the
+            # affiliate stands on each condition. None at the top, or when
+            # no higher level has conditions set yet.
+            "level_progress": _level_progress(profile),
         })
 
 
@@ -821,37 +837,124 @@ class AdminAffiliateListView(APIView):
 
 
 class AdminAffiliateLevelView(APIView):
-    """PATCH /api/admin-panel/affiliates/<user_id>/level/ { level }
+    """PATCH /api/admin-panel/affiliates/<user_id>/level/
+         { level }            set by hand, up or down, and LOCK it
+         { automatic: true }  unlock: back to the admin-set conditions
 
-    AFFILIATE-LEVELS: sets an affiliate's level by hand. Any level can be
-    chosen, up or down — until the level-up conditions exist, the admin is
-    the rule. Recorded by the admin audit middleware like every admin write.
+    AFFILIATE-LEVELS: a hand-set level is locked so the next deposit does not
+    promote the affiliate straight back past it. "Automatic" unlocks and
+    re-checks immediately -- which can only raise the level, never lower it.
+    Recorded by the admin audit middleware like every admin write.
     """
     permission_classes = [IsAdminOrSuperAdmin]
 
     def patch(self, request, user_id):
+        from authapp.services import affiliate_level_service
+
         profile = AffiliateProfile.objects.select_related("user").filter(user_id=user_id).first()
         if not profile:
             return Response({"error": "Affiliate not found"}, status=404)
 
-        level = (request.data.get("level") or "").strip().lower()
-        if level not in AffiliateProfile.LEVEL_ORDER:
-            return Response(
-                {"error": "level must be one of: " + ", ".join(AffiliateProfile.LEVEL_ORDER)},
-                status=400,
-            )
-
-        if profile.level != level:
-            profile.level = level
-            profile.level_updated_at = timezone.now()
-            profile.save(update_fields=["level", "level_updated_at", "updated_at"])
+        if request.data.get("automatic") is True:
+            if profile.level_locked:
+                profile.level_locked = False
+                profile.save(update_fields=["level_locked", "updated_at"])
+            affiliate_level_service.evaluate(profile, source="admin_unlock")
+        else:
+            level = (request.data.get("level") or "").strip().lower()
+            if level not in AffiliateProfile.LEVEL_ORDER:
+                return Response(
+                    {"error": "level must be one of: " + ", ".join(AffiliateProfile.LEVEL_ORDER)},
+                    status=400,
+                )
+            fields = []
+            if profile.level != level:
+                profile.level = level
+                profile.level_updated_at = timezone.now()
+                fields += ["level", "level_updated_at"]
+            if not profile.level_locked:
+                profile.level_locked = True
+                fields.append("level_locked")
+            if fields:
+                profile.save(update_fields=fields + ["updated_at"])
 
         return Response({
             "user_id": profile.user_id,
             "level": profile.level,
             "level_label": profile.get_level_display(),
             "level_updated_at": profile.level_updated_at,
+            "level_locked": profile.level_locked,
         })
+
+
+class AdminAffiliateLevelConditionsView(APIView):
+    """GET /api/admin-panel/affiliate-level-conditions/
+       PUT same, { conditions: [{level, min_referred_players, min_qualified_players,
+                                 min_deposit_volume, min_commission_earned}, ...] }
+
+    AFFILIATE-LEVELS: the minimums for Bronze..Diamond. Blank (null) means
+    "not a condition". Saving re-checks every unlocked affiliate at once, so
+    a new or lowered threshold takes effect immediately rather than at each
+    affiliate's next deposit; the response says how many moved up.
+    """
+    permission_classes = [IsAdminOrSuperAdmin]
+    INT_FIELDS = ("min_referred_players", "min_qualified_players")
+    MONEY_FIELDS = ("min_deposit_volume", "min_commission_earned")
+
+    def _rows(self):
+        existing = {c.level: c for c in AffiliateLevelCondition.objects.all()}
+        out = []
+        for level, label in AffiliateProfile.LEVEL_CHOICES[1:]:
+            c = existing.get(level)
+            out.append({
+                "level": level,
+                "level_label": label,
+                "min_referred_players": c.min_referred_players if c else None,
+                "min_qualified_players": c.min_qualified_players if c else None,
+                "min_deposit_volume": str(c.min_deposit_volume) if c and c.min_deposit_volume is not None else None,
+                "min_commission_earned": str(c.min_commission_earned) if c and c.min_commission_earned is not None else None,
+                "updated_at": c.updated_at if c else None,
+            })
+        return out
+
+    def get(self, request):
+        return Response({"conditions": self._rows()})
+
+    def put(self, request):
+        from authapp.services import affiliate_level_service
+
+        rows = request.data.get("conditions")
+        if not isinstance(rows, list):
+            return Response({"error": "conditions must be a list"}, status=400)
+        valid_levels = AffiliateProfile.LEVEL_ORDER[1:]
+
+        cleaned = {}
+        for row in rows:
+            level = (row.get("level") or "").strip().lower() if isinstance(row, dict) else ""
+            if level not in valid_levels:
+                return Response({"error": f"Unknown level {level!r}"}, status=400)
+            values = {}
+            for f in self.INT_FIELDS + self.MONEY_FIELDS:
+                raw = row.get(f)
+                if raw in (None, ""):
+                    values[f] = None
+                    continue
+                try:
+                    num = int(raw) if f in self.INT_FIELDS else Decimal(str(raw)).quantize(Decimal("0.01"))
+                except (ValueError, TypeError, InvalidOperation):
+                    return Response({"error": f"{level}: {f} must be a number"}, status=400)
+                if num < 0:
+                    return Response({"error": f"{level}: {f} cannot be negative"}, status=400)
+                values[f] = num
+            cleaned[level] = values
+
+        for level, values in cleaned.items():
+            AffiliateLevelCondition.objects.update_or_create(
+                level=level, defaults={**values, "updated_by": request.user},
+            )
+
+        moved = affiliate_level_service.evaluate_all(source="conditions_saved")
+        return Response({"conditions": self._rows(), "affiliates_moved_up": len(moved)})
 
 
 class AdminPendingCommissionsListView(APIView):
