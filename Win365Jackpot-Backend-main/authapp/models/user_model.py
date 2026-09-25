@@ -301,6 +301,7 @@ class ActivityLog(models.Model):
         ("affiliate_withdrawal_approved", "Affiliate Withdrawal Approved"),
         ("affiliate_withdrawal_rejected", "Affiliate Withdrawal Rejected"),
         ("affiliate_withdrawal_paid", "Affiliate Withdrawal Paid"),
+        ("affiliate_level_changed", "Affiliate Level Changed"),
         # WALLET-REQUESTS: new choices — safe to remove along with the rest
         # of the feature; CharField(choices=...) is metadata-only.
         ("main_deposit_requested", "Deposit Request Submitted"),

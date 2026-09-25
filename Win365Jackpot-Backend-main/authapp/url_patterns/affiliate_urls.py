@@ -29,6 +29,7 @@ from authapp.views.affiliate_views import (
     AdminAffiliateCommissionsReportView,
     AdminAffiliateCommissionDetailView,
     AdminAffiliateLevelView,
+    AdminAffiliateLevelConditionsView,
 )
 
 # Public/affiliate — mounted at api/affiliate/
@@ -70,6 +71,7 @@ admin_urlpatterns = [
     path("affiliates/<int:user_id>/commission-assignment/", AdminAffiliateCommissionAssignmentView.as_view()),
     # AFFILIATE-LEVELS: admin sets an affiliate's level (VIP -> Diamond).
     path("affiliates/<int:user_id>/level/", AdminAffiliateLevelView.as_view()),
+    path("affiliate-level-conditions/", AdminAffiliateLevelConditionsView.as_view()),
     path("affiliate-commissions/", AdminAffiliateCommissionsReportView.as_view()),
     path("affiliate-commissions/<int:pk>/", AdminAffiliateCommissionDetailView.as_view()),
 ]

@@ -24,9 +24,10 @@ class AffiliateProfile(models.Model):
     can_view_player_transactions = models.BooleanField(default=False)
 
     # AFFILIATE-LEVELS: every affiliate joins at VIP and moves up in this
-    # order. Set by an admin for now; the conditions for moving up (and any
-    # perks a level carries) are to be added later, so nothing else reads
-    # this yet. LEVEL_ORDER is the single source for "which is higher".
+    # order. LEVEL_ORDER is the single source for "which is higher".
+    # Moved up automatically when the admin-set AffiliateLevelCondition for a
+    # higher level is met (services/affiliate_level_service); never moved
+    # down automatically. Levels carry no perks yet.
     LEVEL_VIP = "vip"
     LEVEL_CHOICES = [
         (LEVEL_VIP, "VIP"),
@@ -38,6 +39,10 @@ class AffiliateProfile(models.Model):
     LEVEL_ORDER = [value for value, _ in LEVEL_CHOICES]
     level = models.CharField(max_length=10, choices=LEVEL_CHOICES, default=LEVEL_VIP, db_index=True)
     level_updated_at = models.DateTimeField(null=True, blank=True)
+    # True once an admin sets the level by hand: automatic evaluation then
+    # leaves this affiliate alone, so a manual downgrade is not undone by the
+    # next deposit. Cleared by the admin choosing "Automatic" again.
+    level_locked = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -48,6 +53,56 @@ class AffiliateProfile(models.Model):
     @property
     def total_pending(self):
         return self.total_earned - self.total_paid
+
+
+class AffiliateLevelCondition(models.Model):
+    """AFFILIATE-LEVELS: what an affiliate must reach to be moved up to a
+    level. One row per level above VIP, edited by admins in the Back Office.
+
+    Every filled-in minimum must be met (AND). A blank minimum is ignored.
+    A level whose minimums are ALL blank is never awarded automatically --
+    otherwise an unconfigured level would be handed to every affiliate the
+    moment evaluation ran. Figures are lifetime totals and use the same
+    definitions as the affiliate dashboard (services/affiliate_level_service).
+    """
+
+    level = models.CharField(
+        max_length=10, unique=True,
+        choices=[c for c in AffiliateProfile.LEVEL_CHOICES if c[0] != AffiliateProfile.LEVEL_VIP],
+    )
+    min_referred_players = models.PositiveIntegerField(null=True, blank=True)
+    min_qualified_players = models.PositiveIntegerField(null=True, blank=True)
+    min_deposit_volume = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    min_commission_earned = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+",
+    )
+
+    METRIC_FIELDS = {
+        "min_referred_players": "referred_players",
+        "min_qualified_players": "qualified_players",
+        "min_deposit_volume": "deposit_volume",
+        "min_commission_earned": "commission_earned",
+    }
+
+    def is_configured(self):
+        return any(getattr(self, f) is not None for f in self.METRIC_FIELDS)
+
+    def is_met_by(self, metrics):
+        """True when every filled-in minimum is reached. False for an
+        unconfigured row (see class docstring)."""
+        if not self.is_configured():
+            return False
+        return all(
+            metrics[metric] >= getattr(self, field)
+            for field, metric in self.METRIC_FIELDS.items()
+            if getattr(self, field) is not None
+        )
+
+    def __str__(self):
+        return f"Conditions for {self.get_level_display()}"
 
 
 class ReferralCommission(models.Model):

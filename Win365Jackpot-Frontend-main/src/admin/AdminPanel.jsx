@@ -55,6 +55,7 @@ import AndharBaharManageTab from "./tabs/content/AndharBaharManageTab";
 import FaqManageTab        from "./tabs/content/FaqManageTab";
 import LiveSupportSettingsTab from "./tabs/content/LiveSupportSettingsTab";
 import ProfileTab          from "./tabs/ProfileTab";  // ADMIN-PROFILE
+import AffiliateLevelsTab  from "./tabs/AffiliateLevelsTab";  // AFFILIATE-LEVELS
 
 import { Card, Toast, NotificationPopup } from "./components/SharedUI";
 import { API, adminFetch } from "./helpers";
@@ -458,6 +459,7 @@ function AdminPanelInner() {
       // or a ?tab= link falls through to `default` and lands on Overview.
       case "faqs":      return <FaqManageTab         {...props} />;
       case "affiliates":return <AffiliatesTab        {...props} />;
+      case "affiliate-levels": return <AffiliateLevelsTab {...props} />; // AFFILIATE-LEVELS
       case "affiliate-withdrawals": return <AffiliateWithdrawalsTab {...props} />; // AFFILIATE-WITHDRAWALS
       case "affiliate-commissions": return <AffiliateCommissionsTab {...props} />; // Commission Engine
       case "commission-rules": return <CommissionRulesTab {...props} />; // Country+Casino+Tier rules

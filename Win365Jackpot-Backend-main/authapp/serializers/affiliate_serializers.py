@@ -22,7 +22,7 @@ class AffiliateProfileSerializer(serializers.ModelSerializer):
         fields = [
             "commission_rate", "is_active", "approved_by", "total_earned", "total_paid",
             "total_pending", "can_view_player_transactions", "created_at",
-            "level", "level_label", "level_updated_at",
+            "level", "level_label", "level_updated_at", "level_locked",
         ]
 
     def get_total_pending(self, obj):
