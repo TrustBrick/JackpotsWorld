@@ -14,9 +14,16 @@ Disallow: /sign-in
 Disallow: /sign-up
 Disallow: /kyc
 
-# Django's own API and admin — never useful to a search engine.
-Disallow: /api/
+# Django's admin — never useful to a search engine.
 Disallow: /admin/
+
+# /api/ is deliberately NOT disallowed. Googlebot's renderer obeys robots.txt
+# for the fetch() calls a page makes while it renders, so blocking /api/ made
+# every public page render its "Couldn't load … right now" error state for
+# Google — /promotions was flagged Soft 404 because of it. The JSON itself is
+# kept out of search results by the X-Robots-Tag: noindex header that
+# authapp/middleware/api_noindex.py puts on every /api/ response, and the
+# private endpoints already refuse a caller with no session.
 
 # Affiliate tracking params create an endless supply of duplicate URLs for
 # the same page. Crawlers honour the wildcard form; the canonical tag on

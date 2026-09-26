@@ -74,6 +74,9 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'authapp.middleware.canonical_host.WWWRedirectMiddleware',
+    # Outermost after the redirect, so it also stamps /api/ responses that
+    # CORS, CSRF or auth short-circuit. See authapp/middleware/api_noindex.py.
+    'authapp.middleware.api_noindex.ApiNoIndexMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
