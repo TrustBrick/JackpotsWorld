@@ -316,10 +316,23 @@ if os.path.isdir(FRONTEND_DIST_DIR):
     WHITENOISE_ROOT = FRONTEND_DIST_DIR
 
 # Hashed asset filenames (Vite's default) are safe to cache for a long time —
-# a new deploy ships new filenames. HTML/manifest-type files still get
-# revalidated on every request since WHITENOISE_ROOT files default to a
-# short max-age unless overridden per-file, which is fine here.
+# a new deploy ships new filenames.
 WHITENOISE_MAX_AGE = 0 if DEBUG else 60 * 60 * 24 * 365
+
+# WHITENOISE_MAX_AGE applies to EVERY file, not just hashed ones (an earlier
+# comment here assumed otherwise). Root-level files — robots.txt, favicon.ico
+# — keep the same URL across deploys, so a year-long max-age let Cloudflare
+# serve a stale robots.txt for a year: the fix that stopped it blocking /api/
+# was deployed, and Google kept reading the old copy. Five minutes instead.
+_ROOT_FILE_MAX_AGE = 300
+
+
+def _short_cache_for_root_files(headers, path, url):
+    if url.count('/') == 1:
+        headers['Cache-Control'] = f'public, max-age={_ROOT_FILE_MAX_AGE}'
+
+
+WHITENOISE_ADD_HEADERS_FUNCTION = _short_cache_for_root_files
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
 # Same-origin now that the SPA and API share jackpotsworld.vip, so CORS

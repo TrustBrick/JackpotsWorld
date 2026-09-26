@@ -51,6 +51,23 @@ class RobotsTxtApiTests(SimpleTestCase):
         )
 
 
+class RootFileCacheTests(SimpleTestCase):
+    """robots.txt must not be cacheable for a year: Cloudflare kept serving
+    the old /api/-blocking copy after the fix was deployed."""
+
+    def test_root_file_gets_short_max_age(self):
+        from backend.settings import _short_cache_for_root_files
+        headers = {'Cache-Control': 'max-age=31536000, public'}
+        _short_cache_for_root_files(headers, '/x/robots.txt', '/robots.txt')
+        self.assertEqual(headers['Cache-Control'], 'public, max-age=300')
+
+    def test_hashed_asset_keeps_long_max_age(self):
+        from backend.settings import _short_cache_for_root_files
+        headers = {'Cache-Control': 'max-age=31536000, public'}
+        _short_cache_for_root_files(headers, '/x/index-abc.js', '/assets/index-abc.js')
+        self.assertEqual(headers['Cache-Control'], 'max-age=31536000, public')
+
+
 class ApiNoIndexHeaderTests(TestCase):
     def test_public_api_response_is_noindex(self):
         response = self.client.get('/api/events/')
