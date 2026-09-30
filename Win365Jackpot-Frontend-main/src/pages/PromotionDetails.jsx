@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Gift as GiftIcon, CheckCircle2, CalendarClock, AlertTriangle, RefreshCw, ImageOff, X, ScrollText } from 'lucide-react'
+import { ArrowLeft, Gift as GiftIcon, CheckCircle2, CalendarClock, AlertTriangle, RefreshCw, X, ScrollText } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import PageScrollButtons from '../components/PageScrollButtons'
 import { fetchPromotionDetail } from '../services/promotionService'
@@ -17,6 +17,7 @@ import { TITLE_SUFFIX, ROUTE_SEO } from '../config/seo'
 import { useVideoAnalytics } from '../hooks/useVideoAnalytics'
 import { trackVideoCtaClick } from '../services/analytics'
 import GoldLastWord from '../components/shared/GoldLastWord'
+import PromotionBanner from '../components/promotions/PromotionBanner'
 
 export default function PromotionDetails() {
   const { id } = useParams()
@@ -93,35 +94,34 @@ export default function PromotionDetails() {
         ) : (
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="casino-card overflow-hidden">
             {/* Large banner */}
-            <div className="relative h-56 md:h-64 overflow-hidden">
-              {(promo.image || getCasinoFallbackImage(promo.casino_name, promo.country)) ? (
-                <img src={promo.image || getCasinoFallbackImage(promo.casino_name, promo.country)} alt={promo.title} loading="lazy" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, var(--w365-card), var(--w365-bg-mid))' }}>
-                  <ImageOff size={32} className="text-gold/30" />
-                </div>
-              )}
-              <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 40%, rgba(10,0,5,0.9) 100%)' }} />
-              <div className="absolute bottom-4 left-5 flex items-center gap-2.5">
-                {promo.casino_logo && (
-                  <img
-                    src={promo.casino_logo}
-                    alt={promo.casino_name || ''}
-                    className="w-10 h-10 rounded-full object-cover border"
-                    style={{ borderColor: 'rgba(212,175,55,0.5)' }}
-                  />
-                )}
-                <div className="flex flex-col leading-tight">
-                  {promo.casino_name && (
-                    <span className="text-white/90 text-sm font-body font-semibold">{promo.casino_name}</span>
+            <PromotionBanner
+              src={promo.image || getCasinoFallbackImage(promo.casino_name, promo.country)}
+              alt={promo.title}
+              stripClass="h-56 md:h-64"
+              posterClass="h-[70vh] min-h-[420px] max-h-[680px]"
+              iconSize={32}
+              caption={
+                <div className="flex items-center gap-2.5">
+                  {promo.casino_logo && (
+                    <img
+                      src={promo.casino_logo}
+                      alt={promo.casino_name || ''}
+                      className="w-10 h-10 rounded-full object-cover border"
+                      style={{ borderColor: 'rgba(212,175,55,0.5)' }}
+                    />
                   )}
-                  <span className="text-white/78 text-xs font-body flex items-center gap-1">
-                    <span className="flag text-sm leading-none">{flagFromCountryCode(promo.country_code)}</span>
-                    {promo.country}
-                  </span>
+                  <div className="flex flex-col leading-tight">
+                    {promo.casino_name && (
+                      <span className="text-white/90 text-sm font-body font-semibold">{promo.casino_name}</span>
+                    )}
+                    <span className="text-white/78 text-xs font-body flex items-center gap-1">
+                      <span className="flag text-sm leading-none">{flagFromCountryCode(promo.country_code)}</span>
+                      {promo.country}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </div>
+              }
+            />
 
             {/* Gallery */}
             {promo.gallery?.length > 0 && (

@@ -1,9 +1,10 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
-import { CalendarClock, Gift, CheckCircle2, ArrowRight, Info, ImageOff } from 'lucide-react'
+import { CalendarClock, Gift, CheckCircle2, ArrowRight, Info } from 'lucide-react'
 import { flagFromCountryCode } from '../../utils/countryFlags'
 import { getCasinoFallbackImage } from '../../utils/mediaFallback'
+import PromotionBanner from './PromotionBanner'
 
 /**
  * PromotionCard — presentational only. Consumes the PromotionSerializer
@@ -12,11 +13,34 @@ import { getCasinoFallbackImage } from '../../utils/mediaFallback'
  */
 function PromotionCard({ promotion, onClaim, onViewDetails }) {
   const { t } = useTranslation()
-  const [imgFailed, setImgFailed] = useState(false)
   // No banner image uploaded for this promotion yet — show the real casino
   // property photo we already have (from the destinations gallery) instead
   // of a blank placeholder, when we recognize the casino name.
   const imgSrc = promotion.image || getCasinoFallbackImage(promotion.casino_name, promotion.country)
+
+  const caption = (promotion.casino_logo || promotion.casino_name || promotion.country) ? (
+    <div className="flex items-center gap-2">
+      {promotion.casino_logo && (
+        <img loading="lazy" decoding="async"
+          src={promotion.casino_logo}
+          alt=""
+          className="w-8 h-8 rounded-full object-cover border"
+          style={{ borderColor: 'rgba(212,175,55,0.5)' }}
+        />
+      )}
+      <div className="flex flex-col leading-tight">
+        {promotion.casino_name && (
+          <span className="text-[rgba(var(--w365-text-rgb),0.80)] text-xs font-body font-semibold">{promotion.casino_name}</span>
+        )}
+        {promotion.country && (
+          <span className="text-[rgba(var(--w365-text-rgb),0.50)] text-[10px] font-body flex items-center gap-1">
+            {flagFromCountryCode(promotion.country_code) && <span className="leading-none">{flagFromCountryCode(promotion.country_code)}</span>}
+            {promotion.country}
+          </span>
+        )}
+      </div>
+    </div>
+  ) : null
 
   return (
     <motion.div
@@ -27,48 +51,13 @@ function PromotionCard({ promotion, onClaim, onViewDetails }) {
       className="casino-card flex flex-col overflow-hidden h-full rounded-xl shadow-lg shadow-black/30 hover:scale-105 transition-transform duration-300"
     >
       {/* Casino image + logo */}
-      <div className="relative h-36 overflow-hidden">
-        {imgSrc && !imgFailed ? (
-          <img
-            src={imgSrc}
-            alt={promotion.casino_name || promotion.title}
-            className="w-full h-full object-cover"
-            loading="lazy"
-            onError={() => setImgFailed(true)}
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, var(--w365-card), var(--w365-bg-mid))' }}>
-            <ImageOff size={22} className="text-gold/30" />
-          </div>
-        )}
-        <div
-          className="absolute inset-0"
-          style={{ background: 'linear-gradient(180deg, transparent 30%, rgba(10,0,5,0.92) 100%)' }}
-        />
-        {(promotion.casino_logo || promotion.casino_name || promotion.country) && (
-          <div className="absolute bottom-3 left-4 flex items-center gap-2">
-            {promotion.casino_logo && (
-              <img loading="lazy" decoding="async"
-                src={promotion.casino_logo}
-                alt=""
-                className="w-8 h-8 rounded-full object-cover border"
-                style={{ borderColor: 'rgba(212,175,55,0.5)' }}
-              />
-            )}
-            <div className="flex flex-col leading-tight">
-              {promotion.casino_name && (
-                <span className="text-[rgba(var(--w365-text-rgb),0.80)] text-xs font-body font-semibold">{promotion.casino_name}</span>
-              )}
-              {promotion.country && (
-                <span className="text-[rgba(var(--w365-text-rgb),0.50)] text-[10px] font-body flex items-center gap-1">
-                  {flagFromCountryCode(promotion.country_code) && <span className="leading-none">{flagFromCountryCode(promotion.country_code)}</span>}
-                  {promotion.country}
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
+      <PromotionBanner
+        src={imgSrc}
+        alt={promotion.casino_name || promotion.title}
+        stripClass="h-36"
+        posterClass="aspect-[4/5]"
+        caption={caption}
+      />
 
       {/* Body */}
       <div className="p-5 flex flex-col flex-1 gap-3">
