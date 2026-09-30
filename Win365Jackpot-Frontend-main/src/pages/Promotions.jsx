@@ -111,8 +111,10 @@ export default function Promotions() {
       {/* Mounted only once the promotions payload has resolved, so the
           voice-over element starts with its final source (admin-uploaded clip
           or the bundled fallback) rather than playing the fallback and then
-          swapping. */}
-      {!loading && !error && <PromotionsVoiceOver voiceover={data?.voiceover} />}
+          swapping. Keyed on `data`, not `!loading && !error`: a background
+          refresh that fails sets `error` while the old data stays, and
+          unmounting then would cut the clip off mid-sentence. */}
+      {data && <PromotionsVoiceOver voiceover={data.voiceover} />}
     </div>
   )
 }

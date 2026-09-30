@@ -47,35 +47,49 @@ export default function PromotionsVoiceOver({ voiceover }) {
   }, [])
 
   // Autoplay attempt + first-interaction fallback.
+  //
+  // Only some events count as the "user activation" a browser requires
+  // before it lets audio play with sound: keydown, a mouse pointerdown, and
+  // for touch the END of a tap (pointerup / touchend / click). touchstart and
+  // a touch pointerdown do NOT count, so listening only for those — as this
+  // used to — meant every attempt on a phone was refused. Scroll swipes don't
+  // count either; a tap does.
+  //
+  // Listeners stay armed until playback has actually started, rather than
+  // being removed after the first event whether or not it worked: a refused
+  // attempt (e.g. an event that didn't qualify) must not use up the retry.
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
 
+    const EVENTS = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown']
     let disposed = false
-    const onFirstInteraction = () => {
-      if (disposed) return
-      startPlayback()
-      removeListeners()
-    }
+
     const removeListeners = () => {
-      disposed = true
-      document.removeEventListener('pointerdown', onFirstInteraction)
-      document.removeEventListener('keydown', onFirstInteraction)
-      document.removeEventListener('touchstart', onFirstInteraction)
+      EVENTS.forEach(ev => document.removeEventListener(ev, tryPlay, true))
     }
-    const armFallback = () => {
-      // Passive so we never interfere with scrolling; each fires at most once.
-      document.addEventListener('pointerdown', onFirstInteraction, { once: true, passive: true })
-      document.addEventListener('keydown', onFirstInteraction, { once: true })
-      document.addEventListener('touchstart', onFirstInteraction, { once: true, passive: true })
+    function tryPlay(e) {
+      if (disposed || !audio.paused) return
+      // The speaker button handles its own taps (toggle below); starting
+      // playback here too would make that same tap immediately mute it.
+      if (e?.target?.closest?.('[data-voiceover-toggle]')) return
+      const p = audio.play()
+      if (p && typeof p.then === 'function') {
+        p.then(() => { removeListeners() }).catch(() => {})
+      }
     }
 
-    const p = audio.play()
-    if (p && typeof p.then === 'function') {
-      p.catch(() => { if (!disposed) armFallback() })
-    }
+    // Capture phase + passive: runs before any handler can stop propagation,
+    // and never delays scrolling.
+    EVENTS.forEach(ev => document.addEventListener(ev, tryPlay, { capture: true, passive: true }))
+
+    // Immediate attempt. Succeeds when the visitor already interacted with
+    // the site in this tab (e.g. clicked through to Promotions from another
+    // page) or the browser's own autoplay allowance covers the site.
+    tryPlay()
 
     return () => {
+      disposed = true
       removeListeners()
       audio.pause()
     }
@@ -142,6 +156,7 @@ export default function PromotionsVoiceOver({ voiceover }) {
       >
         <motion.button
           type="button"
+          data-voiceover-toggle=""
           onClick={toggle}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.92 }}
