@@ -8,6 +8,7 @@ import Navbar from '../components/Navbar'
 import PageHeader from '../components/shared/PageHeader'
 import PageScrollButtons from '../components/PageScrollButtons'
 import PromotionCard from '../components/promotions/PromotionCard'
+import PromotionsVoiceOver from '../components/promotions/PromotionsVoiceOver'
 import { fetchPromotions } from '../services/promotionService'
 import { useAutoFetch } from '../hooks/useAutoFetch'
 import { flagFromCountryCode } from '../utils/countryFlags'
@@ -86,6 +87,11 @@ export default function Promotions() {
       </main>
 
       <PageScrollButtons />
+      {/* Mounted only once the promotions payload has resolved, so the
+          voice-over element starts with its final source (admin-uploaded clip
+          or the bundled fallback) rather than playing the fallback and then
+          swapping. */}
+      {!loading && !error && <PromotionsVoiceOver voiceover={data?.voiceover} />}
     </div>
   )
 }

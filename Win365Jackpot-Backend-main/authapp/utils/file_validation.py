@@ -103,6 +103,51 @@ def validate_uploaded_video(file_obj):
     return file_obj
 
 
+ALLOWED_AUDIO_EXTENSIONS = {"mp3", "ogg", "wav", "m4a", "aac", "webm"}
+ALLOWED_AUDIO_CONTENT_TYPES = {
+    "audio/mpeg", "audio/mp3", "audio/ogg", "audio/wav", "audio/x-wav",
+    "audio/mp4", "audio/aac", "audio/webm",
+}
+# A voice-over is a short speech clip, not a music track — a few MB even as an
+# uncompressed .wav. 10MB leaves comfortable headroom while keeping an upload
+# well inside the deploy's request budget (see validate_uploaded_video).
+MAX_AUDIO_SIZE_BYTES = 10 * 1024 * 1024  # 10MB
+
+
+def validate_uploaded_audio(file_obj):
+    """
+    Raises serializers.ValidationError if the uploaded file is not an allowed
+    audio type/size. Returns the file on success.
+
+    Like validate_uploaded_video, this cannot do a structural decode check —
+    the app has no audio-parsing dependency — so it checks extension,
+    content-type and size only. Extension is the primary gate; a generic or
+    unrecognized content-type (browsers routinely send "application/octet-stream"
+    for media picked through a native file dialog) is accepted, and only a
+    content-type that specifically names a *different* kind of file (e.g.
+    "image/png") is rejected.
+    """
+    if not file_obj:
+        return file_obj
+
+    ext = file_obj.name.rsplit(".", 1)[-1].lower() if "." in file_obj.name else ""
+    if ext not in ALLOWED_AUDIO_EXTENSIONS:
+        raise serializers.ValidationError(
+            f"Unsupported file type. Allowed: {', '.join(sorted(ALLOWED_AUDIO_EXTENSIONS))}."
+        )
+
+    content_type = (getattr(file_obj, "content_type", "") or "").lower()
+    if content_type and content_type != "application/octet-stream" and content_type not in ALLOWED_AUDIO_CONTENT_TYPES:
+        raise serializers.ValidationError("Unsupported file content type.")
+
+    if file_obj.size > MAX_AUDIO_SIZE_BYTES:
+        raise serializers.ValidationError(
+            f"File too large. Max size is {MAX_AUDIO_SIZE_BYTES // (1024 * 1024)}MB."
+        )
+
+    return file_obj
+
+
 # ── Support-chat documents ──────────────────────────────────────────────────
 # What a customer may attach to a support conversation: a scan or photo of a
 # document, and nothing else. Deliberately the image set plus PDF -- no office

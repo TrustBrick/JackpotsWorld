@@ -34,6 +34,33 @@ class Promotion(models.Model):
         return f"{self.title} ({self.country})"
 
 
+class PromotionSettings(models.Model):
+    """Singleton (pk=1) holding page-level Promotions settings that aren't tied
+    to any single promotion — currently the optional voice-over that plays when
+    a visitor opens the Promotions page. Same load()/save() singleton shape as
+    LandingSettings.
+
+    Audio is uploaded under the already-public `promotions/` S3 prefix (see
+    storage_backends.PUBLIC_MEDIA_PREFIXES), so it needs no bucket-policy
+    change — the same prefix already serves every promotion banner, logo and
+    video."""
+    voiceover_audio   = models.FileField(upload_to="promotions/audio/", max_length=255, null=True, blank=True)
+    voiceover_enabled = models.BooleanField(default=True)
+    updated_at        = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return "Promotion Settings"
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def load(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+
 class PromotionGalleryImage(models.Model):
     """Extra gallery images for a promotion's details page, beyond the main
     banner (`Promotion.image`). Any number per promotion."""

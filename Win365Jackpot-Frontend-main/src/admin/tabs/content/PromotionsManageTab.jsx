@@ -1,5 +1,6 @@
 import React from "react";
 import ManageContentTab from "./ManageContentTab";
+import PromotionsVoiceOverSettings from "./PromotionsVoiceOverSettings";
 import { invalidatePromotionsCache } from "../../../services/promotionService";
 
 const FIELDS = [
@@ -29,13 +30,16 @@ const COLUMNS = [
 
 export default function PromotionsManageTab({ onToast }) {
   return (
-    <ManageContentTab
-      resourceLabel="Promotion"
-      apiPath="/api/admin-panel/promotions/"
-      fields={FIELDS}
-      columns={COLUMNS}
-      onToast={onToast}
-      onSaved={invalidatePromotionsCache}
-    />
+    <>
+      <PromotionsVoiceOverSettings onToast={onToast} />
+      <ManageContentTab
+        resourceLabel="Promotion"
+        apiPath="/api/admin-panel/promotions/"
+        fields={FIELDS}
+        columns={COLUMNS}
+        onToast={onToast}
+        onSaved={invalidatePromotionsCache}
+      />
+    </>
   );
 }
