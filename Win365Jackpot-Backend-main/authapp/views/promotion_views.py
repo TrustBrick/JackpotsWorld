@@ -3,8 +3,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 
-from authapp.models.promotion_models import Promotion, PromotionGalleryImage
-from authapp.serializers.promotion_serializers import PromotionSerializer
+from authapp.models.promotion_models import Promotion, PromotionGalleryImage, PromotionSettings
+from authapp.serializers.promotion_serializers import PromotionSerializer, PromotionSettingsSerializer
 from authapp.permissions.super_admin_permissions import IsAdminOrSuperAdmin
 
 
@@ -37,7 +37,12 @@ class PromotionListView(APIView):
             grouped[c].append(item)
 
         countries = [{"country": c, "promotions": grouped[c]} for c in order]
-        return Response({"countries": countries})
+        # Page-level voice-over (admin-managed). `audio` is null until one is
+        # uploaded; the frontend falls back to its bundled static clip then.
+        voiceover = PromotionSettingsSerializer(
+            PromotionSettings.load(), context={"request": request}
+        ).data
+        return Response({"countries": countries, "voiceover": voiceover})
 
 
 class PromotionDetailView(generics.RetrieveAPIView):
@@ -97,3 +102,21 @@ class AdminPromotionGalleryImageDeleteView(APIView):
             return Response({"error": "Gallery image not found"}, status=status.HTTP_404_NOT_FOUND)
         img.delete()
         return Response({"message": "Gallery image deleted"})
+
+
+class AdminPromotionSettingsView(APIView):
+    """GET/PATCH /admin-panel/promotions/settings/ — the singleton page-level
+    Promotions settings (voice-over upload + enable toggle). Same shape as
+    AdminLandingSettingsView."""
+    permission_classes = [IsAdminOrSuperAdmin]
+
+    def get(self, request):
+        obj = PromotionSettings.load()
+        return Response(PromotionSettingsSerializer(obj, context={"request": request}).data)
+
+    def patch(self, request):
+        obj = PromotionSettings.load()
+        serializer = PromotionSettingsSerializer(obj, data=request.data, partial=True, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
