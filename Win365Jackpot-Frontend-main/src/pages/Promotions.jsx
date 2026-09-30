@@ -7,7 +7,7 @@ import { useTheme } from '../context/ThemeContext'
 import Navbar from '../components/Navbar'
 import PageHeader from '../components/shared/PageHeader'
 import PageScrollButtons from '../components/PageScrollButtons'
-import PromotionCard from '../components/promotions/PromotionCard'
+import CasinoPromotionCard from '../components/promotions/CasinoPromotionCard'
 import PromotionsVoiceOver from '../components/promotions/PromotionsVoiceOver'
 import { fetchPromotions } from '../services/promotionService'
 import { useAutoFetch } from '../hooks/useAutoFetch'
@@ -15,6 +15,21 @@ import { flagFromCountryCode } from '../utils/countryFlags'
 import GoldLastWord from '../components/shared/GoldLastWord'
 
 const EMPTY_PARAMS = {}
+
+// One card per casino within a country, in the order the API returns the
+// promotions (admin Sort Order), so each casino's first promotion decides
+// where its card sits. Promotions with no casino name share one card under
+// the country's name.
+function groupByCasino(promotions, country) {
+  const groups = new Map()
+  for (const promo of promotions) {
+    const casino = promo.casino_name?.trim() || country
+    const key = casino.toLowerCase()
+    if (!groups.has(key)) groups.set(key, { casino, promotions: [] })
+    groups.get(key).promotions.push(promo)
+  }
+  return [...groups.values()]
+}
 
 export default function Promotions() {
   const { t } = useTranslation()
@@ -75,8 +90,14 @@ export default function Promotions() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {promotions.map((promo) => (
-                    <PromotionCard key={promo.id} promotion={promo} onClaim={goToDetails} onViewDetails={goToDetails} />
+                  {groupByCasino(promotions, country).map(({ casino, promotions: casinoPromos }) => (
+                    <CasinoPromotionCard
+                      key={casino}
+                      casino={casino}
+                      promotions={casinoPromos}
+                      onClaim={goToDetails}
+                      onViewDetails={goToDetails}
+                    />
                   ))}
                 </div>
               </div>
