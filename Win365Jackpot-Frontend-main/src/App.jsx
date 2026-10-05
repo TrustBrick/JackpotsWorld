@@ -15,6 +15,9 @@ import { WhatsAppGateProvider } from './components/whatsapp/WhatsAppGate'
 import { HelmetProvider } from 'react-helmet-async'
 import RouteSeo from './components/RouteSeo'
 import ScrollToTop from './components/ScrollToTop'
+// COOKIE-CONSENT: one global banner for the whole public site. Persists the
+// visitor's choice (services/consent.js), which gates first-party analytics.
+import CookieConsent from './components/CookieConsent'
 
 // ── Route-level code splitting ─────────────────────────────────────────────
 // LandingPage stays eager (first paint); everything else is only needed
@@ -196,6 +199,9 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />  {/* ← Always last */}
       </Routes>
       </Suspense>
+      {/* Cookie-consent banner — outside <Routes> so it shows on every page;
+          it hides itself on the back-office routes. */}
+      <CookieConsent />
       </WhatsAppGateProvider>
       </SessionTimeoutProvider>
     </BrowserRouter>

@@ -2,151 +2,120 @@ import React, { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Shield } from 'lucide-react'
 
+// The honest inventory. JackpotsWorld sets NO third-party advertising or
+// tracking cookies — there is no Google Analytics, Bing, Mixpanel, Intercom
+// (etc.) script on the site. Everything below is first-party data stored in
+// your own browser (localStorage / sessionStorage), not sent to any ad network.
+// "Category" drives the colour chip; see CATEGORY_COLORS.
 const COOKIES_TABLE = [
   {
-    name: 'SAPISID APISID SSID HSID SID',
-    owner: 'Google',
-    duration: '2 years',
-    desc: 'Stores the preferences and other information of the user, including preferred language, number of search results to be displayed, and the decision whether or not to activate Google SafeSearch filter.',
+    name: 'access  refresh  (+ affiliate_token, admin_token)',
+    category: 'Essential',
+    duration: 'Until sign-out',
+    desc: 'Keeps you signed in. Created only after you log in. Stored for the browsing session only, unless you tick "Remember me", in which case it persists until you sign out.',
   },
   {
-    name: 'SIDCC',
-    owner: 'Google',
-    duration: '1 day',
-    desc: 'Security cookie that protects user data from unauthorized access.',
-  },
-  {
-    name: '__Secure-3PSID __Secure-3PAPISID __Secure-1PAPISID __Secure-1PSID',
-    owner: 'Google',
-    duration: '2 years',
-    desc: 'Builds a profile of website visitor interests to show relevant and personalized ads through retargeting.',
-  },
-  {
-    name: '__Secure-3PSIDCC __Secure-1PSIDCC',
-    owner: 'Google',
-    duration: '1 year',
-    desc: 'Builds a profile of website visitor interests to show relevant and personalized ads through retargeting.',
-  },
-  {
-    name: 'NID',
-    owner: 'Google',
-    duration: '6 months',
-    desc: 'Stores visitors\' preferences and personalizes ads on Google websites based on recent searches and interactions.',
-  },
-  {
-    name: '_ga',
-    owner: 'Google',
+    name: 'w365_cookie_consent',
+    category: 'Essential',
     duration: 'Persistent',
-    desc: 'A Google Analytics persistent cookie used to distinguish unique users.',
+    desc: 'Remembers your choice on this cookie banner (accept or reject) so you are not asked again on every visit. Re-asked only if this policy materially changes.',
   },
   {
-    name: '1P_JAR',
-    owner: 'Google',
-    duration: '1 week',
-    desc: 'Based on recent searches and previous interactions, custom ads are shown on Google sites.',
+    name: 'i18nextLng',
+    category: 'Preference',
+    duration: 'Persistent',
+    desc: 'Remembers the language you selected so the site loads in it next time.',
   },
   {
-    name: 'MUID',
-    owner: 'Bing',
-    duration: '1 month',
-    desc: 'Microsoft User Identifier tracking cookie used by Bing Ads.',
+    name: 'w365-theme  w365-admin-theme',
+    category: 'Preference',
+    duration: 'Persistent',
+    desc: 'Remembers your light / dark appearance preference.',
   },
   {
-    name: '_EDGE_S',
-    owner: 'Bing',
+    name: 'referral_code  affiliate_click_id  campaign_id',
+    category: 'Attribution',
     duration: 'Session',
-    desc: 'Used to retarget website visitors via Bing.',
+    desc: 'If you arrive from an affiliate or campaign link, remembers which one so a referral is credited to the right partner. First-party only.',
   },
   {
-    name: 'OTZ',
-    owner: 'Google',
-    duration: '1 month',
-    desc: 'Links activities of website visitors to other devices previously logged in via a Google account, allowing advertisements to be tailored to different devices.',
+    name: 'wheel_last_shown',
+    category: 'Preference',
+    duration: 'Persistent',
+    desc: 'Remembers when the rewards-wheel pop-up was last shown to you so it is not shown too often.',
   },
   {
-    name: '_gid',
-    owner: 'Google',
-    duration: '1 day',
-    desc: 'Installed by Google Analytics. Stores information on how visitors use the website and helps create an analytics report. Collects number of visitors, source, and pages visited in anonymous form.',
-  },
-  {
-    name: '_uetvid',
-    owner: 'Bing',
-    duration: '1 year',
-    desc: 'Used to track visitors on multiple websites in order to present relevant advertisements based on visitor preferences.',
-  },
-  {
-    name: '_uetsid',
-    owner: 'Bing',
-    duration: '1 day',
-    desc: 'Collects data on visitor behaviour from multiple websites in order to present more relevant advertisements and limit the number of times the same advertisement is shown.',
-  },
-  {
-    name: 'fp_token_* io_token_*',
-    owner: 'Iovation',
+    name: 'jw_scroll_target',
+    category: 'Preference',
     duration: 'Session',
-    desc: 'Used for analytics and customer support purposes.',
+    desc: 'Briefly stores where to scroll to when moving between pages, so you land in the right place.',
   },
   {
-    name: 'incap_ses_* visid_incap_*',
-    owner: 'Optimove',
-    duration: 'Session',
-    desc: 'Used for marketing purposes.',
+    name: 'jw_wa_contact',
+    category: 'Functional',
+    duration: 'Persistent',
+    desc: 'If you send a WhatsApp enquiry, remembers the name and number you entered so you are not asked again next time. It stays on your device; the enquiry itself is recorded on our own server.',
   },
   {
-    name: 'intercom-id-* intercom-session-*',
-    owner: 'Intercom',
-    duration: 'Session',
-    desc: 'Used for customer support purposes.',
+    name: 'jw_enquiry_country',
+    category: 'Functional',
+    duration: 'Persistent',
+    desc: 'Remembers the country selected (or detected) for the enquiry form, so it does not have to be chosen every time.',
   },
   {
-    name: 'mp_*_mixpanel',
-    owner: 'Mixpanel',
+    name: 'jw_anon_id',
+    category: 'Analytics',
+    duration: 'Persistent',
+    desc: 'An anonymous, randomly generated visitor id for our own first-party usage analytics. Contains no name, email, IP address or other personal data. Created ONLY after you accept analytics.',
+  },
+  {
+    name: 'jw_session_id',
+    category: 'Analytics',
     duration: 'Session',
-    desc: 'Used for marketing purposes.',
+    desc: 'Groups the page views in one browsing session for our first-party analytics. Created ONLY after you accept analytics.',
+  },
+  {
+    name: 'jw_utm_first_touch',
+    category: 'Analytics',
+    duration: 'Session',
+    desc: 'Remembers the campaign parameters (utm_*) you first arrived with, for our first-party analytics. Created ONLY after you accept analytics.',
   },
 ]
 
 const SECTIONS = [
   {
     number: '1',
-    title: 'Opt-out',
-    content: `In order to provide website visitors with more choice on how data is collected by Google Analytics, Google has developed the Google Analytics Opt-out Browser Add-on. The add-on communicates with the Google Analytics JavaScript (ga.js) to stop data being sent to Google Analytics. The Google Analytics Opt-out Browser Add-on does not affect usage of the website in any other way.\n\nFor more information on the usage of cookies by Google Analytics please see the Google website. You can also visit http://tools.google.com/dlpage/gaoptout to install the opt-out add-on.`,
+    title: 'Your Consent and How Analytics Works',
+    content: `Analytics on this site is opt-in. When you first visit, a banner asks you to accept or reject analytics cookies, and nothing in the "Analytics" category above is created until you choose "Accept all". Essential and preference items (keeping you signed in, your language, your light/dark choice) are needed for the site to work and are always active.\n\nIf you choose "Reject non-essential", no analytics identifiers are created and no usage data is collected — the choice genuinely turns the tracking off, it is not cosmetic. If you accept and later change your mind, you can clear your choice (and any analytics identifiers) by clearing this site's stored data in your browser, after which the consent banner will appear again.\n\nOur analytics are first-party only. We do not use Google Analytics, advertising pixels, or any third-party tracking cookies, and we do not sell or share this data with ad networks.`,
   },
   {
     number: '2',
-    title: 'Disabling Cookies',
-    content: `If you would like to restrict the use of cookies you can control this in your Internet browser. Advice on how to do this for the most popular browsers is available below:\n\nInternet Explorer: http://windows.microsoft.com/en-GB/windows7/Block-enable-or-allow-cookies\n\nGoogle Chrome: https://support.google.com/chrome/bin/answer.py?hl=en-GB&answer=95647\n\nMozilla Firefox: http://support.mozilla.org/en-US/kb/Blocking%20cookies\n\nApple Safari: http://docs.info.apple.com/article.html?artnum=32467`,
+    title: 'Third-Party Services',
+    content: `This site relies on two external services. Neither is used for advertising or for tracking you across other websites:\n\nCloudflare Turnstile — a privacy-focused "are you human?" check shown on the sign-in and registration forms to block bots and fraud. It is a strictly necessary security feature. Cloudflare may set its own cookie in your browser to perform this check; it is not used to profile you or to serve advertising.\n\nGoogle Fonts — the site's typefaces are loaded from Google's font service. This does not set a cookie, but your IP address is sent to Google as a normal part of requesting the font files.`,
   },
   {
     number: '3',
-    title: 'Contact and Communication',
-    content: `Users contacting this website and/or its owners do so at their own discretion and provide any such personal details requested at their own risk. Your personal information is kept private and stored securely until a time it is no longer required or has no use, as detailed in the Data Protection Regulation.\n\nThis website and its owners use any information submitted to provide you with further information about the products or services they offer or to assist you in answering any questions or queries you may have submitted. This includes using your details to subscribe you to any email newsletter program the website operates, but only if this was made clear to you and your express permission was granted when submitting any form.\n\nWe will only transfer your personal data where it is necessary for us to set up or fulfil a contract you have entered into with us, to comply with a legal or regulatory obligation, or where the recipient is bound by standard contractual clauses or binding corporate rules that ensure the protection of your personal information.`,
+    title: 'Managing and Disabling Cookies',
+    content: `You can accept or reject optional analytics at any time using the consent banner shown on your first visit. To change a choice you have already made, clear this site's stored data for jackpotsworld.vip in your browser and the banner will appear again.\n\nYou can also restrict or clear cookies and site data directly in your browser settings. Guidance for the most common browsers:\n\nGoogle Chrome: https://support.google.com/chrome/answer/95647\n\nMozilla Firefox: https://support.mozilla.org/en-US/kb/clear-cookies-and-site-data-firefox\n\nApple Safari: https://support.apple.com/en-us/guide/safari/sfri11471/mac\n\nMicrosoft Edge: https://support.microsoft.com/en-us/microsoft-edge/view-and-delete-browser-history-in-microsoft-edge`,
   },
   {
     number: '4',
-    title: 'External Links',
-    content: `Although this website only looks to include quality, safe and relevant external links, users are advised to adopt a policy of caution before clicking any external web links mentioned throughout this website. The owners of this website cannot guarantee or verify the contents of any externally linked website despite their best efforts. Users should therefore note that they click on external links at their own risk and this website and its owners cannot be held liable for any damages or implications caused by visiting any external links mentioned.`,
+    title: 'Contact and Communication',
+    content: `When you contact us — through the support chat, a WhatsApp enquiry, or a form on this site — you provide the details requested at your own discretion. We use that information only to respond to you and to provide the products, services or information you asked about. Your personal information is kept private and stored securely for as long as it is needed for that purpose.\n\nWe do not sell your personal information. We share it only where necessary to provide a service you have requested, or to comply with a legal or regulatory obligation.`,
   },
   {
     number: '5',
-    title: 'Social Media Platforms',
-    content: `Communication, engagement and actions taken through external social media platforms that this website and its owners participate on are subject to the terms and conditions as well as the privacy policies held with each social media platform respectively.\n\nUsers are advised to use social media platforms wisely and communicate and engage upon them with due care and caution in regard to their own privacy and personal details. This website and its owners will never ask for personal or sensitive information through social media platforms and encourage users wishing to discuss sensitive details to contact them through primary communication channels such as by telephone or email.\n\nThis website may use social sharing buttons which help share web content directly from web pages to the social media platform in question. Users are advised before using such social sharing buttons that they do so at their own discretion and note that the social media platform may track and save your request to share a web page through your social media platform account.`,
-  },
-  {
-    number: '6',
-    title: 'Shortened Links in Social Media',
-    content: `This website and its owners through their social media platform accounts may share web links to relevant web pages. Users are advised to take caution and good judgement before clicking any shortened URLs published on social media platforms by this website and its owners. Despite the best efforts to ensure only genuine URLs are published, many social media platforms are prone to spam and hacking and therefore this website and its owners cannot be held liable for any damages or implications caused by visiting any shortened links.`,
+    title: 'External Links and Social Media',
+    content: `This site links out to our own profiles on external platforms (for example Facebook, Instagram, Telegram and YouTube) and may link to other third-party websites. Those external sites are governed by their own terms and privacy policies, not this one.\n\nThese are ordinary outbound links — this site does not embed third-party social "share" or "like" widgets that would report your visit back to those platforms. Even so, please use good judgement before clicking any external link, as we cannot control or verify the content of sites we do not operate.`,
   },
 ]
 
-const OWNER_COLORS = {
-  Google: { bg: 'rgba(66,133,244,0.1)', color: '#93C5FD' },
-  Bing:   { bg: 'rgba(0,120,212,0.1)',  color: '#7DD3FC' },
-  Iovation: { bg: 'rgba(167,139,250,0.1)', color: '#C4B5FD' },
-  Optimove: { bg: 'rgba(52,211,153,0.1)', color: '#6EE7B7' },
-  Intercom: { bg: 'rgba(251,146,60,0.1)', color: '#FCA572' },
-  Mixpanel: { bg: 'rgba(244,114,182,0.1)', color: '#F9A8D4' },
+const CATEGORY_COLORS = {
+  Essential:   { bg: 'rgba(212,175,55,0.12)', color: '#E5C76B' },
+  Preference:  { bg: 'rgba(66,133,244,0.1)',  color: '#93C5FD' },
+  Functional:  { bg: 'rgba(129,140,248,0.12)', color: '#A5B4FC' },
+  Attribution: { bg: 'rgba(52,211,153,0.1)',  color: '#6EE7B7' },
+  Analytics:   { bg: 'rgba(244,114,182,0.1)', color: '#F9A8D4' },
 }
 
 export default function CookiesPolicy() {
@@ -224,7 +193,17 @@ export default function CookiesPolicy() {
           </h1>
 
           <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', lineHeight: 1.75, maxWidth: 580 }}>
-            This website uses cookies to improve your experience while visiting. Where applicable, we use a cookie control system allowing you on your first visit to allow or disallow the use of cookies on your device, in compliance with legislation requirements for explicit user consent.
+            This website stores a small number of first-party items in your browser to keep you signed in, remember your preferences, and — only with your consent — understand how the site is used. On your first visit a banner lets you accept or reject the optional analytics items, in line with requirements for explicit user consent. We do not use third-party advertising or tracking cookies.
+          </p>
+
+          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', lineHeight: 1.75, maxWidth: 580, marginTop: 16 }}>
+            A technical note on terminology: the items listed below are stored
+            using your browser's <strong style={{ color: 'rgba(255,255,255,0.55)' }}>localStorage</strong> and{' '}
+            <strong style={{ color: 'rgba(255,255,255,0.55)' }}>sessionStorage</strong>, not traditional HTTP cookies.
+            They stay on your device and are read only by this site. Our own
+            code sets no HTTP cookies. The only cookies that may be set in your
+            browser come from Cloudflare's security check on our sign-in and
+            registration forms (see Third-Party Services below).
           </p>
         </div>
 
@@ -234,7 +213,7 @@ export default function CookiesPolicy() {
             fontSize: 11, letterSpacing: '0.15em', textTransform: 'uppercase',
             color: 'rgba(255,255,255,0.3)', marginBottom: 16,
           }}>
-            Cookies in use
+            What this site stores in your browser
           </p>
 
           <div style={{
@@ -251,7 +230,7 @@ export default function CookiesPolicy() {
               borderBottom: '1px solid rgba(255,255,255,0.07)',
               padding: '10px 20px',
             }}>
-              {['Cookie Name', 'Owner', 'Duration', 'Description'].map(h => (
+              {['Name', 'Category', 'Duration', 'Purpose'].map(h => (
                 <span key={h} style={{
                   fontSize: 11, fontWeight: 600,
                   color: 'rgba(255,255,255,0.35)',
@@ -264,7 +243,7 @@ export default function CookiesPolicy() {
 
             {/* Table rows */}
             {COOKIES_TABLE.map((row, i) => {
-              const ownerStyle = OWNER_COLORS[row.owner] || { bg: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' }
+              const ownerStyle = CATEGORY_COLORS[row.category] || { bg: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' }
               return (
                 <div
                   key={i}
@@ -294,7 +273,7 @@ export default function CookiesPolicy() {
                     padding: '3px 8px', borderRadius: 6,
                     display: 'inline-block', width: 'fit-content',
                   }}>
-                    {row.owner}
+                    {row.category}
                   </span>
                   <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>
                     {row.duration}
