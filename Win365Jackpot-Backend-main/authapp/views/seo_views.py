@@ -17,7 +17,6 @@ from django.http import HttpResponse
 from django.views.decorators.cache import cache_page
 
 from authapp.models.events_models import CasinoEvent
-from authapp.models.poker_models import PokerTournament
 from authapp.models.promotion_models import Promotion
 from authapp.models.teenpatti_models import PUBLIC_EVENT_STATUSES, TeenPattiEvent
 
@@ -63,17 +62,15 @@ def _url_entry(path, lastmod=None, changefreq=None, priority=None):
 # full table scans; content here changes far too slowly to justify that.
 @cache_page(60 * 60)
 def sitemap_xml(request):
-    # only(): these querysets exist purely to build URLs and lastmods, so
-    # pulling the full rows (descriptions, JSON blobs, image paths) would be
-    # wasted I/O on every rebuild.
-    events = list(CasinoEvent.objects.filter(is_active=True).only('id', 'updated_at'))
-    promos = list(Promotion.objects.filter(is_active=True).only('id', 'updated_at'))
     # /events and /promotions render only "No … available right now" when
     # their table is empty, which Google classes as a Soft 404. Leave them out
     # of the sitemap while empty instead of advertising them as worth
     # indexing; they return on the first rebuild after an active row exists.
     # The pages themselves stay reachable and indexable.
-    empty = {path for path, rows in (('/events', events), ('/promotions', promos)) if not rows}
+    empty = {
+        path for path, model in (('/events', CasinoEvent), ('/promotions', Promotion))
+        if not model.objects.filter(is_active=True).exists()
+    }
 
     entries = [
         _url_entry(path, changefreq=freq, priority=prio)
@@ -81,23 +78,10 @@ def sitemap_xml(request):
         if path not in empty
     ]
 
-    for event in events:
-        entries.append(_url_entry(
-            f'/events/{event.id}', lastmod=event.updated_at,
-            changefreq='weekly', priority='0.8',
-        ))
-
-    for promo in promos:
-        entries.append(_url_entry(
-            f'/promotions/{promo.id}', lastmod=promo.updated_at,
-            changefreq='weekly', priority='0.8',
-        ))
-
-    for tournament in PokerTournament.objects.filter(is_active=True).only('id', 'updated_at'):
-        entries.append(_url_entry(
-            f'/poker/{tournament.id}', lastmod=tournament.updated_at,
-            changefreq='weekly', priority='0.8',
-        ))
+    # /events/<id>, /promotions/<id> and /poker/<id> are deliberately NOT
+    # listed: they are thin, near-duplicate pages that Google was leaving at
+    # "Discovered - currently not indexed". The pages stay reachable and are
+    # linked from their listings; only the sitemap no longer asks for them.
 
     # Same filter as spa_seo._detail_meta: a URL is listed only if the server
     # would also serve it an indexable head.
