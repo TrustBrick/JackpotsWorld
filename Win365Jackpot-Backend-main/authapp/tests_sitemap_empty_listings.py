@@ -40,11 +40,18 @@ class SitemapEmptyListingTests(TestCase):
         self.assertNotIn('/promotions<', body)
 
     def test_listing_returns_with_first_active_row(self):
+        CasinoEvent.objects.create(name='Goa Night', country='India',
+                                   event_date=datetime.date(2026, 12, 1), is_active=True)
+        Promotion.objects.create(title='Welcome', country='India', is_active=True)
+        body = _sitemap()
+        self.assertIn('/events<', body)
+        self.assertIn('/promotions<', body)
+
+    def test_detail_pages_are_never_listed(self):
         event = CasinoEvent.objects.create(name='Goa Night', country='India',
                                            event_date=datetime.date(2026, 12, 1), is_active=True)
         promo = Promotion.objects.create(title='Welcome', country='India', is_active=True)
         body = _sitemap()
-        self.assertIn('/events<', body)
-        self.assertIn(f'/events/{event.id}<', body)
-        self.assertIn('/promotions<', body)
-        self.assertIn(f'/promotions/{promo.id}<', body)
+        self.assertNotIn(f'/events/{event.id}<', body)
+        self.assertNotIn(f'/promotions/{promo.id}<', body)
+        self.assertNotRegex(body, r'/poker/\d+<')
