@@ -557,5 +557,12 @@
     "earnCommission": "**Earn Hourly Commission**",
     "tagline": "While Enjoying The Gaming",
     "disclaimer": "Eligible players may enjoy exclusive travel, stay and earning benefits while enjoying the gaming experience. Terms and conditions apply."
+  },
+  "cookieConsent": {
+    "title": "We value your privacy",
+    "message": "We use essential cookies to run this site and optional analytics cookies to understand how it is used. You can accept or reject the optional ones.",
+    "learnMore": "Cookies Policy",
+    "accept": "Accept all",
+    "reject": "Reject non-essential"
   }
 }

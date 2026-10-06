@@ -23,6 +23,10 @@
 // idempotency guarantee lives in a real DB constraint server-side, this is
 // just what generates and reuses the key.
 import { getToken } from "./authStorage";
+// COOKIE-CONSENT: gate every outbound event on the visitor's choice. See
+// services/consent.js — analytics is allowed unless the visitor has EXPLICITLY
+// rejected non-essential cookies, so this never changes the pre-consent default.
+import { analyticsAllowed, onConsentChange } from "./consent";
 
 const API = import.meta.env.VITE_API_URL || "";
 
@@ -94,6 +98,12 @@ const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "ut
 // Capture UTM once per session (first-touch). A later navigation with different
 // (or no) UTM never overwrites the campaign the visitor actually arrived on.
 export function captureUtm(search) {
+  // CONSENT: first-touch UTM is analytics attribution, so don't persist it
+  // before the visitor accepts analytics. The WhatsApp lead path only READS
+  // this value (getUtm) — a pre-consent lead simply records without campaign
+  // attribution rather than this writing an identifier the visitor didn't agree
+  // to. Capture resumes for real visits once consent is granted.
+  if (!analyticsAllowed()) return;
   try {
     if (sessionStorage.getItem(UTM_KEY)) return;
     const params = new URLSearchParams(search || (typeof window !== "undefined" ? window.location.search : ""));
@@ -166,6 +176,11 @@ function flush() {
 }
 
 function enqueue(event) {
+  // CONSENT: drop the event entirely when analytics isn't allowed (no choice yet
+  // or rejected). This is the send-side gate; baseEvent() also returns null in
+  // that state (so `event` is null here and no ids were minted) — the two
+  // together cover "nothing created AND nothing sent" before consent.
+  if (!analyticsAllowed() || !event) return;
   queue.push(event);
   if (queue.length >= FLUSH_AT) flush();
   else if (!flushTimer) flushTimer = setTimeout(flush, FLUSH_INTERVAL_MS);
@@ -176,7 +191,27 @@ if (typeof document !== "undefined") {
   window.addEventListener("pagehide", flush);
 }
 
+// CONSENT: analytics is opt-in, so the only way the queue holds events is after
+// an explicit accept. If consent then changes to anything other than accepted
+// (the visitor rejects after having accepted), discard whatever is pending so
+// nothing collected under the old choice is sent against their wishes.
+if (typeof window !== "undefined") {
+  onConsentChange((status) => {
+    if (status !== "accepted") {
+      queue = [];
+      if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
+    }
+  });
+}
+
 function baseEvent(type, extra = {}) {
+  // CONSENT: building an event resolves getAnonId()/getSessionId(), and those
+  // getters CREATE jw_anon_id / jw_session_id on first use. Returning here, when
+  // analytics isn't allowed, is what actually guarantees "no analytics IDs are
+  // created before consent" — the enqueue() gate alone runs too late, after the
+  // getters have already minted the ids. (The WhatsApp lead recorder calls the
+  // same getters directly for a user-initiated enquiry; that path is unaffected.)
+  if (!analyticsAllowed()) return null;
   const loc = typeof window !== "undefined" ? window.location : { pathname: "", search: "" };
   return {
     event_type: type,
