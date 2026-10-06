@@ -153,8 +153,10 @@ class VerifyOTPView(APIView):
                 except Exception as exc:
                     detail = exc.detail if hasattr(exc, "detail") else str(exc)
                     return Response({"error": str(detail)}, status=400)
-                if User.objects.filter(phone=full_phone).exists():
-                    return Response({"error": "This mobile number is already registered."}, status=400)
+                # Phone numbers are intentionally NOT unique: only email is the
+                # unique account identifier. The same mobile number may be shared
+                # across multiple accounts (e.g. one person, several emails), so
+                # we no longer reject a signup for a phone already on file.
 
             user = User.objects.create_user(
                 email=email,

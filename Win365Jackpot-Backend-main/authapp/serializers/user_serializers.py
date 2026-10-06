@@ -105,15 +105,10 @@ class RegisterSerializer(serializers.Serializer):
 
         phone = attrs.get("phone", "")  # already "+919876543210" from validate_phone
 
-        if phone:
-            # Check uniqueness using the already-complete phone number
-            if User.objects.filter(phone=phone).exists():
-                raise serializers.ValidationError({
-                    "phone": "This mobile number is already registered."
-                })
-            attrs["_full_phone"] = phone
-        else:
-            attrs["_full_phone"] = ""
+        # Phone numbers are intentionally NOT unique: email is the only unique
+        # account identifier. A mobile number may be reused across accounts, so
+        # no duplicate check is performed here.
+        attrs["_full_phone"] = phone or ""
 
         return attrs
 
@@ -280,10 +275,10 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
     def validate_phone(self, value):
         if not value:
             return value
-        cleaned = clean_full_phone(value)
-        if User.objects.filter(phone=cleaned).exclude(pk=self.instance.pk).exists():
-            raise serializers.ValidationError("This mobile number is already registered.")
-        return cleaned
+        # Phone numbers are intentionally NOT unique: email is the only unique
+        # account identifier, so a number already in use on another account is
+        # allowed here too (keeps profile edits consistent with signup).
+        return clean_full_phone(value)
 
     def validate(self, attrs):
         user = self.instance

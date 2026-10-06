@@ -11,8 +11,6 @@ Authentication endpoints:
   • SessionTokenRefreshView — POST /api/auth/token/refresh/
 """
 
-import re
-
 from django.contrib.auth import authenticate
 from django.db.models import Q
 from django.utils import timezone
@@ -344,14 +342,13 @@ class CheckUserView(APIView):
         if not identifier:
             return Response({"error": "Identifier required"}, status=400)
 
-        # Normalize phone: strip non-digits, add + prefix
+        # Only email is a unique account identifier. Phone numbers may be shared
+        # across accounts, so a phone lookup never reports a conflict — only an
+        # email that is already registered does.
         if identifier.startswith("+") or identifier.replace("-","").replace(" ","").isdigit():
-            normalized = "+" + re.sub(r"\D", "", identifier)
-            exists = User.objects.filter(phone=normalized).exists()
-            # select 
+            exists = False
         else:
             exists = User.objects.filter(email=identifier).exists()
-            # 
 
         return Response({"exists": exists})
 

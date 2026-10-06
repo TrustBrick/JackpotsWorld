@@ -825,9 +825,7 @@ function RegisterPanel({ onRegistered }) {
   const [confirm,  setConfirm]  = useState('')
 
   const [emailDup, setEmailDup] = useState(null)
-  const [phoneDup, setPhoneDup] = useState(null)
   const [ckEmail,  setCkEmail]  = useState(false)
-  const [ckPhone,  setCkPhone]  = useState(false)
   const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState('')
   const [fieldErrors, setFieldErrors] = useState({})
@@ -864,7 +862,7 @@ function RegisterPanel({ onRegistered }) {
       .catch(() => setCountriesErr(true))
   }, [])
 
-  const handleCountryChange = c => { setCountry(c); setPhone(''); setPhoneDup(null) }
+  const handleCountryChange = c => { setCountry(c); setPhone('') }
 
   const checkDup = async id => {
     try {
@@ -896,14 +894,9 @@ function RegisterPanel({ onRegistered }) {
   }
 
   const onPhoneCh = raw => {
-    setPhone(raw); setPhoneDup(null); clearTimeout(pTimer.current)
-    if (raw.length < country.digits) return
-    setCkPhone(true)
-    const fullPhone = country.code + raw
-    pTimer.current = setTimeout(async () => {
-      try { setPhoneDup(await checkDup(fullPhone)) } catch {}
-      finally { setCkPhone(false) }
-    }, 400)
+    // Phone numbers are not unique (email is the only unique identifier), so we
+    // don't check for duplicates — just track the value.
+    setPhone(raw)
   }
 
   const DH = ({ checking, dup, type }) => {
@@ -927,7 +920,7 @@ function RegisterPanel({ onRegistered }) {
 
   const canSubmit =
     name.trim() && emailValid && emailDup !== true && !ckEmail &&
-    (phone === '' || (phoneComplete && phoneDup !== true && !ckPhone)) &&
+    (phone === '' || phoneComplete) &&
     pwOk && pwMatch && !!cfToken
 
   const handle = async () => {
@@ -936,7 +929,6 @@ function RegisterPanel({ onRegistered }) {
     if (!eok)                                 { setEmailErr(eErr); setError(''); return }
     if (emailDup)                             { setError('Email already registered'); return }
     if (phone && !phoneComplete)              { setError(`Enter exactly ${country.digits} digits for ${country.name}`); return }
-    if (phoneComplete && phoneDup)            { setError('Mobile number already registered'); return }
     if (!pwOk)                                { setError('Password does not meet requirements'); return }
     if (!pwMatch)                             { setError('Passwords do not match'); return }
     if (!cfToken)                             { setError('Please complete the verification checkbox'); return }
@@ -1012,17 +1004,17 @@ function RegisterPanel({ onRegistered }) {
 
       {/* Phone */}
       <div style={W}>
-        <Label><Phone size={10} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />Mobile number</Label>
+        <Label><Phone size={10} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />Mobile number <span style={{ color: C.dim, fontWeight: 400 }}>(optional)</span></Label>
         <PhoneInput value={phone} country={country} countries={countries}
           onValueChange={v => { onPhoneCh(v); setFieldErrors(prev => ({ ...prev, phone: null })) }}
           onCountryChange={handleCountryChange}
-          hasError={phoneDup === true || fieldErrors.phone}
-          hasOk={phoneComplete && phoneDup === false && !fieldErrors.phone} />
+          hasError={fieldErrors.phone}
+          hasOk={phoneComplete && !fieldErrors.phone} />
         {fieldErrors.phone
           ? <Hint color={C.red} icon={AlertCircle}>{fieldErrors.phone[0]}</Hint>
           : phone.length > 0 && phone.length < country.digits
             ? <Hint color={C.yellow} icon={AlertCircle}>{country.digits - phone.length} more digit{country.digits - phone.length !== 1 ? 's' : ''} needed</Hint>
-            : phoneComplete ? <DH checking={ckPhone} dup={phoneDup} type="mobile number" /> : null}
+            : null}
       </div>
 
       {/* Password */}
