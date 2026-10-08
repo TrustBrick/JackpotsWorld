@@ -42,6 +42,7 @@ const AuthPage         = lazy(() => import('./pages/AuthPage'))
 const AffiliatePanel   = lazy(() => import('./affiliate/AffiliatePanel'))
 const AffiliateRegister = lazy(() => import('./pages/AffiliateRegister'))
 const CasinoInSriLanka = lazy(() => import('./pages/CasinoInSriLanka'))
+const CasinoInMacau    = lazy(() => import('./pages/CasinoInMacau'))
 
 function RouteFallback() {
   return (
@@ -195,6 +196,7 @@ export default function App() {
         <Route path="/super-admin" element={<SuperAdminPanel />} />  {/* ← Moved up */}
 
         <Route path="/casino-in-sri-lanka" element={<CasinoInSriLanka />} />
+        <Route path="/casino-macau"        element={<CasinoInMacau />} />
         <Route path="/cookies-policy" element={<CookiesPolicy />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 

@@ -154,17 +154,28 @@ export const ROUTE_SEO = {
     ].join(', '),
   },
   '/casino-in-sri-lanka': {
-    title: `Best Casino in Sri Lanka — Premium Destinations & VIP Packages${TITLE_SUFFIX}`,
+    title: `Best Casino in Sri Lanka | Premium Casino Destinations & VIP Packages${TITLE_SUFFIX}`,
     description:
-      'Explore premium casino destinations in Sri Lanka with JackpotsWorld. Discover ' +
-      'selected casino experiences, VIP packages, poker, hotels and travel assistance ' +
-      'through our partner network. Enquire about your Sri Lanka casino trip.',
+      'Discover premium casino destinations in Sri Lanka with JackpotsWorld. Explore ' +
+      'VIP packages, casino experiences, accommodation, travel assistance and destination benefits.',
     keywords: [
       'best casino in sri lanka', 'casino in sri lanka', 'sri lanka casino',
       'casino sri lanka', 'colombo casino', 'poker in sri lanka', 'sri lanka poker',
       'vip casino sri lanka', 'casino packages sri lanka', 'sri lanka casino tour',
       'casino travel sri lanka', 'casino holiday sri lanka', 'luxury casino sri lanka',
       'casino destinations sri lanka',
+    ].join(', '),
+  },
+  '/casino-macau': {
+    title: `Best Casino in Macau | Premium Casino Destinations & VIP Packages${TITLE_SUFFIX}`,
+    description:
+      'Discover premium casino destinations in Macau with JackpotsWorld. Explore VIP packages, ' +
+      'casino experiences, accommodation, travel assistance and destination benefits.',
+    keywords: [
+      'best casino in macau', 'casino in macau', 'macau casino', 'casino macau',
+      'macau casino resorts', 'vip casino macau', 'casino packages macau',
+      'macau casino tour', 'casino travel macau', 'luxury casino macau',
+      'poker in macau', 'casino destinations macau',
     ].join(', '),
   },
   '/privacy-policy': {
