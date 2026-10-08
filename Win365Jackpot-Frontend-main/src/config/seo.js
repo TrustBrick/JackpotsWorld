@@ -178,6 +178,18 @@ export const ROUTE_SEO = {
       'poker in macau', 'casino destinations macau',
     ].join(', '),
   },
+  '/premium-casino': {
+    title: `Premium Casino Experiences | Luxury Casino Destinations & VIP Packages${TITLE_SUFFIX}`,
+    description:
+      'Discover premium casino experiences with JackpotsWorld. Explore selected land-based casino ' +
+      'destinations, luxury hospitality, VIP packages, poker, casino events and destination services.',
+    keywords: [
+      'premium casino', 'luxury casino', 'best casino', 'land based casino',
+      'physical casino', 'casino experience', 'casino destinations', 'vip casino',
+      'casino lounge', 'casino events', 'casino night', 'casino nightlife',
+      'poker destinations', 'live dealing games', 'casino table games', 'best casino in goa',
+    ].join(', '),
+  },
   '/privacy-policy': {
     title: `Privacy Policy${TITLE_SUFFIX}`,
     description:

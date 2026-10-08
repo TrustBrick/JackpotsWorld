@@ -20,6 +20,7 @@ const SITE_PAGE_LINKS = [
   { label: 'Poker',               path: '/poker'               },
   { label: 'Teen Patti',          path: '/teen-patti'          },
   { label: 'Andhar Bahar',        path: '/andhar-bahar'        },
+  { label: 'Premium Casino',      path: '/premium-casino'      },
   { label: 'Casino in Sri Lanka', path: '/casino-in-sri-lanka' },
   { label: 'Casino in Macau',     path: '/casino-macau'        },
   { label: 'Affiliates',          path: '/affiliates'          },

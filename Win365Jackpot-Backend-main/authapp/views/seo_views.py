@@ -39,6 +39,7 @@ STATIC_ROUTES = [
     ('/poker',              'daily',   '0.9'),
     ('/teen-patti',         'daily',   '0.9'),
     ('/andhar-bahar',       'weekly',  '0.8'),
+    ('/premium-casino',      'monthly', '0.8'),
     ('/casino-in-sri-lanka', 'monthly', '0.8'),
     ('/casino-macau',        'monthly', '0.8'),
     ('/affiliates',         'weekly',  '0.7'),

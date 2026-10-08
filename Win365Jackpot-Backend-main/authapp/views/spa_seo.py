@@ -158,6 +158,15 @@ ROUTE_SEO = {
         'macau casino tour, casino travel macau, luxury casino macau, '
         'poker in macau, casino destinations macau',
     ),
+    '/premium-casino': (
+        f'Premium Casino Experiences | Luxury Casino Destinations & VIP Packages{TITLE_SUFFIX}',
+        'Discover premium casino experiences with JackpotsWorld. Explore selected land-based casino '
+        'destinations, luxury hospitality, VIP packages, poker, casino events and destination services.',
+        'premium casino, luxury casino, best casino, land based casino, '
+        'physical casino, casino experience, casino destinations, vip casino, '
+        'casino lounge, casino events, casino night, casino nightlife, '
+        'poker destinations, live dealing games, casino table games, best casino in goa',
+    ),
     '/privacy-policy': (
         f'Privacy Policy{TITLE_SUFFIX}',
         'How JackpotsWorld collects, uses, stores and protects your personal data, and '

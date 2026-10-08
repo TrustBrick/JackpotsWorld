@@ -1,0 +1,1 @@
+import{j as t}from"./index-DHr9MZez.js";import{D as a,m as n}from"./content-d16qQfD-.js";import"./landingPrimitives-5_wuw2Fp.js";import"./layout-grid-D6VRJBEG.js";function m(){return t.jsx(a,{content:n})}export{m as default};
