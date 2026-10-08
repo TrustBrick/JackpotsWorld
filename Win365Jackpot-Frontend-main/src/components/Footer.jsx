@@ -15,12 +15,13 @@ const EXTRA_DESTINATIONS   = ['Las Vegas', 'Malaysia', 'Singapore', 'Armenia', '
 const ALL_DESTINATIONS     = [...PRIMARY_DESTINATIONS, ...EXTRA_DESTINATIONS]
 
 const SITE_PAGE_LINKS = [
-  { label: 'Events',       path: '/events'       },
-  { label: 'Promotions',   path: '/promotions'   },
-  { label: 'Poker',        path: '/poker'        },
-  { label: 'Teen Patti',   path: '/teen-patti'   },
-  { label: 'Andhar Bahar', path: '/andhar-bahar' },
-  { label: 'Affiliates',   path: '/affiliates'   },
+  { label: 'Events',              path: '/events'              },
+  { label: 'Promotions',          path: '/promotions'          },
+  { label: 'Poker',               path: '/poker'               },
+  { label: 'Teen Patti',          path: '/teen-patti'          },
+  { label: 'Andhar Bahar',        path: '/andhar-bahar'        },
+  { label: 'Casino in Sri Lanka', path: '/casino-in-sri-lanka' },
+  { label: 'Affiliates',          path: '/affiliates'          },
 ]
 
 // The message is no longer a literal either: useEnquiryMessage() reads it from

@@ -153,6 +153,20 @@ export const ROUTE_SEO = {
       'casino affiliate program', 'casino agent commission',
     ].join(', '),
   },
+  '/casino-in-sri-lanka': {
+    title: `Best Casino in Sri Lanka — Premium Destinations & VIP Packages${TITLE_SUFFIX}`,
+    description:
+      'Explore premium casino destinations in Sri Lanka with JackpotsWorld. Discover ' +
+      'selected casino experiences, VIP packages, poker, hotels and travel assistance ' +
+      'through our partner network. Enquire about your Sri Lanka casino trip.',
+    keywords: [
+      'best casino in sri lanka', 'casino in sri lanka', 'sri lanka casino',
+      'casino sri lanka', 'colombo casino', 'poker in sri lanka', 'sri lanka poker',
+      'vip casino sri lanka', 'casino packages sri lanka', 'sri lanka casino tour',
+      'casino travel sri lanka', 'casino holiday sri lanka', 'luxury casino sri lanka',
+      'casino destinations sri lanka',
+    ].join(', '),
+  },
   '/privacy-policy': {
     title: `Privacy Policy${TITLE_SUFFIX}`,
     description:
