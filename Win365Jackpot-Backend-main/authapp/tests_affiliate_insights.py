@@ -45,7 +45,7 @@ class AffiliateInsightsTestBase(TestCase):
         self.client = APIClient()
         self.client.force_authenticate(self.affiliate)
 
-    def refer(self, email, *, country="India", active=True, logged_in=True):
+    def refer(self, email, *, country="IN", active=True, logged_in=True):
         user = User.objects.create_user(email=email, password="pw12345!", name=email.split("@")[0])
         user.referred_by = self.affiliate
         user.country = country
