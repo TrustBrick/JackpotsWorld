@@ -34,6 +34,7 @@ from decimal import Decimal
 from django.conf import settings
 from django.db import IntegrityError, models
 from django.utils import timezone
+import secrets
 import time
 
 
@@ -56,8 +57,13 @@ class WalletRequestMethodConfig(models.Model):
 
 
 def _gen_request_reference(prefix: str) -> str:
+    # A short random suffix (not just a millisecond timestamp) so that two
+    # requests created inside the same millisecond do not collide, and so the
+    # IntegrityError retry in save() regenerates a genuinely different value
+    # instead of the same timestamp-derived one. Keeps the human-readable
+    # PREFIX-YYYYMMDD-HHMMSS head for support/CSV; well within max_length=40.
     now = timezone.now()
-    return f"{prefix}-{now.strftime('%Y%m%d')}-{now.strftime('%H%M%S%f')[:9]}"
+    return f"{prefix}-{now.strftime('%Y%m%d')}-{now.strftime('%H%M%S')}{secrets.token_hex(3)}"
 
 
 class DepositRequest(models.Model):
@@ -77,6 +83,12 @@ class DepositRequest(models.Model):
     method = models.ForeignKey(WalletRequestMethodConfig, null=True, blank=True, on_delete=models.PROTECT, related_name="deposit_requests")
     payment_reference = models.CharField(max_length=120, blank=True)
     notes = models.TextField(blank=True)
+    # IDEMPOTENCY (FIN-01): a client-supplied UUID, one per intended submission,
+    # reused on retries. Nullable so legacy clients without a key still work —
+    # they remain UNPROTECTED against duplicate submissions (documented). The
+    # real concurrency guard is the (user, idempotency_key) UniqueConstraint in
+    # Meta; see wallet_request_service.create_deposit_request for retry/409.
+    idempotency_key = models.CharField(max_length=64, null=True, blank=True, db_index=True)
 
     status = models.CharField(max_length=12, choices=STATUS_CHOICES, default="pending", db_index=True)
     admin_notes = models.TextField(blank=True)
@@ -103,6 +115,16 @@ class DepositRequest(models.Model):
         indexes = [
             models.Index(fields=["user", "status"]),
             models.Index(fields=["status", "requested_at"]),
+        ]
+        constraints = [
+            # FIN-01: one deposit request per (user, idempotency_key). Nullable
+            # keys are treated as distinct by MySQL, so legacy keyless requests
+            # are unaffected. This is the final concurrency guard — two racing
+            # same-key inserts: one wins, the other hits IntegrityError.
+            models.UniqueConstraint(
+                fields=["user", "idempotency_key"],
+                name="uniq_deposit_user_idem",
+            ),
         ]
 
     def __str__(self):
@@ -145,6 +167,9 @@ class WithdrawalRequest(models.Model):
     casino = models.ForeignKey("authapp.Casino", null=True, blank=True, on_delete=models.SET_NULL, related_name="withdrawal_requests")
     method = models.ForeignKey(WalletRequestMethodConfig, null=True, blank=True, on_delete=models.PROTECT, related_name="withdrawal_requests")
     notes = models.TextField(blank=True)
+    # IDEMPOTENCY (FIN-01): see DepositRequest.idempotency_key. Separate table =
+    # separate keyspace, so a deposit and a withdrawal key never cross-return.
+    idempotency_key = models.CharField(max_length=64, null=True, blank=True, db_index=True)
 
     status = models.CharField(max_length=12, choices=STATUS_CHOICES, default="pending", db_index=True)
     admin_notes = models.TextField(blank=True)
@@ -169,6 +194,13 @@ class WithdrawalRequest(models.Model):
         indexes = [
             models.Index(fields=["user", "status"]),
             models.Index(fields=["status", "requested_at"]),
+        ]
+        constraints = [
+            # FIN-01: one withdrawal request per (user, idempotency_key).
+            models.UniqueConstraint(
+                fields=["user", "idempotency_key"],
+                name="uniq_withdrawal_user_idem",
+            ),
         ]
 
     def __str__(self):

@@ -20,6 +20,7 @@ from django.test import TransactionTestCase, override_settings
 
 from authapp.models.call_models import ACTIVE_STATUSES, CallSession
 from authapp.models.support_ticket_models import SupportTicket
+from authapp.models.user_model import AdminProfile
 from authapp.services import voice_call_service
 from authapp.services.voice_call_service import CallError
 
@@ -40,13 +41,22 @@ class VoiceCallConcurrencyTests(TransactionTestCase):
         self.player = User.objects.create_user(
             email="cc-caller@example.com", password="pw-Test-1", user_uid="CCCALL01",
         )
-        self.agents = [
-            User.objects.create_user(
+        # Eligible call agents, per voice_call_service.is_call_eligible_agent /
+        # available_agent_count: staff, NOT superuser, with an active AdminProfile
+        # in a call-eligible role, AND a live SupportAgentPresence row (what an
+        # open Back Office socket writes). setUp data is committed under
+        # TransactionTestCase, so these rows are visible to the worker threads'
+        # separate DB connections — which is exactly what the presence check
+        # reads across connections.
+        self.agents = []
+        for i in range(4):
+            agent = User.objects.create_user(
                 email=f"cc-agent{i}@example.com", password="pw-Test-1",
-                user_uid=f"CCAGNT{i}0", is_staff=True, is_superuser=True,
+                user_uid=f"CCAGNT{i}0", is_staff=True, is_superuser=False,
             )
-            for i in range(4)
-        ]
+            AdminProfile.objects.create(user=agent, role="support", is_active=True)
+            voice_call_service.mark_agent_present(agent, f"cc-chan-{i}")
+            self.agents.append(agent)
         self.ticket = SupportTicket.objects.create(
             user=self.player, subject="Live Chat Session",
             message="(live chat session)", is_live_chat=True, status="open",

@@ -24,7 +24,9 @@ like every other wallet-mutating flow in this codebase.
 import logging
 from decimal import Decimal
 
-from django.db import transaction as db_transaction
+import time
+
+from django.db import IntegrityError, OperationalError, transaction as db_transaction
 from django.db.models import Sum
 from django.utils import timezone
 
@@ -46,6 +48,53 @@ CASH = "C"
 
 class WalletRequestError(ValueError):
     """Raised for any validation failure — views catch this and return 400."""
+
+
+class IdempotencyConflict(WalletRequestError):
+    """Raised when an idempotency key is reused with a DIFFERENT normalized
+    payload — the view maps this to HTTP 409, distinct from a plain 400."""
+
+
+# Transient MySQL lock contention that aborts a transaction. A retry is SAFE
+# only because the create block is the OUTERMOST atomic (no @atomic decorator,
+# never called inside another atomic): its __exit__ rolls back and clears
+# needs_rollback, so the next attempt runs on a clean transaction. We never
+# close the connection mid-flight (that desyncs Django's atomic bookkeeping).
+_MYSQL_DEADLOCK = 1213
+_MYSQL_LOCK_WAIT_TIMEOUT = 1205
+_MAX_IDEM_ATTEMPTS = 3
+
+
+def _is_lock_error(exc) -> bool:
+    code = exc.args[0] if getattr(exc, "args", None) else None
+    return code in (_MYSQL_DEADLOCK, _MYSQL_LOCK_WAIT_TIMEOUT)
+
+
+def _norm_key(idempotency_key):
+    key = (idempotency_key or "").strip()
+    if not key:
+        return None
+    if len(key) > 64:
+        raise WalletRequestError("Idempotency key must be 64 characters or fewer.")
+    return key
+
+
+def _deposit_payload_matches(existing, *, amount, casino, method) -> bool:
+    """Relevant business fields only — NOT notes/payment_reference, which are
+    cosmetic. Amount, casino and payment method identify the intent."""
+    return (
+        existing.amount == amount
+        and existing.casino_id == (casino.id if casino else None)
+        and existing.method_id == (method.id if method else None)
+    )
+
+
+def _withdrawal_payload_matches(existing, *, amount, casino, method) -> bool:
+    return (
+        existing.amount == amount
+        and existing.casino_id == (casino.id if casino else None)
+        and existing.method_id == (method.id if method else None)
+    )
 
 
 def _notify(user, title, message):
@@ -98,8 +147,11 @@ def get_wallet_request_summary(user) -> dict:
 
 # ─── Deposit requests (affiliate-style naming avoided — this is the MAIN wallet) ──
 
-@db_transaction.atomic
-def create_deposit_request(*, user, amount, casino=None, method_code, payment_reference="", notes="", ip_address=None):
+def create_deposit_request(*, user, amount, casino=None, method_code, payment_reference="", notes="", ip_address=None, idempotency_key=None):
+    # NOT decorated @atomic: the write block is its own outermost atomic so that on
+    # a duplicate-key error it rolls back and EXITS, leaving a clean connection for
+    # the re-fetch. The (user, idempotency_key) UniqueConstraint is the final
+    # concurrency guard: at most one row can ever exist for a key.
     try:
         amount = Decimal(str(amount))
     except Exception:
@@ -111,24 +163,75 @@ def create_deposit_request(*, user, amount, casino=None, method_code, payment_re
     if not method:
         raise WalletRequestError("This payment method is not currently available.")
 
-    req = DepositRequest.objects.create(
-        user=user, amount=amount, casino=casino, method=method,
-        payment_reference=(payment_reference or "").strip(),
-        notes=(notes or "").strip(),
-        status="pending",
-    )
-    DepositRequestStatusHistory.objects.create(
-        request=req, from_status="", to_status="pending",
-        changed_by=user, note="Request created by user.", ip_address=ip_address,
-    )
-    ActivityLog.log(
-        actor=user, target_user=user, action="main_deposit_requested",
-        amount=amount, description=f"Deposit request {req.request_reference} for {amount} via {method.code}",
-        reference_id=req.request_reference, ip_address=ip_address,
-    )
-    _notify(user, "Deposit request submitted",
-            f"Your deposit request {req.request_reference} for ${amount:,.2f} has been submitted and is now pending review.")
-    return req
+    key = _norm_key(idempotency_key)
+
+    def _existing_or_conflict():
+        # FIN-01: a prior request for this (user, key). Same normalized payload ->
+        # return it (a retry); different payload -> 409. Scoped to this user —
+        # never another user's row. None when there is no prior request.
+        if not key:
+            return None
+        existing = DepositRequest.objects.filter(user=user, idempotency_key=key).first()
+        if existing is None:
+            return None
+        if _deposit_payload_matches(existing, amount=amount, casino=casino, method=method):
+            existing.idempotent_replay = True
+            return existing
+        raise IdempotencyConflict(
+            "This idempotency key was already used for a different deposit request."
+        )
+
+    for attempt in range(_MAX_IDEM_ATTEMPTS):
+        # Fast path: the common sequential retry (winner already committed).
+        hit = _existing_or_conflict()
+        if hit is not None:
+            return hit
+        try:
+            with db_transaction.atomic():
+                req = DepositRequest.objects.create(
+                    user=user, amount=amount, casino=casino, method=method,
+                    payment_reference=(payment_reference or "").strip(),
+                    notes=(notes or "").strip(),
+                    status="pending",
+                    idempotency_key=key,
+                )
+                DepositRequestStatusHistory.objects.create(
+                    request=req, from_status="", to_status="pending",
+                    changed_by=user, note="Request created by user.", ip_address=ip_address,
+                )
+                ActivityLog.log(
+                    actor=user, target_user=user, action="main_deposit_requested",
+                    amount=amount, description=f"Deposit request {req.request_reference} for {amount} via {method.code}",
+                    reference_id=req.request_reference, ip_address=ip_address,
+                )
+        except IntegrityError:
+            # A concurrent insert won the (user, key) race. If the duplicate now
+            # exists, return it (same payload) or 409 (different). Otherwise this
+            # was an UNRELATED integrity error — re-raise it.
+            hit = _existing_or_conflict()
+            if hit is not None:
+                return hit
+            raise
+        except OperationalError as exc:
+            # Transient lock contention only (deadlock 1213 / lock-timeout 1205).
+            # The outermost atomic already rolled back, so retry WITHOUT closing
+            # the connection; the next re-check finds the committed winner or
+            # inserts cleanly. Anything else propagates.
+            if _is_lock_error(exc) and attempt < _MAX_IDEM_ATTEMPTS - 1:
+                time.sleep(0.05 * (attempt + 1))
+                continue
+            raise
+        else:
+            req.idempotent_replay = False
+            _notify(user, "Deposit request submitted",
+                    f"Your deposit request {req.request_reference} for ${amount:,.2f} has been submitted and is now pending review.")
+            return req
+
+    # Attempts exhausted on lock contention — a winner may have just committed.
+    hit = _existing_or_conflict()
+    if hit is not None:
+        return hit
+    raise WalletRequestError("Could not create the deposit request. Please try again.")
 
 
 @db_transaction.atomic
@@ -314,8 +417,8 @@ def get_casino_available_balance(user, casino) -> Decimal:
     return get_casino_cash_balance(user, casino) - get_casino_locked_withdrawal_amount(user, casino)
 
 
-@db_transaction.atomic
-def create_withdrawal_request(*, user, amount, casino, method_code, notes="", ip_address=None):
+def create_withdrawal_request(*, user, amount, casino, method_code, notes="", ip_address=None, idempotency_key=None):
+    # Not @atomic — same rationale/retry handling as create_deposit_request.
     try:
         amount = Decimal(str(amount))
     except Exception:
@@ -329,26 +432,71 @@ def create_withdrawal_request(*, user, amount, casino, method_code, notes="", ip
     if not method:
         raise WalletRequestError("This payment method is not currently available.")
 
+    key = _norm_key(idempotency_key)
+
+    def _existing_or_conflict():
+        if not key:
+            return None
+        existing = WithdrawalRequest.objects.filter(user=user, idempotency_key=key).first()
+        if existing is None:
+            return None
+        if _withdrawal_payload_matches(existing, amount=amount, casino=casino, method=method):
+            existing.idempotent_replay = True
+            return existing
+        raise IdempotencyConflict(
+            "This idempotency key was already used for a different withdrawal request."
+        )
+
+    # Idempotency BEFORE the balance check so a genuine retry returns the request
+    # already created rather than being re-validated against a moved balance.
+    hit = _existing_or_conflict()
+    if hit is not None:
+        return hit
+
     available = get_casino_available_balance(user, casino)
     if amount > available:
         raise WalletRequestError(f"Withdrawal amount exceeds your available casino wallet balance (${available:,.2f}).")
 
-    req = WithdrawalRequest.objects.create(
-        user=user, wallet_type=CASH, amount=amount, casino=casino, method=method,
-        notes=(notes or "").strip(), status="pending",
-    )
-    WithdrawalRequestStatusHistory.objects.create(
-        request=req, from_status="", to_status="pending",
-        changed_by=user, note="Request created by user.", ip_address=ip_address,
-    )
-    ActivityLog.log(
-        actor=user, target_user=user, action="main_withdrawal_requested",
-        amount=amount, description=f"Withdrawal request {req.request_reference} for {amount} at {casino.name} via {method.code}",
-        reference_id=req.request_reference, ip_address=ip_address,
-    )
-    _notify(user, "Withdrawal request submitted",
-            f"Your withdrawal request {req.request_reference} for ${amount:,.2f} has been submitted and is now pending review.")
-    return req
+    for attempt in range(_MAX_IDEM_ATTEMPTS):
+        hit = _existing_or_conflict()
+        if hit is not None:
+            return hit
+        try:
+            with db_transaction.atomic():
+                req = WithdrawalRequest.objects.create(
+                    user=user, wallet_type=CASH, amount=amount, casino=casino, method=method,
+                    notes=(notes or "").strip(), status="pending",
+                    idempotency_key=key,
+                )
+                WithdrawalRequestStatusHistory.objects.create(
+                    request=req, from_status="", to_status="pending",
+                    changed_by=user, note="Request created by user.", ip_address=ip_address,
+                )
+                ActivityLog.log(
+                    actor=user, target_user=user, action="main_withdrawal_requested",
+                    amount=amount, description=f"Withdrawal request {req.request_reference} for {amount} at {casino.name} via {method.code}",
+                    reference_id=req.request_reference, ip_address=ip_address,
+                )
+        except IntegrityError:
+            hit = _existing_or_conflict()
+            if hit is not None:
+                return hit
+            raise
+        except OperationalError as exc:
+            if _is_lock_error(exc) and attempt < _MAX_IDEM_ATTEMPTS - 1:
+                time.sleep(0.05 * (attempt + 1))
+                continue
+            raise
+        else:
+            req.idempotent_replay = False
+            _notify(user, "Withdrawal request submitted",
+                    f"Your withdrawal request {req.request_reference} for ${amount:,.2f} has been submitted and is now pending review.")
+            return req
+
+    hit = _existing_or_conflict()
+    if hit is not None:
+        return hit
+    raise WalletRequestError("Could not create the withdrawal request. Please try again.")
 
 
 @db_transaction.atomic

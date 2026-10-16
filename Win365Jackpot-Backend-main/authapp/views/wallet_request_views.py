@@ -59,7 +59,7 @@ from authapp.serializers.wallet_request_serializers import (
     WithdrawalRequestListSerializer,
 )
 from authapp.services import wallet_request_service as svc
-from authapp.services.wallet_request_service import WalletRequestError
+from authapp.services.wallet_request_service import IdempotencyConflict, WalletRequestError
 from authapp.utils.client_ip import get_client_ip as _resolve_client_ip
 
 PAGE_SIZE = 20
@@ -115,6 +115,7 @@ class DepositRequestCreateView(APIView):
         casino_id = request.data.get("casino_id")
         method_code = (request.data.get("method_code") or "").strip().upper()
         notes = request.data.get("notes") or ""
+        idempotency_key = request.data.get("idempotency_key")
 
         if amount is None:
             return Response({"error": "amount is required"}, status=400)
@@ -131,14 +132,20 @@ class DepositRequestCreateView(APIView):
             req = svc.create_deposit_request(
                 user=request.user, amount=amount, casino=casino, method_code=method_code,
                 payment_reference="", notes=notes, ip_address=_client_ip(request),
+                idempotency_key=idempotency_key,
             )
+        except IdempotencyConflict as exc:
+            return Response({"error": str(exc)}, status=409)
         except WalletRequestError as exc:
             return Response({"error": str(exc)}, status=400)
 
+        replay = getattr(req, "idempotent_replay", False)
         return Response({
-            "message": f"Deposit request {req.request_reference} submitted.",
+            "message": f"Deposit request {req.request_reference} "
+                       f"{'already recorded' if replay else 'submitted'}.",
             "request": DepositRequestListSerializer(req).data,
-        }, status=201)
+            "idempotent_replay": replay,
+        }, status=200 if replay else 201)
 
 
 class DepositRequestListView(APIView):
@@ -206,6 +213,7 @@ class WithdrawalRequestCreateView(APIView):
         notes = request.data.get("notes") or ""
         casino_id = request.data.get("casino_id")
         method_code = (request.data.get("method_code") or "").strip().upper()
+        idempotency_key = request.data.get("idempotency_key")
 
         if amount is None:
             return Response({"error": "amount is required"}, status=400)
@@ -222,13 +230,19 @@ class WithdrawalRequestCreateView(APIView):
             req = svc.create_withdrawal_request(
                 user=request.user, amount=amount, casino=casino, method_code=method_code,
                 notes=notes, ip_address=_client_ip(request),
+                idempotency_key=idempotency_key,
             )
+        except IdempotencyConflict as exc:
+            return Response({"error": str(exc)}, status=409)
         except WalletRequestError as exc:
             return Response({"error": str(exc)}, status=400)
+        replay = getattr(req, "idempotent_replay", False)
         return Response({
-            "message": f"Withdrawal request {req.request_reference} submitted.",
+            "message": f"Withdrawal request {req.request_reference} "
+                       f"{'already recorded' if replay else 'submitted'}.",
             "request": WithdrawalRequestListSerializer(req).data,
-        }, status=201)
+            "idempotent_replay": replay,
+        }, status=200 if replay else 201)
 
 
 class WithdrawalRequestListView(APIView):

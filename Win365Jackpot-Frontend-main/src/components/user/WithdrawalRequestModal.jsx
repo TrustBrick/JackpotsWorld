@@ -1,6 +1,6 @@
 // WALLET-REQUESTS: new component — safe to delete this file (and its
 // import/usage in tabs/stats/WalletTab.jsx) to remove the feature.
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { X, Wallet, CheckCircle2, AlertCircle } from "lucide-react";
 import { C } from "./constants";
@@ -41,6 +41,9 @@ export default function WithdrawalRequestModal({ onClose, onSuccess, onError }) 
   const [mainBalance, setMainBalance] = useState(0);
   const [totalCasinoBalance, setTotalCasinoBalance] = useState(0);
   const [loadingSummary, setLoadingSummary] = useState(true);
+  // FIN-01: one idempotency key per intended withdrawal; reused on retry,
+  // cleared on success (see DepositRequestModal for the rationale).
+  const idemKeyRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -120,13 +123,22 @@ export default function WithdrawalRequestModal({ onClose, onSuccess, onError }) 
   const handleSubmit = async () => {
     setSubmitting(true);
     setError("");
+    if (!idemKeyRef.current) {
+      idemKeyRef.current =
+        (window.crypto?.randomUUID?.() ||
+          `${Date.now()}-${Math.random().toString(16).slice(2)}`);
+    }
     try {
       const res = await authFetch(`${API}/api/wallet/withdrawal-requests/create/`, {
         method: "POST",
-        body: JSON.stringify({ amount, notes, casino_id: casinoId, method_code: methodCode }),
+        body: JSON.stringify({
+          amount, notes, casino_id: casinoId, method_code: methodCode,
+          idempotency_key: idemKeyRef.current,
+        }),
       });
       const json = await res.json().catch(() => ({}));
       if (res.ok) {
+        idemKeyRef.current = null;
         onSuccess(json.message || "Withdrawal request submitted.");
       } else {
         setError(json?.error || "Failed to submit withdrawal request.");
