@@ -1,0 +1,1 @@
+import{j as n}from"./index-CZ03zmfV.js";import{D as t,s as a}from"./content-HWcepOUf.js";import"./landingPrimitives-Cdvt1lld.js";import"./layout-grid-DfiEQVJr.js";function m(){return n.jsx(t,{content:a})}export{m as default};
