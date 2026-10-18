@@ -1,6 +1,6 @@
 // WALLET-REQUESTS: new component — safe to delete this file (and its
 // import/usage in tabs/stats/WalletTab.jsx) to remove the feature.
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { X, Wallet, CheckCircle2, AlertCircle } from "lucide-react";
 import { C } from "./constants";
@@ -28,6 +28,10 @@ export default function DepositRequestModal({ onClose, onSuccess, onError }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [loadingOptions, setLoadingOptions] = useState(true);
+  // FIN-01: one idempotency key per INTENDED submission. Reused across retries
+  // (a failed submit keeps it) so the backend returns the same request instead
+  // of creating a duplicate; cleared on success so the next deposit is distinct.
+  const idemKeyRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -69,6 +73,12 @@ export default function DepositRequestModal({ onClose, onSuccess, onError }) {
   const handleSubmit = async () => {
     setSubmitting(true);
     setError("");
+    // Generate once; reuse on retry of this same intended deposit.
+    if (!idemKeyRef.current) {
+      idemKeyRef.current =
+        (window.crypto?.randomUUID?.() ||
+          `${Date.now()}-${Math.random().toString(16).slice(2)}`);
+    }
     try {
       const res = await authFetch(`${API}/api/wallet/deposit-requests/create/`, {
         method: "POST",
@@ -76,10 +86,12 @@ export default function DepositRequestModal({ onClose, onSuccess, onError }) {
           amount, method_code: methodCode,
           casino_id: casinoId || null,
           notes,
+          idempotency_key: idemKeyRef.current,
         }),
       });
       const json = await res.json().catch(() => ({}));
       if (res.ok) {
+        idemKeyRef.current = null; // success -> next deposit gets a fresh key
         onSuccess(json.message || "Deposit request submitted.");
       } else {
         setError(json?.error || "Failed to submit deposit request.");
