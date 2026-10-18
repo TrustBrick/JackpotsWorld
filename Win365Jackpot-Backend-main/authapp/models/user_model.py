@@ -129,6 +129,11 @@ class User(AbstractBaseUser, PermissionsMixin):
     date_joined   = models.DateTimeField(default=timezone.now, db_index=True)
     last_login    = models.DateTimeField(null=True, blank=True, db_index=True)
     last_login_ip = models.GenericIPAddressField(null=True, blank=True)
+    # Presence for the Back Office live-chat contact picker: refreshed by the
+    # signed-in site's heartbeat (services/presence_service.touch), at most
+    # every PRESENCE_WRITE_INTERVAL, so "online" is a recent timestamp rather
+    # than a socket the server would have to track across instances.
+    last_seen_at  = models.DateTimeField(null=True, blank=True, db_index=True)
 
     # ── Login geolocation (resolved from last_login_ip via a free IP-lookup
     # service at login/signup time — best-effort, left blank if the lookup

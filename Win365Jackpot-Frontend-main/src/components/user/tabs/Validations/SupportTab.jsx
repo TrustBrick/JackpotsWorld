@@ -21,6 +21,11 @@ import ServiceRequestConversation from "../../../support/ServiceRequestConversat
 // language here never switches the rest of the dashboard's UI text.
 const CHAT_LANG_STORAGE_KEY = "support_chat_language";
 
+// A service request only ever shows one of three states to the customer.
+const SERVICE_STATUS_LABEL = {
+  open: "Pending", in_progress: "Processing", resolved: "Completed", closed: "Completed",
+};
+
 function SectionHeader({ color, children }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
@@ -334,10 +339,10 @@ export default function SupportTab({ onToast }) {
                   </div>
                   <span style={{
                     fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 20, flexShrink: 0,
-                    background: tk.status === "resolved" || tk.status === "closed" ? `${C.green}18` : `${C.orange}18`,
-                    color: tk.status === "resolved" || tk.status === "closed" ? C.green : C.orange,
+                    background: tk.status === "resolved" || tk.status === "closed" ? `${C.green}18` : tk.status === "in_progress" ? `${C.blue}18` : `${C.orange}18`,
+                    color: tk.status === "resolved" || tk.status === "closed" ? C.green : tk.status === "in_progress" ? C.blue : C.orange,
                   }}>
-                    {tk.status.replace("_", " ")}
+                    {SERVICE_STATUS_LABEL[tk.status] || tk.status}
                   </span>
                 </div>
                 {/* SERVICE-REQUEST CONVERSATION: opens THIS request — its exact

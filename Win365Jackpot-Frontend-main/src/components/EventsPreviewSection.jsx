@@ -7,6 +7,7 @@ import { useAutoFetch } from '../hooks/useAutoFetch'
 import { fetchEvents } from '../services/eventService'
 import { getFallbackImage } from '../utils/mediaFallback'
 
+import { T } from '../i18n/useSiteText'
 export default function EventsPreviewSection() {
   const { ref, inView } = useInView({ threshold: 0.1, triggerOnce: true })
   const navigate = useNavigate()
@@ -24,14 +25,14 @@ export default function EventsPreviewSection() {
       <div className="flex items-center gap-2 mb-4">
         <CalendarDays size={16} className="text-gold" />
         <h3 className="font-black text-base uppercase tracking-wide" style={{ color: 'var(--w365-heading)' }}>
-          Upcoming Events
+          {T('Upcoming Events')}
         </h3>
       </div>
 
       <div className="flex flex-col gap-3 flex-1">
         {events.length === 0 && (
           <p className="text-sm font-body" style={{ color: 'var(--w365-text-muted)' }}>
-            New events dropping soon — check back shortly.
+            {T('New events dropping soon — check back shortly.')}
           </p>
         )}
         {events.map(ev => (
@@ -60,7 +61,7 @@ export default function EventsPreviewSection() {
         onClick={() => navigate('/events')}
         className="btn-outline-gold mt-4 flex items-center justify-center gap-1.5 rounded-full py-2.5 text-xs font-bold tracking-widest uppercase"
       >
-        View All Events <ArrowRight size={13} />
+        {T('View All Events')}{' '}<ArrowRight size={13} />
       </motion.button>
     </motion.div>
   )

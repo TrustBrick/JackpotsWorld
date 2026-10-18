@@ -14,6 +14,7 @@ import { useTicketCalls } from "../hooks/useTicketCalls"
 import CallStatus from "./support/CallStatus"
 import { setLauncherHeight } from "./support/launcherMetrics"
 
+import { T } from '../i18n/useSiteText'
 const API = import.meta.env.VITE_API_URL || ""
 const INACTIVITY_MS = 3 * 60 * 1000 // 3 minutes
 const HISTORY_KEY = "chatbot_messages"
@@ -43,7 +44,7 @@ const CALL_QUEUE_TIMEOUT_MS = 12000
 // members to offline casinos: it does not take wagers, run games or move
 // gambling money, and the widget must not imply otherwise in the first line
 // a visitor reads. Account/KYC help is real and stays.
-const WELCOME = { role: "bot", text: "Welcome to Jackpotsworld 👋\nWe help members discover premium offline casino destinations and arrange the referral for their visit.\nI can help with destinations, referrals, VIP assistance, events, your membership account and KYC. Ask me anything — and if I can't resolve it, I'll get our team on it." }
+const WELCOME = { role: "bot", text: T("Welcome to Jackpotsworld 👋\nWe help members discover premium offline casino destinations and arrange the referral for their visit.\nI can help with destinations, referrals, VIP assistance, events, your membership account and KYC. Ask me anything — and if I can't resolve it, I'll get our team on it.") }
 
 // Rendered height of the floating concierge avatar. Deliberately small: it is
 // an avatar in the corner, not a character on the page. The 11vw middle term
@@ -684,7 +685,7 @@ export default function ChatBot({ portal = "player" }) {
       setCallRequested(false)
       setMessages(prev => [...prev, {
         role: "bot",
-        text: "I couldn't start a voice call on this connection. Chat is working normally, so send a message here and an agent will reply - or try calling again on Wi-Fi.",
+        text: T("I couldn't start a voice call on this connection. Chat is working normally, so send a message here and an agent will reply - or try calling again on Wi-Fi."),
       }])
     }, CALL_QUEUE_TIMEOUT_MS)
     return () => clearTimeout(timer)
@@ -699,7 +700,7 @@ export default function ChatBot({ portal = "player" }) {
     if (!token) {
       setMessages(prev => [...prev, {
         role: "bot",
-        text: "Please sign in to your account to start a live chat with our support team.",
+        text: T("Please sign in to your account to start a live chat with our support team."),
         signInPrompt: true,
       }])
       return
@@ -744,7 +745,7 @@ export default function ChatBot({ portal = "player" }) {
         onStatusChange: setLiveConnStatus,
       })
     } catch {
-      setMessages(prev => [...prev, { role: "bot", text: "Couldn't connect you to an agent right now. Please try again in a moment." }])
+      setMessages(prev => [...prev, { role: "bot", text: T("Couldn't connect you to an agent right now. Please try again in a moment.") }])
     } finally {
       setLiveConnecting(false)
     }
@@ -861,6 +862,66 @@ export default function ChatBot({ portal = "player" }) {
     return () => window.removeEventListener("open-chat", handler)
   }, [])
 
+  // ── Presence + agent-initiated contact ───────────────────────────────────
+  // While signed in, a light heartbeat tells the Back Office this person is
+  // on the site (the green dot an agent sees before texting or calling), and
+  // brings back anything an agent started: a new agent message opens the
+  // widget on that conversation, and a support call ringing them is shown even
+  // though this widget was not connected when the ring went out.
+  const startLiveChatRef = useRef(null)
+  useEffect(() => { startLiveChatRef.current = startLiveChat })
+  const modeRef = useRef(mode)
+  useEffect(() => { modeRef.current = mode }, [mode])
+  const [pendingRing, setPendingRing] = useState(null)
+
+  useEffect(() => {
+    let stopped = false
+    let timer = null
+    const seenKey = `livechat_seen_admin_msg_${portal}`
+    const beat = async () => {
+      let nextMs = 10000
+      const token = getToken(tokenKey)
+      if (token) {
+        try {
+          const res = await fetch(`${API}/api/live-chat/presence/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ portal }),
+          })
+          if (res.ok) {
+            const data = await res.json()
+            if (data.heartbeat_seconds) nextMs = data.heartbeat_seconds * 1000
+            let seen = 0
+            try { seen = Number(sessionStorage.getItem(seenKey) || 0) } catch { /* storage blocked */ }
+            const newAgentMessage = !!data.latest_admin_message_id && data.latest_admin_message_id > seen
+            if (!stopped && data.session_id && (newAgentMessage || data.incoming_call)) {
+              if (newAgentMessage) {
+                try { sessionStorage.setItem(seenKey, String(data.latest_admin_message_id)) } catch { /* storage blocked */ }
+              }
+              if (modeRef.current !== "live" || liveTicketRef.current !== data.session_id) {
+                await startLiveChatRef.current?.()
+              }
+              setOpen(true)
+              if (data.incoming_call) setPendingRing(data.incoming_call)
+            }
+          }
+        } catch { /* next beat retries */ }
+      }
+      if (!stopped) timer = setTimeout(beat, nextMs)
+    }
+    beat()
+    return () => { stopped = true; clearTimeout(timer) }
+  }, [portal, tokenKey])
+
+  // Hand a ring found by the heartbeat to the call hook once the conversation
+  // socket is up — exactly as if it had arrived on that socket.
+  useEffect(() => {
+    if (!pendingRing) return
+    if (mode !== "live" || liveConnStatus !== "open" || voiceCall.phase !== PHASE.IDLE) return
+    voiceCallRef.current?.onSocketEvent?.("call_incoming", { call: pendingRing })
+    setPendingRing(null)
+  }, [pendingRing, mode, liveConnStatus, voiceCall.phase])
+
   const resetInactivity = useCallback(() => {
     clearTimeout(inactivityRef.current)
     inactivityRef.current = setTimeout(() => {
@@ -923,7 +984,7 @@ export default function ChatBot({ portal = "player" }) {
       setMessages(prev => [...prev, { role: "bot", text: reply }])
       if (!open) setUnread(prev => prev + 1)
     } catch {
-      setMessages(prev => [...prev, { role: "bot", text: "Connection issue. Reach us on WhatsApp or Telegram for instant support!" }])
+      setMessages(prev => [...prev, { role: "bot", text: T("Connection issue. Reach us on WhatsApp or Telegram for instant support!") }])
     } finally {
       setLoading(false)
       resetInactivity()
@@ -1065,7 +1126,7 @@ export default function ChatBot({ portal = "player" }) {
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", letterSpacing: "0.02em" }}>
-                  {mode === "live" ? "Live Support Agent" : "Customer Support"}
+                  {mode === "live" ? T("Live Support Agent") : T("Customer Support")}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 1 }}>
                   <span style={{
@@ -1082,7 +1143,7 @@ export default function ChatBot({ portal = "player" }) {
                       ? (liveConnStatus === "open" || liveConnStatus === "polling"
                         ? "Connected to an agent"
                         : "Connecting…")
-                      : "Jackpotsworld Support"}
+                      : T("Jackpotsworld Support")}
                   </span>
                 </div>
               </div>
@@ -1106,7 +1167,7 @@ export default function ChatBot({ portal = "player" }) {
                     cursor: "pointer", color: "rgba(255,255,255,0.65)", flexShrink: 0, marginRight: 4,
                   }}
                 >
-                  ← FAQ bot
+                  {T("← FAQ bot")}
                 </button>
               )}
               {/* VOICE-CALL: calling, reachable from the moment the widget
@@ -1127,7 +1188,7 @@ export default function ChatBot({ portal = "player" }) {
                 <button
                   onClick={requestCall}
                   disabled={voiceCall.isBusy || callRequested}
-                  aria-label="Call Support"
+                  aria-label={T("Call Support")}
                   title={
                     callRequested
                       ? "Connecting you to an agent…"
@@ -1246,7 +1307,7 @@ export default function ChatBot({ portal = "player" }) {
                             overflow: "hidden", textOverflow: "ellipsis",
                             whiteSpace: "nowrap",
                           }}>
-                            {m.attachmentName || "Attachment"}
+                            {T(m.attachmentName || "Attachment")}
                           </span>
                         </a>
                       )}
@@ -1261,7 +1322,7 @@ export default function ChatBot({ portal = "player" }) {
                         color: "#D4AF37", fontSize: 11, fontWeight: 700, cursor: "pointer",
                       }}
                     >
-                      Sign in
+                      {T("Sign in")}
                     </button>
                   )}
                   {m.status === "failed" && (
@@ -1272,7 +1333,7 @@ export default function ChatBot({ portal = "player" }) {
                         color: "#f87171", fontSize: 10, fontWeight: 700, cursor: "pointer", padding: 0,
                       }}
                     >
-                      Failed to send — tap to retry
+                      {T("Failed to send — tap to retry")}
                     </button>
                   )}
                 </div>
@@ -1328,7 +1389,7 @@ export default function ChatBot({ portal = "player" }) {
                     opacity: liveConnecting ? 0.6 : 1,
                   }}
                 >
-                  {liveConnecting ? "Connecting…" : "Talk to a Live Agent"}
+                  {liveConnecting ? T("Connecting…") : T("Talk to a Live Agent")}
                 </button>
               </div>
             )}
@@ -1384,7 +1445,7 @@ export default function ChatBot({ portal = "player" }) {
                   {!attachBusy && (
                     <button
                       onClick={() => { setAttachFile(null); setAttachError("") }}
-                      aria-label="Remove attachment"
+                      aria-label={T("Remove attachment")}
                       style={{
                         background: "none", border: "none", cursor: "pointer",
                         color: "rgba(255,255,255,0.55)", fontSize: 15,
@@ -1425,8 +1486,8 @@ export default function ChatBot({ portal = "player" }) {
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={loading || attachBusy}
-                    title="Attach a document"
-                    aria-label="Attach a document"
+                    title={T("Attach a document")}
+                    aria-label={T("Attach a document")}
                     style={{
                       width: 36, height: 36, borderRadius: 10, flexShrink: 0,
                       background: "rgba(212,175,55,0.12)",

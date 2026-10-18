@@ -7,6 +7,7 @@ import useEnquiryNumber from '../../hooks/useEnquiryNumber'
 import useEnquiryMessage from '../../hooks/useEnquiryMessage'
 import { buildWhatsAppLink } from '../../services/enquiryContact'
 
+import { T } from '../../i18n/useSiteText'
 /**
  * "Enquire Now" for one experience card.
  *
@@ -34,7 +35,7 @@ const FIELD_LABEL = {
   travel_date: 'Travel date',
   party_size: 'Guests',
   requirements: 'Requirements',
-  message: 'Anything else',
+  message: T('Anything else'),
 }
 
 const EMPTY = {
@@ -215,7 +216,7 @@ export default function ExperienceEnquiryModal({ experience, isOpen, onClose }) 
         >
           <button
             onClick={onClose}
-            aria-label="Close enquiry"
+            aria-label={T('Close enquiry')}
             style={{
               position: 'absolute', top: 14, right: 14, width: 34, height: 34,
               borderRadius: '50%', border: '1px solid rgba(212,175,55,0.3)',

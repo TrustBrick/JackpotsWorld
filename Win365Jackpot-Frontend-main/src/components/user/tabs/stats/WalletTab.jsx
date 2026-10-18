@@ -82,6 +82,84 @@ function Detail({ label, value }) {
   );
 }
 
+const selectStyle = {
+  padding: "8px 12px", borderRadius: 8, fontSize: 13,
+  background: "rgba(20,20,28,0.9)", border: "1px solid rgba(255,255,255,0.12)",
+  color: "white", outline: "none", cursor: "pointer", minWidth: 0, width: "100%",
+};
+
+/* Account Overview — the player picks a country and a casino, and sees what
+   they deposited, withdrew, wagered, won and lost there. Numbers come from
+   /wallet/account-overview/, which reads the casino ledger. */
+function AccountOverview() {
+  const { t } = useTranslation();
+  const [country, setCountry] = useState("");
+  const [casino, setCasino] = useState("");
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    const params = new URLSearchParams();
+    if (country) params.set("country", country);
+    if (casino) params.set("casino", casino);
+    authFetch(`${API}/api/wallet/account-overview/?${params}`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(j => { if (alive && j) setData(j); })
+      .catch(() => {})
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [country, casino]);
+
+  const options = data?.options || [];
+  const casinoChoices = country
+    ? (options.find(o => o.country === country)?.casinos || [])
+    : options.flatMap(o => o.casinos);
+  const v = (k) => (loading && !data ? "…" : fmt(data?.[k] || 0));
+
+  return (
+    <div>
+      <SectionLabel>{t("wallet.accountOverview")}</SectionLabel>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10, marginBottom: 12 }}>
+        <select
+          aria-label="Country"
+          value={country}
+          onChange={e => { setCountry(e.target.value); setCasino(""); }}
+          style={selectStyle}
+        >
+          <option value="" style={{ background: "#14141c" }}>All countries</option>
+          {options.map(o => (
+            <option key={o.country} value={o.country} style={{ background: "#14141c" }}>{o.country}</option>
+          ))}
+        </select>
+        <select
+          aria-label="Casino"
+          value={casino}
+          onChange={e => setCasino(e.target.value)}
+          style={selectStyle}
+        >
+          <option value="" style={{ background: "#14141c" }}>All casinos</option>
+          {casinoChoices.map(name => (
+            <option key={name} value={name} style={{ background: "#14141c" }}>{name}</option>
+          ))}
+        </select>
+      </div>
+      {!loading && options.length === 0 && (
+        <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginBottom: 10 }}>
+          Your casino activity will appear here once you have played at a casino with us.
+        </div>
+      )}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
+        <StatCard label={t("wallet.totalDeposited")} value={v("total_deposited")} color={C.green || "#34d399"} />
+        <StatCard label={t("wallet.totalWithdrawn")} value={v("total_withdrawn")} color={C.red   || "#f87171"} />
+        <StatCard label={t("wallet.totalWagered")}   value={v("total_wagered")} />
+        <StatCard label={t("wallet.totalWon")}       value={v("total_won")}       color={C.gold  || "#fbbf24"} />
+      </div>
+    </div>
+  );
+}
+
 function StatCard({ label, value, color }) {
   return (
     <div style={{
@@ -179,10 +257,10 @@ export default function WalletTab({ profile, onToast }) {
           matching the existing SharedUI Btn used across the rest of the app. */}
       <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
         <Btn onClick={() => setShowDepositModal(true)}>
-          <Coins size={20} strokeWidth={1.75} className="wallet-action-icon" style={{ flexShrink: 0 }} /> Request Deposit
+          <Coins size={20} strokeWidth={1.75} className="wallet-action-icon" style={{ flexShrink: 0 }} /> Deposit Request
         </Btn>
         <Btn outline color={C.blue} onClick={() => setShowWithdrawalModal(true)}>
-          <Banknote size={20} strokeWidth={1.75} className="wallet-action-icon" style={{ flexShrink: 0 }} /> Request Withdrawal
+          <Banknote size={20} strokeWidth={1.75} className="wallet-action-icon" style={{ flexShrink: 0 }} /> Withdrawal Request
         </Btn>
       </div>
 
@@ -268,10 +346,6 @@ function WalletBalances({ accounts, levelData, loading, profile }) {
     return (ORDER[a.wallet_type] ?? 9) - (ORDER[b.wallet_type] ?? 9);
   });
 
-  const totalDeposited   = profile?.total_deposited  || 0;
-  const totalWithdrawn   = profile?.total_withdrawn   || 0;
-  const totalWagered     = profile?.total_wagered     || 0;
-  const totalWon         = profile?.total_won         || 0;
   const referralCode     = profile?.referral_code     || "—";
   const referralCount    = profile?.referral_count    || 0;
   const referralEarnings = profile?.referral_earnings || 0;
@@ -440,16 +514,8 @@ function WalletBalances({ accounts, levelData, loading, profile }) {
         </div>
       )}
 
-      {/* ACCOUNT STATS — unchanged */}
-      <div>
-        <SectionLabel>{t("wallet.accountOverview")}</SectionLabel>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
-          <StatCard label={t("wallet.totalDeposited")}  value={fmt(totalDeposited)}  color={C.green || "#34d399"} />
-          <StatCard label={t("wallet.totalWithdrawn")}  value={fmt(totalWithdrawn)}  color={C.red   || "#f87171"} />
-          <StatCard label={t("wallet.totalWagered")}    value={fmt(totalWagered)} />
-          <StatCard label={t("wallet.totalWon")}        value={fmt(totalWon)}        color={C.gold  || "#fbbf24"} />
-        </div>
-      </div>
+      {/* ACCOUNT OVERVIEW — per country / casino, from the casino ledger */}
+      <AccountOverview />
 
       {/* ACCOUNT DETAILS — unchanged */}
       <div>
@@ -754,6 +820,10 @@ const REQUEST_STATUS_FILTERS = [
   { value: "cancelled",  label: "Cancelled" },
 ];
 
+// A deposit request is Pending until the admin completes the deposit, then
+// Completed — there is no step in between. "processing" is a retired state.
+const depositDisplayStatus = (s) => (s === "approved" ? "completed" : s === "processing" ? "pending" : s);
+
 function RequestHistory({ onToast }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -856,7 +926,7 @@ function RequestHistory({ onToast }) {
                     </td>
                     <td style={{ padding: "11px 14px", fontFamily: "monospace", fontWeight: 700, color: C.gold }}>{fmt(row.amount)}</td>
                     <td style={{ padding: "11px 14px", color: "rgba(255,255,255,0.5)", whiteSpace: "nowrap" }}>{fmtDT(row.requested_at)}</td>
-                    <td style={{ padding: "11px 14px" }}><StatusBadge status={row.status} /></td>
+                    <td style={{ padding: "11px 14px" }}><StatusBadge status={row._type === "deposit" ? depositDisplayStatus(row.status) : row.status} /></td>
                     <td style={{ padding: "11px 14px", color: "rgba(255,255,255,0.45)", fontSize: 11.5 }}>
                       {row.status === "rejected" ? row.rejection_reason : (row.admin_notes || "—")}
                     </td>

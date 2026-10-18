@@ -82,6 +82,9 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+    # Translates public content API responses into the visitor's chosen
+    # language (X-Site-Language). See authapp/middleware/content_translation.py.
+    'authapp.middleware.content_translation.ContentTranslationMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -123,6 +126,7 @@ CORS_ALLOW_HEADERS = [
     'content-type',
     'origin',
     'x-requested-with',
+    'x-site-language',
 ]
 
 CORS_ALLOW_METHODS = [

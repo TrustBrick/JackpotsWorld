@@ -8,6 +8,7 @@ import { fetchLocations } from '../services/locationService'
 import { fetchHeroStats, fetchLandingSettings } from '../services/landingService'
 import { flagFromCountryCode, flagIconUrl } from '../utils/countryFlags'
 import PremiumPartnerHeroMedia from './PremiumPartnerHeroMedia'
+import { useSiteText, T } from '../i18n/useSiteText'
 
 // ─── Hero intro timing ─────────────────────────────────────────────────────
 // How long the oversized stacked wordmark holds before collapsing to the
@@ -239,6 +240,7 @@ const FALLBACK_LOCATIONS = [
 // ─── Main Hero ────────────────────────────────────────────────────────────
 export default function Hero() {
   const navigate = useNavigate()
+  const ts = useSiteText()
 
   // ─── Hero intro ──────────────────────────────────────────────────────────
   // `compact` false = the oversized stacked wordmark the visitor lands on.
@@ -329,9 +331,9 @@ export default function Hero() {
   // Membership and reach only. Nothing here describes gambling outcomes: this
   // platform refers members to offline casinos and never sees a result.
   const FALLBACK_STATS = [
-    { label:'Members',   value:'50K+' },
-    { label:'Countries', value:'15+' },
-    { label:'Support',   value:'24/7' },
+    { label:T('Members'),   value:'50K+' },
+    { label:T('Countries'), value:'15+' },
+    { label:T('Support'),   value:'24/7' },
   ]
   // Rendered exactly as configured. The override that used to rewrite a
   // "Won Today" row's value client-side is gone with the generator above.
@@ -526,7 +528,7 @@ export default function Hero() {
               visitor (or a reviewer) reads. The apostrophe normalisers stay —
               they only fire on the legacy wording, which can still be sitting
               in an un-migrated LandingSettings row. */}
-          {(settings?.hero_badge_text || 'Premium Offline Casino VIP Platform')
+          {ts(settings?.hero_badge_text || 'Premium Offline Casino VIP Platform')
             .toUpperCase()
             .replace(/CASINO'S\b/, 'CASINOS')
             .replace(/\bASIA'S\b/, "ASIA's")}
@@ -668,7 +670,7 @@ export default function Hero() {
           }}
         >
           <span style={{ width:6, height:6, borderRadius:'50%', background:'#4ade80', flexShrink:0, animation:'pulse-dot 2s infinite', display:'inline-block' }} />
-          {settings?.global_reach_tagline || 'Experience World-Class Casino Gaming Across'}
+          {ts(settings?.global_reach_tagline || 'Experience World-Class Casino Gaming Across')}
         </motion.div>
       </div>
 
@@ -714,7 +716,7 @@ export default function Hero() {
             overflow:'hidden',
             position:'relative',
           }}
-          aria-label="Casino destinations we operate in"
+          aria-label={ts("Casino destinations we operate in")}
         >
           <span aria-hidden style={{ width:4, height:4, borderRadius:'50%', background:'#1a6b1f', flexShrink:0, animation:'pulse-dot 2s infinite', display:'inline-block' }} />
           <div style={{ overflow:'hidden', flex:'1 1 auto', minWidth:0 }}>
@@ -793,7 +795,7 @@ export default function Hero() {
                 boxShadow:'0 0 28px rgba(212,175,55,0.4)',
                 touchAction:'manipulation',
               }}
-            >{(settings?.hero_cta_primary_label && !settings.hero_cta_primary_label.includes('?')) ? settings.hero_cta_primary_label : 'Get Your Referral'}</motion.button>
+            >{(settings?.hero_cta_primary_label && !settings.hero_cta_primary_label.includes('?')) ? ts(settings.hero_cta_primary_label) : ts('Get Your Referral')}</motion.button>
           </ScrollLink>
           <ScrollLink to="packages-all" smooth duration={600} offset={-80}>
             <motion.button
@@ -809,7 +811,7 @@ export default function Hero() {
                 letterSpacing:'0.13em', textTransform:'uppercase',
                 cursor:'pointer', touchAction:'manipulation',
               }}
-            >{(settings?.hero_cta_secondary_label && !settings.hero_cta_secondary_label.includes('?')) ? settings.hero_cta_secondary_label : 'Explore Packages'}</motion.button>
+            >{(settings?.hero_cta_secondary_label && !settings.hero_cta_secondary_label.includes('?')) ? ts(settings.hero_cta_secondary_label) : ts('Explore Packages')}</motion.button>
           </ScrollLink>
         </motion.div>
 
@@ -827,12 +829,12 @@ export default function Hero() {
           }}
         >
           {[
-            { label:'Events', icon:CalendarDays, onClick:() => navigate('/events') },
-            { label:'Destinations', icon:MapPinned, onClick:() => {
+            { label:T('Events'), icon:CalendarDays, onClick:() => navigate('/events') },
+            { label:T('Destinations'), icon:MapPinned, onClick:() => {
                 const el = document.getElementById('packages')
                 if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.pageYOffset - 80, behavior:'smooth' })
               } },
-            { label:'Promotions', icon:Gift, onClick:() => navigate('/promotions') },
+            { label:T('Promotions'), icon:Gift, onClick:() => navigate('/promotions') },
           ].map(({ label, icon:Icon, onClick }) => (
             <motion.button
               key={label}
@@ -852,7 +854,7 @@ export default function Hero() {
               }}
             >
               <Icon size={12} />
-              {label}
+              {ts(label)}
             </motion.button>
           ))}
         </motion.div>
@@ -915,7 +917,7 @@ export default function Hero() {
           whiteSpace: 'nowrap', // prevent label from wrapping too
         }}
       >
-        {s.label}
+        {ts(s.label)}
       </div>
     </div>
   ))}
@@ -930,7 +932,7 @@ export default function Hero() {
         animation:'scrollBounce 1.6s 2s ease-in-out infinite',
         transform:'translateX(-50%)',
       }}>
-        <div style={{ fontFamily:"'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif", fontSize:7, letterSpacing:'0.2em', textTransform:'uppercase' }}>Scroll</div>
+        <div style={{ fontFamily:"'JW Display J', 'Playfair Display', Georgia, 'Times New Roman', serif", fontSize:7, letterSpacing:'0.2em', textTransform:'uppercase' }}>{ts('Scroll')}</div>
         <div style={{ width:1, height:'clamp(20px,4vw,40px)', background:'linear-gradient(to bottom, rgba(212,175,55,0.4), transparent)' }} />
       </div>
     </section>

@@ -157,7 +157,7 @@ export const ADMIN_NAV_GROUPS = [
     group: "Support & Communication",
     items: [
       // MULTILINGUAL-CHAT: 2 new tabs (local preview feature)
-      { id:"support-tickets",  label:"Support Tickets",  icon:"LifeBuoy"  },
+      { id:"support-tickets",  label:"Service Requests", icon:"LifeBuoy"  },
       // Leads from the "Enquire Now" forms on the public experience pillars.
       // Sits here, beside Support Tickets, rather than under Landing Page
       // where it used to be a sub-tab: the Landing Page tab is for editing

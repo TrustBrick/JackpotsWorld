@@ -114,7 +114,12 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const bp       = useBreakpoint(); // ← reactive breakpoint
 
-  const [tab,                setTab]                = useState("overview");
+  // ?tab=<id> opens a specific tab (e.g. the Online Gambling page links to
+  // Responsible Gambling); anything unknown falls back to Overview.
+  const [tab,                setTab]                = useState(() => {
+    const wanted = new URLSearchParams(window.location.search).get("tab");
+    return TABS.some(x => x.id === wanted) ? wanted : "overview";
+  });
   // Each tab is a different screen, and tab state is local so no navigation
   // fires — without this, opening Wallet from halfway down Overview lands
   // halfway down Wallet.

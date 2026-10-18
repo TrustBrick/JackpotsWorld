@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAutoFetch } from '../hooks/useAutoFetch'
 import { apiGet } from '../services/apiClient'
 
+import { T } from '../i18n/useSiteText'
 /* ─────────────────────────────────────────────────────────────────────────
    AffiliateSupportedGames — the games an affiliate can refer players for.
 
@@ -78,14 +79,13 @@ export default function AffiliateSupportedGames() {
         className="text-center mb-10"
       >
         <div className="inline-block border border-gold/30 rounded-full px-5 py-1.5 text-xs font-body font-light tracking-widest uppercase text-gold/70 mb-4">
-          What You Can Refer
+          {T('What You Can Refer')}
         </div>
         <h2 className="section-heading text-2xl tracking-wide mb-3">
-          Three Games, One Affiliate <span className="gold-text">Account</span>
+          {T('Three Games, One Affiliate')}{' '}<span className="gold-text">{T('Account')}</span>
         </h2>
         <p className="text-white/70 font-body text-sm max-w-2xl mx-auto leading-relaxed">
-          Your link works across all three. Commission is attributed to whichever game your
-          referred player actually plays, so you are never asked to pick one.
+          {T('Your link works across all three. Commission is attributed to whichever game your referred player actually plays, so you are never asked to pick one.')}
         </p>
       </motion.div>
 
@@ -121,7 +121,7 @@ export default function AffiliateSupportedGames() {
                   className="mt-auto pt-2 inline-flex items-center gap-1.5 text-[11px] font-bold tracking-widest uppercase"
                   style={{ color: GOLD }}
                 >
-                  View {g.label} <ArrowRight size={12} />
+                  {T('View')}{' '}{g.label} <ArrowRight size={12} />
                 </span>
               )}
             </motion.button>
@@ -130,8 +130,7 @@ export default function AffiliateSupportedGames() {
       </div>
 
       <p className="text-center text-white/45 text-[11px] font-body mt-6 px-4">
-        Commission rates vary by game, country, destination and affiliate tier, and are
-        confirmed with your account manager.
+        {T('Commission rates vary by game, country, destination and affiliate tier, and are confirmed with your account manager.')}
       </p>
     </section>
   )

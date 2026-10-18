@@ -27,6 +27,7 @@ const AdminPanel       = lazy(() => import('./admin/AdminPanel'))
 const SuperAdminPanel  = lazy(() => import('./admin/SuperAdminPanel'))
 const CookiesPolicy    = lazy(() => import('./pages/CookiesPolicy'))
 const PrivacyPolicy    = lazy(() => import('./pages/PrivacyPolicy'))
+const OnlineGambling   = lazy(() => import('./pages/OnlineGambling'))
 const Events           = lazy(() => import('./pages/Events'))
 const EventDetails     = lazy(() => import('./pages/EventDetails'))
 const Promotions       = lazy(() => import('./pages/Promotions'))
@@ -201,6 +202,7 @@ export default function App() {
         <Route path="/premium-casino"      element={<PremiumCasino />} />
         <Route path="/cookies-policy" element={<CookiesPolicy />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/online-gambling" element={<OnlineGambling />} />
 
         <Route path="*" element={<Navigate to="/" replace />} />  {/* ← Always last */}
       </Routes>

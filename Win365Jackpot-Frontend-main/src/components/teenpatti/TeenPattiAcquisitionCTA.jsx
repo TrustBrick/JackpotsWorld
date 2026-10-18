@@ -5,6 +5,7 @@ import { Crown, ArrowRight, Users, Sparkles, ShieldCheck } from 'lucide-react'
 import { getUser } from '../../services/authStorage'
 import HighlightedText from '../shared/HighlightedText'
 
+import { T } from '../../i18n/useSiteText'
 /**
  * TeenPattiAcquisitionCTA — the player-acquisition centerpiece of the Teen
  * Patti section (JACKPOTSWORLD spec Parts 4/5). Every Teen Patti visitor is
@@ -56,7 +57,7 @@ export default function TeenPattiAcquisitionCTA({
             style={{ background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.3)' }}>
             <Crown size={13} className="text-gold" />
             <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-gold">
-              {isLoggedIn ? 'Welcome to the Table' : 'Are You a Teen Patti Player?'}
+              {isLoggedIn ? T('Welcome to the Table') : T('Are You a Teen Patti Player?')}
             </span>
           </div>
 
@@ -84,8 +85,8 @@ export default function TeenPattiAcquisitionCTA({
 
           {!isLoggedIn && (
             <div className="flex items-center justify-center md:justify-start gap-5 mt-5 text-[11px] font-body text-white/60">
-              <span className="flex items-center gap-1.5"><Users size={13} className="text-gold" /> Exclusive Access</span>
-              <span className="flex items-center gap-1.5"><Sparkles size={13} className="text-gold" /> VIP Community</span>
+              <span className="flex items-center gap-1.5"><Users size={13} className="text-gold" />{' '}{T('Exclusive Access')}</span>
+              <span className="flex items-center gap-1.5"><Sparkles size={13} className="text-gold" />{' '}{T('VIP Community')}</span>
               <span className="flex items-center gap-1.5"><ShieldCheck size={13} className="text-gold" /> {t('teenPatti.ctaSecureTrusted')}</span>
             </div>
           )}
@@ -98,12 +99,12 @@ export default function TeenPattiAcquisitionCTA({
             onClick={isLoggedIn ? onScrollToTables : onPrimaryAction}
             className="btn-gold flex items-center justify-center gap-2 rounded-full px-9 py-4 text-sm font-bold tracking-widest uppercase whitespace-nowrap"
           >
-            {isLoggedIn ? (hasLiveTables ? 'View Live Tables' : 'See Upcoming Events') : 'Register Now'}
+            {isLoggedIn ? (hasLiveTables ? 'View Live Tables' : 'See Upcoming Events') : T('Register Now')}
             <ArrowRight size={15} />
           </motion.button>
           {!isLoggedIn && (
             <span className="text-[10px] font-body text-white/55 tracking-wide">
-              Already have an account? <button onClick={onPrimaryAction} className="text-gold underline underline-offset-2">Sign in</button>
+              {T('Already have an account?')}{' '}<button onClick={onPrimaryAction} className="text-gold underline underline-offset-2">{T('Sign in')}</button>
             </span>
           )}
         </div>

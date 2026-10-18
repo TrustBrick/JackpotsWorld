@@ -6,6 +6,8 @@ import { useAutoFetch } from '../hooks/useAutoFetch'
 import { fetchFaqs } from '../services/landingService'
 import { SECTION_PAD, CONTAINER } from '../utils/layout'
 
+import { T } from '../i18n/useSiteText'
+import GoldLastWord from './shared/GoldLastWord'
 /* ─────────────────────────────────────────────────────────────────────────
    BusinessModelFAQ — the questions a visitor (or a reviewer) needs answered
    in plain words before anything else on this page is safe to read.
@@ -42,28 +44,23 @@ import { SECTION_PAD, CONTAINER } from '../utils/layout'
 const FALLBACK_FAQS = [
   {
     id: 'fallback-1',
-    question: 'Is JackpotsWorld an online casino?',
-    answer: 'No. JackpotsWorld is an offline casino referral and VIP concierge platform. We connect '
-      + 'members with casino destinations and provide the relevant referral for their visit. '
-      + 'Gaming takes place directly at the selected casino.',
+    question: T('Is JackpotsWorld an online casino?'),
+    answer: T('No. JackpotsWorld is an offline casino referral and VIP concierge platform. We connect members with casino destinations and provide the relevant referral for their visit. Gaming takes place directly at the selected casino.'),
   },
   {
     id: 'fallback-2',
-    question: 'Can I place a bet through JackpotsWorld?',
-    answer: 'No. Casino gaming does not take place on the JackpotsWorld website. Members visit the '
-      + 'relevant offline casino to participate directly with the casino.',
+    question: T('Can I place a bet through JackpotsWorld?'),
+    answer: T('No. Casino gaming does not take place on the JackpotsWorld website. Members visit the relevant offline casino to participate directly with the casino.'),
   },
   {
     id: 'fallback-3',
-    question: 'Does JackpotsWorld hold my gambling funds?',
-    answer: 'No. JackpotsWorld does not hold or custody funds used for casino gaming. Any '
-      + 'gaming-related financial transactions are handled directly by the relevant casino.',
+    question: T('Does JackpotsWorld hold my gambling funds?'),
+    answer: T('No. JackpotsWorld does not hold or custody funds used for casino gaming. Any gaming-related financial transactions are handled directly by the relevant casino.'),
   },
   {
     id: 'fallback-4',
-    question: 'How does the referral work?',
-    answer: 'Register with JackpotsWorld, select your destination, and contact our team. We provide '
-      + 'the appropriate referral for your casino visit.',
+    question: T('How does the referral work?'),
+    answer: T('Register with JackpotsWorld, select your destination, and contact our team. We provide the appropriate referral for your casino visit.'),
   },
 ]
 
@@ -167,7 +164,7 @@ export default function BusinessModelFAQ() {
             textAlign: 'center', margin: '0 0 clamp(24px,4vw,40px)',
           }}
         >
-          Frequently Asked <span className="gold-text">Questions</span>
+          <GoldLastWord text={T('Frequently Asked Questions')} />
         </motion.h2>
 
         <motion.div

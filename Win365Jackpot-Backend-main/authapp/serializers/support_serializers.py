@@ -31,17 +31,39 @@ class SupportTicketSerializer(serializers.ModelSerializer):
 class AdminSupportTicketSerializer(serializers.ModelSerializer):
     user_uid = serializers.CharField(source="user.user_uid", read_only=True)
     email    = serializers.EmailField(source="user.email", read_only=True)
+    # Who raised the request, for the Back Office "Service Requests" list and
+    # its View panel -- an email alone does not tell an agent who they are
+    # talking to.
+    name      = serializers.CharField(source="user.name", read_only=True)
+    phone     = serializers.SerializerMethodField()
+    country   = serializers.CharField(source="user.country", read_only=True)
+    is_affiliate = serializers.SerializerMethodField()
+
+    def get_phone(self, obj):
+        u = obj.user
+        return f"{u.dial_code} {u.phone}".strip() if u.phone else ""
+
+    def get_is_affiliate(self, obj):
+        return obj.participant_type == "affiliate"
+
+    def validate_status(self, value):
+        # The Back Office drives a request through exactly three states:
+        # Pending (open) -> Processing (in_progress) -> Completed (resolved).
+        if value not in ("open", "in_progress", "resolved"):
+            raise serializers.ValidationError("Status must be open, in_progress or resolved.")
+        return value
 
     class Meta:
         model = SupportTicket
         # MULTILINGUAL-CHAT: added preferred_language + message_translated (read-only,
         # this is the Back Office's "English" column) alongside the existing fields.
         fields = [
-            "id", "user_uid", "email", "subject", "message", "attachment", "status", "admin_reply", "created_at", "updated_at",
+            "id", "user_uid", "email", "name", "phone", "country", "is_affiliate", "is_live_chat",
+            "subject", "message", "attachment", "status", "admin_reply", "created_at", "updated_at",
             "preferred_language", "message_translated", "admin_reply_translated", "translated_at",
         ]
         read_only_fields = [
-            "id", "user_uid", "email", "subject", "message", "attachment", "created_at", "updated_at",
+            "id", "user_uid", "email", "is_live_chat", "subject", "message", "attachment", "created_at", "updated_at",
             "preferred_language", "message_translated", "admin_reply_translated", "translated_at",
         ]
 

@@ -13,7 +13,8 @@
     "whatsapp": "WhatsApp",
     "telegram": "Telegram",
     "signOut": "Mag-sign Out",
-    "language": "Wika"
+    "language": "Wika",
+    "kyc": "KYC Verification"
   },
   "vip": {
     "vip": "VIP",
@@ -116,7 +117,9 @@
     "transaction": "Transaksyon",
     "balanceBefore": "Balanse bago",
     "balanceAfter": "Balanse pagkatapos",
-    "approved": "NAAPRUBAHAN"
+    "approved": "NAAPRUBAHAN",
+    "totalCasinoBalance": "Kabuuang Casino Balance",
+    "totalCasinoBalanceSub": "Pinagsamang balance ng lahat ng casino wallet"
   },
   "system": {
     "genericError": "May nangyaring mali",
@@ -314,7 +317,11 @@
     "otpCreditsLabel": "OTP Credits",
     "verification": "Pagpapatunay",
     "rollingPointsLabel": "Rolling Points",
-    "rewardPoints": "Reward Points"
+    "rewardPoints": "Reward Points",
+    "merchandise": "Merchandise",
+    "giftVoucher": "Gift Voucher",
+    "discountVoucher": "Discount Voucher",
+    "spinReward": "Reward sa Spin Wheel"
   },
   "packages": {
     "casinoTourPackages": "Mga Casino Tour Package",
@@ -407,7 +414,9 @@
     "faqShortcut": "Mga Madalas Itanong",
     "pleaseFillBoth": "Pakikumpleto ang parehong field",
     "ticketSubmitted": "Naisumite ang support ticket",
-    "failedToSubmit": "Nabigong isumite ang ticket"
+    "failedToSubmit": "Nabigong isumite ang ticket",
+    "ticket": "Pumili ng Kategorya ng Ticket",
+    "uploadDocument": "Mag-upload ng Dokumento"
   },
   "travel": {
     "header": "Kasaysayan ng Paglalakbay sa Casino",
@@ -437,7 +446,7 @@
   "poker": {
     "eyebrow": "Mataas na Taya, Live na Aksyon",
     "title": "Poker",
-    "subtitle": "Mga paparating na tournament at **live na mesa** mula sa aming mga partner casino — kumuha ng iyong ticket o panoorin ang iskedyul habang napupuno ito nang real-time.",
+    "subtitle": "Tuklasin ang premium na poker experience kasama ang JackpotsWorld. Tuklasin ang mga VIP poker destination, eksklusibong casino package, marangyang hospitality at **world-class na poker experience** sa buong Asya.",
     "signInPrompt": "Mag-sign in para makakuha ng ticket para sa mga tournament at masubaybayan ang mga event na naka-book ka na.",
     "loadError": "Hindi ma-load ang mga tournament sa ngayon. Pakisubukang muli.",
     "noTournaments": "Wala pang naka-iskedyul na tournament sa ngayon. Bumalik-balik ulit.",
@@ -450,7 +459,20 @@
     "upcomingTournaments": "Paparating na Torneo",
     "completedTournaments": "Tapos na Torneo",
     "viewLiveEvents": "Tingnan ang Live Events",
-    "exploreUpcoming": "Tingnan ang Paparating"
+    "exploreUpcoming": "Tingnan ang Paparating",
+    "info": {
+      "heading": "Mga Poker Destination at VIP Experience",
+      "intro": "Tuklasin ang mga poker destination at oportunidad sa torneo kasama ang JackpotsWorld. Tinutulungan namin ang mga bisita na malaman ang mga available na poker experience, opsyon sa destinasyon at kaugnay na VIP service.",
+      "tournamentsTitle": "Mga Poker Tournament",
+      "tournamentsBody": "Naghahanap ng impormasyon tungkol sa poker tournament? Alamin ang pinakabagong iskedyul, detalye ng event, mga kailangan sa paglahok at availability direkta sa venue o organizer.",
+      "destinationsTitle": "Mga Poker Destination sa India",
+      "destinationsBody": "Tuklasin ang mga poker experience sa mga destinasyong legal itong iniaalok. Kumpirmahin ang detalye ng venue, eligibility at lokal na regulasyon bago magplano ng pagbisita.",
+      "vipTitle": "Mga VIP Service",
+      "vipBody": "Makipag-ugnayan sa JackpotsWorld para malaman ang kasalukuyang VIP service at tulong sa destinasyon. Nakadepende ang benepisyo at arrangement sa venue at sa mga tuntunin.",
+      "contactTitle": "Makipag-ugnayan sa JackpotsWorld",
+      "contactBody": "Makipag-ugnayan sa aming team para sa tumpak na impormasyon tungkol sa mga destinasyon, poker event at VIP service.",
+      "contactChat": "Makipag-usap sa aming team"
+    }
   },
   "events": {
     "eyebrow": "Ipinakikilala ng Jackpotsworld",
@@ -548,5 +570,63 @@
     "earnCommission": "Kumita ng Oras-oras na Komisyon",
     "tagline": "Habang Nasisiyahan sa Gaming",
     "disclaimer": "Ang mga karapat-dapat na manlalaro ay maaaring makatamasa ng eksklusibong benepisyo sa paglalakbay, tuluyan, at kita habang nasisiyahan sa karanasan sa gaming. May mga tuntunin at kundisyon."
+  },
+  "cookieConsent": {
+    "title": "Pinahahalagahan namin ang iyong privacy",
+    "message": "Gumagamit kami ng mahahalagang cookie para patakbuhin ang site na ito at opsyonal na analytics cookie para maunawaan kung paano ito ginagamit. Maaari mong tanggapin o tanggihan ang mga opsyonal.",
+    "learnMore": "Patakaran sa Cookies",
+    "accept": "Tanggapin lahat",
+    "reject": "Tanggihan ang hindi mahalaga"
+  },
+  "onlineGambling": {
+    "eyebrow": "Impormasyon at Kaligtasan ng Manlalaro",
+    "title": "Online na Pagsusugal",
+    "subtitle": "Ano ang online na pagsusugal, ang mga panganib nito, at saan makakahanap ng tulong. **Hindi online gambling site ang JackpotsWorld** at hindi nito hinihikayat ang anumang uri ng pagsusugal.",
+    "noticeTitle": "Hindi namin itinataguyod ang online na pagsusugal",
+    "noticeBody": "Hindi nagpapatakbo, nagho-host o nagli-link ang JackpotsWorld sa anumang real-money online casino, betting app o online gaming platform. Hindi ka makakataya o makakapaglaro para sa pera sa website na ito. Nagbabahagi kami ng impormasyon tungkol sa mga lisensyadong land-based na destinasyon para sa mga adult, at hindi namin hinihikayat ang sinuman na magsugal.",
+    "positionTitle": "Ang aming posisyon",
+    "positionPoints": [
+      "Hindi ito online gambling website, at hindi kami nag-aalok ng online na pagsusugal.",
+      "Hindi namin hinihikayat, ina-advertise o ginagantimpalaan ang pagsusugal, online man o offline.",
+      "Ang aming nilalaman ay impormasyon tungkol sa land-based na destinasyon, event at hospitality para sa mga adult kung saan legal ang mga venue na ito.",
+      "Kung hindi na komportable para sa iyo ang pagsusugal, huminto at humingi ng tulong — libre at kumpidensyal ang mga resource sa ibaba."
+    ],
+    "whatTitle": "Ano ang online na pagsusugal?",
+    "whatBody": "Ang online na pagsusugal ay ang pagtaya ng pera sa internet — sa mga larong pang-casino, sports betting, card game o lotto — gamit ang website o app. Dahil available ito sa telepono anumang oras, mas mahirap kontrolin ang oras at pera kumpara sa isang pisikal na venue. Nakadepende kung legal ito sa kung saan ka nakatira; sa maraming lugar, kabilang ang ilang estado sa India, ito ay limitado o ipinagbabawal.",
+    "risksTitle": "Ang mga panganib",
+    "risks": [
+      "Laging available ito, kaya maaaring tumagal ang laro nang walang natural na pahinga.",
+      "Mabilis dumami ang talo kapag segundo lang ang pagtaya at digital ang pera.",
+      "Ang paghabol sa talo — pagtaya nang mas malaki para mabawi ang nawala — ay kadalasang nagpapalala.",
+      "Maaaring hindi magbayad ang mga site na walang lisensya, abusuhin ang iyong personal o card details, o tahasang manloko.",
+      "Maaari itong makaapekto sa tulog, trabaho, pag-aaral, relasyon at kalusugang pangkaisipan.",
+      "Ang pangungutang o paggamit ng pambayad sa bills para magsugal ay maaaring humantong sa malaking utang."
+    ],
+    "signsTitle": "Mga palatandaan na nagiging problema ang pagsusugal",
+    "signs": [
+      "Paulit-ulit na paggastos ng mas maraming oras o pera kaysa sa plano.",
+      "Pag-iisip tungkol sa pagsusugal halos buong araw, o pagkabalisa kapag tumigil.",
+      "Pagtatago sa pamilya o kaibigan kung gaano ka kadalas magsugal.",
+      "Pagsusugal para takasan ang stress, kalungkutan o pag-iisa.",
+      "Pangungutang, pagbebenta ng gamit o hindi pagbabayad dahil sa pagsusugal.",
+      "Pakiramdam na kailangan mong tumaya nang mas malaki para maramdaman ang parehong excitement."
+    ],
+    "addictionTitle": "Huwag hayaang maging adiksyon",
+    "addictionBody": "Ang adiksyon sa pagsusugal ay kinikilalang kondisyong pangkalusugan, hindi kakulangan sa disiplina, at maaaring mangyari kaninuman. Habang mas maaga itong napapansin, mas madaling mabawi ang kontrol. Kung pamilyar sa iyo ang alinman sa mga palatandaan sa itaas, kausapin ang taong pinagkakatiwalaan mo at makipag-ugnayan sa isa sa mga support service sa ibaba.",
+    "controlTitle": "Manatiling may kontrol",
+    "controlTips": [
+      "Huwag ituring ang pagsusugal bilang paraan ng pagkita o paglutas ng problema sa pera.",
+      "Magtakda ng limitasyon sa oras at pera bago magsimula, at huminto kapag naabot ito.",
+      "Huwag magsugal gamit ang inutang na pera o perang kailangan para sa pangangailangan.",
+      "Huwag habulin ang talo.",
+      "Magpahinga nang regular, at iwasang magsugal kapag galit, pagod o nakainom.",
+      "Panatilihing maliit na bahagi lang ng balanseng buhay ang pagsusugal, hindi ang sentro nito."
+    ],
+    "toolsTitle": "Mga tool sa iyong JackpotsWorld account",
+    "toolsBody": "Maaaring magtakda ang mga miyembro ng deposit limit, mag-cooling-off o mag-self-exclude anumang oras mula sa Responsible Gambling na seksyon ng kanilang dashboard.",
+    "toolsCta": "Buksan ang Responsible Gambling settings",
+    "helpTitle": "Saan hihingi ng tulong",
+    "helpBody": "Nag-aalok ang mga organisasyong ito ng libre at kumpidensyal na suporta sa sinumang apektado ng pagsusugal, kabilang ang pamilya at mga kaibigan:",
+    "ageNote": "Ang JackpotsWorld ay para sa mga adult na 21 taong gulang pataas. Laging alamin at sundin ang mga batas sa lugar na tinitirhan mo at pinupuntahan mo."
   }
 }

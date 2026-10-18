@@ -22,6 +22,7 @@ import { hasAmount } from '../utils/money'
 import { toMetaDescription, TITLE_SUFFIX, ROUTE_SEO } from '../config/seo'
 import GoldLastWord from '../components/shared/GoldLastWord'
 
+import { T } from '../i18n/useSiteText'
 function formatDate(iso) {
   if (!iso) return ''
   return new Date(`${iso}T00:00:00`).toLocaleDateString('en-US', {
@@ -49,10 +50,10 @@ function fmtMoney(amount, currency = 'USD') {
 }
 
 const STATUS_STYLE = {
-  live: { color: '#ff3366', label: 'Live Now' },
-  upcoming: { color: '#D4AF37', label: 'Upcoming' },
-  published: { color: '#D4AF37', label: 'Upcoming' },
-  completed: { color: 'rgba(255,255,255,0.4)', label: 'Completed' },
+  live: { color: '#ff3366', label: T('Live Now') },
+  upcoming: { color: '#D4AF37', label: T('Upcoming') },
+  published: { color: '#D4AF37', label: T('Upcoming') },
+  completed: { color: 'rgba(255,255,255,0.4)', label: T('Completed') },
 }
 
 function Fact({ icon: Icon, label, value }) {
@@ -169,7 +170,7 @@ export default function TeenPattiDetails() {
             onClick={() => navigate('/teen-patti')}
             className="flex items-center gap-2 text-white/64 hover:text-gold transition-colors text-xs font-bold tracking-widest uppercase mb-6"
           >
-            <ArrowLeft size={14} /> Back to Teen Patti
+            <ArrowLeft size={14} />{' '}{T('Back to Teen Patti')}
           </button>
 
           {loading ? (

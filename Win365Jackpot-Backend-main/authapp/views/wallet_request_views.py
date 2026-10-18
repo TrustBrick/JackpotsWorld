@@ -279,10 +279,10 @@ class _AdminWalletRequestBase(APIView):
     permission_classes = [IsAdminUser, HasFinanceAccess]
 
 
-def _apply_common_filters(qs, request, name_field_prefix="user"):
+def _apply_common_filters(qs, request, name_field_prefix="user", apply_status=True):
     q = (request.GET.get("q") or "").strip()
     status_filter = (request.GET.get("status") or "").strip().lower()
-    if status_filter:
+    if status_filter and apply_status:
         qs = qs.filter(status=status_filter)
     if q:
         qs = qs.filter(
@@ -309,7 +309,10 @@ class AdminDepositRequestSummaryView(_AdminWalletRequestBase):
         approved_today = qs.filter(status="approved", processed_at__date=today)
 
         return Response({
-            "pending": _agg("pending"),
+            "pending": {
+                "total": qs.filter(status__in=DepositRequest.OPEN_STATUSES).aggregate(t=Sum("amount"))["t"] or Decimal("0"),
+                "count": qs.filter(status__in=DepositRequest.OPEN_STATUSES).count(),
+            },
             "processing": _agg("processing"),
             "approved": _agg("approved"),
             "rejected": _agg("rejected"),
@@ -328,7 +331,15 @@ class AdminDepositRequestSummaryView(_AdminWalletRequestBase):
 class AdminDepositRequestListView(_AdminWalletRequestBase):
     def get(self, request):
         qs = DepositRequest.objects.select_related("user", "casino", "method", "reviewed_by").order_by("-requested_at")
-        qs = _apply_common_filters(qs, request)
+        # "pending" means every request still waiting on the admin, including
+        # rows left in the retired manual "processing" state.
+        status_filter = (request.GET.get("status") or "").strip().lower()
+        if status_filter == "pending":
+            qs = qs.filter(status__in=DepositRequest.OPEN_STATUSES)
+        user_id = (request.GET.get("user_id") or "").strip()
+        if user_id:
+            qs = qs.filter(user_id=user_id)
+        qs = _apply_common_filters(qs, request, apply_status=status_filter != "pending")
         page = max(1, int(request.GET.get("page", 1) or 1))
         count = qs.count()
         start = (page - 1) * PAGE_SIZE
@@ -359,7 +370,7 @@ class AdminDepositRequestApproveView(_AdminWalletRequestBase):
                                              note=(request.data.get("note") or "").strip(), ip_address=_client_ip(request))
         except WalletRequestError as exc:
             return Response({"error": str(exc)}, status=400)
-        return Response({"message": "Deposit approved.", "request": DepositRequestAdminListSerializer(req).data})
+        return Response({"message": "Deposit completed.", "request": DepositRequestAdminListSerializer(req).data})
 
 
 class AdminDepositRequestProcessingView(_AdminWalletRequestBase):
@@ -434,7 +445,10 @@ class AdminWithdrawalRequestSummaryView(_AdminWalletRequestBase):
         paid_today = qs.filter(status="paid", processed_at__date=today)
 
         return Response({
-            "pending": _agg("pending"),
+            "pending": {
+                "total": qs.filter(status__in=DepositRequest.OPEN_STATUSES).aggregate(t=Sum("amount"))["t"] or Decimal("0"),
+                "count": qs.filter(status__in=DepositRequest.OPEN_STATUSES).count(),
+            },
             "processing": _agg("processing"),
             "approved": _agg("approved"),
             "rejected": _agg("rejected"),

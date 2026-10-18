@@ -4,6 +4,7 @@ import { useInView } from 'react-intersection-observer'
 import { UserPlus, Ticket, PlaneTakeoff, Building2 } from 'lucide-react'
 import { SECTION_PAD, CONTAINER, HEADER_GAP } from '../utils/layout'
 
+import { T } from '../i18n/useSiteText'
 /* ─────────────────────────────────────────────────────────────────────────
    ReferralJourney — what JackpotsWorld actually does, in four steps.
 
@@ -28,26 +29,26 @@ const STEPS = [
   {
     icon: UserPlus,
     n: '1',
-    title: 'Register with JackpotsWorld',
-    body: 'Create your membership and tell us your preferred destination.',
+    title: T('Register with JackpotsWorld'),
+    body: T('Create your membership and tell us your preferred destination.'),
   },
   {
     icon: Ticket,
     n: '2',
-    title: 'Receive Your Referral',
-    body: 'Our team provides the appropriate casino referral for your visit.',
+    title: T('Receive Your Referral'),
+    body: T('Our team provides the appropriate casino referral for your visit.'),
   },
   {
     icon: PlaneTakeoff,
     n: '3',
-    title: 'Visit the Casino',
-    body: 'Travel to the selected offline casino and present your JackpotsWorld referral.',
+    title: T('Visit the Casino'),
+    body: T('Travel to the selected offline casino and present your JackpotsWorld referral.'),
   },
   {
     icon: Building2,
     n: '4',
-    title: 'Play Directly at the Casino',
-    body: 'Your casino visit and gaming activity take place directly at the casino.',
+    title: T('Play Directly at the Casino'),
+    body: T('Your casino visit and gaming activity take place directly at the casino.'),
   },
 ]
 
@@ -124,14 +125,14 @@ export default function ReferralJourney() {
             letterSpacing: '0.3em', textTransform: 'uppercase',
             color: 'rgba(212,175,55,0.75)', margin: '0 0 12px',
           }}>
-            Discover. Get Referred. Play Offline.
+            {T('Discover. Get Referred. Play Offline.')}
           </p>
 
           <h2 className="section-heading" style={{
             fontSize: 'clamp(22px,4.4vw,40px)',
             lineHeight: 1.18, margin: '0 0 14px',
           }}>
-            Your Casino Journey Starts With <span className="gold-text">JackpotsWorld</span>
+            {T('Your Casino Journey Starts With')}{' '}<span className="gold-text">JackpotsWorld</span>
           </h2>
 
           <p style={{
@@ -139,8 +140,7 @@ export default function ReferralJourney() {
             color: 'rgba(var(--w365-text-rgb),0.74)',
             maxWidth: 620, margin: '0 auto',
           }}>
-            JackpotsWorld connects members with selected offline casino destinations and VIP
-            experiences. We are not an online casino — gaming takes place at the venue you visit.
+            {T('JackpotsWorld connects members with selected offline casino destinations and VIP experiences. We are not an online casino — gaming takes place at the venue you visit.')}
           </p>
         </motion.div>
 

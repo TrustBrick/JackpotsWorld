@@ -10,17 +10,18 @@ import { useAdminTheme } from "../context/AdminThemeContext";
 const STATUS_TABS = [
   { id: "", label: "All" },
   { id: "pending", label: "Pending" },
-  { id: "processing", label: "Processing" },
-  { id: "approved", label: "Approved" },
+  { id: "approved", label: "Completed" },
   { id: "rejected", label: "Rejected" },
   { id: "cancelled", label: "Cancelled" },
 ];
 
 function StatusPill({ status, C }) {
   const cfg = {
+    // "processing" is a retired manual state; such rows are still waiting
+    // on the admin, so they read as Pending.
     pending:    { color: C.orange, label: "Pending" },
-    processing: { color: C.blue,   label: "Processing" },
-    approved:   { color: C.green,  label: "Approved" },
+    processing: { color: C.orange, label: "Pending" },
+    approved:   { color: C.green,  label: "Completed" },
     rejected:   { color: C.red,    label: "Rejected" },
     cancelled:  { color: C.muted,  label: "Cancelled" },
   }[status] || { color: C.muted, label: status || "—" };
@@ -79,11 +80,10 @@ export default function DepositRequestsTab({ onToast }) {
 
   const SUMMARY_CARDS = [
     { key: "pending", label: "Pending", icon: Clock, color: C.orange },
-    { key: "processing", label: "Processing", icon: RefreshCw, color: C.blue },
-    { key: "approved", label: "Approved", icon: Check, color: C.green },
+    { key: "approved", label: "Completed", icon: Check, color: C.green },
     { key: "rejected", label: "Rejected", icon: X, color: C.red },
     { key: "cancelled", label: "Cancelled", icon: Ban, color: C.muted },
-    { key: "approved_today", label: "Approved Today", icon: Check, color: "#A78BFA" },
+    { key: "approved_today", label: "Completed Today", icon: Check, color: "#A78BFA" },
   ];
 
   return (
@@ -111,7 +111,7 @@ export default function DepositRequestsTab({ onToast }) {
           <div style={{ fontSize: 17, fontWeight: 900, color: C.gold, fontFamily: "monospace" }}>{summary ? fmt(summary.total_requested) : "—"}</div>
         </Card>
         <Card style={{ padding: 16 }}>
-          <div style={{ fontSize: 11, color: C.muted, fontWeight: 700, textTransform: "uppercase", marginBottom: 6 }}>Total Approved</div>
+          <div style={{ fontSize: 11, color: C.muted, fontWeight: 700, textTransform: "uppercase", marginBottom: 6 }}>Total Completed</div>
           <div style={{ fontSize: 17, fontWeight: 900, color: C.green, fontFamily: "monospace" }}>{summary ? fmt(summary.total_approved) : "—"}</div>
         </Card>
         <Card style={{ padding: 16 }}>
@@ -222,8 +222,9 @@ function DepositDetailModal({ id, C, onClose, onDone }) {
   };
 
   const status = data?.status;
+  // No manual status changes: completing the deposit credits the player and
+  // moves the request straight from Pending to Completed.
   const canApprove = status === "pending" || status === "processing";
-  const canProcessing = status === "pending";
   const canReject = status === "pending" || status === "processing";
   const canCancel = status === "pending" || status === "processing";
 
@@ -292,11 +293,10 @@ function DepositDetailModal({ id, C, onClose, onDone }) {
 
                 {!mode && (
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", borderTop: `1px solid ${C.border}`, paddingTop: 14 }}>
-                    {canApprove && <Btn small color={C.green} disabled={busy} onClick={() => act("approve")}><Check size={12} /> Approve</Btn>}
-                    {canProcessing && <Btn small color={C.blue} disabled={busy} onClick={() => act("processing")}><RefreshCw size={12} /> Move to Processing</Btn>}
+                    {canApprove && <Btn small color={C.green} disabled={busy} onClick={() => act("approve")}><Check size={12} /> {busy ? "Completing…" : "Complete Deposit"}</Btn>}
                     {canReject && <Btn small outline color={C.red} disabled={busy} onClick={() => setMode("reject")}><X size={12} /> Reject</Btn>}
                     {canCancel && <Btn small outline color={C.muted} disabled={busy} onClick={() => act("cancel")}><Ban size={12} /> Cancel</Btn>}
-                    {!canApprove && !canProcessing && !canReject && (
+                    {!canApprove && !canReject && (
                       <div style={{ fontSize: 12, color: C.muted, display: "flex", alignItems: "center", gap: 6 }}>
                         <AlertCircle size={13} /> This request is in a final state — no further actions available.
                       </div>

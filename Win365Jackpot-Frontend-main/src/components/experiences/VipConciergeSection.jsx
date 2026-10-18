@@ -8,6 +8,8 @@ import useEnquiryMessage from '../../hooks/useEnquiryMessage'
 import { buildWhatsAppLink } from '../../services/enquiryContact'
 import { enquiryContext, recordWhatsAppClick } from '../../services/whatsappEnquiryService'
 
+import { T } from '../../i18n/useSiteText'
+import GoldLastWord from '../shared/GoldLastWord'
 /**
  * §12 VIP CONCIERGE — the glue between everything above it.
  *
@@ -69,13 +71,13 @@ export default function VipConciergeSection() {
             className="font-body"
             style={{ fontSize: 11, letterSpacing: '0.24em', textTransform: 'uppercase', color: 'var(--w365-text-muted)', marginBottom: 12 }}
           >
-            One Point Of Contact
+            {T('One Point Of Contact')}
           </p>
           <h2
             className="section-heading"
             style={{ fontSize: 'clamp(1.9rem, 6.2vw, 3.3rem)', lineHeight: 1.06, marginBottom: 16 }}
           >
-            Your Personal Destination <span className="gold-text">Concierge</span>
+            <GoldLastWord text={T('Your Personal Destination Concierge')} />
           </h2>
           <p
             className="font-body"
@@ -84,9 +86,7 @@ export default function VipConciergeSection() {
               lineHeight: 1.75, maxWidth: 680, margin: `0 auto ${HEADER_GAP}`,
             }}
           >
-            Travel, stays, introductions, tables and transfers — arranged by one
-            host who knows the whole trip, so you are not coordinating five
-            different bookings yourself.
+            {T('Travel, stays, introductions, tables and transfers — arranged by one host who knows the whole trip, so you are not coordinating five different bookings yourself.')}
           </p>
         </motion.div>
 
@@ -118,7 +118,7 @@ export default function VipConciergeSection() {
               fontSize: 12.5, fontWeight: 800, letterSpacing: '0.09em', textTransform: 'uppercase',
             }}
           >
-            <Headset size={15} /> Talk To A VIP Host
+            <Headset size={15} />{' '}{T('Talk To A VIP Host')}
           </button>
           <a
             href={buildWhatsAppLink(number, waMessage)}

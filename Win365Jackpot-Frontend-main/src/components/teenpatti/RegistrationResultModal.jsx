@@ -2,6 +2,7 @@ import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CheckCircle2, AlertTriangle, X, Ticket, CalendarDays, MapPin } from 'lucide-react'
 
+import { T } from '../../i18n/useSiteText'
 function formatDate(iso) {
   if (!iso) return ''
   return new Date(`${iso}T00:00:00`).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -41,7 +42,7 @@ export default function RegistrationResultModal({ result, onClose }) {
           >
             <button
               onClick={onClose}
-              aria-label="Close"
+              aria-label={T('Close')}
               className="absolute top-4 right-4 text-white/55 hover:text-white/80 transition-colors"
             >
               <X size={18} />
@@ -61,7 +62,7 @@ export default function RegistrationResultModal({ result, onClose }) {
               </div>
 
               <h3 className="font-black text-xl text-[rgba(var(--w365-text-rgb),0.92)] mb-2">
-                {ok ? 'Seat Confirmed' : 'Registration Not Completed'}
+                {ok ? T('Seat Confirmed') : T('Registration Not Completed')}
               </h3>
               <p className="text-white/74 text-sm font-body mb-5">{result.message}</p>
 
@@ -71,7 +72,7 @@ export default function RegistrationResultModal({ result, onClose }) {
                   style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.28)' }}
                 >
                   <p className="text-[10px] uppercase tracking-widest text-white/60 font-body mb-1">
-                    Confirmation ID
+                    {T('Confirmation ID')}
                   </p>
                   <p
                     className="text-lg font-black text-gold mb-3 flex items-center gap-2"
@@ -98,7 +99,7 @@ export default function RegistrationResultModal({ result, onClose }) {
                 onClick={onClose}
                 className="btn-gold w-full rounded-full py-3 text-xs font-bold tracking-widest uppercase"
               >
-                {ok ? 'Done' : 'Close'}
+                {ok ? T('Done') : T('Close')}
               </button>
             </div>
           </motion.div>

@@ -63,7 +63,7 @@ def resolve_participant_type(user, requested):
     return PARTICIPANT_AFFILIATE if is_affiliate else PARTICIPANT_PLAYER
 
 
-def get_or_create_active_session(user, participant_type=PARTICIPANT_PLAYER):
+def get_or_create_active_session(user, participant_type=PARTICIPANT_PLAYER, greet=True):
     """One active live-chat session per user *per portal*. A resolved/closed
     session no longer counts, so the next click starts a fresh one — prior
     sessions remain visible in ticket history.
@@ -111,7 +111,11 @@ def get_or_create_active_session(user, participant_type=PARTICIPANT_PLAYER):
             status="open",
         )
         created = True
-        _post_opening_greeting(session)
+        # An agent opening the conversation themselves (Back Office "start
+        # chat") writes their own first message; the desk greeting would only
+        # sit in front of it.
+        if greet:
+            _post_opening_greeting(session)
     return session, created
 
 
@@ -330,7 +334,10 @@ def post_message(ticket, sender_type, sender_user, text, client_message_id=None,
         return existing
 
     update_fields = ["updated_at"]
-    if sender_type == "user" and ticket.status == "open":
+    # Pending -> Processing as soon as either side engages with the request
+    # (the customer follows up, or an agent starts working it); Completed is
+    # only ever an explicit agent action.
+    if ticket.status == "open":
         ticket.status = "in_progress"
         update_fields.append("status")
     ticket.updated_at = timezone.now()

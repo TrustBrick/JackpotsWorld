@@ -182,9 +182,14 @@ def admin_approve_deposit(*, request_obj, actor, note="", ip_address=None):
     request_obj = DepositRequest.objects.select_for_update().get(pk=request_obj.pk)
     _require_deposit_status(request_obj, "pending", "processing")
 
+    ledger_note = f"Deposit request {request_obj.request_reference} completed" + (f" — {note}" if note else "")
+    if request_obj.casino_id:
+        # Same tag shape as every other casino row in the ledger, so the
+        # Back Office sees "[CASINO:Ballys Casino] [C] DAC $1000 | ...".
+        ledger_note = f"[CASINO:{request_obj.casino.name}] [{CASH}] DAC ${request_obj.amount} | {ledger_note}"
     credit_main_wallet(
         request_obj.user, CASH, request_obj.amount, txn_type="DAC",
-        note=f"Deposit request {request_obj.request_reference} approved" + (f" — {note}" if note else ""),
+        note=ledger_note,
         actor=actor,
     )
     txn = _latest_wallet_txn(request_obj.user, "DAC")
@@ -207,8 +212,8 @@ def admin_approve_deposit(*, request_obj, actor, note="", ip_address=None):
         amount=request_obj.amount, description=f"Deposit request {request_obj.request_reference} approved",
         reference_id=request_obj.request_reference, ip_address=ip_address,
     )
-    _notify(request_obj.user, "Deposit approved",
-            f"Your deposit request {request_obj.request_reference} for ${request_obj.amount:,.2f} has been approved and credited to your Cash Wallet.")
+    _notify(request_obj.user, "Deposit completed",
+            f"Your deposit request {request_obj.request_reference} for ${request_obj.amount:,.2f} has been completed and credited to your Cash Wallet.")
 
     # Deposit Commission — an approved DepositRequest is one of the two
     # deposits affiliate_stats_service.get_deposit_totals() counts (the other
@@ -221,27 +226,14 @@ def admin_approve_deposit(*, request_obj, actor, note="", ip_address=None):
     return request_obj
 
 
-@db_transaction.atomic
 def admin_move_deposit_processing(*, request_obj, actor, note="", ip_address=None):
-    request_obj = DepositRequest.objects.select_for_update().get(pk=request_obj.pk)
-    _require_deposit_status(request_obj, "pending")
-
-    request_obj.status = "processing"
-    request_obj.reviewed_by = actor
-    if note:
-        request_obj.admin_notes = note
-    request_obj.save(update_fields=["status", "reviewed_by", "admin_notes", "updated_at"])
-
-    DepositRequestStatusHistory.objects.create(
-        request=request_obj, from_status="pending", to_status="processing",
-        changed_by=actor, note=note, ip_address=ip_address,
+    # Deposit requests no longer have a manual Processing step: a request is
+    # Pending until the admin completes the deposit, which moves it straight
+    # to Completed (admin_approve_deposit). Kept as a refusal rather than
+    # deleted so an old client calling the endpoint gets a clear answer.
+    raise WalletRequestError(
+        "Deposit requests have no manual Processing step — complete the deposit instead."
     )
-    ActivityLog.log(actor=actor, target_user=request_obj.user, action="main_deposit_processing",
-                     amount=request_obj.amount, description=f"Deposit request {request_obj.request_reference} moved to processing",
-                     reference_id=request_obj.request_reference, ip_address=ip_address)
-    _notify(request_obj.user, "Deposit request processing",
-            f"Your deposit request {request_obj.request_reference} is now being processed.")
-    return request_obj
 
 
 @db_transaction.atomic

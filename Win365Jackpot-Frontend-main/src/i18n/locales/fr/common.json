@@ -13,7 +13,8 @@
     "whatsapp": "WhatsApp",
     "telegram": "Telegram",
     "signOut": "Se déconnecter",
-    "language": "Langue"
+    "language": "Langue",
+    "kyc": "Vérification KYC"
   },
   "vip": {
     "vip": "VIP",
@@ -116,7 +117,9 @@
     "transaction": "Transaction",
     "balanceBefore": "Solde avant",
     "balanceAfter": "Solde après",
-    "approved": "APPROUVÉ"
+    "approved": "APPROUVÉ",
+    "totalCasinoBalance": "Solde total des casinos",
+    "totalCasinoBalanceSub": "Solde cumulé de tous les portefeuilles casino"
   },
   "system": {
     "genericError": "Une erreur s'est produite",
@@ -314,7 +317,11 @@
     "otpCreditsLabel": "Crédits OTP",
     "verification": "Vérification",
     "rollingPointsLabel": "Points Rolling",
-    "rewardPoints": "Points de récompense"
+    "rewardPoints": "Points de récompense",
+    "merchandise": "Articles",
+    "giftVoucher": "Carte cadeau",
+    "discountVoucher": "Bon de réduction",
+    "spinReward": "Récompense de la roue"
   },
   "packages": {
     "casinoTourPackages": "Forfaits de tournée casino",
@@ -407,7 +414,9 @@
     "faqShortcut": "Foire aux questions",
     "pleaseFillBoth": "Veuillez remplir les deux champs",
     "ticketSubmitted": "Ticket de support envoyé",
-    "failedToSubmit": "Échec de l'envoi du ticket"
+    "failedToSubmit": "Échec de l'envoi du ticket",
+    "ticket": "Choisir une catégorie de ticket",
+    "uploadDocument": "Téléverser un document"
   },
   "travel": {
     "header": "Historique des voyages au casino",
@@ -437,7 +446,7 @@
   "poker": {
     "eyebrow": "Mises Fortes, Action en Direct",
     "title": "Poker",
-    "subtitle": "Tournois à venir et **tables en direct** de nos casinos partenaires — obtenez votre billet ou suivez le programme se remplir en temps réel.",
+    "subtitle": "Découvrez des expériences de poker haut de gamme avec JackpotsWorld. Explorez des destinations poker VIP, des forfaits casino exclusifs, une hospitalité de luxe et des **expériences de poker d'exception** à travers l'Asie.",
     "signInPrompt": "Connectez-vous pour obtenir votre billet pour les tournois et suivre vos événements inscrits.",
     "loadError": "Impossible de charger les tournois pour le moment. Veuillez réessayer.",
     "noTournaments": "Aucun tournoi prévu pour le moment. Revenez bientôt.",
@@ -450,7 +459,20 @@
     "upcomingTournaments": "Tournois à venir",
     "completedTournaments": "Tournois terminés",
     "viewLiveEvents": "Voir les événements en direct",
-    "exploreUpcoming": "Explorer les prochains"
+    "exploreUpcoming": "Explorer les prochains",
+    "info": {
+      "heading": "Destinations poker et expériences VIP",
+      "intro": "Explorez les destinations poker et les opportunités de tournois avec JackpotsWorld. Nous aidons les visiteurs à découvrir les expériences de poker disponibles, les destinations possibles et les services VIP associés.",
+      "tournamentsTitle": "Tournois de poker",
+      "tournamentsBody": "Vous cherchez des informations sur les tournois de poker ? Vérifiez les derniers calendriers, le détail des événements, les conditions de participation et les disponibilités directement auprès de l'établissement ou de l'organisateur concerné.",
+      "destinationsTitle": "Destinations poker en Inde",
+      "destinationsBody": "Découvrez des expériences autour du poker dans les destinations où il est légalement proposé. Vérifiez les détails de l'établissement, les conditions d'éligibilité et la réglementation locale avant de planifier votre visite.",
+      "vipTitle": "Services VIP",
+      "vipBody": "Contactez JackpotsWorld pour connaître les services VIP et l'assistance sur place actuellement disponibles. Les avantages et modalités dépendent de l'établissement et des conditions applicables.",
+      "contactTitle": "Contacter JackpotsWorld",
+      "contactBody": "Contactez notre équipe pour des informations fiables sur les destinations, les événements de poker et les services VIP disponibles.",
+      "contactChat": "Parler à notre équipe"
+    }
   },
   "events": {
     "eyebrow": "Jackpotsworld Présente",
@@ -548,5 +570,63 @@
     "earnCommission": "Gagnez une Commission Horaire",
     "tagline": "Tout en Profitant du Jeu",
     "disclaimer": "Les joueurs éligibles peuvent profiter d'avantages exclusifs de voyage, de séjour et de gains tout en profitant de l'expérience de jeu. Conditions générales applicables."
+  },
+  "cookieConsent": {
+    "title": "Votre vie privée compte pour nous",
+    "message": "Nous utilisons des cookies essentiels au fonctionnement du site et des cookies d'analyse facultatifs pour comprendre son utilisation. Vous pouvez accepter ou refuser les cookies facultatifs.",
+    "learnMore": "Politique relative aux cookies",
+    "accept": "Tout accepter",
+    "reject": "Refuser les non essentiels"
+  },
+  "onlineGambling": {
+    "eyebrow": "Information et sécurité des joueurs",
+    "title": "Jeux d'argent en ligne",
+    "subtitle": "Ce que sont les jeux d'argent en ligne, leurs risques et où trouver de l'aide. **JackpotsWorld n'est pas un site de jeux d'argent en ligne** et n'encourage aucune forme de jeu.",
+    "noticeTitle": "Nous ne faisons pas la promotion des jeux d'argent en ligne",
+    "noticeBody": "JackpotsWorld n'exploite, n'héberge et ne renvoie vers aucun casino en ligne en argent réel, aucune application de paris ni aucune plateforme de jeu en ligne. Il est impossible de parier ou de jouer pour de l'argent sur ce site. Nous partageons des informations sur des établissements physiques autorisés destinés aux adultes, et nous n'encourageons jamais personne à jouer.",
+    "positionTitle": "Notre position",
+    "positionPoints": [
+      "Ce site n'est pas un site de jeux d'argent en ligne et nous ne proposons pas de jeux en ligne.",
+      "Nous n'encourageons, ne promouvons ni ne récompensons le jeu, en ligne ou hors ligne.",
+      "Notre contenu informe sur des destinations physiques, des événements et l'hospitalité pour adultes, là où ces établissements sont légaux.",
+      "Si le jeu n'est plus un choix avec lequel vous êtes à l'aise, arrêtez et demandez de l'aide — les ressources ci-dessous sont gratuites et confidentielles."
+    ],
+    "whatTitle": "Que sont les jeux d'argent en ligne ?",
+    "whatBody": "Les jeux d'argent en ligne consistent à miser de l'argent sur Internet — jeux de type casino, paris sportifs, jeux de cartes ou loteries — via un site ou une application. Comme ils sont accessibles à toute heure sur un téléphone, il peut être bien plus difficile de garder le contrôle du temps et de l'argent que dans un établissement physique. Leur légalité dépend de votre lieu de résidence ; dans de nombreux endroits, dont plusieurs États indiens, ils sont restreints ou interdits.",
+    "risksTitle": "Les risques",
+    "risks": [
+      "Ils sont toujours disponibles, si bien que le jeu peut se prolonger sans pause naturelle.",
+      "Les pertes s'accumulent vite quand les mises se font en quelques secondes et que l'argent est numérique.",
+      "Courir après ses pertes — miser davantage pour récupérer ce qui est perdu — aggrave généralement la situation.",
+      "Les sites sans licence peuvent ne pas payer, détourner vos données personnelles ou bancaires, ou être de véritables escroqueries.",
+      "Ils peuvent nuire au sommeil, au travail, aux études, aux relations et à la santé mentale.",
+      "Emprunter ou utiliser l'argent destiné aux factures pour jouer peut mener à un endettement grave."
+    ],
+    "signsTitle": "Signes que le jeu devient un problème",
+    "signs": [
+      "Dépenser plus de temps ou d'argent que prévu, encore et encore.",
+      "Penser au jeu la majeure partie de la journée, ou se sentir agité quand on arrête.",
+      "Cacher à sa famille ou à ses amis combien on joue.",
+      "Jouer pour échapper au stress, à la solitude ou à la déprime.",
+      "Emprunter, vendre des biens ou manquer des paiements à cause du jeu.",
+      "Ressentir le besoin de miser des sommes plus importantes pour retrouver la même excitation."
+    ],
+    "addictionTitle": "Ne le laissez pas devenir une addiction",
+    "addictionBody": "L'addiction au jeu est un trouble de santé reconnu, pas un manque de volonté, et elle peut toucher n'importe qui. Plus elle est repérée tôt, plus il est facile de reprendre le contrôle. Si certains signes ci-dessus vous parlent, confiez-vous à une personne de confiance et contactez l'un des services d'aide ci-dessous.",
+    "controlTitle": "Garder le contrôle",
+    "controlTips": [
+      "Ne considérez jamais le jeu comme un moyen de gagner de l'argent ou de régler des problèmes financiers.",
+      "Fixez une limite de temps et d'argent avant de commencer, et arrêtez-vous quand vous l'atteignez.",
+      "Ne jouez jamais avec de l'argent emprunté ou nécessaire à l'essentiel.",
+      "Ne courez pas après vos pertes.",
+      "Faites des pauses régulières et évitez de jouer lorsque vous êtes contrarié, fatigué ou que vous avez bu.",
+      "Faites du jeu une petite part d'une vie équilibrée, jamais son centre."
+    ],
+    "toolsTitle": "Les outils de votre compte JackpotsWorld",
+    "toolsBody": "Les membres peuvent à tout moment fixer des limites de dépôt, faire une pause ou s'auto-exclure depuis la section Jeu responsable de leur tableau de bord.",
+    "toolsCta": "Ouvrir les paramètres de jeu responsable",
+    "helpTitle": "Où trouver de l'aide",
+    "helpBody": "Ces organismes offrent un soutien gratuit et confidentiel à toute personne touchée par le jeu, y compris la famille et les amis :",
+    "ageNote": "JackpotsWorld s'adresse aux adultes de 21 ans et plus. Vérifiez et respectez toujours les lois en vigueur là où vous vivez et là où vous voyagez."
   }
 }

@@ -375,8 +375,15 @@ class AdminOfflineDepositsView(APIView):
             # ──────────────────────────────────────────────────────────────────
             if txn_type in CASINO_DEPOSIT:
                 try:
-                    new_main_bal = _debit_main(user, wallet_type, amount, txn_type,
-                                               note or f"Deposit at {casino}", actor)
+                    # Tagged exactly like a LAC/WAC row ("[CASINO:X] [C] DAC $1000 |
+                    # note") so the transaction ledger names the casino the
+                    # money went to. DAC has no separate casino audit row (see
+                    # credit_casino_wallet), so this row is the only one.
+                    new_main_bal = _debit_main(
+                        user, wallet_type, amount, txn_type,
+                        f"[CASINO:{casino}] [{wallet_type}] {txn_type} ${amount} | {note or f'Deposit at {casino}'}",
+                        actor,
+                    )
                 except ValueError as exc:
                     return Response({"error": f"User main wallet: {exc}"}, status=400)
                 casino_result = credit_casino_wallet(

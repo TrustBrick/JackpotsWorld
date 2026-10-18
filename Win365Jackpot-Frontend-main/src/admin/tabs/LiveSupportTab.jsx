@@ -18,6 +18,7 @@ import CallStatus from "../../components/support/CallStatus";
 import CallHistoryList from "../../components/support/CallHistoryList";
 import { adminCallTheme } from "../../components/support/callTheme";
 import { openAttachment } from "../../services/attachments";
+import LiveChatContactPicker from "../components/LiveChatContactPicker";
 
 const SOUND_PREF_KEY = "admin_live_chat_sound";
 
@@ -388,6 +389,29 @@ export default function LiveSupportTab({ onToast }) {
     } else onToast?.("Failed to update status", false);
   };
 
+  // Agent-initiated contact: open (or rejoin) this person's conversation,
+  // select it, and either leave the composer ready or ring them straight away.
+  const startConversation = async (contact, participantType, action) => {
+    const r = await adminFetch(`${API}/api/admin-panel/live-chat/start/`, {
+      method: "POST",
+      body: JSON.stringify({ user_id: contact.id, participant_type: participantType }),
+    });
+    const j = await r?.json().catch(() => ({}));
+    if (!r?.ok || !j?.session) {
+      onToast?.(j?.error || "Could not start the conversation", false);
+      return;
+    }
+    const session = j.session;
+    setSessions(prev => (prev.some(s => s.id === session.id) ? prev : [session, ...prev]));
+    setFilter("all");
+    setSelectedId(session.id);
+    if (action === "call") {
+      voiceCall?.startCallback?.(session.id);
+    } else {
+      onToast?.(`Conversation with ${contact.name || contact.email} is open — type your message`, true);
+    }
+  };
+
   const selected = sessions.find(s => s.id === selectedId);
   const visibleSessions = filter === "all"
     ? sessions
@@ -447,9 +471,14 @@ export default function LiveSupportTab({ onToast }) {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 14, alignItems: "start" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 14, alignItems: "start" }}>
         {/* Session list */}
         <Card solid style={{ padding: 0, overflow: "hidden" }}>
+          <LiveChatContactPicker
+            C={C}
+            onStart={startConversation}
+            canCall={!!voiceCall?.available && callPhase === PHASE.IDLE}
+          />
           {/* Players / Affiliates segmentation — an affiliate asking about a
               commission and a player asking about a withdrawal are different
               queues, and previously both landed in one undifferentiated list. */}
@@ -551,7 +580,7 @@ export default function LiveSupportTab({ onToast }) {
         <Card style={{ minHeight: 520, display: "flex", flexDirection: "column" }}>
           {!selected ? (
             <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: C.muted, fontSize: 12.5 }}>
-              Select a session to view the conversation
+              Select a session, or start one with a player or affiliate on the left
             </div>
           ) : (
             <>

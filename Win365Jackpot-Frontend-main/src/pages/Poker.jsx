@@ -10,6 +10,7 @@ import HeroBackgroundVideo from '../components/shared/HeroBackgroundVideo'
 import SectionHeroMedia from '../components/shared/SectionHeroMedia'
 import PokerCard from '../components/poker/PokerCard'
 import PokerFilters from '../components/poker/PokerFilters'
+import PokerInfoSection from '../components/poker/PokerInfoSection'
 import AuthModal from '../components/AuthModal'
 import { fetchPokerTournaments, fetchPokerFilters } from '../services/pokerService'
 import { fetchSectionMedia } from '../services/landingService'
@@ -239,6 +240,11 @@ export default function Poker() {
           </div>
         )}
       </section>
+
+      {/* What JackpotsWorld offers around the listings: destinations, VIP
+          help and how to reach the team. Below the schedule so the listings
+          stay the first thing a returning visitor sees. */}
+      <PokerInfoSection />
       </main>
 
       <PageScrollButtons />

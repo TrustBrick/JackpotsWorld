@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Clock, LogOut, ShieldCheck } from 'lucide-react'
 import { roleForPath } from '../config/session'
 
+import { T } from '../i18n/useSiteText'
 const DARK = {
   panel:  '#0F0F16',
   border: 'rgba(255,255,255,0.08)',
@@ -138,16 +139,16 @@ export default function SessionTimeoutModal({ open, secondsLeft, onStay, onLogou
                 letterSpacing: '-0.01em', marginBottom: 10,
               }}
             >
-              Session Expiring
+              {T('Session Expiring')}
             </div>
 
             <div
               id="session-timeout-desc"
               style={{ fontSize: 13, color: P.sub, lineHeight: 1.75, marginBottom: 20 }}
             >
-              You have been inactive for a while. Your session will expire in{' '}
+              {T('You have been inactive for a while. Your session will expire in')}{' '}
               <span style={{ color: P.gold, fontWeight: 800 }}>{label}</span>{' '}
-              for security reasons.
+              {T('for security reasons.')}
             </div>
 
             <div style={{
@@ -159,7 +160,7 @@ export default function SessionTimeoutModal({ open, secondsLeft, onStay, onLogou
             }}>
               {String(Math.floor(mmss / 60)).padStart(2, '0')}
               :
-              {String(mmss % 60).padStart(2, '0')} remaining
+              {String(mmss % 60).padStart(2, '0')}{' '}{T('remaining')}
             </div>
 
             <div style={{ display: 'flex', gap: 10 }}>
@@ -174,7 +175,7 @@ export default function SessionTimeoutModal({ open, secondsLeft, onStay, onLogou
                   fontFamily: 'inherit',
                 }}
               >
-                <ShieldCheck size={14} /> Stay Logged In
+                <ShieldCheck size={14} />{' '}{T('Stay Logged In')}
               </button>
               <button
                 onClick={onLogout}
@@ -186,7 +187,7 @@ export default function SessionTimeoutModal({ open, secondsLeft, onStay, onLogou
                   fontFamily: 'inherit',
                 }}
               >
-                <LogOut size={14} /> Logout Now
+                <LogOut size={14} />{' '}{T('Logout Now')}
               </button>
             </div>
           </motion.div>

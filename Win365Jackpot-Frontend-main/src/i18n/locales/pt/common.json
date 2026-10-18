@@ -13,7 +13,8 @@
     "whatsapp": "WhatsApp",
     "telegram": "Telegram",
     "signOut": "Sair",
-    "language": "Idioma"
+    "language": "Idioma",
+    "kyc": "Verificação KYC"
   },
   "vip": {
     "vip": "VIP",
@@ -116,7 +117,9 @@
     "transaction": "Transação",
     "balanceBefore": "Saldo antes",
     "balanceAfter": "Saldo depois",
-    "approved": "APROVADO"
+    "approved": "APROVADO",
+    "totalCasinoBalance": "Saldo total em cassinos",
+    "totalCasinoBalanceSub": "Saldo combinado de todas as carteiras de cassino"
   },
   "system": {
     "genericError": "Algo deu errado",
@@ -314,7 +317,11 @@
     "otpCreditsLabel": "Créditos OTP",
     "verification": "Verificação",
     "rollingPointsLabel": "Pontos Rolling",
-    "rewardPoints": "Pontos de Recompensa"
+    "rewardPoints": "Pontos de Recompensa",
+    "merchandise": "Produtos",
+    "giftVoucher": "Vale-presente",
+    "discountVoucher": "Cupom de desconto",
+    "spinReward": "Prêmio da roleta"
   },
   "packages": {
     "casinoTourPackages": "Pacotes de Turismo de Cassino",
@@ -407,7 +414,9 @@
     "faqShortcut": "Perguntas Frequentes",
     "pleaseFillBoth": "Por favor, preencha ambos os campos",
     "ticketSubmitted": "Chamado de suporte enviado",
-    "failedToSubmit": "Falha ao enviar o chamado"
+    "failedToSubmit": "Falha ao enviar o chamado",
+    "ticket": "Selecione a categoria do ticket",
+    "uploadDocument": "Enviar documento"
   },
   "travel": {
     "header": "Histórico de Viagens de Cassino",
@@ -437,7 +446,7 @@
   "poker": {
     "eyebrow": "Altas Apostas, Ação ao Vivo",
     "title": "Pôquer",
-    "subtitle": "Próximos torneios e **mesas ao vivo** dos nossos cassinos parceiros — garanta seu ticket ou acompanhe a agenda se preencher em tempo real.",
+    "subtitle": "Descubra experiências de pôquer premium com a JackpotsWorld. Explore destinos de pôquer VIP, pacotes de cassino exclusivos, hospitalidade de luxo e **experiências de pôquer de nível mundial** em toda a Ásia.",
     "signInPrompt": "Entre para obter seu ticket para os torneios e acompanhar seus eventos inscritos.",
     "loadError": "Não foi possível carregar os torneios no momento. Tente novamente.",
     "noTournaments": "Nenhum torneio agendado no momento. Volte em breve.",
@@ -450,7 +459,20 @@
     "upcomingTournaments": "Próximos torneios",
     "completedTournaments": "Torneios concluídos",
     "viewLiveEvents": "Ver eventos ao vivo",
-    "exploreUpcoming": "Explorar próximos"
+    "exploreUpcoming": "Explorar próximos",
+    "info": {
+      "heading": "Destinos de pôquer e experiências VIP",
+      "intro": "Explore destinos de pôquer e oportunidades de torneios com a JackpotsWorld. Ajudamos os visitantes a conhecer as experiências de pôquer disponíveis, as opções de destino e os serviços VIP relacionados.",
+      "tournamentsTitle": "Torneios de pôquer",
+      "tournamentsBody": "Procurando informações sobre torneios de pôquer? Confira os calendários mais recentes, detalhes dos eventos, requisitos de participação e disponibilidade diretamente com o estabelecimento ou organizador.",
+      "destinationsTitle": "Destinos de pôquer na Índia",
+      "destinationsBody": "Explore experiências de pôquer em destinos onde ele é oferecido legalmente. Confirme os detalhes do estabelecimento, os requisitos e as normas locais antes de planejar sua visita.",
+      "vipTitle": "Serviços VIP",
+      "vipBody": "Fale com a JackpotsWorld para conhecer os serviços VIP e o suporte no destino disponíveis atualmente. Os benefícios e as condições dependem do estabelecimento e dos termos aplicáveis.",
+      "contactTitle": "Fale com a JackpotsWorld",
+      "contactBody": "Fale com nossa equipe para obter informações precisas sobre destinos, eventos de pôquer e serviços VIP disponíveis.",
+      "contactChat": "Fale com nossa equipe"
+    }
   },
   "events": {
     "eyebrow": "Jackpotsworld Apresenta",
@@ -548,5 +570,63 @@
     "earnCommission": "Ganhe Comissão por Hora",
     "tagline": "Enquanto Aproveita o Jogo",
     "disclaimer": "Jogadores elegíveis podem desfrutar de benefícios exclusivos de viagem, estadia e ganhos enquanto aproveitam a experiência de jogo. Aplicam-se termos e condições."
+  },
+  "cookieConsent": {
+    "title": "Valorizamos sua privacidade",
+    "message": "Usamos cookies essenciais para o funcionamento do site e cookies analíticos opcionais para entender como ele é usado. Você pode aceitar ou recusar os opcionais.",
+    "learnMore": "Política de cookies",
+    "accept": "Aceitar todos",
+    "reject": "Recusar os não essenciais"
+  },
+  "onlineGambling": {
+    "eyebrow": "Informação e segurança do jogador",
+    "title": "Jogos de azar online",
+    "subtitle": "O que são jogos de azar online, os riscos envolvidos e onde buscar ajuda. **A JackpotsWorld não é um site de jogos de azar online** e não incentiva nenhum tipo de jogo.",
+    "noticeTitle": "Não promovemos jogos de azar online",
+    "noticeBody": "A JackpotsWorld não opera, hospeda nem direciona para cassinos online com dinheiro real, aplicativos de apostas ou plataformas de jogos online. Neste site não é possível apostar nem jogar por dinheiro. Compartilhamos informações sobre estabelecimentos presenciais licenciados para adultos e nunca incentivamos ninguém a jogar.",
+    "positionTitle": "Nossa posição",
+    "positionPoints": [
+      "Este não é um site de jogos de azar online, e não oferecemos jogos online.",
+      "Não incentivamos, anunciamos nem recompensamos jogos de azar, online ou presenciais.",
+      "Nosso conteúdo é informação sobre destinos presenciais, eventos e hospitalidade para adultos onde esses estabelecimentos são legais.",
+      "Se o jogo deixou de ser uma escolha confortável para você, pare e procure ajuda — os recursos abaixo são gratuitos e confidenciais."
+    ],
+    "whatTitle": "O que são jogos de azar online?",
+    "whatBody": "Jogos de azar online significam apostar dinheiro pela internet — em jogos de cassino, apostas esportivas, jogos de cartas ou loterias — por meio de um site ou aplicativo. Como estão disponíveis no celular a qualquer hora, pode ser muito mais difícil controlar tempo e dinheiro do que em um estabelecimento físico. A legalidade depende de onde você mora; em muitos lugares, incluindo vários estados da Índia, eles são restritos ou proibidos.",
+    "risksTitle": "Os riscos",
+    "risks": [
+      "Estão sempre disponíveis, então o jogo pode se prolongar sem uma pausa natural.",
+      "As perdas se acumulam rápido quando as apostas são feitas em segundos e o dinheiro é digital.",
+      "Correr atrás das perdas — apostar mais para recuperar o que foi perdido — geralmente piora a situação.",
+      "Sites sem licença podem não pagar, usar indevidamente seus dados pessoais ou de cartão, ou ser golpes.",
+      "Pode afetar o sono, o trabalho, os estudos, os relacionamentos e a saúde mental.",
+      "Pegar dinheiro emprestado ou usar o dinheiro das contas para jogar pode levar a dívidas graves."
+    ],
+    "signsTitle": "Sinais de que o jogo pode estar se tornando um problema",
+    "signs": [
+      "Gastar mais tempo ou dinheiro do que o planejado, de novo e de novo.",
+      "Pensar em jogo a maior parte do dia ou ficar inquieto quando para.",
+      "Esconder da família ou dos amigos quanto você joga.",
+      "Jogar para fugir do estresse, da solidão ou da tristeza.",
+      "Pegar dinheiro emprestado, vender coisas ou atrasar pagamentos por causa do jogo.",
+      "Sentir que precisa apostar valores maiores para sentir a mesma emoção."
+    ],
+    "addictionTitle": "Não deixe virar um vício",
+    "addictionBody": "O vício em jogo é uma condição de saúde reconhecida, não falta de força de vontade, e pode acontecer com qualquer pessoa. Quanto antes for percebido, mais fácil é retomar o controle. Se algum dos sinais acima soa familiar, converse com alguém de confiança e procure um dos serviços de apoio abaixo.",
+    "controlTitle": "Mantendo o controle",
+    "controlTips": [
+      "Nunca veja o jogo como forma de ganhar dinheiro ou resolver problemas financeiros.",
+      "Defina um limite de tempo e de dinheiro antes de começar e pare ao atingi-lo.",
+      "Nunca jogue com dinheiro emprestado ou necessário para o essencial.",
+      "Não corra atrás das perdas.",
+      "Faça pausas regulares e evite jogar quando estiver chateado, cansado ou tiver bebido.",
+      "Deixe o jogo ser uma pequena parte de uma vida equilibrada, nunca o centro dela."
+    ],
+    "toolsTitle": "Ferramentas da sua conta JackpotsWorld",
+    "toolsBody": "Os membros podem definir limites de depósito, fazer uma pausa ou se autoexcluir a qualquer momento na seção Jogo responsável do painel.",
+    "toolsCta": "Abrir configurações de jogo responsável",
+    "helpTitle": "Onde buscar ajuda",
+    "helpBody": "Estas organizações oferecem apoio gratuito e confidencial a qualquer pessoa afetada pelo jogo, incluindo familiares e amigos:",
+    "ageNote": "A JackpotsWorld é destinada a adultos com 21 anos ou mais. Sempre verifique e cumpra as leis do lugar onde você mora e para onde viaja."
   }
 }

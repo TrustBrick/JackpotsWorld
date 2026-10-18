@@ -16,6 +16,7 @@ import {
   IconCard, BulletList, FaqItem, buildFaqJsonLd, buildBreadcrumbJsonLd,
 } from './destinations/landingPrimitives'
 
+import { T } from '../i18n/useSiteText'
 // ─────────────────────────────────────────────────────────────────────────────
 // PremiumCasino (/premium-casino) — the top-level casino hub page: what a
 // land-based casino is, entertainment, VIP, poker, events, nightlife and how
@@ -44,34 +45,34 @@ const FAQS = [
 ]
 
 const ENTERTAINMENT = [
-  { Icon: Sparkles, title: 'Casino Gaming', desc: 'Explore participating casino venues and learn about the gaming experiences available through the respective casino operator.' },
-  { Icon: Spade, title: 'Poker', desc: 'Discover poker destinations, poker tables and live poker experiences where available.' },
-  { Icon: Gem, title: 'Live Dealing Games', desc: 'Selected casino destinations may offer live dealing games and traditional table-game experiences.' },
-  { Icon: Crown, title: 'Casino Lounges', desc: 'Premium casino venues may include dedicated lounges and hospitality areas for guests.' },
-  { Icon: Star, title: 'Casino Events', desc: 'Discover selected casino events, entertainment programs and destination experiences where available.' },
-  { Icon: Gift, title: 'Casino Night Experiences', desc: 'A casino night can combine gaming, dining, entertainment and hospitality for an evening experience.' },
+  { Icon: Sparkles, title: T('Casino Gaming'), desc: T('Explore participating casino venues and learn about the gaming experiences available through the respective casino operator.') },
+  { Icon: Spade, title: T('Poker'), desc: T('Discover poker destinations, poker tables and live poker experiences where available.') },
+  { Icon: Gem, title: T('Live Dealing Games'), desc: T('Selected casino destinations may offer live dealing games and traditional table-game experiences.') },
+  { Icon: Crown, title: T('Casino Lounges'), desc: T('Premium casino venues may include dedicated lounges and hospitality areas for guests.') },
+  { Icon: Star, title: T('Casino Events'), desc: T('Discover selected casino events, entertainment programs and destination experiences where available.') },
+  { Icon: Gift, title: T('Casino Night Experiences'), desc: T('A casino night can combine gaming, dining, entertainment and hospitality for an evening experience.') },
 ]
 
 const WHY_US = [
-  { Icon: Gem, title: 'Selected Casino Destinations', desc: 'Discover third-party casino destinations through our partner network.' },
-  { Icon: Crown, title: 'Premium Experiences', desc: 'Explore luxury hospitality and VIP-oriented packages.' },
-  { Icon: Spade, title: 'Poker & Casino Entertainment', desc: 'Discover participating destinations offering poker and other casino experiences.' },
-  { Icon: Plane, title: 'Travel & Hospitality', desc: 'Explore accommodation and destination services associated with selected packages.' },
-  { Icon: Headphones, title: 'Guest Support', desc: 'Receive assistance with destination and package information before your trip.' },
-  { Icon: LayoutGrid, title: 'One Platform', desc: 'Explore casino destinations, packages and related services through one platform.' },
+  { Icon: Gem, title: T('Selected Casino Destinations'), desc: T('Discover third-party casino destinations through our partner network.') },
+  { Icon: Crown, title: T('Premium Experiences'), desc: T('Explore luxury hospitality and VIP-oriented packages.') },
+  { Icon: Spade, title: T('Poker & Casino Entertainment'), desc: T('Discover participating destinations offering poker and other casino experiences.') },
+  { Icon: Plane, title: T('Travel & Hospitality'), desc: T('Explore accommodation and destination services associated with selected packages.') },
+  { Icon: Headphones, title: T('Guest Support'), desc: T('Receive assistance with destination and package information before your trip.') },
+  { Icon: LayoutGrid, title: T('One Platform'), desc: T('Explore casino destinations, packages and related services through one platform.') },
 ]
 
 const STEPS = [
-  { title: 'Explore', desc: 'Discover selected casino destinations and premium experiences.' },
-  { title: 'Choose Your Experience', desc: 'Select a destination based on your casino, poker, hospitality and travel preferences.' },
-  { title: 'Enquire', desc: 'Contact JackpotsWorld to check current destination and package availability.' },
-  { title: 'Review', desc: 'Review the package inclusions, eligibility requirements and applicable terms.' },
-  { title: 'Experience', desc: 'Travel to your selected destination and enjoy the confirmed casino and hospitality experience.' },
+  { title: T('Explore'), desc: T('Discover selected casino destinations and premium experiences.') },
+  { title: T('Choose Your Experience'), desc: T('Select a destination based on your casino, poker, hospitality and travel preferences.') },
+  { title: T('Enquire'), desc: T('Contact JackpotsWorld to check current destination and package availability.') },
+  { title: T('Review'), desc: T('Review the package inclusions, eligibility requirements and applicable terms.') },
+  { title: T('Experience'), desc: T('Travel to your selected destination and enjoy the confirmed casino and hospitality experience.') },
 ]
 
 const CROSS_LINKS = [
-  { Icon: Sparkles, title: 'Casino in Sri Lanka', desc: 'Explore premium casino and poker destinations and VIP experiences in Sri Lanka.', label: 'Explore Sri Lanka', to: '/casino-in-sri-lanka' },
-  { Icon: Sparkles, title: 'Casino in Macau', desc: 'Discover premium casino and poker destinations and VIP experiences in Macau.', label: 'Explore Macau', to: '/casino-macau' },
+  { Icon: Sparkles, title: T('Casino in Sri Lanka'), desc: T('Explore premium casino and poker destinations and VIP experiences in Sri Lanka.'), label: T('Explore Sri Lanka'), to: '/casino-in-sri-lanka' },
+  { Icon: Sparkles, title: T('Casino in Macau'), desc: T('Discover premium casino and poker destinations and VIP experiences in Macau.'), label: T('Explore Macau'), to: '/casino-macau' },
 ]
 
 const POKER_MSG = 'Hi! I’m interested in *poker destinations* through JackpotsWorld. Please share more details.'
@@ -145,24 +146,20 @@ export default function PremiumCasino() {
             <Reveal>
               <div style={{ textAlign: 'center', maxWidth: 840, margin: '0 auto' }}>
                 <h1 style={{ fontSize: 'clamp(2rem,6.5vw,3.4rem)', fontWeight: 800, lineHeight: 1.1, margin: 0, color: 'var(--w365-heading, rgba(255,255,255,0.95))' }}>
-                  Premium Casino Experiences
+                  {T('Premium Casino Experiences')}
                   <span style={{ display: 'block', color: GOLD, fontSize: 'clamp(1.05rem,3.4vw,1.6rem)', fontWeight: 700, marginTop: 14 }}>
-                    Discover Luxury Casino Destinations
+                    {T('Discover Luxury Casino Destinations')}
                   </span>
                 </h1>
                 <p style={{ fontSize: 'clamp(0.95rem,2.8vw,1.1rem)', lineHeight: 1.75, color: 'rgba(var(--w365-text-rgb),0.72)', margin: '22px auto 0', maxWidth: 700 }}>
-                  Discover premium casino experiences with JackpotsWorld. Explore selected land-based casino
-                  destinations, luxury hospitality, VIP packages, casino entertainment, poker experiences,
-                  casino events and destination services through our network of casino partners.
+                  {T('Discover premium casino experiences with JackpotsWorld. Explore selected land-based casino destinations, luxury hospitality, VIP packages, casino entertainment, poker experiences, casino events and destination services through our network of casino partners.')}
                 </p>
                 <p style={{ fontSize: 'clamp(0.88rem,2.6vw,1rem)', lineHeight: 1.75, color: 'rgba(var(--w365-text-rgb),0.6)', margin: '14px auto 0', maxWidth: 700 }}>
-                  Whether you are planning a casino night, a weekend getaway, a VIP trip or a complete casino
-                  holiday, JackpotsWorld helps you discover and connect with selected physical casino
-                  destinations and related hospitality services.
+                  {T('Whether you are planning a casino night, a weekend getaway, a VIP trip or a complete casino holiday, JackpotsWorld helps you discover and connect with selected physical casino destinations and related hospitality services.')}
                 </p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, justifyContent: 'center', marginTop: 30 }}>
-                  <Cta cta={{ kind: 'enquiry', label: 'Explore Casino Destinations', source: 'premium_hero', message: GENERAL_MSG, Icon: Sparkles }} />
-                  <Cta cta={{ kind: 'enquiry', label: 'Enquire About VIP Packages', source: 'premium_vip_hero', variant: 'whatsapp', message: VIP_MSG, Icon: Crown }} />
+                  <Cta cta={{ kind: 'enquiry', label: T('Explore Casino Destinations'), source: 'premium_hero', message: GENERAL_MSG, Icon: Sparkles }} />
+                  <Cta cta={{ kind: 'enquiry', label: T('Enquire About VIP Packages'), source: 'premium_vip_hero', variant: 'whatsapp', message: VIP_MSG, Icon: Crown }} />
                 </div>
               </div>
             </Reveal>
@@ -171,7 +168,7 @@ export default function PremiumCasino() {
 
         <section style={section}><div style={container}>
           <InfoSection
-            eyebrow="Overview" title="Discover Premium Casino Experiences"
+            eyebrow="Overview" title={T('Discover Premium Casino Experiences')}
             paras={[
               'A casino experience can be much more than casino gaming. Modern casino destinations combine entertainment, hospitality, restaurants, hotels, events and nightlife to create a complete destination experience.',
               'JackpotsWorld connects guests with selected third-party casino destinations and related services, helping visitors explore available options before planning their trip.',
@@ -182,7 +179,7 @@ export default function PremiumCasino() {
 
         <section style={section}><div style={container}>
           <InfoSection
-            eyebrow="Explained" title="What Is a Land-Based Casino?"
+            eyebrow="Explained" title={T('What Is a Land-Based Casino?')}
             paras={[
               'A land-based casino, also known as a physical casino, is a real-world casino venue where eligible guests can experience casino gaming and entertainment in person.',
               'Unlike online casino platforms, a physical casino can provide a complete destination experience that may include:',
@@ -195,7 +192,7 @@ export default function PremiumCasino() {
         {/* Entertainment cards */}
         <section style={section}><div style={container}>
           <Reveal><div style={headerGap}>
-            <SectionHeading eyebrow="Entertainment" title="Explore Casino Entertainment" intro="Casino destinations can offer a wide range of entertainment and hospitality experiences. Depending on the destination, guests may discover:" />
+            <SectionHeading eyebrow="Entertainment" title={T('Explore Casino Entertainment')} intro="Casino destinations can offer a wide range of entertainment and hospitality experiences. Depending on the destination, guests may discover:" />
           </div></Reveal>
           <div style={{ display: 'grid', gap: 18, gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
             {ENTERTAINMENT.map((c, i) => <Reveal key={c.title} delay={i * 0.05}><IconCard {...c} /></Reveal>)}
@@ -205,17 +202,17 @@ export default function PremiumCasino() {
         <section style={section}><div style={container}>
           <InfoSection
             boxed
-            eyebrow="VIP" title="Luxury Casino & VIP Experiences"
+            eyebrow="VIP" title={T('Luxury Casino & VIP Experiences')}
             intro="For guests looking for a more exclusive experience, selected destinations may provide premium hospitality and VIP services. A luxury casino experience may include:"
             bullets={['Premium hospitality', 'VIP casino access', 'Dedicated guest support', 'Hotel accommodation', 'Dining options', 'Travel assistance', 'Casino lounge access', 'Destination services', 'Exclusive partner benefits']}
             closing="Availability depends on the selected destination and casino partner. JackpotsWorld helps guests explore available VIP casino experience options and understand the package details before travelling."
-            cta={{ kind: 'enquiry', label: 'Enquire About VIP Packages', source: 'premium_vip', variant: 'whatsapp', message: VIP_MSG, Icon: Crown }}
+            cta={{ kind: 'enquiry', label: T('Enquire About VIP Packages'), source: 'premium_vip', variant: 'whatsapp', message: VIP_MSG, Icon: Crown }}
           />
         </div></section>
 
         <section style={section}><div style={container}>
           <InfoSection
-            eyebrow="Events" title="Casino Events & Entertainment"
+            eyebrow="Events" title={T('Casino Events & Entertainment')}
             paras={['Casino destinations can be popular locations for entertainment, social events and special occasions. Depending on the venue, guests may be able to discover:']}
             bullets={['Casino events', 'Gaming nights', 'Weekend casino events', 'Live entertainment', 'Dining experiences', 'Casino parties', 'Nightlife experiences', 'VIP events', 'Special promotions']}
             closing="Event schedules and availability vary by casino and destination. Contact JackpotsWorld for information about current events and available packages."
@@ -224,7 +221,7 @@ export default function PremiumCasino() {
 
         <section style={section}><div style={container}>
           <InfoSection
-            eyebrow="Nightlife" title="Casino Nightlife"
+            eyebrow="Nightlife" title={T('Casino Nightlife')}
             paras={[
               'For visitors looking for a night out, selected casino destinations can combine gaming, dining, entertainment and nightlife.',
               'A casino night may include an evening at the casino venue followed by dining, entertainment or other destination experiences. Guests can explore options such as:',
@@ -236,19 +233,19 @@ export default function PremiumCasino() {
 
         <section style={section}><div style={container}>
           <InfoSection
-            eyebrow="Poker" title="Poker & Live Poker Experiences"
+            eyebrow="Poker" title={T('Poker & Live Poker Experiences')}
             paras={[
               'Poker is one of the most popular casino table games and can be an important part of a casino destination experience. Depending on the casino, guests may be able to find:',
             ]}
             bullets={['Poker tables', 'Live poker', 'Casino poker', 'Tournament poker', 'Table-game experiences', 'Live dealing games', 'VIP poker experiences']}
             closing="Poker availability, schedules, minimums, eligibility requirements and game formats vary by casino. JackpotsWorld can help guests explore participating destinations and available poker experiences."
-            cta={{ kind: 'enquiry', label: 'Explore Poker Destinations', source: 'premium_poker', message: POKER_MSG, Icon: Spade }}
+            cta={{ kind: 'enquiry', label: T('Explore Poker Destinations'), source: 'premium_poker', message: POKER_MSG, Icon: Spade }}
           />
         </div></section>
 
         <section style={section}><div style={container}>
           <InfoSection
-            eyebrow="Games" title="Casino Games & Table Games"
+            eyebrow="Games" title={T('Casino Games & Table Games')}
             paras={[
               'Different casino destinations offer different gaming experiences. Depending on the venue, guests may find traditional table games and other casino entertainment. Examples can include:',
             ]}
@@ -259,7 +256,7 @@ export default function PremiumCasino() {
 
         <section style={section}><div style={container}>
           <InfoSection
-            eyebrow="Guidance" title="Casino Reviews & Destination Information"
+            eyebrow="Guidance" title={T('Casino Reviews & Destination Information')}
             paras={['Choosing a casino destination involves more than searching for the phrase best casino. Guests may want to consider:']}
             bullets={['Casino location', 'Available games', 'Poker availability', 'Hospitality', 'Hotel options', 'Dining', 'Entertainment', 'Casino events', 'VIP services', 'Travel requirements', 'Destination experience']}
             closing="JackpotsWorld provides destination and package information to help guests understand their available options before making travel arrangements."
@@ -268,7 +265,7 @@ export default function PremiumCasino() {
 
         <section style={section}><div style={container}>
           <InfoSection
-            eyebrow="Match" title="Find the Best Casino Experience for You"
+            eyebrow="Match" title={T('Find the Best Casino Experience for You')}
             paras={[
               'The best casino experience depends on what you are looking for.',
               'Some guests may prefer a premium casino with luxury hospitality, while others may be interested in poker, live dealing games, casino events, nightlife or a complete weekend casino experience. JackpotsWorld helps visitors explore options based on:',
@@ -280,18 +277,18 @@ export default function PremiumCasino() {
 
         <section style={section}><div style={container}>
           <InfoSection
-            eyebrow="Destinations" title="Casino Destinations in India & Around the World"
+            eyebrow="Destinations" title={T('Casino Destinations in India & Around the World')}
             paras={[
               'JackpotsWorld helps guests explore casino destinations in different locations.',
               'For travellers searching for the best casino in Goa, casino destinations in other countries or premium land-based casino experiences, available options depend on current partner destinations and local regulations. Guests can explore destination-specific casino experiences and packages through JackpotsWorld.',
             ]}
-            cta={{ kind: 'enquiry', label: 'Explore Casino Destinations', source: 'premium_destinations', message: GENERAL_MSG, Icon: Sparkles }}
+            cta={{ kind: 'enquiry', label: T('Explore Casino Destinations'), source: 'premium_destinations', message: GENERAL_MSG, Icon: Sparkles }}
           />
         </div></section>
 
         <section style={section}><div style={container}>
           <InfoSection
-            eyebrow="Rewards" title="Casino Rewards & VIP Benefits"
+            eyebrow="Rewards" title={T('Casino Rewards & VIP Benefits')}
             intro="Selected casino packages may provide access to partner benefits and hospitality services. Depending on the destination and package, benefits may include:"
             bullets={['VIP support', 'Premium hospitality', 'Hotel accommodation', 'Travel assistance', 'Partner benefits', 'Exclusive JackpotsWorld benefits', 'Destination services']}
             closing="Casino rewards, bonuses, promotions and benefits are determined by the relevant casino operator or partner and may vary by destination. Always check the applicable terms and eligibility requirements before participating."
@@ -300,7 +297,7 @@ export default function PremiumCasino() {
 
         <section style={section}><div style={container}>
           <InfoSection
-            eyebrow="Venue" title="Casino Venue & Hospitality"
+            eyebrow="Venue" title={T('Casino Venue & Hospitality')}
             paras={['A premium casino venue can form part of a complete entertainment destination. Guests may be able to enjoy:']}
             bullets={['Gaming areas', 'Poker tables', 'Casino lounges', 'Restaurants', 'Hotels', 'Entertainment', 'Events', 'VIP hospitality', 'Nightlife']}
             closing="JackpotsWorld helps guests discover selected venues and understand the destination services available through participating partners."
@@ -309,7 +306,7 @@ export default function PremiumCasino() {
 
         <section style={section}><div style={container}>
           <InfoSection
-            eyebrow="Plan" title="Plan a Casino Weekend or Night Out"
+            eyebrow="Plan" title={T('Plan a Casino Weekend or Night Out')}
             paras={['Planning a weekend casino event, casino night or casino party can be part of a larger travel experience. JackpotsWorld can help guests explore available:']}
             bullets={['Casino destinations', 'Hotels', 'VIP packages', 'Dining options', 'Casino events', 'Poker experiences', 'Entertainment', 'Travel services']}
             closing="Package availability depends on the destination and selected partner."
@@ -318,7 +315,7 @@ export default function PremiumCasino() {
 
         {/* How it works */}
         <section style={section}><div style={container}>
-          <Reveal><div style={headerGap}><SectionHeading eyebrow="How It Works" title="How JackpotsWorld Works" /></div></Reveal>
+          <Reveal><div style={headerGap}><SectionHeading eyebrow="How It Works" title={T('How JackpotsWorld Works')} /></div></Reveal>
           <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
             {STEPS.map((s, i) => (
               <Reveal key={s.title} delay={i * 0.05}>
@@ -334,7 +331,7 @@ export default function PremiumCasino() {
 
         {/* Why choose */}
         <section style={section}><div style={container}>
-          <Reveal><div style={headerGap}><SectionHeading eyebrow="Why Us" title="Why Choose JackpotsWorld?" /></div></Reveal>
+          <Reveal><div style={headerGap}><SectionHeading eyebrow="Why Us" title={T('Why Choose JackpotsWorld?')} /></div></Reveal>
           <div style={{ display: 'grid', gap: 18, gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
             {WHY_US.map((c, i) => <Reveal key={c.title} delay={i * 0.06}><IconCard {...c} /></Reveal>)}
           </div>
@@ -342,7 +339,7 @@ export default function PremiumCasino() {
 
         {/* FAQ */}
         <section style={section}><div style={{ ...container, maxWidth: 860 }}>
-          <Reveal><div style={headerGap}><SectionHeading eyebrow="FAQs" title="Frequently Asked Questions" /></div></Reveal>
+          <Reveal><div style={headerGap}><SectionHeading eyebrow="FAQs" title={T('Frequently Asked Questions')} /></div></Reveal>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {FAQS.map(f => <Reveal key={f.q}><FaqItem {...f} /></Reveal>)}
           </div>
@@ -350,7 +347,7 @@ export default function PremiumCasino() {
 
         {/* Cross-links */}
         <section style={section}><div style={container}>
-          <Reveal><div style={headerGap}><SectionHeading eyebrow="Destinations" title="Explore JackpotsWorld Destinations" /></div></Reveal>
+          <Reveal><div style={headerGap}><SectionHeading eyebrow="Destinations" title={T('Explore JackpotsWorld Destinations')} /></div></Reveal>
           <div style={{ display: 'grid', gap: 18, gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
             {CROSS_LINKS.map((c, i) => (
               <Reveal key={c.title} delay={i * 0.06}>
@@ -372,14 +369,13 @@ export default function PremiumCasino() {
           <Reveal>
             <div style={{ textAlign: 'center', border: '1px solid rgba(212,175,55,0.28)', borderRadius: 22, background: 'linear-gradient(135deg, rgba(212,175,55,0.1), rgba(var(--w365-text-rgb),0.02))', padding: 'clamp(30px, 6vw, 60px)' }}>
               <Star size={30} color={GOLD} style={{ marginBottom: 14 }} />
-              <h2 style={{ fontSize: 'clamp(1.5rem,4.5vw,2.3rem)', fontWeight: 800, margin: 0, color: 'var(--w365-heading, rgba(255,255,255,0.95))' }}>Explore JackpotsWorld</h2>
+              <h2 style={{ fontSize: 'clamp(1.5rem,4.5vw,2.3rem)', fontWeight: 800, margin: 0, color: 'var(--w365-heading, rgba(255,255,255,0.95))' }}>{T('Explore JackpotsWorld')}</h2>
               <p style={{ fontSize: 'clamp(0.9rem,2.6vw,1.02rem)', lineHeight: 1.75, color: 'rgba(var(--w365-text-rgb),0.7)', margin: '16px auto 0', maxWidth: 620 }}>
-                Discover premium casino destinations, luxury hospitality, poker experiences, VIP packages and
-                casino entertainment through JackpotsWorld.
+                {T('Discover premium casino destinations, luxury hospitality, poker experiences, VIP packages and casino entertainment through JackpotsWorld.')}
               </p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, justifyContent: 'center', marginTop: 28 }}>
-                <Cta cta={{ kind: 'enquiry', label: 'Explore Casino Destinations', source: 'premium_final', message: GENERAL_MSG, Icon: Sparkles }} />
-                <Cta cta={{ kind: 'enquiry', label: 'Explore VIP Packages', source: 'premium_final_vip', variant: 'whatsapp', message: VIP_MSG, Icon: Crown }} />
+                <Cta cta={{ kind: 'enquiry', label: T('Explore Casino Destinations'), source: 'premium_final', message: GENERAL_MSG, Icon: Sparkles }} />
+                <Cta cta={{ kind: 'enquiry', label: T('Explore VIP Packages'), source: 'premium_final_vip', variant: 'whatsapp', message: VIP_MSG, Icon: Crown }} />
               </div>
             </div>
           </Reveal>
@@ -391,7 +387,7 @@ export default function PremiumCasino() {
             <div style={{ border: '1px solid rgba(var(--w365-text-rgb),0.1)', borderRadius: 16, background: 'rgba(var(--w365-text-rgb),0.02)', padding: 'clamp(22px, 4vw, 34px)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
                 <ShieldCheck size={20} color={GOLD} strokeWidth={1.8} />
-                <h2 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: 'rgba(var(--w365-text-rgb),0.88)' }}>Important Information</h2>
+                <h2 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: 'rgba(var(--w365-text-rgb),0.88)' }}>{T('Important Information')}</h2>
               </div>
               {[
                 'JackpotsWorld is a platform connecting guests with selected third-party casino destinations, travel services and hospitality partners. JackpotsWorld does not operate the casinos or gaming facilities described on this page.',

@@ -96,10 +96,10 @@ export const ROUTE_SEO = {
     ].join(', '),
   },
   '/poker': {
-    title: `Poker Tournaments & Schedules${TITLE_SUFFIX}`,
+    title: `Poker Tournaments, Destinations & VIP Experiences${TITLE_SUFFIX}`,
     description:
-      'Upcoming poker tournaments with buy-ins, prize pools and seat availability at ' +
-      'premier casinos across Asia and beyond. Register through JackpotsWorld.',
+      'Discover premium poker experiences with JackpotsWorld. Explore VIP poker destinations, ' +
+      'exclusive casino packages, luxury hospitality, and world-class poker experiences across Asia.',
     keywords: [
       'poker', 'poker live', 'poker table', 'casino poker',
       'live dealing games', 'live dealing',
@@ -195,6 +195,16 @@ export const ROUTE_SEO = {
     description:
       'How JackpotsWorld collects, uses, stores and protects your personal data, and ' +
       'the rights you have over it.',
+  },
+  '/online-gambling': {
+    title: `Online Gambling — Risks, Warning Signs & Help${TITLE_SUFFIX}`,
+    description:
+      'JackpotsWorld is not an online gambling site and does not encourage gambling. ' +
+      'Learn the risks of online gambling, warning signs of addiction, how to stay in control and where to get help.',
+    keywords: [
+      'online gambling', 'online gambling risks', 'gambling addiction', 'responsible gambling',
+      'problem gambling help', 'is online gambling legal in india',
+    ].join(', '),
   },
   '/cookies-policy': {
     title: `Cookies Policy${TITLE_SUFFIX}`,

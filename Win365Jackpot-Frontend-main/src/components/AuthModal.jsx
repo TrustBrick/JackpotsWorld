@@ -14,6 +14,7 @@ import { noteLogin } from '../services/sessionManager'
 import Turnstile from './Turnstile'
 import Logo from './shared/Logo'
 
+import { T } from '../i18n/useSiteText'
 const API = import.meta.env.VITE_API_URL
 
 // ─── Network / API helper ─────────────────────────────────────────────────────
@@ -287,11 +288,11 @@ export function PhoneInput({ value, country, countries = [], onValueChange, onCo
             transition={{ duration: 0.12 }}
             style={{ position: 'absolute', top: '110%', left: 0, right: 0, zIndex: 999, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 9, overflow: 'hidden', boxShadow: '0 12px 40px rgba(0,0,0,0.6)' }}>
             <div style={{ padding: '8px 10px', borderBottom: `1px solid ${C.border}` }}>
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search country or dial code…" autoFocus
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder={T('Search country or dial code…')} autoFocus
                 style={{ width: '100%', padding: '6px 10px', fontSize: 12, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 6, color: C.text, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
             </div>
             <div style={{ maxHeight: 220, overflowY: 'auto' }}>
-              {filtered.length === 0 && <div style={{ padding: 14, fontSize: 12, color: C.muted, textAlign: 'center' }}>No countries found</div>}
+              {filtered.length === 0 && <div style={{ padding: 14, fontSize: 12, color: C.muted, textAlign: 'center' }}>{T('No countries found')}</div>}
               {filtered.map((c, i) => (
                 <button key={`${c.code}-${i}`} type="button"
                   onClick={() => { onCountryChange(c); setOpen(false); setSearch('') }}
@@ -456,9 +457,9 @@ function OTPStep({ email, registrationData, onSuccess, onBack }) {
         }}>
           <ShieldCheck size={24} color={C.gold} />
         </div>
-        <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 6 }}>Verify your email</div>
+        <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 6 }}>{T('Verify your email')}</div>
         <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.6 }}>
-          We sent a 6-digit code to<br />
+          {T('We sent a 6-digit code to')}<br />
           <span style={{ color: C.gold, fontWeight: 600 }}>{email}</span>
         </div>
       </div>
@@ -502,14 +503,14 @@ function OTPStep({ email, registrationData, onSuccess, onBack }) {
       <ErrBox msg={error} />
 
       <GoldBtn onClick={handleVerify} loading={loading} disabled={!otpComplete || countdown === 0}>
-        Verify &amp; Create Account
+        {T('Verify & Create Account')}
       </GoldBtn>
 
       {/* Resend + Back */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 }}>
         <button type="button" onClick={onBack}
           style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: C.muted, display: 'flex', alignItems: 'center', gap: 4, padding: 0, fontFamily: 'inherit' }}>
-          ← Edit details
+          {T('← Edit details')}
         </button>
         <button type="button" onClick={handleResend} disabled={!canResend || resending}
           style={{
@@ -536,11 +537,11 @@ function SuccessScreen({ onGoLogin }) {
         style={{ width: 58, height: 58, borderRadius: '50%', background: C.greenBg, border: `2px solid ${C.greenBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}>
         <CheckCircle2 size={28} color={C.green} />
       </motion.div>
-      <div style={{ fontSize: 17, fontWeight: 800, color: C.text, marginBottom: 8 }}>Account Created!</div>
+      <div style={{ fontSize: 17, fontWeight: 800, color: C.text, marginBottom: 8 }}>{T('Account Created!')}</div>
       <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.65, marginBottom: 26 }}>
-        Your account is ready.<br />Sign in to continue.
+        {T('Your account is ready.')}<br />{T('Sign in to continue.')}
       </div>
-      <GoldBtn onClick={onGoLogin} loading={false} disabled={false}>Go to Sign In</GoldBtn>
+      <GoldBtn onClick={onGoLogin} loading={false} disabled={false}>{T('Go to Sign In')}</GoldBtn>
     </motion.div>
   )
 }
@@ -610,20 +611,20 @@ function SignInPanel({ onSuccess, onClose, onForgotPassword }) {
   return (
     <motion.div key="li" initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -14 }}>
       <div style={W}>
-        <Label><Mail size={10} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />Email address</Label>
+        <Label><Mail size={10} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />{T('Email address')}</Label>
         <FocusInput type="email" value={email} onChange={e => { setEmail(e.target.value.trim()); setEmailErr('') }}
           placeholder="you@gmail.com" hasError={!!emailErr} hasOk={validateEmail(email).ok && !emailErr}
           onBlur={onEmailBlur} onKeyDown={kd} />
         {emailErr && <Hint color={C.red} icon={AlertCircle}>{emailErr}</Hint>}
       </div>
       <div style={W}>
-        <Label><Key size={10} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />Password</Label>
+        <Label><Key size={10} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />{T('Password')}</Label>
         <PwInput value={pw} onChange={setPw} onKeyDown={kd} />
       </div>
       <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, cursor: 'pointer', userSelect: 'none' }}>
         <input type="checkbox" checked={remember} onChange={e => setRemember(e.target.checked)}
           style={{ width: 15, height: 15, accentColor: C.gold, cursor: 'pointer' }} />
-        <span style={{ fontSize: 12.5, color: C.muted }}>Remember me</span>
+        <span style={{ fontSize: 12.5, color: C.muted }}>{T('Remember me')}</span>
       </label>
       <div style={W}>
         <Turnstile
@@ -646,11 +647,11 @@ function SignInPanel({ onSuccess, onClose, onForgotPassword }) {
       ) : (
         <ErrBox msg={error} />
       )}
-      <GoldBtn onClick={handle} loading={loading} disabled={!email || !pw || !cfToken}>Sign in</GoldBtn>
+      <GoldBtn onClick={handle} loading={loading} disabled={!email || !pw || !cfToken}>{T('Sign in')}</GoldBtn>
       <div style={{ textAlign: 'center', marginTop: 12 }}>
         <button type="button" onClick={() => onForgotPassword?.()}
           style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11.5, color: C.muted, padding: 0, fontFamily: 'inherit' }}>
-          Forgot password?
+          {T('Forgot password?')}
         </button>
       </div>
     </motion.div>
@@ -737,21 +738,21 @@ function ForgotPasswordPanel({ onBack, onDone }) {
     return (
       <motion.div key="fp-email" initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -14 }}>
         <div style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.6, marginBottom: 16 }}>
-          Enter the email on your account and we'll send you a 6-digit reset code.
+          {T('Enter the email on your account and we\'ll send you a 6-digit reset code.')}
         </div>
         <div style={W}>
-          <Label><Mail size={10} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />Email address</Label>
+          <Label><Mail size={10} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />{T('Email address')}</Label>
           <FocusInput type="email" value={email} onChange={e => { setEmail(e.target.value.trim()); setEmailErr('') }}
             placeholder="you@gmail.com" hasError={!!emailErr}
             onKeyDown={e => e.key === 'Enter' && handleRequestOtp()} />
           {emailErr && <Hint color={C.red} icon={AlertCircle}>{emailErr}</Hint>}
         </div>
         <ErrBox msg={error} />
-        <GoldBtn onClick={handleRequestOtp} loading={loading} disabled={!email}>Send reset code</GoldBtn>
+        <GoldBtn onClick={handleRequestOtp} loading={loading} disabled={!email}>{T('Send reset code')}</GoldBtn>
         <div style={{ textAlign: 'center', marginTop: 12 }}>
           <button type="button" onClick={onBack}
             style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: C.muted, padding: 0, fontFamily: 'inherit' }}>
-            ← Back to sign in
+            {T('← Back to sign in')}
           </button>
         </div>
       </motion.div>
@@ -766,7 +767,7 @@ function ForgotPasswordPanel({ onBack, onDone }) {
         </div>
       )}
       <div style={{ fontSize: 11.5, fontWeight: 600, color: C.muted, marginBottom: 6, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-        6-digit code
+        {T('6-digit code')}
       </div>
       <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 16 }}>
         {otp.map((digit, idx) => (
@@ -789,25 +790,25 @@ function ForgotPasswordPanel({ onBack, onDone }) {
         ))}
       </div>
       <div style={W}>
-        <Label>New password</Label>
-        <PwInput value={newPw} onChange={setNewPw} placeholder="Min. 8 characters" />
+        <Label>{T('New password')}</Label>
+        <PwInput value={newPw} onChange={setNewPw} placeholder={T('Min. 8 characters')} />
         {newPw && !pwOk
           ? <Hint color={C.red} icon={AlertCircle}>Needs uppercase, lowercase, number &amp; special character</Hint>
           : pwOk ? <Hint color={C.green} icon={CheckCircle2}>Strong password</Hint> : null}
       </div>
       <div style={W}>
-        <Label>Confirm new password</Label>
-        <PwInput value={confirmPw} onChange={setConfirmPw} placeholder="Re-enter password" />
-        {confirmPw && !pwMatch && <Hint color={C.red} icon={AlertCircle}>Passwords do not match</Hint>}
+        <Label>{T('Confirm new password')}</Label>
+        <PwInput value={confirmPw} onChange={setConfirmPw} placeholder={T('Re-enter password')} />
+        {confirmPw && !pwMatch && <Hint color={C.red} icon={AlertCircle}>{T('Passwords do not match')}</Hint>}
       </div>
       <ErrBox msg={error} />
       <GoldBtn onClick={handleReset} loading={loading} disabled={otpValue.length !== 6 || !pwOk || !pwMatch}>
-        Reset password
+        {T('Reset password')}
       </GoldBtn>
       <div style={{ textAlign: 'center', marginTop: 12 }}>
         <button type="button" onClick={onBack}
           style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: C.muted, padding: 0, fontFamily: 'inherit' }}>
-          ← Back to sign in
+          {T('← Back to sign in')}
         </button>
       </div>
     </motion.div>
@@ -900,9 +901,9 @@ function RegisterPanel({ onRegistered }) {
   }
 
   const DH = ({ checking, dup, type }) => {
-    if (checking)      return <Hint color={C.muted} icon={Loader2}>Checking…</Hint>
-    if (dup === true)  return <Hint color={C.red}   icon={AlertCircle}>This {type} is already registered</Hint>
-    if (dup === false) return <Hint color={C.green}  icon={CheckCircle2}>Available</Hint>
+    if (checking)      return <Hint color={C.muted} icon={Loader2}>{T('Checking…')}</Hint>
+    if (dup === true)  return <Hint color={C.red}   icon={AlertCircle}>{T('This')}{' '}{type}{' '}{T('is already registered')}</Hint>
+    if (dup === false) return <Hint color={C.green}  icon={CheckCircle2}>{T('Available')}</Hint>
     return null
   }
 
@@ -986,13 +987,13 @@ function RegisterPanel({ onRegistered }) {
 
       {/* Full name */}
       <div style={W}>
-        <Label><User size={10} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />Full name</Label>
-        <FocusInput value={name} onChange={e => setName(e.target.value)} placeholder="Jane Smith" />
+        <Label><User size={10} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />{T('Full name')}</Label>
+        <FocusInput value={name} onChange={e => setName(e.target.value)} placeholder={T('Jane Smith')} />
       </div>
 
       {/* Email */}
       <div style={W}>
-        <Label><Mail size={10} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />Email address</Label>
+        <Label><Mail size={10} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />{T('Email address')}</Label>
         <FocusInput type="email" value={email} onChange={e => onEmailCh(e.target.value)} onBlur={onEmailBlur}
           placeholder="you@gmail.com" hasError={!!emailErr || emailDup === true} hasOk={emailDup === false && emailValid && !emailErr} />
         {fieldErrors.email
@@ -1004,7 +1005,7 @@ function RegisterPanel({ onRegistered }) {
 
       {/* Phone */}
       <div style={W}>
-        <Label><Phone size={10} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />Mobile number <span style={{ color: C.dim, fontWeight: 400 }}>(optional)</span></Label>
+        <Label><Phone size={10} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />{T('Mobile number')}{' '}<span style={{ color: C.dim, fontWeight: 400 }}>{T('(optional)')}</span></Label>
         <PhoneInput value={phone} country={country} countries={countries}
           onValueChange={v => { onPhoneCh(v); setFieldErrors(prev => ({ ...prev, phone: null })) }}
           onCountryChange={handleCountryChange}
@@ -1019,8 +1020,8 @@ function RegisterPanel({ onRegistered }) {
 
       {/* Password */}
       <div style={W}>
-        <Label>Password</Label>
-        <PwInput value={pw} onChange={v => { setPw(v); setFieldErrors(prev => ({ ...prev, password: null })) }} placeholder="Min. 8 characters" />
+        <Label>{T('Password')}</Label>
+        <PwInput value={pw} onChange={v => { setPw(v); setFieldErrors(prev => ({ ...prev, password: null })) }} placeholder={T('Min. 8 characters')} />
         {fieldErrors.password
           ? <Hint color={C.red} icon={AlertCircle}>{fieldErrors.password[0]}</Hint>
           : pw && !pwOk
@@ -1030,8 +1031,8 @@ function RegisterPanel({ onRegistered }) {
 
       {/* Confirm password */}
       <div style={W}>
-        <Label>Confirm password</Label>
-        <PwInput value={confirm} onChange={v => { setConfirm(v); setFieldErrors(prev => ({ ...prev, confirm_password: null })) }} placeholder="Re-enter password" />
+        <Label>{T('Confirm password')}</Label>
+        <PwInput value={confirm} onChange={v => { setConfirm(v); setFieldErrors(prev => ({ ...prev, confirm_password: null })) }} placeholder={T('Re-enter password')} />
         {fieldErrors.confirm_password
           ? <Hint color={C.red} icon={AlertCircle}>{fieldErrors.confirm_password[0]}</Hint>
           : pwMiss ? <Hint color={C.red} icon={AlertCircle}>Passwords do not match</Hint>
@@ -1050,13 +1051,13 @@ function RegisterPanel({ onRegistered }) {
       <ErrBox msg={error} />
 
       <GoldBtn onClick={handle} loading={loading} disabled={!canSubmit}>
-        Send Verification Code
+        {T('Send Verification Code')}
       </GoldBtn>
 
       {/* Small info note */}
       <div style={{ marginTop: 10, fontSize: 11, color: C.dim, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
         <ShieldCheck size={10} color={C.dim} />
-        We'll send a 6-digit code to your email
+        {T('We\'ll send a 6-digit code to your email')}
       </div>
     </motion.div>
   )
@@ -1115,7 +1116,7 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'login', onAut
               <div>
                 <Logo size="sm" />
                 <div style={{ fontSize: 10.5, color: C.muted, letterSpacing: '0.15em', textTransform: 'uppercase', marginTop: 6 }}>
-                  {success ? '✦ Registration complete'
+                  {success ? T('✦ Registration complete')
                     : tab === 'login' ? '✦ Sign in to your account'
                     : tab === 'forgot' ? '✦ Reset your password'
                     : '✦ Create a new account'}
@@ -1161,9 +1162,9 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'login', onAut
                 ? <>New here?{' '}<span style={{ color: C.gold, cursor: 'pointer', fontWeight: 600 }} onClick={() => switchTab('register')}>Create an account</span></>
                 : <>Already registered?{' '}<span style={{ color: C.gold, cursor: 'pointer', fontWeight: 600 }} onClick={() => switchTab('login')}>Sign in</span></>}
               <div style={{ marginTop: 4, color: C.dim, fontSize: 11 }}>
-                By continuing you agree to our{' '}
-                <span style={{ color: C.gold, cursor: 'pointer' }}>Terms</span>{' '}&amp;{' '}
-                <span style={{ color: C.gold, cursor: 'pointer' }}>Privacy Policy</span>
+                {T('By continuing you agree to our')}{' '}
+                <span style={{ color: C.gold, cursor: 'pointer' }}>{T('Terms')}</span>{' '}&amp;{' '}
+                <span style={{ color: C.gold, cursor: 'pointer' }}>{T('Privacy Policy')}</span>
               </div>
             </div>
           )}

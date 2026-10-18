@@ -40,21 +40,23 @@ export const WALLET_CFG = {
   },
 };
 
+// Sidebar order: account activity first, then rewards, then help and
+// compliance, with the player's own Profile last.
 export const TABS = [
   { id: "overview",      label: "Overview",       icon: "BarChart3"      },
   { id: "wallet",        label: "Wallet",          icon: "Wallet"         },
   { id: "travel",        label: "Travel History",  icon: "Plane"          },
-  { id: "gifts",         label: "Gifts & Rewards", icon: "Gift"           },
   { id: "packages",      label: "Packages",        icon: "Package"        },
+  { id: "gifts",         label: "Gifts & Rewards", icon: "Gift"           },
+  { id: "rewards",       label: "Wheels & Rewards", icon: "Trophy"        },
   // { id: "favourites",    label: "Favourites",      icon: "Heart"          },
   // { id: "bonus",         label: "Bonus",           icon: "Star"           },
-  { id: "rewards",       label: "Wheels & Rewards", icon: "Trophy"        },
-  { id: "notifications", label: "Notifications",   icon: "Bell"           },
   { id: "referral",      label: "Referral",        icon: "Users"          },
-  { id: "profile",       label: "Profile",         icon: "User"           },
-  { id: "kyc",           label: "KYC Verification", icon: "BadgeCheck"    },
+  { id: "notifications", label: "Notifications",   icon: "Bell"           },
   { id: "support",              label: "Service Request",     icon: "LifeBuoy"    },
   { id: "responsible_gambling", label: "Responsible Gambling", icon: "ShieldCheck" },
+  { id: "kyc",           label: "KYC Verification", icon: "BadgeCheck"    },
+  { id: "profile",       label: "Profile",         icon: "User"           },
 ];
 
 export const TX_COLORS = {

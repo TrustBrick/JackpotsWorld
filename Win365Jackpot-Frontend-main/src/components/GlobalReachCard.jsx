@@ -5,6 +5,7 @@ import { useInView } from 'react-intersection-observer'
 import { useAutoFetch } from '../hooks/useAutoFetch'
 import { fetchLandingSettings } from '../services/landingService'
 
+import { T } from '../i18n/useSiteText'
 export default function GlobalReachCard() {
   const { ref, inView } = useInView({ threshold: 0.15, triggerOnce: true })
   const { data: settings } = useAutoFetch(fetchLandingSettings, {}, { intervalMs: 60_000 })
@@ -31,25 +32,25 @@ export default function GlobalReachCard() {
         }}
       >
         <Globe2 size={14} />
-        <span className="text-[11px] font-bold tracking-widest uppercase">Global Reach</span>
+        <span className="text-[11px] font-bold tracking-widest uppercase">{T('Global Reach')}</span>
       </div>
 
       <h3 className="font-black text-xl md:text-2xl gold-text mb-2">
         {/* "Experience World-Class Casino Gaming Across <countries>" read as
             JackpotsWorld providing the gaming in those countries. It provides
             the referral; the destination provides the gaming. */}
-        {settings?.global_reach_tagline || 'Discover World-Class Casino Destinations Across'}
+        {T(settings?.global_reach_tagline || 'Discover World-Class Casino Destinations Across')}
       </h3>
 
       <p
         className="font-body font-semibold text-sm md:text-base"
         style={{ color: '#D4AF37' }}
       >
-        Vietnam · Macau · India · Sri Lanka · Philippines …
+        {T('Vietnam · Macau · India · Sri Lanka · Philippines …')}
       </p>
 
       <p className="font-body font-light text-xs mt-3" style={{ color: 'var(--w365-text-muted)' }}>
-        Curated offline casino experiences, wherever you play.
+        {T('Curated offline casino experiences, wherever you play.')}
       </p>
     </motion.div>
   )

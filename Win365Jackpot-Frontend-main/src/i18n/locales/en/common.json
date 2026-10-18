@@ -446,7 +446,7 @@
   "poker": {
     "eyebrow": "High Stakes, Live Action",
     "title": "Poker",
-    "subtitle": "Upcoming tournaments and **live tables** from our partner casinos — get your ticket or watch the schedule fill in real time.",
+    "subtitle": "Discover premium poker experiences with JackpotsWorld. Explore VIP poker destinations, exclusive casino packages, luxury hospitality, and **world-class poker experiences** across Asia.",
     "signInPrompt": "Sign in to get your ticket for tournaments and track your seated events.",
     "loadError": "Couldn't load tournaments right now. Please try again.",
     "noTournaments": "No tournaments scheduled right now. Check back soon.",
@@ -459,7 +459,20 @@
     "upcomingTournaments": "Upcoming Tournaments",
     "completedTournaments": "Completed Tournaments",
     "viewLiveEvents": "View Live Events",
-    "exploreUpcoming": "Explore Upcoming"
+    "exploreUpcoming": "Explore Upcoming",
+    "info": {
+      "heading": "Poker Destinations and VIP Experiences",
+      "intro": "Explore poker destinations and tournament opportunities with JackpotsWorld. We help visitors learn about available poker experiences, destination options, and relevant VIP services.",
+      "tournamentsTitle": "Poker Tournaments",
+      "tournamentsBody": "Looking for information about poker tournaments? Check the latest schedules, event details, participation requirements, and availability directly with the relevant venue or organizer.",
+      "destinationsTitle": "Poker Destinations in India",
+      "destinationsBody": "Explore poker-related experiences at destinations where they are legally offered. Confirm venue details, eligibility requirements, and applicable local regulations before planning a visit.",
+      "vipTitle": "VIP Services",
+      "vipBody": "Contact JackpotsWorld to learn about the VIP services and destination assistance currently available. Benefits and arrangements depend on the venue and the applicable terms.",
+      "contactTitle": "Contact JackpotsWorld",
+      "contactBody": "Contact our team for accurate information about available destinations, poker events, and VIP services.",
+      "contactChat": "Talk to our team"
+    }
   },
   "events": {
     "eyebrow": "Jackpotsworld Presents",
@@ -564,5 +577,56 @@
     "learnMore": "Cookies Policy",
     "accept": "Accept all",
     "reject": "Reject non-essential"
+  },
+  "onlineGambling": {
+    "eyebrow": "Information & Player Safety",
+    "title": "Online Gambling",
+    "subtitle": "What online gambling is, the risks it carries, and where to find help. **JackpotsWorld is not an online gambling site** and does not encourage gambling of any kind.",
+    "noticeTitle": "We do not promote online gambling",
+    "noticeBody": "JackpotsWorld does not run, host or link to any real-money online casino, betting app or online gaming platform. You cannot place a bet or play a game for money on this website. We share information about land-based, licensed destinations for adults, and we never encourage anyone to gamble.",
+    "positionTitle": "Our position",
+    "positionPoints": [
+      "This is not an online gambling website, and we do not offer online gambling.",
+      "We do not encourage, advertise or reward gambling, online or offline.",
+      "Our content is information about land-based destinations, events and hospitality for adults where such venues are legal.",
+      "If gambling stops being a choice you are comfortable with, please stop and reach out for support — the resources below are free and confidential."
+    ],
+    "whatTitle": "What is online gambling?",
+    "whatBody": "Online gambling means staking money on the internet — on casino-style games, sports betting, card games or lotteries — through a website or an app. Because it is available on a phone at any hour, it can be much harder to keep track of time and money than at a physical venue. Whether it is legal depends on where you live; in many places, including several Indian states, it is restricted or prohibited.",
+    "risksTitle": "The risks",
+    "risks": [
+      "It is always available, so play can stretch on with no natural break.",
+      "Losses add up quickly when bets are placed in seconds and money is digital.",
+      "Chasing losses — betting more to win back what is gone — usually makes things worse.",
+      "Unlicensed sites may not pay out, may misuse your personal or card details, or may be outright scams.",
+      "It can affect sleep, work, studies, relationships and mental health.",
+      "Borrowing or using money meant for bills to gamble can lead to serious debt."
+    ],
+    "signsTitle": "Signs that gambling may be becoming a problem",
+    "signs": [
+      "Spending more time or money than you planned, again and again.",
+      "Thinking about gambling most of the day, or feeling restless when you stop.",
+      "Hiding how much you gamble from family or friends.",
+      "Gambling to escape stress, loneliness or low mood.",
+      "Borrowing money, selling things or missing payments because of gambling.",
+      "Feeling you need to gamble with bigger amounts to get the same excitement."
+    ],
+    "addictionTitle": "Do not let it become an addiction",
+    "addictionBody": "Gambling addiction is a recognised health condition, not a lack of willpower, and it can happen to anyone. The earlier it is noticed, the easier it is to get back in control. If any of the signs above sound familiar, talk to someone you trust and contact one of the support services below.",
+    "controlTitle": "Staying in control",
+    "controlTips": [
+      "Never treat gambling as a way to make money or solve money problems.",
+      "Decide a time and money limit before you start, and stop when you reach it.",
+      "Never gamble with borrowed money or money needed for essentials.",
+      "Do not chase losses.",
+      "Take regular breaks, and avoid gambling when you are upset, tired or drinking.",
+      "Keep gambling as one small part of a balanced life, never the centre of it."
+    ],
+    "toolsTitle": "Tools on your JackpotsWorld account",
+    "toolsBody": "Members can set deposit limits, take a cooling-off break or self-exclude at any time from the Responsible Gambling section of their dashboard.",
+    "toolsCta": "Open Responsible Gambling settings",
+    "helpTitle": "Where to get help",
+    "helpBody": "These organisations offer free, confidential support for anyone affected by gambling, including family and friends:",
+    "ageNote": "JackpotsWorld is for adults aged 21 and over. Always check and follow the laws that apply where you live and where you travel."
   }
 }

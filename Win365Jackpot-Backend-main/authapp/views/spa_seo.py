@@ -102,9 +102,9 @@ ROUTE_SEO = {
         'casino offers, casino promo code, casino vip bonus, casino loyalty rewards',
     ),
     '/poker': (
-        f'Poker Tournaments & Schedules{TITLE_SUFFIX}',
-        'Upcoming poker tournaments with buy-ins, prize pools and seat availability at '
-        'premier casinos across Asia and beyond. Register through JackpotsWorld.',
+        f'Poker Tournaments, Destinations & VIP Experiences{TITLE_SUFFIX}',
+        'Discover premium poker experiences with JackpotsWorld. Explore VIP poker destinations, '
+        'exclusive casino packages, luxury hospitality, and world-class poker experiences across Asia.',
         'poker, poker live, poker table, casino poker, live dealing games, live dealing, '
         'poker tournament, poker tournaments asia, texas holdem, poker buy in, '
         'poker prize pool, high stakes poker, live poker room, asian poker tour',
@@ -172,6 +172,13 @@ ROUTE_SEO = {
         'How JackpotsWorld collects, uses, stores and protects your personal data, and '
         'the rights you have over it.',
         None,
+    ),
+    '/online-gambling': (
+        f'Online Gambling — Risks, Warning Signs & Help{TITLE_SUFFIX}',
+        'JackpotsWorld is not an online gambling site and does not encourage gambling. '
+        'Learn the risks of online gambling, warning signs of addiction, how to stay in control and where to get help.',
+        'online gambling, online gambling risks, gambling addiction, responsible gambling, '
+        'problem gambling help, is online gambling legal in india',
     ),
     '/cookies-policy': (
         f'Cookies Policy{TITLE_SUFFIX}',

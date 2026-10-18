@@ -13,6 +13,8 @@ import AffiliateSupportedGames from '../components/AffiliateSupportedGames'
 import { useAutoFetch } from '../hooks/useAutoFetch'
 import { fetchFaqs } from '../services/landingService'
 
+import { T } from '../i18n/useSiteText'
+import GoldLastWord from '../components/shared/GoldLastWord'
 // ── Static content ───────────────────────────────────────────────────────────
 // Benefits, How It Works and Terms are still local copy. The FAQ below is NOT
 // -- it comes from Back Office -> FAQs (category "affiliate"), with the list
@@ -20,17 +22,17 @@ import { fetchFaqs } from '../services/landingService'
 // BusinessModelFAQ does. See that component for the full reasoning.
 
 const benefits = [
-  { icon: TrendingUp, title: 'Recurring Revenue', text: 'Earn lifetime commission on every referred player\'s activity, not just a one-time payout.' },
-  { icon: Percent,    title: 'Tiered Commission', text: 'Commission rates increase automatically as your referred player volume grows.' },
-  { icon: Layers,     title: 'Multi-Casino Reach', text: 'Promote our full network of partner casinos, events, and promotions under one affiliate account.' },
-  { icon: Users,      title: 'Dedicated Support', text: 'A dedicated affiliate manager to help with marketing assets, tracking, and payouts.' },
+  { icon: TrendingUp, title: T('Recurring Revenue'), text: T('Earn lifetime commission on every referred player\'s activity, not just a one-time payout.') },
+  { icon: Percent,    title: T('Tiered Commission'), text: T('Commission rates increase automatically as your referred player volume grows.') },
+  { icon: Layers,     title: T('Multi-Casino Reach'), text: T('Promote our full network of partner casinos, events, and promotions under one affiliate account.') },
+  { icon: Users,      title: T('Dedicated Support'), text: T('A dedicated affiliate manager to help with marketing assets, tracking, and payouts.') },
 ]
 
 const howItWorks = [
-  { step: '01', title: 'Register', text: 'Create your affiliate account in minutes — no upfront cost.' },
-  { step: '02', title: 'Share Your Link', text: 'Get a unique tracking link and promotional assets for your audience.' },
-  { step: '03', title: 'Refer Players', text: 'Every signup and deposit through your link is tracked automatically.' },
-  { step: '04', title: 'Get Paid', text: 'Commissions are calculated monthly and paid out directly to your account.' },
+  { step: '01', title: T('Register'), text: T('Create your affiliate account in minutes — no upfront cost.') },
+  { step: '02', title: T('Share Your Link'), text: T('Get a unique tracking link and promotional assets for your audience.') },
+  { step: '03', title: T('Refer Players'), text: T('Every signup and deposit through your link is tracked automatically.') },
+  { step: '04', title: T('Get Paid'), text: T('Commissions are calculated monthly and paid out directly to your account.') },
 ]
 
 const terms = [
@@ -45,11 +47,11 @@ const terms = [
 // table). Migration 0086 seeds the live rows, so a working deployment shows
 // the Back Office copy, not this.
 const FALLBACK_FAQS = [
-  { id: 'fb-1', question: 'Is there a cost to join the affiliate program?', answer: 'No — joining the Jackpotsworld affiliate program is completely free.' },
-  { id: 'fb-2', question: 'How and when do I get paid?', answer: 'Commissions are calculated weekly and monthly based on your referred players\' activity and paid out directly to your registered account.' },
-  { id: 'fb-3', question: 'Can I promote more than one partner casino?', answer: 'Yes — your affiliate link covers our entire network of partner casinos, events, and promotions.' },
-  { id: 'fb-4', question: 'Which games can I refer players for?', answer: 'Poker, Teen Patti and Andhar Bahar. Your referral link can target a specific game, and commission is attributed to whichever game the player\'s qualifying activity actually took place in.' },
-  { id: 'fb-5', question: 'How is my commission rate decided?', answer: 'Commission rates are configured by our affiliate team and can vary by game, country, destination and affiliate tier. Your current rates are shown in your affiliate dashboard.' },
+  { id: 'fb-1', question: T('Is there a cost to join the affiliate program?'), answer: T('No — joining the Jackpotsworld affiliate program is completely free.') },
+  { id: 'fb-2', question: T('How and when do I get paid?'), answer: T('Commissions are calculated weekly and monthly based on your referred players\' activity and paid out directly to your registered account.') },
+  { id: 'fb-3', question: T('Can I promote more than one partner casino?'), answer: T('Yes — your affiliate link covers our entire network of partner casinos, events, and promotions.') },
+  { id: 'fb-4', question: T('Which games can I refer players for?'), answer: T('Poker, Teen Patti and Andhar Bahar. Your referral link can target a specific game, and commission is attributed to whichever game the player\'s qualifying activity actually took place in.') },
+  { id: 'fb-5', question: T('How is my commission rate decided?'), answer: T('Commission rates are configured by our affiliate team and can vary by game, country, destination and affiliate tier. Your current rates are shown in your affiliate dashboard.') },
 ]
 
 const FAQ_PARAMS = { category: 'affiliate' }
@@ -127,23 +129,20 @@ export default function Affiliates() {
       <main>
       <PageHeader
         eyebrow="Partner With Us"
-        title="Jackpotsworld Affiliates"
+        title={T('Jackpotsworld Affiliates')}
         subtitle="Turn your audience into recurring revenue by referring players across our entire network of luxury partner casinos."
       />
 
       {/* What is it */}
       <section className="max-w-4xl mx-auto px-4 pb-16 text-center">
         <p className="text-white/78 font-body text-sm md:text-base leading-relaxed">
-          The Jackpotsworld Affiliate Program lets creators, publishers, and communities earn ongoing
-          commission by referring players to our network of luxury partner casinos, events, and
-          promotions. No inventory, no risk — just a tracking link and a dedicated affiliate manager
-          to help you grow.
+          {T('The Jackpotsworld Affiliate Program lets creators, publishers, and communities earn ongoing commission by referring players to our network of luxury partner casinos, events, and promotions. No inventory, no risk — just a tracking link and a dedicated affiliate manager to help you grow.')}
         </p>
       </section>
 
       {/* Benefits */}
       <section className="w365-page pb-20">
-        <h2 className="section-heading text-2xl text-center mb-10 tracking-wide">Why Become an <span className="gold-text">Affiliate</span></h2>
+        <h2 className="section-heading text-2xl text-center mb-10 tracking-wide"><GoldLastWord text={T('Why Become an Affiliate')} /></h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {benefits.map(({ icon: Icon, title, text }, i) => (
             <motion.div
@@ -178,7 +177,7 @@ export default function Affiliates() {
 
       {/* How it works */}
       <section className="w365-page pb-20">
-        <h2 className="section-heading text-2xl text-center mb-10 tracking-wide">How It <span className="gold-text">Works</span></h2>
+        <h2 className="section-heading text-2xl text-center mb-10 tracking-wide"><GoldLastWord text={T('How It Works')} /></h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {howItWorks.map((step, i) => (
             <motion.div
@@ -200,7 +199,7 @@ export default function Affiliates() {
       {/* Terms & Conditions */}
       <section className="max-w-4xl mx-auto px-4 pb-20">
         <h2 className="section-heading text-2xl text-center mb-10 tracking-wide flex items-center justify-center gap-2">
-          <FileText size={20} className="text-gold" /> Terms &amp; <span className="gold-text">Conditions</span>
+          <FileText size={20} className="text-gold" />{' '}<GoldLastWord text={T('Terms & Conditions')} />
         </h2>
         <div className="casino-card p-6">
           <ul className="flex flex-col gap-3">
@@ -216,7 +215,7 @@ export default function Affiliates() {
 
       {/* FAQ */}
       <section className="max-w-4xl mx-auto px-4 pb-20">
-        <h2 className="section-heading text-2xl text-center mb-10 tracking-wide">Frequently Asked <span className="gold-text">Questions</span></h2>
+        <h2 className="section-heading text-2xl text-center mb-10 tracking-wide"><GoldLastWord text={T('Frequently Asked Questions')} /></h2>
         <div className="flex flex-col gap-3">
           {faqs.map((faq, i) => (
             <FaqItem
@@ -232,9 +231,9 @@ export default function Affiliates() {
       {/* CTA */}
       <section className="max-w-3xl mx-auto px-4 pb-24 text-center">
         <div className="section-divider max-w-xs mx-auto mb-8" />
-        <h2 className="section-heading text-2xl mb-3 tracking-wide">Ready to Start <span className="gold-text">Earning?</span></h2>
+        <h2 className="section-heading text-2xl mb-3 tracking-wide"><GoldLastWord text={T('Ready to Start Earning?')} /></h2>
         <p className="text-white/74 font-body text-sm mb-8">
-          Join the Jackpotsworld Affiliate Program today — it's free, and your dashboard is ready the moment you sign up.
+          {T('Join the Jackpotsworld Affiliate Program today — it\'s free, and your dashboard is ready the moment you sign up.')}
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <motion.button
@@ -243,7 +242,7 @@ export default function Affiliates() {
             onClick={() => navigate('/affiliate-login')}
             className="btn-outline-gold flex items-center gap-2 px-8 py-3 rounded-full text-sm font-bold tracking-widest uppercase"
           >
-            <LogIn size={15} /> Affiliate Login
+            <LogIn size={15} />{' '}{T('Affiliate Login')}
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -251,7 +250,7 @@ export default function Affiliates() {
             onClick={() => navigate('/affiliate-register')}
             className="btn-gold flex items-center gap-2 px-8 py-3 rounded-full text-sm font-bold tracking-widest uppercase"
           >
-            <UserPlus size={15} /> Become an Affiliate
+            <UserPlus size={15} />{' '}{T('Become an Affiliate')}
           </motion.button>
         </div>
       </section>
