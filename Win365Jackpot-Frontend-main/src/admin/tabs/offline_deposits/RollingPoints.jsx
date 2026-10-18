@@ -115,6 +115,16 @@ export default function RollingPoints({ userInfo, accounts, submitting, setSubmi
   const [rTotalBetAmt,  setRTotalBetAmt]  = useState("");
   const [rRpOverride,   setRRpOverride]   = useState("");
   const [rNote,         setRNote]         = useState("");
+  // Same-day slips: once a player has a slip on the betting date, the next
+  // slip number for that day is filled in automatically (slipAuto) until the
+  // admin types their own.
+  const [daySlips,      setDaySlips]      = useState([]);
+  const [slipAuto,      setSlipAuto]      = useState(false);
+  const [daySlipsTick,  setDaySlipsTick]  = useState(0);
+  const slipAutoRef    = React.useRef(false);
+  const rSlipNumberRef = React.useRef("");
+  slipAutoRef.current    = slipAuto;
+  rSlipNumberRef.current = rSlipNumber;
 
   // Player-scoped casino list — ONLY casinos where this player has an
   // active, funded Cash wallet (i.e. has actually deposited/played there).
@@ -124,6 +134,8 @@ export default function RollingPoints({ userInfo, accounts, submitting, setSubmi
 
   useEffect(() => {
     setCountry(""); setRCasino("");
+    setRBettingDate(userInfo ? TODAY : "");
+    setRSlipNumber(""); setSlipAuto(false); setRSlipError("");
     if (!userInfo) { setPlayerCasinos({}); return; }
     setLoadingPlayerCasinos(true);
     adminFetch(`${API}/api/admin-panel/deposits/casinos/?user_id=${userInfo.id}`)
@@ -132,6 +144,27 @@ export default function RollingPoints({ userInfo, accounts, submitting, setSubmi
       .catch(() => setPlayerCasinos({}))
       .finally(() => setLoadingPlayerCasinos(false));
   }, [userInfo]);
+
+  // Load the player's slips for the chosen betting date and, when the day
+  // already has one, pre-fill the next slip number in sequence.
+  useEffect(() => {
+    if (!userInfo || !rBettingDate || rBettingDate > TODAY) { setDaySlips([]); return; }
+    let cancelled = false;
+    adminFetch(`${API}/api/admin-panel/deposits/day-slips/?user_id=${userInfo.id}&betting_date=${rBettingDate}`)
+      .then(r => r.json())
+      .then(j => {
+        if (cancelled) return;
+        setDaySlips(j.slips || []);
+        const replaceable = !rSlipNumberRef.current.trim() || slipAutoRef.current;
+        if (j.next_slip_number && replaceable) {
+          setRSlipNumber(j.next_slip_number); setSlipAuto(true); setRSlipError("");
+        } else if (!j.next_slip_number && slipAutoRef.current) {
+          setRSlipNumber(""); setSlipAuto(false);
+        }
+      })
+      .catch(() => { if (!cancelled) setDaySlips([]); });
+    return () => { cancelled = true; };
+  }, [userInfo, rBettingDate, daySlipsTick]);
 
   const hasNoCasinoAccounts = !loadingPlayerCasinos && !!userInfo && Object.keys(playerCasinos).length === 0;
 
@@ -189,9 +222,10 @@ export default function RollingPoints({ userInfo, accounts, submitting, setSubmi
       const j = await r.json();
       onToast(j.message||j.error, r.ok);
       if (r.ok) {
-        setRSlipNumber(""); setRBettingDate(""); setRTotalBets("");
+        // Keep the betting date: the next slip that day is numbered automatically.
+        setRSlipNumber(""); setSlipAuto(true); setRTotalBets("");
         setRTotalBetAmt(""); setRRpOverride(""); setRNote(""); setRCasino(""); setCountry("");
-        setRSlipError("");
+        setRSlipError(""); setDaySlipsTick(t => t + 1);
         await refreshUser();
       }
     } catch { onToast("Submission failed", false); }
@@ -269,7 +303,7 @@ export default function RollingPoints({ userInfo, accounts, submitting, setSubmi
             <label style={lbl(C)}><Hash size={9} style={{ display:"inline", marginRight:3 }}/>Slip Number *</label>
             <input
               value={rSlipNumber}
-              onChange={e => { setRSlipNumber(e.target.value); setRSlipError(""); }}
+              onChange={e => { setRSlipNumber(e.target.value); setSlipAuto(false); setRSlipError(""); }}
               onBlur={e => checkSlipUnique(e.target.value)}
               placeholder="e.g. SLP-20260420-001"
               style={inp("#a78bfa", !!rSlipError, C)}
@@ -281,7 +315,9 @@ export default function RollingPoints({ userInfo, accounts, submitting, setSubmi
               </div>
             )}
             {rSlipNumber && !rSlipError && !rSlipChecking && (
-              <div style={{ fontSize:10, color:"#34d399", marginTop:4, fontWeight:600 }}>✓ Available</div>
+              <div style={{ fontSize:10, color:"#34d399", marginTop:4, fontWeight:600 }}>
+                {slipAuto ? "✓ Auto-filled — next slip for this day" : "✓ Available"}
+              </div>
             )}
           </div>
 
@@ -290,7 +326,7 @@ export default function RollingPoints({ userInfo, accounts, submitting, setSubmi
             <label style={lbl(C)}><Calendar size={9} style={{ display:"inline", marginRight:3 }}/>Betting Date *</label>
             <input
               value={rBettingDate}
-              onChange={e => setRBettingDate(e.target.value)}
+              onChange={e => { setRBettingDate(e.target.value); if (slipAuto) setRSlipNumber(""); }}
               type="date"
               max={TODAY}
               style={{
@@ -314,6 +350,22 @@ export default function RollingPoints({ userInfo, accounts, submitting, setSubmi
             </select>
           </div>
         </div>
+
+        {/* Slips already recorded for this player on the betting date */}
+        {daySlips.length > 0 && (
+          <div style={{ marginBottom:12, padding:"9px 12px", borderRadius:8, background:"rgba(167,139,250,0.06)", border:"1px solid rgba(167,139,250,0.25)", fontSize:11, color:C.text }}>
+            <div style={{ fontWeight:700, color:"#a78bfa", marginBottom:5 }}>
+              {daySlips.length} slip{daySlips.length > 1 ? "s" : ""} already recorded on {new Date(rBettingDate).toLocaleDateString("en-IN")} — the next slip number and date are filled in automatically
+            </div>
+            <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+              {daySlips.map(s => (
+                <span key={s.slip_number} style={{ fontFamily:"monospace", fontSize:10, padding:"2px 7px", borderRadius:6, background:C.hoverBg, color:C.muted }}>
+                  {s.slip_number} · {s.casino_name} · {fmt(s.total_bet_amount)}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Casino — only casinos where this player has an active funded Cash wallet */}
         {country && casinosForCountry.length === 0 && (
