@@ -323,3 +323,189 @@ class AdminLiveChatReadView(APIView):
         ticket = get_object_or_404(SupportTicket, pk=ticket_id, is_live_chat=True)
         ids = live_chat_service.mark_read(ticket, reader_is_admin=True)
         return Response({"marked_read": ids})
+
+
+# ─── Presence + agent-initiated conversations ────────────────────────────────
+
+class LiveChatPresenceView(APIView):
+    """POST /api/live-chat/presence/  {"portal": "player"|"affiliate"}
+
+    The signed-in site's heartbeat. Stamps the caller as online (for the
+    Back Office contact picker's green dot) and tells the widget whether an
+    agent has reached out on this portal's active conversation:
+
+      session_id              -- the active live conversation, or null
+      latest_admin_message_id -- newest agent message on it the user has not
+                                 read, so the widget opens only for new ones
+      incoming_call           -- a support callback ringing this user right
+                                 now, so a widget that was not connected when
+                                 the ring went out can still show it
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        from authapp.models.call_models import CallSession, DIRECTION_OUTBOUND, STATUS_RINGING
+        from authapp.services import presence_service, voice_call_service
+
+        presence_service.touch(request.user)
+        participant_type = live_chat_service.resolve_participant_type(
+            request.user, (request.data.get("portal") or "").strip().lower(),
+        )
+        session = (
+            SupportTicket.objects
+            .filter(
+                user=request.user, is_live_chat=True,
+                participant_type=participant_type,
+                status__in=live_chat_service.ACTIVE_STATUSES,
+            )
+            .order_by("-created_at")
+            .first()
+        )
+        body = {
+            "heartbeat_seconds": presence_service.PRESENCE_HEARTBEAT_SECONDS,
+            "session_id": None,
+            "latest_admin_message_id": None,
+            "incoming_call": None,
+        }
+        if session is None:
+            return Response(body)
+
+        body["session_id"] = session.pk
+        body["latest_admin_message_id"] = (
+            session.chat_messages
+            .filter(sender_type="admin", is_read=False)
+            .order_by("-id")
+            .values_list("id", flat=True)
+            .first()
+        )
+        call = (
+            CallSession.objects
+            .filter(ticket=session, receiver=request.user,
+                    direction=DIRECTION_OUTBOUND, status=STATUS_RINGING)
+            .order_by("-id")
+            .first()
+        )
+        if call is not None:
+            voice_call_service.expire_if_due(call)
+            if call.status == STATUS_RINGING:
+                body["incoming_call"] = voice_call_service.call_payload(call)
+        return Response(body)
+
+
+def _contact_row(user, affiliate_ids, active_by_key, now):
+    from authapp.services import presence_service
+
+    is_affiliate = user.pk in affiliate_ids
+    return {
+        "id": user.pk,
+        "user_uid": user.user_uid,
+        "name": user.name or "",
+        "email": user.email,
+        "phone": f"{user.dial_code} {user.phone}".strip() if user.phone else "",
+        "is_affiliate": is_affiliate,
+        "affiliate_id": f"AFF-{user.user_uid}" if is_affiliate else None,
+        "is_online": presence_service.is_online(user, now),
+        "last_seen_at": user.last_seen_at.isoformat() if user.last_seen_at else None,
+        "player_session_id": active_by_key.get((user.pk, PARTICIPANT_PLAYER)),
+        "affiliate_session_id": active_by_key.get((user.pk, PARTICIPANT_AFFILIATE)),
+    }
+
+
+class AdminLiveChatContactsView(APIView):
+    """GET /api/admin-panel/live-chat/contacts/?q=<text>&type=all|player|affiliate
+
+    Players and affiliates an agent can start a conversation with, each with
+    an online flag. With no search text it lists who is online right now, so
+    the agent can see at a glance who is reachable.
+    """
+    permission_classes = [IsAdminOrSuperAdmin]
+    LIMIT = 30
+
+    def get(self, request):
+        from django.contrib.auth import get_user_model
+        from django.db.models import Q
+        from django.utils import timezone
+        from authapp.models.affiliate_models import AffiliateProfile
+        from authapp.services import presence_service
+
+        User = get_user_model()
+        q = (request.query_params.get("q") or "").strip()
+        kind = (request.query_params.get("type") or "all").strip().lower()
+        now = timezone.now()
+
+        qs = User.objects.filter(is_active=True, is_staff=False)
+        if kind == PARTICIPANT_AFFILIATE:
+            qs = qs.filter(pk__in=AffiliateProfile.objects.filter(is_active=True).values("user_id"))
+        if q:
+            uid = q.upper().removeprefix("AFF-")
+            qs = qs.filter(
+                Q(name__icontains=q) | Q(email__icontains=q)
+                | Q(user_uid__icontains=uid) | Q(phone__icontains=q)
+            )
+        else:
+            qs = qs.filter(last_seen_at__gte=presence_service.online_cutoff(now))
+        users = list(qs.order_by("-last_seen_at", "name")[: self.LIMIT])
+
+        ids = [u.pk for u in users]
+        affiliate_ids = set(
+            AffiliateProfile.objects.filter(user_id__in=ids, is_active=True).values_list("user_id", flat=True)
+        )
+        active_by_key = {}
+        for tid, uid, ptype in (
+            SupportTicket.objects
+            .filter(user_id__in=ids, is_live_chat=True, status__in=live_chat_service.ACTIVE_STATUSES)
+            .order_by("created_at")
+            .values_list("id", "user_id", "participant_type")
+        ):
+            active_by_key[(uid, ptype)] = tid
+
+        from authapp.services import voice_call_service
+        return Response({
+            # Calling stays limited to the support desk roles (see
+            # voice_call_service.is_call_eligible_agent); the picker uses this
+            # to explain a disabled Call button instead of failing on click.
+            "agent_can_call": voice_call_service.is_call_eligible_agent(request.user),
+            "results": [_contact_row(u, affiliate_ids, active_by_key, now) for u in users],
+        })
+
+
+class AdminLiveChatStartView(APIView):
+    """POST /api/admin-panel/live-chat/start/  {"user_id": n, "participant_type": "player"|"affiliate"}
+
+    An agent opens (or rejoins) a conversation with a player or affiliate,
+    instead of waiting for them to start one. Returns the session in the same
+    shape as the inbox list, so the Back Office can select it straight away
+    and text or call on it. The customer site picks it up on its next
+    presence heartbeat and opens the chat widget.
+    """
+    permission_classes = [IsAdminOrSuperAdmin]
+
+    def post(self, request):
+        from django.contrib.auth import get_user_model
+        from authapp.models.affiliate_models import AffiliateProfile
+
+        User = get_user_model()
+        try:
+            user = User.objects.get(pk=int(request.data.get("user_id")), is_active=True, is_staff=False)
+        except (User.DoesNotExist, TypeError, ValueError):
+            return Response({"error": "Player not found."}, status=404)
+
+        participant_type = (request.data.get("participant_type") or PARTICIPANT_PLAYER).strip().lower()
+        if participant_type not in {PARTICIPANT_PLAYER, PARTICIPANT_AFFILIATE}:
+            return Response({"error": "participant_type must be player or affiliate."}, status=400)
+        if (participant_type == PARTICIPANT_AFFILIATE
+                and not AffiliateProfile.objects.filter(user=user, is_active=True).exists()):
+            return Response({"error": "This user is not an active affiliate."}, status=400)
+
+        try:
+            session, created = live_chat_service.get_or_create_active_session(
+                user, participant_type, greet=False,
+            )
+        except live_chat_service.ChatRestricted as exc:
+            return Response({"error": exc.message, "code": "chat_restricted"}, status=409)
+        if created:
+            live_chat_service.notify_session_started(session)
+        return Response({
+            "created": created,
+            "session": LiveChatSessionSerializer(session).data,
+        }, status=201 if created else 200)

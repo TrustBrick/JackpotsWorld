@@ -22,6 +22,7 @@ import RollingPoints from "./RollingPoints";
 import CashWallet    from "./CashWallet";
 import NonCash       from "./NonCash";
 import OtpWallet     from "./OtpWallet";
+import PendingDepositRequests from "./PendingDepositRequests";
 
 // ─── VIP HELPERS ──────────────────────────────────────────────────────────────
 const VIP_LEVELS = [
@@ -287,6 +288,9 @@ const loadAccounts = async (uid) => {
             <button onClick={() => { setUserInfo(null); setQuery(""); setSearchResults([]); setUserTotalCash(null); }}
               style={{ background:"none", border:"none", color:"#f87171", cursor:"pointer", fontSize:18, lineHeight:1 }}>✕</button>
           </div>
+        )}
+        {userInfo && (
+          <PendingDepositRequests userId={userInfo.id} onToast={onToast} onCompleted={refreshUser} />
         )}
       </div>
 

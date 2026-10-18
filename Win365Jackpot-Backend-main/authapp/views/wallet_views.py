@@ -610,3 +610,77 @@ class AdminUserTravelHistoryView(APIView):
             "count":   paginator.count,
             "results": results,
         })
+
+class UserAccountOverviewView(APIView):
+    """
+    GET /wallet/account-overview/?country=<country>&casino=<casino name>
+
+    The player's Account Overview (deposited / withdrawn / wagered / won /
+    lost), computed from their own casino ledger rather than the never-
+    maintained User.total_* counters, narrowed by the country and casino
+    they pick. Both filters are optional; empty means "all".
+
+    `options` lists only the countries and casinos this player actually has
+    activity at, so every choice in the dropdowns can show real numbers.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from authapp.models.casino_models import Casino
+        from authapp.models.casino_wallet_models import CasinoWalletTransaction
+        from authapp.models.offline_deposit import OfflineDepositLog
+
+        user = request.user
+        country = (request.query_params.get("country") or "").strip()
+        casino = (request.query_params.get("casino") or "").strip()
+
+        # casino name -> country. The casino wallet carries the country the
+        # admin recorded; fall back to the casino catalog for older wallets
+        # that were created before country was captured.
+        casino_country = {}
+        for name, ctry in CasinoWalletAccount.objects.filter(user=user).values_list("casino_name", "country"):
+            if ctry or name not in casino_country:
+                casino_country[name] = ctry or ""
+        txn_names = set(
+            CasinoWalletTransaction.objects.filter(user=user).values_list("casino_name", flat=True).distinct()
+        )
+        for name in txn_names:
+            casino_country.setdefault(name, "")
+        missing = [n for n, c in casino_country.items() if not c]
+        if missing:
+            for name, ctry in Casino.objects.filter(name__in=missing).values_list("name", "country"):
+                casino_country[name] = ctry
+
+        options = {}
+        for name, ctry in casino_country.items():
+            options.setdefault(ctry or "Other", []).append(name)
+        options_list = [
+            {"country": c, "casinos": sorted(names)}
+            for c, names in sorted(options.items(), key=lambda kv: kv[0].lower())
+        ]
+
+        names = set(casino_country)
+        if country:
+            names = {n for n in names if (casino_country[n] or "Other") == country}
+        if casino:
+            names = names & {casino}
+
+        txns = CasinoWalletTransaction.objects.filter(user=user, casino_name__in=names)
+
+        def total(*types):
+            return float(txns.filter(transaction_type__in=types).aggregate(t=Sum("amount"))["t"] or 0)
+
+        wagered = OfflineDepositLog.objects.filter(
+            user=user, entry_type="rolling_points", casino_name__in=names,
+        ).aggregate(t=Sum("total_bet_amount"))["t"] or 0
+
+        return Response({
+            "options": options_list,
+            "country": country,
+            "casino": casino,
+            "total_deposited": total("DAC"),
+            "total_withdrawn": total("WAC"),
+            "total_wagered": float(wagered),
+            "total_won": total("WIN"),
+            "total_lost": total("LAC", "LAS"),
+        })

@@ -10,6 +10,8 @@ import { useAutoFetch } from '../hooks/useAutoFetch'
 import { fetchWhyChooseUsFeatures } from '../services/landingService'
 import { SECTION_PAD, CONTAINER } from '../utils/layout'
 
+import { T } from '../i18n/useSiteText'
+import GoldLastWord from './shared/GoldLastWord'
 // Maps the admin-editable `icon_name` string to its Lucide component —
 // same string-keyed lookup pattern already used by AdminPanel.jsx's ICON_MAP.
 const ICON_MAP = {
@@ -39,13 +41,13 @@ const ICON_MAP = {
        activity this platform has no access to, and confirmed as
        unsubstantiated, so there is no honest version of the card to keep. */
 const FALLBACK_FEATURES = [
-  { color: '#34d399', icon_name: 'ShieldCheck', title: 'Selected Partner Venues', description: 'We work with selected offline casino destinations and local partners. Your privacy and your data are our priority.' },
-  { color: '#fbbf24', icon_name: 'Zap', title: 'Trip Planning Made Simple', description: 'One team to arrange your travel, stay and casino introduction. Your gaming transactions stay between you and the venue.' },
-  { color: '#f472b6', icon_name: 'Gift', title: 'Exclusive VIP Privilege', description: 'Member perks and partner offers arranged through your JackpotsWorld referral, provided by the destination casino.' },
-  { color: '#60a5fa', icon_name: 'Globe', title: '15+ Countries Covered', description: 'One membership, referrals to offline casino destinations in Vietnam, Macau, India, Sri Lanka, Philippines and more.' },
-  { color: '#a78bfa', icon_name: 'HeadphonesIcon', title: '24/7 Live Support', description: 'Our multilingual support team is available round the clock via WhatsApp, chat, and call.' },
-  { color: '#22d3ee', icon_name: 'PlaneTakeoff', title: 'Full Trip Packages', description: 'We handle flights, hotels, transfers and your casino introduction. Hassle-free from home to the venue.' },
-  { color: '#D4AF37', icon_name: 'Crown', title: 'Play Anywhere. Keep Your Points.', description: 'Your JackpotsWorld membership stays with you wherever you visit our partner destinations. Your referral and membership details remain connected to your account.' },
+  { color: '#34d399', icon_name: 'ShieldCheck', title: T('Selected Partner Venues'), description: T('We work with selected offline casino destinations and local partners. Your privacy and your data are our priority.') },
+  { color: '#fbbf24', icon_name: 'Zap', title: T('Trip Planning Made Simple'), description: T('One team to arrange your travel, stay and casino introduction. Your gaming transactions stay between you and the venue.') },
+  { color: '#f472b6', icon_name: 'Gift', title: T('Exclusive VIP Privilege'), description: T('Member perks and partner offers arranged through your JackpotsWorld referral, provided by the destination casino.') },
+  { color: '#60a5fa', icon_name: 'Globe', title: T('15+ Countries Covered'), description: T('One membership, referrals to offline casino destinations in Vietnam, Macau, India, Sri Lanka, Philippines and more.') },
+  { color: '#a78bfa', icon_name: 'HeadphonesIcon', title: T('24/7 Live Support'), description: T('Our multilingual support team is available round the clock via WhatsApp, chat, and call.') },
+  { color: '#22d3ee', icon_name: 'PlaneTakeoff', title: T('Full Trip Packages'), description: T('We handle flights, hotels, transfers and your casino introduction. Hassle-free from home to the venue.') },
+  { color: '#D4AF37', icon_name: 'Crown', title: T('Play Anywhere. Keep Your Points.'), description: T('Your JackpotsWorld membership stays with you wherever you visit our partner destinations. Your referral and membership details remain connected to your account.') },
 ]
 
 const FeatureCard = memo(({ Icon, color, bg, border, title, desc }) => (
@@ -157,19 +159,19 @@ export default function WhyChooseUs() {
             color: 'rgba(212,175,55,0.7)',
           }}>
             <Zap size={11} color="rgba(212,175,55,0.7)" />
-            Our Advantages
+            {T('Our Advantages')}
           </div>
           <h2 className="section-heading" style={{
             fontSize: 'clamp(1.8rem,7vw,3.2rem)', marginBottom: 12, lineHeight: 1.1,
           }}>
-            WHY <span className="gold-text">Jackpotsworld?</span>
+            <GoldLastWord text={T('WHY Jackpotsworld?')} />
           </h2>
           <p className="font-body font-light" style={{
             fontSize: 'clamp(0.85rem,3.2vw,1.05rem)',
             color: 'rgba(var(--w365-text-rgb),0.70)',
             maxWidth: 480, margin: '0 auto', lineHeight: 1.6,
           }}>
-            We don't just book casino trips — we craft legendary experiences.
+            {T('We don\'t just book casino trips — we craft legendary experiences.')}
           </p>
         </motion.div>
 

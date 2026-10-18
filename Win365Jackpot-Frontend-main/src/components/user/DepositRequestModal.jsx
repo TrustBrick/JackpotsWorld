@@ -142,7 +142,7 @@ export default function DepositRequestModal({ onClose, onSuccess, onError }) {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 4 }}>
             <Wallet size={16} style={{ color: C.gold }} />
             <span style={{ fontSize: 16, fontWeight: 900, color: C.gold }}>
-              {step === "confirm" ? "Confirm Deposit" : "Request Deposit"}
+              {step === "confirm" ? "Confirm Deposit" : "Deposit Request"}
             </span>
           </div>
           <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>Credited to your Cash Wallet once approved</div>

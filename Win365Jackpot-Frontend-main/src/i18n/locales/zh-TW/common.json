@@ -13,7 +13,8 @@
     "whatsapp": "WhatsApp",
     "telegram": "Telegram",
     "signOut": "登出",
-    "language": "語言"
+    "language": "語言",
+    "kyc": "KYC 驗證"
   },
   "vip": {
     "vip": "VIP",
@@ -116,7 +117,9 @@
     "transaction": "交易",
     "balanceBefore": "交易前餘額",
     "balanceAfter": "交易後餘額",
-    "approved": "已核准"
+    "approved": "已核准",
+    "totalCasinoBalance": "賭場總餘額",
+    "totalCasinoBalanceSub": "所有賭場錢包的合計餘額"
   },
   "system": {
     "genericError": "發生錯誤",
@@ -314,7 +317,11 @@
     "otpCreditsLabel": "OTP 點數",
     "verification": "驗證",
     "rollingPointsLabel": "流水點數",
-    "rewardPoints": "獎勵點數"
+    "rewardPoints": "獎勵點數",
+    "merchandise": "周邊商品",
+    "giftVoucher": "禮品券",
+    "discountVoucher": "折價券",
+    "spinReward": "轉盤獎勵"
   },
   "packages": {
     "casinoTourPackages": "賭場旅遊套餐",
@@ -407,7 +414,9 @@
     "faqShortcut": "常見問題",
     "pleaseFillBoth": "請填寫兩個欄位",
     "ticketSubmitted": "客服工單已提交",
-    "failedToSubmit": "工單提交失敗"
+    "failedToSubmit": "工單提交失敗",
+    "ticket": "選擇工單類別",
+    "uploadDocument": "上傳文件"
   },
   "travel": {
     "header": "賭場旅程記錄",
@@ -437,7 +446,7 @@
   "poker": {
     "eyebrow": "高額籌碼，即時精彩",
     "title": "撲克",
-    "subtitle": "來自合作賭場的即將舉行錦標賽與**直播牌桌** — 立即取得門票，或即時查看賽程更新。",
+    "subtitle": "與 JackpotsWorld 一起探索頂級撲克體驗。發掘 VIP 撲克目的地、專屬賭場套裝行程、奢華禮賓服務，以及遍布亞洲的**世界級撲克體驗**。",
     "signInPrompt": "登入以取得錦標賽門票，並追蹤您已報名的賽事。",
     "loadError": "目前無法載入錦標賽資訊，請稍後再試。",
     "noTournaments": "目前尚無排定的錦標賽，請稍後再查看。",
@@ -450,7 +459,20 @@
     "upcomingTournaments": "即將開始的錦標賽",
     "completedTournaments": "已結束的錦標賽",
     "viewLiveEvents": "查看直播賽事",
-    "exploreUpcoming": "瀏覽即將開始"
+    "exploreUpcoming": "瀏覽即將開始",
+    "info": {
+      "heading": "撲克目的地與 VIP 體驗",
+      "intro": "與 JackpotsWorld 一起探索撲克目的地與錦標賽機會。我們協助訪客了解可選的撲克體驗、目的地選擇與相關 VIP 服務。",
+      "tournamentsTitle": "撲克錦標賽",
+      "tournamentsBody": "想了解撲克錦標賽資訊？請直接向相關場館或主辦單位查詢最新賽程、賽事詳情、參賽資格與名額。",
+      "destinationsTitle": "印度撲克目的地",
+      "destinationsBody": "在合法提供撲克的目的地探索相關體驗。規劃行程前，請確認場館詳情、資格要求與當地適用法規。",
+      "vipTitle": "VIP 服務",
+      "vipBody": "聯絡 JackpotsWorld，了解目前可提供的 VIP 服務與目的地協助。禮遇與安排取決於場館及適用條款。",
+      "contactTitle": "聯絡 JackpotsWorld",
+      "contactBody": "聯絡我們的團隊，取得可選目的地、撲克賽事與 VIP 服務的正確資訊。",
+      "contactChat": "聯絡我們的團隊"
+    }
   },
   "events": {
     "eyebrow": "Jackpotsworld 呈現",
@@ -548,5 +570,63 @@
     "earnCommission": "賺取每小時佣金",
     "tagline": "盡享博彩樂趣的同時",
     "disclaimer": "符合資格的玩家在享受博彩體驗的同時，可享有專屬旅行、住宿及收益優惠。詳情以條款及細則為準。"
+  },
+  "cookieConsent": {
+    "title": "我們重視您的隱私",
+    "message": "我們使用必要的 Cookie 來運作本網站，並使用選用的分析 Cookie 了解網站的使用情形。您可以接受或拒絕選用 Cookie。",
+    "learnMore": "Cookie 政策",
+    "accept": "全部接受",
+    "reject": "拒絕非必要 Cookie"
+  },
+  "onlineGambling": {
+    "eyebrow": "資訊與玩家安全",
+    "title": "線上博弈",
+    "subtitle": "什麼是線上博弈、它有哪些風險，以及可以在哪裡尋求協助。**JackpotsWorld 不是線上博弈網站**，也不鼓勵任何形式的博弈。",
+    "noticeTitle": "我們不推廣線上博弈",
+    "noticeBody": "JackpotsWorld 不經營、不託管，也不連結任何真錢線上賭場、投注應用程式或線上遊戲平台。您無法在本網站下注或以金錢進行遊戲。我們為成年人提供合法持照實體場所的資訊，從不鼓勵任何人參與博弈。",
+    "positionTitle": "我們的立場",
+    "positionPoints": [
+      "本網站不是線上博弈網站，我們不提供線上博弈。",
+      "我們不鼓勵、不宣傳，也不獎勵任何形式的博弈，無論線上或線下。",
+      "我們的內容是為成年人提供的實體目的地、活動與禮賓服務資訊，僅限於此類場所合法的地區。",
+      "如果博弈不再是讓您感到安心的選擇，請停下來尋求協助 — 以下資源免費且保密。"
+    ],
+    "whatTitle": "什麼是線上博弈？",
+    "whatBody": "線上博弈是指透過網站或應用程式在網路上下注 — 包括賭場類遊戲、運動投注、紙牌遊戲或彩券。由於手機隨時都能使用，相較於實體場所，控制時間與金錢往往困難得多。是否合法取決於您所在的地區；在許多地方，包括印度的多個邦，線上博弈受到限制或被禁止。",
+    "risksTitle": "風險",
+    "risks": [
+      "隨時都能使用，遊戲可能在沒有自然停頓的情況下一直持續。",
+      "下注只需幾秒、資金是數位形式時，損失會迅速累積。",
+      "追輸 — 加碼下注想把輸掉的贏回來 — 通常只會讓情況更糟。",
+      "未持照的網站可能不出金、濫用您的個人或信用卡資料，甚至本身就是詐騙。",
+      "可能影響睡眠、工作、學業、人際關係與心理健康。",
+      "借錢或挪用帳單資金去博弈，可能導致嚴重負債。"
+    ],
+    "signsTitle": "博弈可能正在成為問題的徵兆",
+    "signs": [
+      "一次又一次花費比計畫更多的時間或金錢。",
+      "一天中大部分時間都在想博弈，或停下來時感到焦躁。",
+      "向家人或朋友隱瞞自己博弈的程度。",
+      "藉博弈逃避壓力、孤單或低落情緒。",
+      "因博弈借錢、變賣物品或延遲付款。",
+      "覺得需要加大下注才能獲得同樣的刺激感。"
+    ],
+    "addictionTitle": "別讓它變成成癮",
+    "addictionBody": "博弈成癮是一種公認的健康問題，而不是意志力不足，任何人都可能遇到。越早察覺，就越容易重新掌控。如果上述徵兆讓您感到熟悉，請與信任的人談談，並聯繫下方任一支援服務。",
+    "controlTitle": "保持掌控",
+    "controlTips": [
+      "永遠不要把博弈當作賺錢或解決財務問題的方法。",
+      "開始前設定時間與金額上限，達到後就停止。",
+      "絕不用借來的錢或生活必需的錢去博弈。",
+      "不要追輸。",
+      "定時休息，在情緒低落、疲倦或飲酒時避免博弈。",
+      "讓博弈只佔平衡生活的一小部分，永遠不要成為生活的中心。"
+    ],
+    "toolsTitle": "您的 JackpotsWorld 帳戶工具",
+    "toolsBody": "會員可隨時在控制台的「負責任博弈」區塊設定存款上限、暫停一段時間或進行自我排除。",
+    "toolsCta": "開啟負責任博弈設定",
+    "helpTitle": "到哪裡尋求協助",
+    "helpBody": "以下機構為受博弈影響的任何人（包括家人與朋友）提供免費、保密的支援：",
+    "ageNote": "JackpotsWorld 僅適用於 21 歲以上的成年人。請務必了解並遵守您居住地與旅遊目的地的相關法律。"
   }
 }

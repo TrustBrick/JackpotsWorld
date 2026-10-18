@@ -19,6 +19,7 @@ import { trackVideoCtaClick } from '../services/analytics'
 import GoldLastWord from '../components/shared/GoldLastWord'
 import PromotionBanner from '../components/promotions/PromotionBanner'
 
+import { T } from '../i18n/useSiteText'
 export default function PromotionDetails() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -78,7 +79,7 @@ export default function PromotionDetails() {
           onClick={() => navigate('/promotions')}
           className="flex items-center gap-1.5 text-sm font-body text-white/70 hover:text-gold transition-colors mb-6"
         >
-          <ArrowLeft size={15} /> Back to Promotions
+          <ArrowLeft size={15} />{' '}{T('Back to Promotions')}
         </button>
 
         {loading ? (

@@ -13,7 +13,8 @@
     "whatsapp": "WhatsApp",
     "telegram": "Telegram",
     "signOut": "Abmelden",
-    "language": "Sprache"
+    "language": "Sprache",
+    "kyc": "KYC-Verifizierung"
   },
   "vip": {
     "vip": "VIP",
@@ -116,7 +117,9 @@
     "transaction": "Transaktion",
     "balanceBefore": "Guthaben vorher",
     "balanceAfter": "Guthaben nachher",
-    "approved": "GENEHMIGT"
+    "approved": "GENEHMIGT",
+    "totalCasinoBalance": "Casino-Guthaben gesamt",
+    "totalCasinoBalanceSub": "Gesamtguthaben aller Casino-Wallets"
   },
   "system": {
     "genericError": "Etwas ist schiefgelaufen",
@@ -314,7 +317,11 @@
     "otpCreditsLabel": "OTP-Guthaben",
     "verification": "Verifizierung",
     "rollingPointsLabel": "Rolling Points",
-    "rewardPoints": "Prämienpunkte"
+    "rewardPoints": "Prämienpunkte",
+    "merchandise": "Merchandise",
+    "giftVoucher": "Geschenkgutschein",
+    "discountVoucher": "Rabattgutschein",
+    "spinReward": "Glücksrad-Prämie"
   },
   "packages": {
     "casinoTourPackages": "Casino-Tour-Pakete",
@@ -407,7 +414,9 @@
     "faqShortcut": "Häufig gestellte Fragen",
     "pleaseFillBoth": "Bitte füllen Sie beide Felder aus",
     "ticketSubmitted": "Support-Ticket übermittelt",
-    "failedToSubmit": "Ticket konnte nicht übermittelt werden"
+    "failedToSubmit": "Ticket konnte nicht übermittelt werden",
+    "ticket": "Ticketkategorie auswählen",
+    "uploadDocument": "Dokument hochladen"
   },
   "travel": {
     "header": "Casino-Reiseverlauf",
@@ -437,7 +446,7 @@
   "poker": {
     "eyebrow": "Hohe Einsätze, Live-Action",
     "title": "Poker",
-    "subtitle": "Bevorstehende Turniere und **Live-Tische** von unseren Partnercasinos — sichern Sie sich Ihr Ticket oder verfolgen Sie, wie sich der Zeitplan in Echtzeit füllt.",
+    "subtitle": "Entdecken Sie erstklassige Poker-Erlebnisse mit JackpotsWorld. VIP-Poker-Reiseziele, exklusive Casinopakete, luxuriöse Gastfreundschaft und **Poker-Erlebnisse auf Weltniveau** in ganz Asien.",
     "signInPrompt": "Melden Sie sich an, um Ihr Ticket für Turniere zu erhalten und Ihre gebuchten Events zu verfolgen.",
     "loadError": "Turniere konnten momentan nicht geladen werden. Bitte versuchen Sie es erneut.",
     "noTournaments": "Derzeit sind keine Turniere geplant. Schauen Sie bald wieder vorbei.",
@@ -450,7 +459,20 @@
     "upcomingTournaments": "Bevorstehende Turniere",
     "completedTournaments": "Abgeschlossene Turniere",
     "viewLiveEvents": "Live-Events ansehen",
-    "exploreUpcoming": "Bevorstehende ansehen"
+    "exploreUpcoming": "Bevorstehende ansehen",
+    "info": {
+      "heading": "Poker-Reiseziele und VIP-Erlebnisse",
+      "intro": "Entdecken Sie mit JackpotsWorld Poker-Reiseziele und Turniermöglichkeiten. Wir informieren Besucher über verfügbare Poker-Erlebnisse, Reiseziele und passende VIP-Services.",
+      "tournamentsTitle": "Pokerturniere",
+      "tournamentsBody": "Sie suchen Informationen zu Pokerturnieren? Prüfen Sie aktuelle Termine, Eventdetails, Teilnahmebedingungen und Verfügbarkeit direkt beim jeweiligen Veranstaltungsort oder Veranstalter.",
+      "destinationsTitle": "Poker-Reiseziele in Indien",
+      "destinationsBody": "Entdecken Sie Poker-Erlebnisse an Orten, an denen Poker legal angeboten wird. Klären Sie Details zum Veranstaltungsort, Teilnahmevoraussetzungen und lokale Vorschriften, bevor Sie Ihren Besuch planen.",
+      "vipTitle": "VIP-Services",
+      "vipBody": "Kontaktieren Sie JackpotsWorld, um mehr über die aktuell verfügbaren VIP-Services und die Betreuung vor Ort zu erfahren. Vorteile und Leistungen hängen vom Veranstaltungsort und den geltenden Bedingungen ab.",
+      "contactTitle": "JackpotsWorld kontaktieren",
+      "contactBody": "Kontaktieren Sie unser Team für verlässliche Informationen zu verfügbaren Reisezielen, Poker-Events und VIP-Services.",
+      "contactChat": "Mit unserem Team sprechen"
+    }
   },
   "events": {
     "eyebrow": "Jackpotsworld Präsentiert",
@@ -548,5 +570,63 @@
     "earnCommission": "Stündliche Provision verdienen",
     "tagline": "Während Sie das Spiel genießen",
     "disclaimer": "Berechtigte Spieler können exklusive Reise-, Aufenthalts- und Verdienstvorteile genießen, während sie das Spielerlebnis erleben. Es gelten die Teilnahmebedingungen."
+  },
+  "cookieConsent": {
+    "title": "Ihre Privatsphäre ist uns wichtig",
+    "message": "Wir verwenden notwendige Cookies für den Betrieb dieser Website und optionale Analyse-Cookies, um ihre Nutzung zu verstehen. Sie können die optionalen Cookies akzeptieren oder ablehnen.",
+    "learnMore": "Cookie-Richtlinie",
+    "accept": "Alle akzeptieren",
+    "reject": "Nicht notwendige ablehnen"
+  },
+  "onlineGambling": {
+    "eyebrow": "Information & Spielerschutz",
+    "title": "Online-Glücksspiel",
+    "subtitle": "Was Online-Glücksspiel ist, welche Risiken es birgt und wo Sie Hilfe finden. **JackpotsWorld ist keine Online-Glücksspielseite** und ermutigt zu keiner Form des Glücksspiels.",
+    "noticeTitle": "Wir bewerben kein Online-Glücksspiel",
+    "noticeBody": "JackpotsWorld betreibt, hostet oder verlinkt keine Echtgeld-Online-Casinos, Wett-Apps oder Online-Spielplattformen. Auf dieser Website können Sie weder wetten noch um Geld spielen. Wir informieren Erwachsene über landbasierte, lizenzierte Reiseziele und ermutigen niemanden zum Glücksspiel.",
+    "positionTitle": "Unsere Haltung",
+    "positionPoints": [
+      "Dies ist keine Online-Glücksspielseite, und wir bieten kein Online-Glücksspiel an.",
+      "Wir ermutigen, bewerben oder belohnen kein Glücksspiel – weder online noch offline.",
+      "Unsere Inhalte informieren Erwachsene über landbasierte Reiseziele, Events und Gastfreundschaft dort, wo solche Häuser legal sind.",
+      "Wenn Glücksspiel keine Entscheidung mehr ist, mit der Sie sich wohlfühlen, hören Sie bitte auf und holen Sie sich Hilfe — die unten genannten Angebote sind kostenlos und vertraulich."
+    ],
+    "whatTitle": "Was ist Online-Glücksspiel?",
+    "whatBody": "Online-Glücksspiel bedeutet, im Internet Geld einzusetzen — auf Casinospiele, Sportwetten, Kartenspiele oder Lotterien — über eine Website oder App. Weil es jederzeit auf dem Smartphone verfügbar ist, fällt es oft viel schwerer, Zeit und Geld im Blick zu behalten als in einem echten Casino. Ob es legal ist, hängt von Ihrem Wohnort ab; vielerorts, auch in mehreren indischen Bundesstaaten, ist es eingeschränkt oder verboten.",
+    "risksTitle": "Die Risiken",
+    "risks": [
+      "Es ist immer verfügbar, sodass das Spiel ohne natürliche Pause weitergehen kann.",
+      "Verluste summieren sich schnell, wenn Einsätze in Sekunden platziert werden und Geld nur digital ist.",
+      "Verlusten hinterherzujagen — mehr zu setzen, um Verlorenes zurückzuholen — macht es meist schlimmer.",
+      "Nicht lizenzierte Seiten zahlen womöglich nicht aus, missbrauchen persönliche oder Kartendaten oder sind schlicht Betrug.",
+      "Es kann Schlaf, Arbeit, Studium, Beziehungen und die psychische Gesundheit beeinträchtigen.",
+      "Für das Spiel Geld zu leihen oder Geld für Rechnungen zu verwenden, kann zu ernsthaften Schulden führen."
+    ],
+    "signsTitle": "Anzeichen, dass Glücksspiel zum Problem wird",
+    "signs": [
+      "Immer wieder mehr Zeit oder Geld ausgeben als geplant.",
+      "Den Großteil des Tages ans Spielen denken oder unruhig werden, wenn man aufhört.",
+      "Vor Familie oder Freunden verheimlichen, wie viel man spielt.",
+      "Spielen, um Stress, Einsamkeit oder Niedergeschlagenheit zu entkommen.",
+      "Wegen des Spielens Geld leihen, Dinge verkaufen oder Zahlungen versäumen.",
+      "Das Gefühl, höhere Beträge setzen zu müssen, um denselben Reiz zu spüren."
+    ],
+    "addictionTitle": "Lassen Sie es nicht zur Sucht werden",
+    "addictionBody": "Glücksspielsucht ist eine anerkannte Erkrankung und kein Mangel an Willenskraft – sie kann jeden treffen. Je früher sie erkannt wird, desto leichter gewinnt man die Kontrolle zurück. Wenn Ihnen die oben genannten Anzeichen bekannt vorkommen, sprechen Sie mit einer Vertrauensperson und wenden Sie sich an eines der unten genannten Hilfsangebote.",
+    "controlTitle": "Die Kontrolle behalten",
+    "controlTips": [
+      "Sehen Sie Glücksspiel nie als Möglichkeit, Geld zu verdienen oder Geldprobleme zu lösen.",
+      "Legen Sie vor dem Spielen ein Zeit- und Geldlimit fest und hören Sie auf, wenn Sie es erreichen.",
+      "Spielen Sie nie mit geliehenem Geld oder Geld, das Sie zum Leben brauchen.",
+      "Jagen Sie Verlusten nicht hinterher.",
+      "Machen Sie regelmäßig Pausen und spielen Sie nicht, wenn Sie aufgewühlt, müde oder alkoholisiert sind.",
+      "Lassen Sie Glücksspiel ein kleiner Teil eines ausgewogenen Lebens bleiben, nie dessen Mittelpunkt."
+    ],
+    "toolsTitle": "Tools in Ihrem JackpotsWorld-Konto",
+    "toolsBody": "Mitglieder können im Bereich „Verantwortungsvolles Spielen“ ihres Dashboards jederzeit Einzahlungslimits festlegen, eine Spielpause einlegen oder sich selbst sperren.",
+    "toolsCta": "Einstellungen zu verantwortungsvollem Spielen öffnen",
+    "helpTitle": "Wo Sie Hilfe finden",
+    "helpBody": "Diese Organisationen bieten allen Betroffenen, auch Familie und Freunden, kostenlose und vertrauliche Unterstützung:",
+    "ageNote": "JackpotsWorld richtet sich an Erwachsene ab 21 Jahren. Prüfen und befolgen Sie stets die Gesetze, die an Ihrem Wohnort und Ihrem Reiseziel gelten."
   }
 }

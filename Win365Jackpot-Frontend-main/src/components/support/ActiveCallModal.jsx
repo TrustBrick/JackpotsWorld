@@ -18,6 +18,7 @@ import { formatCallDuration } from "../../services/voiceCallService"
 import { PUBLIC_CALL_THEME } from "./callTheme"
 import { PHASE } from "../../hooks/useVoiceCall"
 
+import { T } from '../../i18n/useSiteText'
 const HEADLINE = {
   [PHASE.CALLING]:    "Calling Support Agent…",
   [PHASE.INCOMING]:   "Incoming call",
@@ -131,7 +132,7 @@ export default function ActiveCallModal({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Voice call"
+      aria-label={T("Voice call")}
       style={{
         position: "fixed", inset: 0, zIndex: 9998,
         background: theme.overlay,
@@ -169,7 +170,7 @@ export default function ActiveCallModal({
             }} />
           )}
           {phase === PHASE.CALLING && call?.queued
-            ? "Waiting for an agent…"
+            ? T("Waiting for an agent…")
             : HEADLINE[phase]}
         </p>
 
@@ -217,7 +218,7 @@ export default function ActiveCallModal({
             wordBreak: "break-all",
           }}>
             {callerEmail}
-            {callerReference ? ` · ${callerReference}` : ""}
+            {callerReference ? T(" · {{callerReference}}", { callerReference }) : ""}
           </p>
         )}
 
@@ -232,7 +233,7 @@ export default function ActiveCallModal({
             fontSize: 11, color: theme.muted, lineHeight: 1.4,
           }}>
             <Disc size={12} style={{ flexShrink: 0, color: theme.red }} aria-hidden="true" />
-            This call is recorded for quality and security.
+            {T("This call is recorded for quality and security.")}
           </p>
         )}
 
@@ -250,7 +251,7 @@ export default function ActiveCallModal({
             <Pause size={15} style={{ flexShrink: 0, marginTop: 1 }} aria-hidden="true" />
             <span aria-live="polite">
               {transferring
-                ? "Transferring you to a colleague — please hold."
+                ? T("Transferring you to a colleague — please hold.")
                 : (holdMessage || "You are on hold. Your agent will be back shortly.")}
             </span>
           </div>

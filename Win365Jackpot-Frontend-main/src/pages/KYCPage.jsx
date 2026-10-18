@@ -1,5 +1,6 @@
 import React from "react";
 
+import { T } from '../i18n/useSiteText'
 const DOC_TYPES = ["Aadhaar Card", "Passport", "Driver License", "Voter ID", "PAN Card"];
 
 export default function KYCPage({ api, authFetch }) {
@@ -63,17 +64,17 @@ export default function KYCPage({ api, authFetch }) {
     setSubmitting(false);
   };
 
-  if (loading) return <div style={styles.center}>Loading...</div>;
+  if (loading) return <div style={styles.center}>{T("Loading...")}</div>;
 
   // ── Already approved ──────────────────────────────────────────────────────
   if (status?.kyc_status === "approved") {
     return (
       <div style={styles.container}>
         <div style={{ ...styles.badge, background: "#e8f5e9", color: "#22c55e" }}>
-          ✅ Your KYC is Approved & Verified
+          {T("✅ Your KYC is Approved & Verified")}
         </div>
         <p style={{ color: "#6b7280", textAlign: "center" }}>
-          Your identity has been verified. You have full access.
+          {T("Your identity has been verified. You have full access.")}
         </p>
       </div>
     );
@@ -84,11 +85,11 @@ export default function KYCPage({ api, authFetch }) {
     return (
       <div style={styles.container}>
         <div style={{ ...styles.badge, background: "#fff8e1", color: "#f59e0b" }}>
-          🕐 KYC Under Review
+          {T("🕐 KYC Under Review")}
         </div>
         <p style={{ color: "#6b7280", textAlign: "center" }}>
-          Submitted on {new Date(status.submitted_at).toLocaleString()}.<br />
-          Our team will verify your documents shortly.
+          {T("Submitted on")}{' '}{new Date(status.submitted_at).toLocaleString()}.<br />
+          {T("Our team will verify your documents shortly.")}
         </p>
       </div>
     );
@@ -97,21 +98,21 @@ export default function KYCPage({ api, authFetch }) {
   // ── Form (new / rejected / resubmit) ──────────────────────────────────────
   return (
     <div style={styles.container}>
-      <h2 style={{ textAlign: "center", margin: "0 0 6px" }}>Identity Verification</h2>
+      <h2 style={{ textAlign: "center", margin: "0 0 6px" }}>{T("Identity Verification")}</h2>
       <p style={{ color: "#6b7280", textAlign: "center", margin: "0 0 24px", fontSize: 13 }}>
-        Upload your documents to verify your identity.
+        {T("Upload your documents to verify your identity.")}
       </p>
 
       {status?.kyc_status === "rejected" && (
         <div style={{ background: "#fdecea", color: "#ef4444", padding: "12px 16px", borderRadius: 10, marginBottom: 18, fontSize: 13 }}>
-          ❌ Your previous submission was rejected.<br />
-          <strong>Reason:</strong> {status.reject_reason || "No reason provided."}
+          {T("❌ Your previous submission was rejected.")}<br />
+          <strong>{T("Reason:")}</strong> {T(status.reject_reason || "No reason provided.")}
         </div>
       )}
 
       {success && (
         <div style={{ background: "#e8f5e9", color: "#22c55e", padding: "12px 16px", borderRadius: 10, marginBottom: 18 }}>
-          ✅ KYC submitted successfully! Under review.
+          {T("✅ KYC submitted successfully! Under review.")}
         </div>
       )}
 
@@ -124,7 +125,7 @@ export default function KYCPage({ api, authFetch }) {
       {/* Fields */}
       <div style={styles.grid}>
         <Field label="Full Name *">
-          <input style={styles.input} value={fullName} onChange={e => setFullName(e.target.value)} placeholder="As on document" />
+          <input style={styles.input} value={fullName} onChange={e => setFullName(e.target.value)} placeholder={T("As on document")} />
         </Field>
 
         <Field label="Date of Birth">
@@ -138,7 +139,7 @@ export default function KYCPage({ api, authFetch }) {
         </Field>
 
         <Field label="Document Number *">
-          <input style={styles.input} value={docNumber} onChange={e => setDocNumber(e.target.value)} placeholder="e.g. XXXX XXXX XXXX" />
+          <input style={styles.input} value={docNumber} onChange={e => setDocNumber(e.target.value)} placeholder={T("e.g. XXXX XXXX XXXX")} />
         </Field>
       </div>
 
@@ -171,11 +172,11 @@ export default function KYCPage({ api, authFetch }) {
           fontSize: 15, fontWeight: 700, cursor: submitting ? "not-allowed" : "pointer",
         }}
       >
-        {submitting ? "Submitting..." : "Submit KYC"}
+        {submitting ? T("Submitting...") : T("Submit KYC")}
       </button>
 
       <p style={{ fontSize: 11, color: "#9ca3af", textAlign: "center", marginTop: 12 }}>
-        Your data is encrypted and used only for verification purposes.
+        {T("Your data is encrypted and used only for verification purposes.")}
       </p>
     </div>
   );

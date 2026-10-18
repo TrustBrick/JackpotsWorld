@@ -2,6 +2,7 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
 
+import { T } from '../../i18n/useSiteText'
 /**
  * Visible breadcrumb trail for detail pages.
  *
@@ -21,7 +22,7 @@ export default function Breadcrumbs({ trail = [] }) {
   if (trail.length < 2) return null
 
   return (
-    <nav aria-label="Breadcrumb" className="mb-5">
+    <nav aria-label={T('Breadcrumb')} className="mb-5">
       <ol className="flex flex-wrap items-center gap-1.5 text-xs font-body text-white/64">
         {trail.map((crumb, i) => {
           const isLast = i === trail.length - 1

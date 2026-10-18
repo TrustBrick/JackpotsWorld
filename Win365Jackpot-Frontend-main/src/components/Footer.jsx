@@ -10,20 +10,21 @@ import useEnquiryMessage from '../hooks/useEnquiryMessage'
 import { buildWhatsAppLink } from '../services/enquiryContact'
 import { enquiryContext, recordWhatsAppClick } from '../services/whatsappEnquiryService'
 
+import { T } from '../i18n/useSiteText'
 const PRIMARY_DESTINATIONS = ['Vietnam', 'Macau', 'India (Goa)', 'Sri Lanka', 'Philippines']
 const EXTRA_DESTINATIONS   = ['Las Vegas', 'Malaysia', 'Singapore', 'Armenia', 'Georgia']
 const ALL_DESTINATIONS     = [...PRIMARY_DESTINATIONS, ...EXTRA_DESTINATIONS]
 
 const SITE_PAGE_LINKS = [
-  { label: 'Events',              path: '/events'              },
-  { label: 'Promotions',          path: '/promotions'          },
-  { label: 'Poker',               path: '/poker'               },
-  { label: 'Teen Patti',          path: '/teen-patti'          },
-  { label: 'Andhar Bahar',        path: '/andhar-bahar'        },
-  { label: 'Premium Casino',      path: '/premium-casino'      },
-  { label: 'Casino in Sri Lanka', path: '/casino-in-sri-lanka' },
-  { label: 'Casino in Macau',     path: '/casino-macau'        },
-  { label: 'Affiliates',          path: '/affiliates'          },
+  { label: T('Events'),              path: '/events'              },
+  { label: T('Promotions'),          path: '/promotions'          },
+  { label: T('Poker'),               path: '/poker'               },
+  { label: T('Teen Patti'),          path: '/teen-patti'          },
+  { label: T('Andhar Bahar'),        path: '/andhar-bahar'        },
+  { label: T('Premium Casino'),      path: '/premium-casino'      },
+  { label: T('Casino in Sri Lanka'), path: '/casino-in-sri-lanka' },
+  { label: T('Casino in Macau'),     path: '/casino-macau'        },
+  { label: T('Affiliates'),          path: '/affiliates'          },
 ]
 
 // The message is no longer a literal either: useEnquiryMessage() reads it from
@@ -117,7 +118,7 @@ export default function Footer() {
                 signature and is 41px tall instead of 81. */}
             <BrandLockup style={{ marginBottom: 12 }} />
             <p style={{ fontSize: 12.5, color: 'var(--w365-text-muted)', lineHeight: 1.65, marginBottom: 14, maxWidth: 420 }}>
-              Asia's premier Offline casinos promotion platform. Connecting players to world-class gaming experiences across the globe.
+              {T('Asia\'s premier Offline casinos promotion platform. Connecting players to world-class gaming experiences across the globe.')}
             </p>
 
             {/* The site and the support address were rgba(212,175,55,0.4) —
@@ -176,7 +177,7 @@ export default function Footer() {
           {/* Destinations */}
           <div>
             <h4 style={{ fontSize: 11, fontWeight: 700, color: '#D4AF37', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 12 }}>
-              Destinations
+              {T('Destinations')}
             </h4>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 7 }}>
               {PRIMARY_DESTINATIONS.map((d, i) => (
@@ -230,7 +231,7 @@ export default function Footer() {
               onMouseEnter={e => e.currentTarget.style.color = '#D4AF37'}
               onMouseLeave={e => e.currentTarget.style.color = 'rgba(212,175,55,0.55)'}
             >
-              {open ? 'Show less' : `View all ${ALL_DESTINATIONS.length} countries`}
+              {open ? T('Show less') : `View all ${ALL_DESTINATIONS.length} countries`}
               <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }} style={{ fontSize: 9, lineHeight: 1 }}>▼</motion.span>
             </button>
           </div>
@@ -238,7 +239,7 @@ export default function Footer() {
           {/* Company */}
           <div>
             <h4 style={{ fontSize: 11, fontWeight: 700, color: '#D4AF37', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 12 }}>
-              Company
+              {T('Company')}
             </h4>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 7 }}>
 
@@ -266,7 +267,7 @@ export default function Footer() {
                   onMouseEnter={e => e.currentTarget.style.color = '#D4AF37'}
                   onMouseLeave={e => e.currentTarget.style.color = 'var(--w365-text-muted)'}
                 >
-                  About Us
+                  {T('About Us')}
                 </ScrollLink>
               </li>
 
@@ -285,7 +286,7 @@ export default function Footer() {
                   onMouseEnter={e => e.currentTarget.style.color = '#D4AF37'}
                   onMouseLeave={e => e.currentTarget.style.color = 'var(--w365-text-muted)'}
                 >
-                  Contact
+                  {T('Contact')}
                 </a>
               </li>
 
@@ -297,7 +298,7 @@ export default function Footer() {
                   onMouseEnter={e => e.currentTarget.style.color = '#D4AF37'}
                   onMouseLeave={e => e.currentTarget.style.color = 'var(--w365-text-muted)'}
                 >
-                  Privacy Policy
+                  {T('Privacy Policy')}
                 </RouterLink>
               </li>
 
@@ -308,7 +309,18 @@ export default function Footer() {
                   onMouseEnter={e => e.currentTarget.style.color = '#D4AF37'}
                   onMouseLeave={e => e.currentTarget.style.color = 'var(--w365-text-muted)'}
                 >
-                  Cookies Policy
+                  {T('Cookies Policy')}
+                </RouterLink>
+              </li>
+
+              <li>
+                <RouterLink
+                  to="/online-gambling"
+                  style={{ fontSize: 13, color: 'var(--w365-text-muted)', textDecoration: 'none', transition: 'color 0.15s' }}
+                  onMouseEnter={e => e.currentTarget.style.color = '#D4AF37'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'var(--w365-text-muted)'}
+                >
+                  {T('Online Gambling')}
                 </RouterLink>
               </li>
 
@@ -329,9 +341,8 @@ export default function Footer() {
           background: 'rgba(255,255,255,0.02)',
         }}>
           <p style={{ fontSize: 11.5, color: 'var(--w365-text-muted)', textAlign: 'center', lineHeight: 1.6, margin: 0 }}>
-            <span style={{ color: 'rgba(212,175,55,0.55)', fontWeight: 600 }}>⚠ Responsible Gaming: </span>
-            Gambling involves risk. Please play responsibly. Jackpotsworld promotes responsible gaming and only serves adults aged 21+.
-            If you or someone you know has a gambling problem, please seek help. jackpotsworld.vip is a promotional platform only.
+            <span style={{ color: 'rgba(212,175,55,0.55)', fontWeight: 600 }}>{T('⚠ Responsible Gaming:')}{' '}</span>
+            {T('Gambling involves risk. Please play responsibly. Jackpotsworld promotes responsible gaming and only serves adults aged 21+. If you or someone you know has a gambling problem, please seek help. jackpotsworld.vip is a promotional platform only.')}
           </p>
         </div>
 
@@ -341,10 +352,10 @@ export default function Footer() {
           justifyContent: 'space-between', alignItems: 'center',
           gap: 12, fontSize: 11.5, color: 'var(--w365-text-muted)',
         }}>
-          <span>© 2026 jackpotsworld.vip — All Rights Reserved</span>
+          <span>{T('© 2026 jackpotsworld.vip — All Rights Reserved')}</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span>🇻🇳 🇲🇴 🇮🇳 🇱🇰 🇵🇭 🇺🇸 🇲🇾 🇸🇬 🇦🇲 🇬🇪</span>
-            <span style={{ display: 'none' }}>— Asia's Premier Casino Platform</span>
+            <span style={{ display: 'none' }}>{T('— Asia\'s Premier Casino Platform')}</span>
           </div>
         </div>
 

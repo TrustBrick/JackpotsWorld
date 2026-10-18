@@ -6,12 +6,14 @@ from authapp.views.wallet_views import (
     UserWalletBalancesView,
     UserWalletTransactionListView,
     UserCasinoWalletBalancesView,
+    UserAccountOverviewView,
 )
 
 urlpatterns = [
     path("wallet/balances/",     UserWalletBalancesView.as_view()),
     path("wallet/transactions/", UserWalletTransactionListView.as_view()),
     path("wallet/casino-balances/", UserCasinoWalletBalancesView.as_view()),
+    path("wallet/account-overview/", UserAccountOverviewView.as_view()),
 ]
 
 

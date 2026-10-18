@@ -17,6 +17,7 @@ import useEnquiryMessage from '../hooks/useEnquiryMessage'
 // private wrapper.
 import useEnquiryNumber from '../hooks/useEnquiryNumber'
 
+import { T } from '../i18n/useSiteText'
 /**
  * One Cruise Offline Casino Package card, rendered entirely from Back Office
  * data (authapp.CruisePackage + its details and media).
@@ -711,7 +712,7 @@ export default function CruisePackageCard({ pkg, inView }) {
           {/* Details grid */}
           {details.length > 0 && (
             <>
-            <SectionLabel accent={accent}>What the package is</SectionLabel>
+            <SectionLabel accent={accent}>{T('What the package is')}</SectionLabel>
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%,215px),1fr))',
@@ -761,7 +762,7 @@ export default function CruisePackageCard({ pkg, inView }) {
               the reader no other cue that the list has started. */}
           {inclusions.length > 0 && (
             <>
-            <SectionLabel accent={accent}>What&rsquo;s included</SectionLabel>
+            <SectionLabel accent={accent}>{T('What’s included')}</SectionLabel>
             <div style={{
               padding: 'clamp(13px,1.6vw,17px) clamp(14px,1.8vw,19px)',
               borderRadius: 14, marginBottom: 24,

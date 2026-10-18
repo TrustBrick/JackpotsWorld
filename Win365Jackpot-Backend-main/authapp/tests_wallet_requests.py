@@ -218,12 +218,15 @@ class DepositLifecycleTests(WalletRequestTestBase):
         res = self.client.post(DEP_CREATE, {"amount": amount, "method_code": "upi"}, format="json")
         return DepositRequest.objects.get(request_reference=res.data["request"]["request_reference"])
 
-    def test_processing_then_approve_credits_once(self):
+    def test_no_processing_step_then_approve_credits_once(self):
+        # Deposits complete straight from pending; the manual Processing step
+        # exists only for withdrawals and is refused without side effects.
         req = self._make("300")
         self.as_admin()
         r1 = self.client.post(f"/api/admin-panel/deposit-requests/{req.id}/processing/", {}, format="json")
-        self.assertEqual(r1.status_code, status.HTTP_200_OK, r1.data)
-        req.refresh_from_db(); self.assertEqual(req.status, "processing")
+        self.assertEqual(r1.status_code, status.HTTP_400_BAD_REQUEST, r1.data)
+        req.refresh_from_db(); self.assertEqual(req.status, "pending")
+        self.assertEqual(self.main_cash(self.player), Decimal("0"))
         r2 = self.client.post(f"/api/admin-panel/deposit-requests/{req.id}/approve/", {}, format="json")
         self.assertEqual(r2.status_code, status.HTTP_200_OK, r2.data)
         self.assertEqual(self.main_cash(self.player), Decimal("300"))

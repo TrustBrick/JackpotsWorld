@@ -9,6 +9,9 @@ from authapp.views.live_chat_views import (
     AdminLiveChatListView,
     AdminLiveChatMessageListCreateView,
     AdminLiveChatReadView,
+    LiveChatPresenceView,
+    AdminLiveChatContactsView,
+    AdminLiveChatStartView,
 )
 
 # Public (authenticated user) — mounted at api/
@@ -17,6 +20,7 @@ from authapp.views.live_chat_views import (
 public_urlpatterns = [
     path("live-chat/config/", LiveChatConfigView.as_view()),
     path("live-chat/start/", LiveChatStartView.as_view()),
+    path("live-chat/presence/", LiveChatPresenceView.as_view()),
     path("live-chat/<int:ticket_id>/messages/", LiveChatMessageListCreateView.as_view()),
     path("live-chat/<int:ticket_id>/read/", LiveChatReadView.as_view()),
     # Not nested under a ticket: the view resolves the conversation from the
@@ -28,6 +32,8 @@ public_urlpatterns = [
 # Admin-managed — mounted at api/admin-panel/
 admin_urlpatterns = [
     path("live-chat/list/", AdminLiveChatListView.as_view()),
+    path("live-chat/contacts/", AdminLiveChatContactsView.as_view()),
+    path("live-chat/start/", AdminLiveChatStartView.as_view()),
     path("live-chat/<int:ticket_id>/messages/", AdminLiveChatMessageListCreateView.as_view()),
     path("live-chat/<int:ticket_id>/read/", AdminLiveChatReadView.as_view()),
 ]

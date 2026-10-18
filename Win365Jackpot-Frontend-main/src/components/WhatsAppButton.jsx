@@ -5,6 +5,7 @@ import { buildWhatsAppLink } from '../services/enquiryContact'
 import { enquiryContext, recordWhatsAppClick } from '../services/whatsappEnquiryService'
 import useEnquiryMessage from '../hooks/useEnquiryMessage'
 
+import { T } from '../i18n/useSiteText'
 const TG_USERNAME = 'yourwinningdestination888'
 
 const BTN  = 'clamp(48px, 12vw, 64px)'
@@ -67,15 +68,15 @@ export default function WhatsAppButton() {
               }}
             >
               <div className="font-body font-light font-bold text-white mb-0.5" style={{ fontSize: 'clamp(11px, 3vw, 14px)' }}>
-                Chat with us! 🎰
+                {T('Chat with us! 🎰')}
               </div>
               <div className="font-body font-light text-white/70" style={{ fontSize: 'clamp(9px, 2.5vw, 12px)' }}>
-                Book your casino package in minutes
+                {T('Book your casino package in minutes')}
               </div>
               <div className="flex items-center gap-1 mt-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
                 <span className="font-body font-light text-green-300" style={{ fontSize: 'clamp(9px, 2.5vw, 12px)' }}>
-                  Online now
+                  {T('Online now')}
                 </span>
               </div>
             </div>
@@ -113,7 +114,7 @@ export default function WhatsAppButton() {
         whileTap={{ scale: 0.95 }}
         className="relative flex items-center justify-center cursor-pointer"
         style={{ width: BTN, height: BTN, touchAction: 'manipulation' }}
-        aria-label="Chat on WhatsApp"
+        aria-label={T('Chat on WhatsApp')}
       >
         <motion.div
           className="absolute inset-0 rounded-full"
@@ -166,15 +167,15 @@ export default function WhatsAppButton() {
               }}
             >
               <div className="font-body font-light font-bold text-white mb-0.5" style={{ fontSize: 'clamp(11px, 3vw, 14px)' }}>
-                Message on Telegram! ✈️
+                {T('Message on Telegram! ✈️')}
               </div>
               <div className="font-body font-light text-white/70" style={{ fontSize: 'clamp(9px, 2.5vw, 12px)' }}>
-                Quick replies, instant support
+                {T('Quick replies, instant support')}
               </div>
               <div className="flex items-center gap-1 mt-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-300 animate-pulse" />
                 <span className="font-body font-light text-blue-200" style={{ fontSize: 'clamp(9px, 2.5vw, 12px)' }}>
-                  Online now
+                  {T('Online now')}
                 </span>
               </div>
             </div>
@@ -202,7 +203,7 @@ export default function WhatsAppButton() {
         whileTap={{ scale: 0.95 }}
         className="relative flex items-center justify-center cursor-pointer"
         style={{ width: BTN, height: BTN, touchAction: 'manipulation' }}
-        aria-label="Chat on Telegram"
+        aria-label={T('Chat on Telegram')}
       >
         <motion.div
           className="absolute inset-0 rounded-full"

@@ -4,6 +4,8 @@ import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { useExperiencePillar, iconFor, imageFor, SECTION_PAD, CONTAINER, HEADER_GAP } from './shared'
 import ExperienceEnquiryModal from './ExperienceEnquiryModal'
 
+import { T } from '../../i18n/useSiteText'
+import GoldLastWord from '../shared/GoldLastWord'
 /**
  * §11 DINING & ENTERTAINMENT.
  *
@@ -60,20 +62,19 @@ export default function DiningEntertainmentSection() {
               className="font-body"
               style={{ fontSize: 11, letterSpacing: '0.24em', textTransform: 'uppercase', color: 'var(--w365-text-muted)', marginBottom: 12 }}
             >
-              After The Tables
+              {T('After The Tables')}
             </p>
             <h2
               className="section-heading"
               style={{ fontSize: 'clamp(1.9rem, 6.2vw, 3.3rem)', lineHeight: 1.06, marginBottom: 14 }}
             >
-              Dining &amp; <span className="gold-text">Entertainment</span>
+              <GoldLastWord text={T('Dining & Entertainment')} />
             </h2>
             <p
               className="font-body"
               style={{ color: 'var(--w365-text-muted)', fontSize: 'clamp(0.92rem, 2.4vw, 1.05rem)', lineHeight: 1.7 }}
             >
-              An evening is more than one room. Tables, lounges, live music and
-              shows arranged around your destination.
+              {T('An evening is more than one room. Tables, lounges, live music and shows arranged around your destination.')}
             </p>
           </div>
 
@@ -103,7 +104,7 @@ export default function DiningEntertainmentSection() {
           ref={railRef}
           className="exp-dining-rail"
           role="group"
-          aria-label="Dining and entertainment options"
+          aria-label={T('Dining and entertainment options')}
           tabIndex={0}
         >
           {items.map((item, i) => (
@@ -225,7 +226,7 @@ function DiningCard({ item, index, reduceMotion, onEnquire }) {
           transition: 'background 0.25s',
         }}
       >
-        <Plus size={13} /> {item.cta_text || 'Enquire'}
+        <Plus size={13} /> {T(item.cta_text || 'Enquire')}
       </button>
     </motion.article>
   )

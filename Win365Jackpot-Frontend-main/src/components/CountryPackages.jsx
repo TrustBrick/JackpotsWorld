@@ -36,6 +36,8 @@ import CruisePackageCard from './CruisePackageCard'
 import useEnquiryMessage, { renderEnquiryTemplate } from '../hooks/useEnquiryMessage'
 import { SECTION_PAD, CONTAINER } from '../utils/layout'
 
+import { T } from '../i18n/useSiteText'
+import GoldLastWord from './shared/GoldLastWord'
 // Enquiry routing is decided by the visitor's country (Sri Lanka vs everywhere
 // else), so this no longer reads whatsapp_number from the landing settings —
 // see services/enquiryContact.js. Kept as a named hook so the call sites below
@@ -53,62 +55,62 @@ function hexToRgba(hex, alpha) {
 
 const FALLBACK_COUNTRIES = [
   {
-    flag: '🇻🇳', name: 'Vietnam', tagline: 'Paradise of the Orient',
+    flag: '🇻🇳', name: 'Vietnam', tagline: T('Paradise of the Orient'),
     color: '#D32F2F', glow: 'rgba(211,47,47,0.3)',
     images: [
-      { src: '/assets/images/corona-vietnam.jpg',  label: 'Casino Corona, Phu Quoc' },
-      { src: '/assets/images/grand-vietnam.png',   label: 'Grand Casino, Ho Tram' },
-      { src: '/assets/images/crown-vietnam.jpeg',  label: 'Crown Casino, Danang' },
-      { src: '/assets/videos/vietnam.mp4',         label: 'Vietnam Experience', type: 'video' },
+      { src: '/assets/images/corona-vietnam.jpg',  label: T('Casino Corona, Phu Quoc') },
+      { src: '/assets/images/grand-vietnam.png',   label: T('Grand Casino, Ho Tram') },
+      { src: '/assets/images/crown-vietnam.jpeg',  label: T('Crown Casino, Danang') },
+      { src: '/assets/videos/vietnam.mp4',         label: T('Vietnam Experience'), type: 'video' },
     ],
     casinos: 'Crown Casino - Danang, Casino Corona - Phu Quoc, Grand casino - Ho Tram',
     bestFor: "Slots, Baccarat, Hold'em Poker",
   },
   {
-    flag: '🇲🇴', name: 'Macau', tagline: 'Vegas of the East',
+    flag: '🇲🇴', name: 'Macau', tagline: T('Vegas of the East'),
     color: '#1565C0', glow: 'rgba(21,101,192,0.3)',
     images: [
-      { src: '/assets/images/cod-macau.jpg',       label: 'COD' },
-      { src: '/assets/images/wynn-macau.jpg',      label: 'Wynn' },
-      { src: '/assets/images/venitian-macau.jpg',  label: 'Venetian' },
-      { src: '/assets/images/lisbo-macau.jpg',     label: 'Lisboa Grand' },
+      { src: '/assets/images/cod-macau.jpg',       label: T('COD') },
+      { src: '/assets/images/wynn-macau.jpg',      label: T('Wynn') },
+      { src: '/assets/images/venitian-macau.jpg',  label: T('Venetian') },
+      { src: '/assets/images/lisbo-macau.jpg',     label: T('Lisboa Grand') },
     ],
     casinos: 'Venetian, Lisboa Grand, COD, Wynn',
     bestFor: 'High Stakes Baccarat, VIP Rooms',
   },
   {
-    flag: '🇮🇳', name: 'India', tagline: 'Goa – Where Luck Meets Paradise',
+    flag: '🇮🇳', name: 'India', tagline: T('Goa – Where Luck Meets Paradise'),
     color: '#FF6F00', glow: 'rgba(255,111,0,0.3)',
     images: [
-      { src: '/assets/images/bigdaddy-india.png',     label: 'Big Daddy Casino' },
-      { src: '/assets/images/deltinjaqk-india.jpg',    label: 'Deltin Jaqk' },
-      { src: '/assets/images/deltinroyal-india.jpg',   label: 'Deltin Royal' },
-      { src: '/assets/images/majesticpride-india.jpg', label: 'Majestic Pride' },
-      { src: '/assets/images/casinopride-india.jpg',  label: 'Casino Pride' },
+      { src: '/assets/images/bigdaddy-india.png',     label: T('Big Daddy Casino') },
+      { src: '/assets/images/deltinjaqk-india.jpg',    label: T('Deltin Jaqk') },
+      { src: '/assets/images/deltinroyal-india.jpg',   label: T('Deltin Royal') },
+      { src: '/assets/images/majesticpride-india.jpg', label: T('Majestic Pride') },
+      { src: '/assets/images/casinopride-india.jpg',  label: T('Casino Pride') },
     ],
     casinos: 'Big Daddy Casino, Casino Pride, Deltin Jaqk, Deltin Royal, Majestic Pride',
     bestFor: 'Poker, Roulette, Live Dealer Games',
   },
   {
-    flag: '🇱🇰', name: 'Sri Lanka', tagline: 'Jewel of the Indian Ocean',
+    flag: '🇱🇰', name: 'Sri Lanka', tagline: T('Jewel of the Indian Ocean'),
     color: '#7B1FA2', glow: 'rgba(123,31,162,0.3)',
     images: [
-      { src: '/assets/images/majesticpride-srilanka.jpg', label: 'Majestic Pride' },
-      { src: '/assets/images/ballys-srilanka.jpg',        label: "Bally's" },
-      { src: '/assets/images/ballagio-srilanka.jpeg',     label: 'Ballagio' },
-      { src: '/assets/images/ballagio-lobby-srilanka.jpeg', label: 'Ballagio Lobby' },
-      { src: '/assets/images/marina-srilanka.jpg',        label: 'Marina' },
-      { src: '/assets/images/cod-srilanka.jpg',           label: 'City of Dreams' },
+      { src: '/assets/images/majesticpride-srilanka.jpg', label: T('Majestic Pride') },
+      { src: '/assets/images/ballys-srilanka.jpg',        label: T('Bally\'s') },
+      { src: '/assets/images/ballagio-srilanka.jpeg',     label: T('Ballagio') },
+      { src: '/assets/images/ballagio-lobby-srilanka.jpeg', label: T('Ballagio Lobby') },
+      { src: '/assets/images/marina-srilanka.jpg',        label: T('Marina') },
+      { src: '/assets/images/cod-srilanka.jpg',           label: T('City of Dreams') },
     ],
     casinos: "Bally's Casino, Marina Casino, Bellagio Casino, Majestic Pride, City of Dreams",
     bestFor: 'Blackjack, Slots, Live Poker',
   },
   {
-    flag: '🇵🇭', name: 'Philippines', tagline: 'Entertainment City Manila',
+    flag: '🇵🇭', name: 'Philippines', tagline: T('Entertainment City Manila'),
     color: '#00838F', glow: 'rgba(0,131,143,0.3)',
     images: [
-      { src: '/assets/images/Solaire-ph.jpg', label: 'Solaire Resort Casino' },
-      { src: '/assets/images/cod-ph.jpg',     label: 'City of Dreams Manila' },
+      { src: '/assets/images/Solaire-ph.jpg', label: T('Solaire Resort Casino') },
+      { src: '/assets/images/cod-ph.jpg',     label: T('City of Dreams Manila') },
     ],
     casinos: 'Solaire Resort Casino, City of Dreams - Manila',
     bestFor: 'Baccarat, Roulette, Sports Betting',
@@ -119,37 +121,46 @@ const FALLBACK_COUNTRY_IMAGE_SRC_BY_LABEL = new Map(
 )
 
 const FALLBACK_VIP_SERVICES = [
-  { src: '/assets/images/vip/massage-1.jpg',   label: 'Classic Massage',     category: 'Wellness' },
-  { src: '/assets/images/vip/massage-2.jpg',   label: 'Luxury Spa',          category: 'Wellness' },
-  { src: '/assets/images/vip/bar-1.jpg?v=2',       label: 'Premium Bar Counter',  category: 'Bar & Drinks' },
-  { src: '/assets/images/vip/bar-2.jpg?v=2',       label: 'Exclusive Cellar',     category: 'Bar & Drinks' },
-  { src: '/assets/images/vip/dance-1.jpg?v=2',     label: 'Live Dance Show',      category: 'Entertainment' },
-  { src: '/assets/images/vip/dance-2.jpg',     label: 'VIP Stage & Lounge',   category: 'Entertainment' },
-  { src: '/assets/images/vip/lounge-1.jpg?v=2',    label: 'VIP Lounge Access',    category: 'VIP Lounge' },
-  { src: '/assets/images/vip/lounge-2.jpg',    label: 'Private Suite Lounge', category: 'VIP Lounge' },
-  { src: '/assets/images/vip/vip-room-1.jpg',  label: 'Exclusive VIP Room',   category: 'VIP Rooms' },
-  { src: '/assets/images/vip/vip-room-2.avif', label: 'High Roller Room',     category: 'VIP Rooms' },
-  { src: '/assets/images/vip/private-jet.jpg', label: 'Private Jet',     category: 'Luxury Travel' },
-  { src: '/assets/images/vip/luxury-cruise.jpg', label: 'Luxury Cruises',     category: 'Luxury Travel' },
-  { src: '/assets/images/vip/private-boat.jpg', label: 'Private Boats',     category: 'Luxury Travel' },
+  { src: '/assets/images/vip/massage-1.jpg',   label: T('Classic Massage'),     category: 'Wellness' },
+  { src: '/assets/images/vip/massage-2.jpg',   label: T('Luxury Spa'),          category: 'Wellness' },
+  { src: '/assets/images/vip/bar-1.jpg?v=2',       label: T('Premium Bar Counter'),  category: 'Bar & Drinks' },
+  { src: '/assets/images/vip/bar-2.jpg?v=2',       label: T('Exclusive Cellar'),     category: 'Bar & Drinks' },
+  { src: '/assets/images/vip/dance-1.jpg?v=2',     label: T('Live Dance Show'),      category: 'Entertainment' },
+  { src: '/assets/images/vip/dance-2.jpg',     label: T('VIP Stage & Lounge'),   category: 'Entertainment' },
+  { src: '/assets/images/vip/lounge-1.jpg?v=2',    label: T('VIP Lounge Access'),    category: 'VIP Lounge' },
+  { src: '/assets/images/vip/lounge-2.jpg',    label: T('Private Suite Lounge'), category: 'VIP Lounge' },
+  { src: '/assets/images/vip/vip-room-1.jpg',  label: T('Exclusive VIP Room'),   category: 'VIP Rooms' },
+  { src: '/assets/images/vip/vip-room-2.avif', label: T('High Roller Room'),     category: 'VIP Rooms' },
+  { src: '/assets/images/vip/private-jet.jpg', label: T('Private Jet'),     category: 'Luxury Travel' },
+  { src: '/assets/images/vip/luxury-cruise.jpg', label: T('Luxury Cruises'),     category: 'Luxury Travel' },
+  { src: '/assets/images/vip/private-boat.jpg', label: T('Private Boats'),     category: 'Luxury Travel' },
 ]
 const FALLBACK_VIP_SERVICE_SRC_BY_LABEL = new Map(FALLBACK_VIP_SERVICES.map(v => [v.label, v.src]))
 
+// Display names for the gallery's filter chips. The category itself stays
+// English because it is what the filter compares against.
+const CATEGORY_LABELS = {
+  All: T('All'), Wellness: T('Wellness'), 'Bar & Drinks': T('Bar & Drinks'),
+  Entertainment: T('Entertainment'), 'VIP Lounge': T('VIP Lounge'),
+  'VIP Rooms': T('VIP Rooms'), 'Luxury Travel': T('Luxury Travel'),
+}
+const categoryLabel = (c) => CATEGORY_LABELS[c] || c
+
 const INCLUSIONS = [
-  { icon: <Plane      size={15} color="#D4AF37" />, label: 'Free Flights'   },
-  { icon: <Hotel      size={15} color="#D4AF37" />, label: '5-Star Hotels'  },
+  { icon: <Plane      size={15} color="#D4AF37" />, label: T('Free Flights')   },
+  { icon: <Hotel      size={15} color="#D4AF37" />, label: T('5-Star Hotels')  },
   // Casino credit is issued by the destination venue, not by JackpotsWorld.
   // "Offline Casino Credits" in a JackpotsWorld package list read as
   // JackpotsWorld handing out gambling credit; "Arranged" keeps the service
   // we actually provide (arranging it) and leaves the issuing with the casino.
-  { icon: <Coins      size={15} color="#D4AF37" />, label: 'Casino Credits Arranged' },
-  { icon: <Car        size={15} color="#D4AF37" />, label: 'Transfers'      },
-  { icon: <UtensilsCrossed size={15} color="#D4AF37" />, label: 'All Meals' },
-  { icon: <Wine       size={15} color="#D4AF37" />, label: 'Free Drinks'    },
-  { icon: <Ticket     size={15} color="#D4AF37" />, label: 'VIP Entry'      },
-  { icon: <Sparkles   size={15} color="#D4AF37" />, label: 'Spa & Massage'  },
-  { icon: <ConciergeBell size={15} color="#D4AF37" />, label: 'Concierge'  },
-  { icon: <ShieldCheck size={15} color="#D4AF37" />, label: '24/7 Support'  },
+  { icon: <Coins      size={15} color="#D4AF37" />, label: T('Casino Credits Arranged') },
+  { icon: <Car        size={15} color="#D4AF37" />, label: T('Transfers')      },
+  { icon: <UtensilsCrossed size={15} color="#D4AF37" />, label: T('All Meals') },
+  { icon: <Wine       size={15} color="#D4AF37" />, label: T('Free Drinks')    },
+  { icon: <Ticket     size={15} color="#D4AF37" />, label: T('VIP Entry')      },
+  { icon: <Sparkles   size={15} color="#D4AF37" />, label: T('Spa & Massage')  },
+  { icon: <ConciergeBell size={15} color="#D4AF37" />, label: T('Concierge')  },
+  { icon: <ShieldCheck size={15} color="#D4AF37" />, label: T('24/7 Support')  },
 ]
 
 /* ── WHATSAPP BUTTON ── */
@@ -526,13 +537,13 @@ function VIPServicesGallery() {
         <motion.div initial={{ opacity: 0, y: 30 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.7 }}
           style={{ textAlign: 'center', marginBottom: 32 }}>
           <div style={{ display: 'inline-block', border: '1px solid rgba(212,175,55,0.3)', borderRadius: 50, padding: '5px 18px', fontSize: 'clamp(0.6rem,2.5vw,0.72rem)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(212,175,55,0.7)', marginBottom: 12 }}>
-            ✦ Exclusive VIP Services
+            {T('✦ Exclusive VIP Services')}
           </div>
           <h2 className="section-heading" style={{ fontSize: 'clamp(1.5rem,6vw,3rem)', marginBottom: 10 }}>
-            THE VIP <span className="gold-text">EXPERIENCE</span>
+            <GoldLastWord text={T('THE VIP EXPERIENCE')} />
           </h2>
           <p className="font-body font-light" style={{ fontSize: 'clamp(0.82rem,3.2vw,1rem)', color: 'rgba(var(--w365-text-rgb),0.70)', maxWidth: 480, margin: '0 auto' }}>
-            Every package includes world-class VIP amenities — from luxury spa retreats to exclusive nightlife.
+            {T('Every package includes world-class VIP amenities — from luxury spa retreats to exclusive nightlife.')}
           </p>
         </motion.div>
 
@@ -541,7 +552,7 @@ function VIPServicesGallery() {
           {categories.map(cat => (
             <button key={cat} onClick={() => setActiveCategory(cat)} className="font-body font-light"
               style={{ padding: '7px 16px', borderRadius: 50, border: `1px solid ${activeCategory === cat ? '#D4AF37' : 'rgba(var(--w365-text-rgb),0.15)'}`, background: activeCategory === cat ? 'rgba(212,175,55,0.15)' : 'transparent', color: activeCategory === cat ? '#D4AF37' : 'rgba(var(--w365-text-rgb),0.5)', fontSize: 'clamp(0.72rem,2.8vw,0.8rem)', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', letterSpacing: '0.04em', whiteSpace: 'nowrap', flexShrink: 0, touchAction: 'manipulation' }}>
-              {cat}
+              {categoryLabel(cat)}
             </button>
           ))}
         </div>
@@ -558,8 +569,8 @@ function VIPServicesGallery() {
                 <img loading="lazy" decoding="async" src={item.src} alt={item.label} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                 <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 50%)' }} />
                 <div style={{ position: 'absolute', bottom: 10, left: 12, right: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 6 }}>
-                  <span className=" font-bold" style={{ fontSize: 'clamp(0.7rem,2.5vw,0.82rem)', fontWeight: 700, color: '#fff', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>
-                  <span className="font-body font-light" style={{ fontSize: 'clamp(0.58rem,2vw,0.65rem)', background: 'rgba(212,175,55,0.25)', border: '1px solid rgba(212,175,55,0.4)', borderRadius: 20, padding: '2px 8px', color: '#D4AF37', letterSpacing: '0.06em', flexShrink: 0 }}>{item.category}</span>
+                  <span className=" font-bold" style={{ fontSize: 'clamp(0.7rem,2.5vw,0.82rem)', fontWeight: 700, color: '#fff', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{T(item.label)}</span>
+                  <span className="font-body font-light" style={{ fontSize: 'clamp(0.58rem,2vw,0.65rem)', background: 'rgba(212,175,55,0.25)', border: '1px solid rgba(212,175,55,0.4)', borderRadius: 20, padding: '2px 8px', color: '#D4AF37', letterSpacing: '0.06em', flexShrink: 0 }}>{categoryLabel(item.category)}</span>
                 </div>
               </motion.div>
             ))}
@@ -569,7 +580,7 @@ function VIPServicesGallery() {
         {/* Video highlights */}
 <div style={{ marginBottom: 36 }}>
   <div className="font-body font-light" style={{ textAlign: 'center', fontSize: 'clamp(0.6rem,2.2vw,0.72rem)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(var(--w365-text-rgb),0.50)', marginBottom: 16 }}>
-    VIP Experience — Video Highlights
+    {T('VIP Experience — Video Highlights')}
   </div>
   {/* No maxWidth: this row was capped at 920px inside the section's 1320px
       column, so three video tiles sat visibly narrower than the service grid
@@ -595,9 +606,9 @@ function VIPServicesGallery() {
       // The full-length original is in git history at 8f2c80c; re-cut with:
       //   ffmpeg -i <original> -t 55.16 -an -c copy -movflags +faststart
       //     vip-lounge.mp4
-      { src: '/assets/videos/vip-lounge.mp4',   label: 'VIP Lounge Experience' },
-      { src: '/assets/videos/casino-floor.mp4', label: 'Casino Floor Nights' },
-      { src: '/assets/videos/spa-retreat.mp4',  label: 'Luxury Spa Retreat' },
+      { src: '/assets/videos/vip-lounge.mp4',   label: T('VIP Lounge Experience') },
+      { src: '/assets/videos/casino-floor.mp4', label: T('Casino Floor Nights') },
+      { src: '/assets/videos/spa-retreat.mp4',  label: T('Luxury Spa Retreat') },
     ].map((v, i) => (
       <div key={i} style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(212,175,55,0.15)', background: 'rgba(255,255,255,0.03)', position: 'relative', aspectRatio: '16/9' }}>
         {/* contain, not cover: these tiles share one 16:9 grid cell but the
@@ -607,7 +618,7 @@ function VIPServicesGallery() {
             the tile's own dark surface. */}
         <InViewVideo src={v.src} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
         <div style={{ position: 'absolute', bottom: 8, left: 10, right: 10 }}>
-          <span className=" font-bold" style={{ fontSize: 'clamp(0.68rem,2.5vw,0.78rem)', color: '#fff', fontWeight: 700, background: 'rgba(0,0,0,0.55)', padding: '3px 9px', borderRadius: 6 }}>{v.label}</span>
+          <span className=" font-bold" style={{ fontSize: 'clamp(0.68rem,2.5vw,0.78rem)', color: '#fff', fontWeight: 700, background: 'rgba(0,0,0,0.55)', padding: '3px 9px', borderRadius: 6 }}>{T(v.label)}</span>
         </div>
       </div>
     ))}
@@ -616,7 +627,7 @@ function VIPServicesGallery() {
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.7, delay: 0.3 }} style={{ textAlign: 'center' }}>
           <p className="font-body font-light" style={{ color: 'rgba(var(--w365-text-rgb),0.60)', marginBottom: 14, fontSize: 'clamp(0.8rem,3vw,0.9rem)' }}>
-            Want to know more about VIP services? Chat with us instantly.
+            {T('Want to know more about VIP services? Chat with us instantly.')}
           </p>
           <div style={{ maxWidth: 320, margin: '0 auto' }}>
             <WhatsAppBtn label="Chat About VIP Services" />
@@ -640,7 +651,7 @@ const FALLBACK_PACKAGES = [
     food: 'Casino', liquor: 'Over the Gaming Table (Local Premium)',
     airportVIP: false, jackpotRewards: true, vipTransport: false,
     spa: true, shoppingVoucher: false, visa: true },
-  { name: 'Premium', price: '$15,000', icon: <Dices size={26} color="#D4AF37" />, color: '#D4AF37', badge: 'Popular',
+  { name: 'Premium', price: '$15,000', icon: <Dices size={26} color="#D4AF37" />, color: '#D4AF37', badge: T('Popular'),
     duration: '3 Nights', flight: 'Economy', hotel: 'Standard 5-Star (3N)',
     food: 'Casino', liquor: 'Over the Gaming Table (Premium)',
     airportVIP: false, jackpotRewards: true, vipTransport: false,
@@ -655,7 +666,7 @@ const FALLBACK_PACKAGES = [
     food: 'Casino', liquor: 'Over the Gaming Table (Imported Premium)',
     airportVIP: true, jackpotRewards: true, vipTransport: true,
     spa: true, shoppingVoucher: true, visa: true },
-  { name: 'Elite', price: '$50,000', icon: <Gem size={26} color="#B9F2FF" />, color: '#B9F2FF', badge: 'Best Value',
+  { name: 'Elite', price: '$50,000', icon: <Gem size={26} color="#B9F2FF" />, color: '#B9F2FF', badge: T('Best Value'),
     duration: '3 Nights', flight: 'Business', hotel: 'Suite 5-Star (3N)',
     food: 'Casino/Hotel', liquor: 'Imported Premium',
     airportVIP: true, jackpotRewards: true, vipTransport: true, vipTransportNote: '*',
@@ -665,7 +676,7 @@ const FALLBACK_PACKAGES = [
     food: 'Casino/Hotel', liquor: 'Imported Premium',
     airportVIP: true, jackpotRewards: true, vipTransport: true, vipTransportNote: '**',
     spa: true, spaNote: '**', shoppingVoucher: true, shoppingNote: '**', visa: true },
-  { name: 'Sovereign', price: '$250,000+', icon: <ShieldCheck size={26} color="#C9A84C" />, color: '#C9A84C', badge: 'Invite Only',
+  { name: 'Sovereign', price: '$250,000+', icon: <ShieldCheck size={26} color="#C9A84C" />, color: '#C9A84C', badge: T('Invite Only'),
     duration: '7 Nights', flight: 'Business', hotel: 'Presidential Suite (7N)',
     food: 'Casino/Hotel', liquor: 'Imported Premium',
     airportVIP: true, jackpotRewards: true, vipTransport: true, vipTransportNote: '**',
@@ -709,14 +720,13 @@ function PackagesSection() {
         <motion.div initial={{ opacity: 0, y: 30 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.7 }}
           style={{ textAlign: 'center', marginBottom: 'clamp(22px,3.4vw,36px)' }}>
           <div style={{ display: 'inline-block', border: '1px solid rgba(212,175,55,0.3)', borderRadius: 50, padding: '5px 18px', fontSize: 'clamp(0.6rem,2.5vw,0.72rem)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(212,175,55,0.7)', marginBottom: 12 }}>
-            ✦ All Packages
+            {T('✦ All Packages')}
           </div>
           <h2 className="section-heading" style={{ fontSize: 'clamp(1.6rem,7vw,3.2rem)', marginBottom: 12 }}>
-            CASINO <span className="gold-text">PACKAGES</span>
+            <GoldLastWord text={T('CASINO PACKAGES')} />
           </h2>
           <p className="font-body font-light" style={{ color: 'rgba(var(--w365-text-rgb),0.70)', maxWidth: 520, margin: '0 auto', fontSize: 'clamp(0.82rem,3.2vw,1rem)', lineHeight: 1.6 }}>
-            Every package includes <strong style={{ color: 'rgba(212,175,55,0.9)' }}>Free Flights · 5-Star Hotel · All Meals · Free Drinks · VIP Offline Casino Access</strong>.
-            Available for all 5 destinations.
+            {T('Every package includes')}{' '}<strong style={{ color: 'rgba(212,175,55,0.9)' }}>{T('Free Flights · 5-Star Hotel · All Meals · Free Drinks · VIP Offline Casino Access')}</strong>{T('. Available for all 5 destinations.')}
           </p>
         </motion.div>
 
@@ -742,12 +752,12 @@ function PackagesSection() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%,300px),1fr))', gap: 16 }}>
           {PACKAGES.map((pkg, i) => {
   const services = [
-    { label: 'Airport VIP Service', val: pkg.airportVIP },
-    { label: 'Jackpot Rewards',     val: pkg.jackpotRewards },
-    { label: 'VIP Transportation',  val: pkg.vipTransport,      note: pkg.vipTransportNote },
-    { label: 'Spa Service',         val: pkg.spa,               note: pkg.spaNote },
-    { label: 'Shopping Voucher',    val: pkg.shoppingVoucher,   note: pkg.shoppingNote },
-    { label: 'Visa',                val: pkg.visa },
+    { label: T('Airport VIP Service'), val: pkg.airportVIP },
+    { label: T('Jackpot Rewards'),     val: pkg.jackpotRewards },
+    { label: T('VIP Transportation'),  val: pkg.vipTransport,      note: pkg.vipTransportNote },
+    { label: T('Spa Service'),         val: pkg.spa,               note: pkg.spaNote },
+    { label: T('Shopping Voucher'),    val: pkg.shoppingVoucher,   note: pkg.shoppingNote },
+    { label: T('Visa'),                val: pkg.visa },
   ]
   return (
     <motion.div key={i}
@@ -759,7 +769,7 @@ function PackagesSection() {
 
       {pkg.badge && (
         <div style={{ position: 'absolute', top: 12, right: 12, background: `${pkg.color}22`, border: `1px solid ${pkg.color}60`, borderRadius: 20, padding: '3px 10px', fontSize: '0.65rem', fontWeight: 800, color: pkg.color, letterSpacing: '0.08em', textTransform: 'uppercase', zIndex: 2 }}>
-          {pkg.badge}
+          {T(pkg.badge)}
         </div>
       )}
 
@@ -769,25 +779,25 @@ function PackagesSection() {
           <span style={{ fontSize: '1.8rem' }}>{pkg.icon}</span>
           <div>
             <div style={{ fontSize: '1.05rem', fontWeight: 900, color: pkg.color, lineHeight: 1 }}>{pkg.name}</div>
-            <div style={{ fontSize: '0.7rem', color: 'rgba(var(--w365-text-rgb),0.55)', letterSpacing: '0.08em' }}>{pkg.duration} · All Destinations</div>
+            <div style={{ fontSize: '0.7rem', color: 'rgba(var(--w365-text-rgb),0.55)', letterSpacing: '0.08em' }}>{pkg.duration}{' '}{T('· All Destinations')}</div>
           </div>
         </div>
         <div className="gold-text" style={{ fontSize: '1.7rem', fontWeight: 900 }}>{pkg.price}</div>
-        <div style={{ fontSize: '0.68rem', color: 'rgba(var(--w365-text-rgb),0.50)', marginTop: 2 }}>per person</div>
+        <div style={{ fontSize: '0.68rem', color: 'rgba(var(--w365-text-rgb),0.50)', marginTop: 2 }}>{T('per person')}</div>
       </div>
 
       {/* Details */}
       <div style={{ padding: '14px 22px 18px' }}>
         {/* Core inclusions */}
         {[
-          { icon: '✈️', label: `Flight: ${pkg.flight}` },
-          { icon: '🏨', label: `Hotel: ${pkg.hotel}` },
-          { icon: '🍽️', label: `Food: ${pkg.food}` },
-          { icon: '🥂', label: `Liquor: ${pkg.liquor}` },
+          { icon: '✈️', label: `${T('Flight')}: ${pkg.flight}` },
+          { icon: '🏨', label: `${T('Hotel')}: ${pkg.hotel}` },
+          { icon: '🍽️', label: `${T('Food')}: ${pkg.food}` },
+          { icon: '🥂', label: `${T('Liquor')}: ${pkg.liquor}` },
         ].map((row, j) => (
           <div key={j} style={{ display: 'flex', alignItems: 'flex-start', gap: 7, fontSize: '0.8rem', color: 'rgba(var(--w365-text-rgb),0.80)', marginBottom: 6, lineHeight: 1.4 }}>
             <span style={{ flexShrink: 0 }}>{row.icon}</span>
-            <span className="font-body font-light">{row.label}</span>
+            <span className="font-body font-light">{T(row.label)}</span>
           </div>
         ))}
 
@@ -814,7 +824,7 @@ function PackagesSection() {
         {s.val ? '✓' : '✗'}
       </span>
       <span className="font-body font-light">
-        {s.label}{s.note ? <span style={{ opacity: 0.5, fontSize: '0.65rem' }}> {s.note}</span> : null}
+        {T(s.label)}{s.note ? <span style={{ opacity: 0.5, fontSize: '0.65rem' }}> {s.note}</span> : null}
       </span>
     </div>
   ))}
@@ -823,7 +833,7 @@ function PackagesSection() {
 
       {/* Book button */}
       <div style={{ padding: '0 22px 18px' }}>
-        <WhatsAppBtn label={`Enquire – ${pkg.name}`} pkg={`${pkg.name} Package`} />
+        <WhatsAppBtn label={`${T('Enquire')} – ${pkg.name}`} pkg={`${pkg.name} Package`} />
       </div>
     </motion.div>
 
@@ -858,10 +868,10 @@ function PackagesSection() {
                 would leave the page with two equal headings and no hierarchy
                 between them. */}
             <h2 className="section-heading" style={{ fontSize: 'clamp(1.3rem,5vw,2.4rem)', marginBottom: 10, lineHeight: 1.12 }}>
-              EXCLUSIVE CRUISE <span className="gold-text">CASINOS</span>
+              <GoldLastWord text={T('EXCLUSIVE CRUISE CASINOS')} />
             </h2>
             <p className="font-body font-light" style={{ color: 'rgba(var(--w365-text-rgb),0.70)', maxWidth: 520, margin: '0 auto', fontSize: 'clamp(0.8rem,3vw,0.95rem)', lineHeight: 1.6 }}>
-              Gaming floors at sea, with the itinerary, the cabin and the transfers arranged as one trip.
+              {T('Gaming floors at sea, with the itinerary, the cabin and the transfers arranged as one trip.')}
             </p>
           </motion.div>
         )}
@@ -874,9 +884,9 @@ function PackagesSection() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.7, delay: 0.5 }}
           style={{ textAlign: 'center', marginTop: 48, padding: 'clamp(24px,6vw,40px) clamp(16px,4vw,24px)', border: '1px solid rgba(212,175,55,0.2)', borderRadius: 18, background: 'rgba(212,175,55,0.03)' }}>
           <div style={{ fontSize: '1.8rem', marginBottom: 10 }}>💬</div>
-          <h3 className=" font-bold text-theme" style={{ fontSize: 'clamp(1rem,4.5vw,1.4rem)', fontWeight: 800, marginBottom: 8 }}>Not sure which package is right for you?</h3>
+          <h3 className=" font-bold text-theme" style={{ fontSize: 'clamp(1rem,4.5vw,1.4rem)', fontWeight: 800, marginBottom: 8 }}>{T('Not sure which package is right for you?')}</h3>
           <p className="font-body font-light" style={{ color: 'rgba(var(--w365-text-rgb),0.64)', marginBottom: 20, fontSize: 'clamp(0.8rem,3vw,0.9rem)' }}>
-            Our VIP travel consultants are available 24/7 on WhatsApp.
+            {T('Our VIP travel consultants are available 24/7 on WhatsApp.')}
           </p>
           <div style={{ maxWidth: 340, margin: '0 auto' }}>
             <WhatsAppBtn label="💬 Chat with a VIP Consultant" />
@@ -947,18 +957,17 @@ export default function CountryPackages() {
             className="text-center" style={{ marginBottom: 'clamp(22px,3.4vw,36px)' }}>
             <div className="inline-block border border-gold/30 rounded-full px-4 py-1.5 font-body font-light tracking-widest uppercase text-gold/70 mb-3"
               style={{ fontSize: 'clamp(0.6rem,2.5vw,0.75rem)' }}>
-              ✈ Choose Your Destination
+              {T('✈ Choose Your Destination')}
             </div>
             {/* "Offline" and "partner" are load-bearing words, not padding:
                 this grid is the most casino-looking thing on the page, and
                 without them it reads as a list of venues JackpotsWorld runs.
                 They are venues we refer members to. */}
             <h2 className="section-heading" style={{ fontSize: 'clamp(1.7rem,7.5vw,3.2rem)', marginBottom: 10, lineHeight: 1.1 }}>
-              PREMIUM CASINO <span className="gold-text">DESTINATIONS</span>
+              <GoldLastWord text={T('PREMIUM CASINO DESTINATIONS')} />
             </h2>
             <p className="font-body font-light text-theme-muted max-w-xl mx-auto" style={{ fontSize: 'clamp(0.82rem,3.2vw,1.1rem)' }}>
-              Explore selected offline casino destinations across Asia. Each is an independent
-              venue we refer our members to — not operated by JackpotsWorld.
+              {T('Explore selected offline casino destinations across Asia. Each is an independent venue we refer our members to — not operated by JackpotsWorld.')}
             </p>
           </motion.div>
 
@@ -1046,7 +1055,7 @@ export default function CountryPackages() {
                 </div>
                 {/* Top casinos */}
                 <div className="cp-col">
-                  <div className="font-body font-light" style={{ fontSize: 'clamp(0.58rem,2vw,0.65rem)', color: 'rgba(var(--w365-text-rgb),0.50)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>Offline Casino Destinations</div>
+                  <div className="font-body font-light" style={{ fontSize: 'clamp(0.58rem,2vw,0.65rem)', color: 'rgba(var(--w365-text-rgb),0.50)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>{T('Offline Casino Destinations')}</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     {country.casinos.split(', ').map((c2, j) => (
                       <InfoChip key={j} label={c2} dotColor={country.color} />
@@ -1055,7 +1064,7 @@ export default function CountryPackages() {
                 </div>
                 {/* Best for */}
                 <div className="cp-col">
-                  <div className="font-body font-light" style={{ fontSize: 'clamp(0.58rem,2vw,0.65rem)', color: 'rgba(var(--w365-text-rgb),0.50)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>Best For</div>
+                  <div className="font-body font-light" style={{ fontSize: 'clamp(0.58rem,2vw,0.65rem)', color: 'rgba(var(--w365-text-rgb),0.50)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>{T('Best For')}</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     {String(country.bestFor || '').split(',').map(g => g.trim()).filter(Boolean).map((game, j) => (
                       <InfoChip key={j} label={game} dotColor={country.color} />

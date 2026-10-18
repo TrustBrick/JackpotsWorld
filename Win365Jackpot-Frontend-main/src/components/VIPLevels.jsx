@@ -5,6 +5,7 @@ import { useAutoFetch } from '../hooks/useAutoFetch'
 import { fetchVipTiers } from '../services/landingService'
 import { SECTION_PAD, CONTAINER } from '../utils/layout'
 
+import { T } from '../i18n/useSiteText'
 // Fixed color palette cycled to color the "all benefits" comparison column —
 // a display derivation, not distinct admin-editable content.
 const BENEFIT_PALETTE = ['#D4AF37', '#34D399', '#60A5FA', '#A78BFA', '#F472B6', '#FB923C', '#22D3EE']
@@ -12,98 +13,98 @@ const BENEFIT_PALETTE = ['#D4AF37', '#34D399', '#60A5FA', '#A78BFA', '#F472B6', 
 const FALLBACK_TIERS = [
   {
     id: 'bronze',
-    label: 'Bronze',
+    label: T('Bronze'),
     accentColor: '#92400e',
     accentBg: '#fef3c7',
     benefits: [
-      { name: 'Level Up Bonus',  desc: 'One-time bonus credited when you reach this tier' },
-      { name: 'Weekly Bonus',    desc: 'Weekly reward credited based on your activity' },
+      { name: 'Level Up Bonus',  desc: T('One-time bonus credited when you reach this tier') },
+      { name: 'Weekly Bonus',    desc: T('Weekly reward credited based on your activity') },
     ],
   },
   {
     id: 'silver',
-    label: 'Silver',
+    label: T('Silver'),
     accentColor: '#374151',
     accentBg: '#f3f4f6',
     benefits: [
-      { name: 'Level Up Bonus',  desc: 'One-time bonus credited when you reach this tier' },
-      { name: 'Weekly Bonus',    desc: 'Weekly reward credited based on your activity' },
-      { name: 'Monthly Bonus',   desc: 'Monthly loyalty bonus added to your balance' },
+      { name: 'Level Up Bonus',  desc: T('One-time bonus credited when you reach this tier') },
+      { name: 'Weekly Bonus',    desc: T('Weekly reward credited based on your activity') },
+      { name: 'Monthly Bonus',   desc: T('Monthly loyalty bonus added to your balance') },
     ],
   },
   {
     id: 'gold',
-    label: 'Gold',
+    label: T('Gold'),
     accentColor: '#78350f',
     accentBg: '#fef9c3',
     benefits: [
-      { name: 'Level Up Bonus',  desc: 'One-time bonus credited when you reach this tier' },
-      { name: 'Weekly Bonus',    desc: 'Weekly reward credited based on your activity' },
-      { name: 'Monthly Bonus',   desc: 'Monthly loyalty bonus added to your balance' },
+      { name: 'Level Up Bonus',  desc: T('One-time bonus credited when you reach this tier') },
+      { name: 'Weekly Bonus',    desc: T('Weekly reward credited based on your activity') },
+      { name: 'Monthly Bonus',   desc: T('Monthly loyalty bonus added to your balance') },
     ],
   },
   {
     id: 'jackpot1',
-    label: 'Jackpot I',
+    label: T('Jackpot I'),
     accentColor: '#1e3a8a',
     accentBg: '#eff6ff',
     benefits: [
-      { name: 'Level Up Bonus',  desc: 'One-time bonus credited when you reach this tier' },
-      { name: 'Weekly Bonus',    desc: 'Weekly reward credited based on your activity' },
-      { name: 'Monthly Bonus',   desc: 'Monthly loyalty bonus added to your balance' },
-      { name: 'Extras',          desc: 'Exclusive privileges and special access perks' },
+      { name: 'Level Up Bonus',  desc: T('One-time bonus credited when you reach this tier') },
+      { name: 'Weekly Bonus',    desc: T('Weekly reward credited based on your activity') },
+      { name: 'Monthly Bonus',   desc: T('Monthly loyalty bonus added to your balance') },
+      { name: 'Extras',          desc: T('Exclusive privileges and special access perks') },
     ],
   },
   {
     id: 'jackpot2',
-    label: 'Jackpot II',
+    label: T('Jackpot II'),
     accentColor: '#1e3a8a',
     accentBg: '#eff6ff',
     benefits: [
-      { name: 'Level Up Bonus',       desc: 'One-time bonus credited when you reach this tier' },
-      { name: 'Weekly Bonus',         desc: 'Weekly reward credited based on your activity' },
-      { name: 'Monthly Bonus',        desc: 'Monthly loyalty bonus added to your balance' },
-      { name: 'Extras',               desc: 'Exclusive privileges and special access perks' },
-      { name: 'VIP Host Luxury Gifts', desc: 'Gurated gifts delivered by your personal VIP host' },
+      { name: 'Level Up Bonus',       desc: T('One-time bonus credited when you reach this tier') },
+      { name: 'Weekly Bonus',         desc: T('Weekly reward credited based on your activity') },
+      { name: 'Monthly Bonus',        desc: T('Monthly loyalty bonus added to your balance') },
+      { name: 'Extras',               desc: T('Exclusive privileges and special access perks') },
+      { name: 'VIP Host Luxury Gifts', desc: T('Gurated gifts delivered by your personal VIP host') },
     ],
   },
   {
     id: 'jackpot3',
-    label: 'Jackpot III',
+    label: T('Jackpot III'),
     accentColor: '#1e3a8a',
     accentBg: '#eff6ff',
     benefits: [
-      { name: 'Level Up Bonus',       desc: 'One-time bonus credited when you reach this tier' },
-      { name: 'Weekly Bonus',         desc: 'Weekly reward credited based on your activity' },
-      { name: 'Monthly Bonus',        desc: 'Monthly loyalty bonus added to your balance' },
-      { name: 'Extras',               desc: 'Exclusive privileges and special access perks' },
-      { name: 'VIP Host Luxury Gifts', desc: 'Gurated gifts delivered by your personal VIP host' },
+      { name: 'Level Up Bonus',       desc: T('One-time bonus credited when you reach this tier') },
+      { name: 'Weekly Bonus',         desc: T('Weekly reward credited based on your activity') },
+      { name: 'Monthly Bonus',        desc: T('Monthly loyalty bonus added to your balance') },
+      { name: 'Extras',               desc: T('Exclusive privileges and special access perks') },
+      { name: 'VIP Host Luxury Gifts', desc: T('Gurated gifts delivered by your personal VIP host') },
     ],
   },
   {
     id: 'platinum',
-    label: 'Platinum Jackpot',
+    label: T('Platinum Jackpot'),
     accentColor: '#1f2937',
     accentBg: '#f9fafb',
     benefits: [
-      { name: 'Level Up Bonus',       desc: 'One-time bonus credited when you reach this tier' },
-      { name: 'Weekly Bonus',         desc: 'Weekly reward credited based on your activity' },
-      { name: 'Monthly Bonus',        desc: 'Monthly loyalty bonus added to your balance' },
-      { name: 'Extras',               desc: 'Exclusive privileges and special access perks' },
-      { name: 'VIP Host Luxury Gifts', desc: 'Gurated gifts delivered by your personal VIP host' },
+      { name: 'Level Up Bonus',       desc: T('One-time bonus credited when you reach this tier') },
+      { name: 'Weekly Bonus',         desc: T('Weekly reward credited based on your activity') },
+      { name: 'Monthly Bonus',        desc: T('Monthly loyalty bonus added to your balance') },
+      { name: 'Extras',               desc: T('Exclusive privileges and special access perks') },
+      { name: 'VIP Host Luxury Gifts', desc: T('Gurated gifts delivered by your personal VIP host') },
     ],
   },
   {
     id: 'diamond',
-    label: 'Diamond Jackpot',
+    label: T('Diamond Jackpot'),
     accentColor: '#1e3a8a',
     accentBg: '#dbeafe',
     benefits: [
-      { name: 'Level Up Bonus',       desc: 'One-time bonus credited when you reach this tier' },
-      { name: 'Weekly Bonus',         desc: 'Weekly reward credited based on your activity' },
-      { name: 'Monthly Bonus',        desc: 'Monthly loyalty bonus added to your balance' },
-      { name: 'Extras',               desc: 'Exclusive privileges and special access perks' },
-      { name: 'VIP Host Luxury Gifts', desc: 'Gurated gifts delivered by your personal VIP host' },
+      { name: 'Level Up Bonus',       desc: T('One-time bonus credited when you reach this tier') },
+      { name: 'Weekly Bonus',         desc: T('Weekly reward credited based on your activity') },
+      { name: 'Monthly Bonus',        desc: T('Monthly loyalty bonus added to your balance') },
+      { name: 'Extras',               desc: T('Exclusive privileges and special access perks') },
+      { name: 'VIP Host Luxury Gifts', desc: T('Gurated gifts delivered by your personal VIP host') },
     ],
   },
 ]
@@ -171,7 +172,7 @@ export default function VIPLevels() {
           }}>
             <Shield size={12} style={{ color: '#D4AF37' }}/>
             <span style={{ fontSize: 11, letterSpacing: '0.25em', textTransform: 'uppercase', color: 'rgba(212,175,55,0.7)' }}>
-              Prestige · Loyalty · Legacy
+              {T('Prestige · Loyalty · Legacy')}
             </span>
           </div>
           <h2 className="section-heading" style={{
@@ -179,10 +180,10 @@ export default function VIPLevels() {
             letterSpacing: '0.04em',
             marginBottom: 10,
           }}>
-            VIP Program <span className="gold-text">Levels</span>
+            {T('VIP Program')}{' '}<span className="gold-text">{T('Levels')}</span>
           </h2>
           <p style={{ fontSize: 14, color: 'rgba(var(--w365-text-rgb),0.50)', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
-            Bronze · Silver · Gold · Jackpot I · II · III · Platinum · Diamond
+            {T('Bronze · Silver · Gold · Jackpot I · II · III · Platinum · Diamond')}
           </p>
         </motion.div>
 
@@ -241,7 +242,7 @@ export default function VIPLevels() {
                   {activeTier.label}
                 </p>
                 <p style={{ fontSize: 12, color: 'rgba(var(--w365-text-rgb),0.55)' }}>
-                  {activeTier.benefits.length} of {ALL_BENEFITS.length} benefits included
+                  {activeTier.benefits.length}{' '}{T('of')}{' '}{ALL_BENEFITS.length}{' '}{T('benefits included')}
                 </p>
               </div>
               <span style={{
@@ -320,10 +321,10 @@ export default function VIPLevels() {
           <Shield size={18} style={{ color: '#D4AF37', flexShrink: 0, marginTop: 1 }}/>
           <div>
             <p style={{ fontSize: 14, fontWeight: 600, color: '#D4AF37', marginBottom: 4 }}>
-              Levels are permanent
+              {T('Levels are permanent')}
             </p>
             <p style={{ fontSize: 13, color: 'rgba(var(--w365-text-rgb),0.60)', lineHeight: 1.65 }}>
-              Your tier is a lifetime achievement. Your recorded activity accumulates across your entire account history and never resets — every visit builds your legacy.
+              {T('Your tier is a lifetime achievement. Your recorded activity accumulates across your entire account history and never resets — every visit builds your legacy.')}
             </p>
           </div>
         </motion.div>

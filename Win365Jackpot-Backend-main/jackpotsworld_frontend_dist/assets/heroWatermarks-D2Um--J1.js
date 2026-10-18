@@ -1,0 +1,1 @@
+const e={poker:{video:"/assets/videos/poker-watermark.mp4",poster:"/assets/posters/poker-watermark.jpg"},teen_patti:{video:"/assets/videos/vip-lounge.mp4",poster:"/assets/posters/vip-lounge.jpg"}};export{e as H};

@@ -22,6 +22,16 @@ async function withRetry(fn, retries = 2, baseDelayMs = 400) {
   throw lastErr
 }
 
+// The visitor's chosen site language. Public content requests carry it so
+// the server can return Back Office text (packages, events, FAQs…) already
+// translated — see the backend's middleware/content_translation.py. English
+// sends nothing, which keeps those requests exactly as they always were.
+function languageHeaders() {
+  let lng = ""
+  try { lng = localStorage.getItem("i18nextLng") || "" } catch { /* storage blocked */ }
+  return lng && !lng.toLowerCase().startsWith("en") ? { "X-Site-Language": lng } : {}
+}
+
 function buildQuery(params = {}) {
   const qs = new URLSearchParams()
   Object.entries(params).forEach(([key, value]) => {
@@ -34,7 +44,7 @@ function buildQuery(params = {}) {
 export async function apiGet(path, params = {}) {
   const url = `${API_BASE}${path}${buildQuery(params)}`
   return withRetry(async () => {
-    const res = await fetch(url)
+    const res = await fetch(url, { headers: languageHeaders() })
     if (!res.ok) throw new Error(`Request to ${path} failed (${res.status})`)
     return res.json()
   })
@@ -62,7 +72,7 @@ export async function apiGetMaybeAuthed(path, params = {}) {
   const token = getToken("access")
   return withRetry(async () => {
     const res = await fetch(url, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: { ...languageHeaders(), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     })
     if (!res.ok) throw new Error(`Request to ${path} failed (${res.status})`)
     return res.json()

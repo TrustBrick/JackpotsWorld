@@ -14,6 +14,7 @@ import {
   DEFAULT_COUNTRY, DIGIT_MAP, apiFetch, validateEmail, ApiError,
 } from '../components/AuthModal'
 
+import { T } from '../i18n/useSiteText'
 const API = import.meta.env.VITE_API_URL
 
 // ─── OTP step ─────────────────────────────────────────────────────────────────
@@ -102,9 +103,9 @@ function OTPStep({ email, registrationData, onVerified, onBack }) {
         <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(212,175,55,0.08)', border: '2px solid rgba(212,175,55,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
           <ShieldCheck size={24} color={C.gold} />
         </div>
-        <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 6 }}>Verify your email</div>
+        <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 6 }}>{T('Verify your email')}</div>
         <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.6 }}>
-          We sent a 6-digit code to<br /><span style={{ color: C.gold, fontWeight: 600 }}>{email}</span>
+          {T('We sent a 6-digit code to')}<br /><span style={{ color: C.gold, fontWeight: 600 }}>{email}</span>
         </div>
       </div>
 
@@ -142,12 +143,12 @@ function OTPStep({ email, registrationData, onVerified, onBack }) {
       <ErrBox msg={error} />
 
       <GoldBtn onClick={handleVerify} loading={loading} disabled={!otpComplete || countdown === 0}>
-        Verify &amp; Submit Application
+        {T('Verify & Submit Application')}
       </GoldBtn>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 }}>
         <button type="button" onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: C.muted, display: 'flex', alignItems: 'center', gap: 4, padding: 0, fontFamily: 'inherit' }}>
-          ← Edit details
+          {T('← Edit details')}
         </button>
         <button type="button" onClick={handleResend} disabled={!canResend || resending} style={{ background: 'none', border: 'none', cursor: canResend ? 'pointer' : 'not-allowed', fontSize: 11, color: canResend ? C.gold : C.dim, display: 'flex', alignItems: 'center', gap: 4, padding: 0, fontFamily: 'inherit', fontWeight: canResend ? 600 : 400 }}>
           {resending ? <><Loader2 size={10} style={{ animation: 'spin 0.8s linear infinite' }} /> Resending…</> : <><RotateCcw size={10} /> Resend OTP</>}
@@ -165,13 +166,13 @@ function SuccessScreen({ onGoLogin }) {
         style={{ width: 58, height: 58, borderRadius: '50%', background: C.greenBg, border: `2px solid ${C.greenBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}>
         <CheckCircle2 size={28} color={C.green} />
       </motion.div>
-      <div style={{ fontSize: 17, fontWeight: 800, color: C.text, marginBottom: 8 }}>Application Submitted!</div>
+      <div style={{ fontSize: 17, fontWeight: 800, color: C.text, marginBottom: 8 }}>{T('Application Submitted!')}</div>
       <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.65, marginBottom: 26 }}>
-        Your affiliate account has been created and your application is<br />
-        under review. You'll be able to sign in once it's approved.
+        {T('Your affiliate account has been created and your application is')}<br />
+        {T('under review. You\'ll be able to sign in once it\'s approved.')}
       </div>
       <GoldBtn onClick={onGoLogin} loading={false} disabled={false}>
-        <LogIn size={13} /> Go to Affiliate Login
+        <LogIn size={13} />{' '}{T('Go to Affiliate Login')}
       </GoldBtn>
     </motion.div>
   )
@@ -205,7 +206,7 @@ function CountrySelect({ value, onChange, countries, hasError }) {
       }}
     >
       <option value="" disabled style={{ background: C.bg, color: C.dim }}>
-        Select your country
+        {T('Select your country')}
       </option>
       {options.map(c => (
         <option key={c.iso2} value={c.iso2} style={{ background: C.bg, color: C.text }}>
@@ -340,12 +341,12 @@ function RegisterForm({ onSubmitted }) {
   return (
     <motion.div key="form" initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -14 }}>
       <div style={W}>
-        <Label><User size={10} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />Full name</Label>
-        <FocusInput value={name} onChange={e => setName(e.target.value)} placeholder="Jane Smith" />
+        <Label><User size={10} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />{T('Full name')}</Label>
+        <FocusInput value={name} onChange={e => setName(e.target.value)} placeholder={T('Jane Smith')} />
       </div>
 
       <div style={W}>
-        <Label><Mail size={10} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />Email address</Label>
+        <Label><Mail size={10} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />{T('Email address')}</Label>
         <FocusInput type="email" value={email} onChange={e => { setEmail(e.target.value.trim()); setEmailErr('') }}
           placeholder="you@gmail.com" hasError={!!emailErr} hasOk={emailValid && !emailErr}
           onBlur={() => setEmailErr(validateEmail(email).error || '')} />
@@ -353,17 +354,17 @@ function RegisterForm({ onSubmitted }) {
       </div>
 
       <div style={W}>
-        <Label><Phone size={10} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />Mobile number</Label>
+        <Label><Phone size={10} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />{T('Mobile number')}</Label>
         <PhoneInput value={phone} country={country} countries={countries}
           onValueChange={setPhone} onCountryChange={c => { setCountry(c); setPhone('') }}
           hasOk={phoneComplete} />
         {phone.length > 0 && phone.length < country.digits && (
-          <Hint color={C.yellow} icon={AlertCircle}>{country.digits - phone.length} more digit{country.digits - phone.length !== 1 ? 's' : ''} needed</Hint>
+          <Hint color={C.yellow} icon={AlertCircle}>{country.digits - phone.length}{' '}{T('more digit')}{country.digits - phone.length !== 1 ? 's' : ''}{' '}{T('needed')}</Hint>
         )}
       </div>
 
       <div style={W}>
-        <Label><Globe size={10} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />Country</Label>
+        <Label><Globe size={10} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />{T('Country')}</Label>
         <CountrySelect
           value={location}
           countries={countries}
@@ -374,16 +375,16 @@ function RegisterForm({ onSubmitted }) {
       </div>
 
       <div style={W}>
-        <Label><Key size={10} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />Password</Label>
-        <PwInput value={pw} onChange={setPw} placeholder="Min. 8 characters" />
+        <Label><Key size={10} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />{T('Password')}</Label>
+        <PwInput value={pw} onChange={setPw} placeholder={T('Min. 8 characters')} />
         {pw && !pwOk
           ? <Hint color={C.red} icon={AlertCircle}>Needs uppercase, lowercase, number &amp; special character</Hint>
           : pwOk ? <Hint color={C.green} icon={CheckCircle2}>Strong password</Hint> : null}
       </div>
 
       <div style={W}>
-        <Label>Confirm password</Label>
-        <PwInput value={confirm} onChange={setConfirm} placeholder="Re-enter password" />
+        <Label>{T('Confirm password')}</Label>
+        <PwInput value={confirm} onChange={setConfirm} placeholder={T('Re-enter password')} />
         {pwMiss ? <Hint color={C.red} icon={AlertCircle}>Passwords do not match</Hint>
           : pwMatch ? <Hint color={C.green} icon={CheckCircle2}>Passwords match</Hint> : null}
       </div>
@@ -400,12 +401,12 @@ function RegisterForm({ onSubmitted }) {
       <ErrBox msg={error} />
 
       <GoldBtn onClick={handle} loading={loading} disabled={!canSubmit}>
-        Send Verification Code
+        {T('Send Verification Code')}
       </GoldBtn>
 
       <div style={{ marginTop: 10, fontSize: 11, color: C.dim, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
         <ShieldCheck size={10} color={C.dim} />
-        We'll send a 6-digit code to your email
+        {T('We\'ll send a 6-digit code to your email')}
       </div>
     </motion.div>
   )
@@ -422,7 +423,7 @@ export default function AffiliateRegister() {
 
       <PageHeader
         eyebrow="Partner With Us"
-        title="Become an Affiliate"
+        title={T('Become an Affiliate')}
         subtitle="Apply in minutes — verify your email with a one-time code and our team will review your application."
       />
 
@@ -441,9 +442,9 @@ export default function AffiliateRegister() {
 
         {!success && (
           <div style={{ marginTop: 16, fontSize: 12, color: 'rgba(255,255,255,0.35)', textAlign: 'center' }}>
-            Already an approved affiliate?{' '}
+            {T('Already an approved affiliate?')}{' '}
             <span style={{ color: C.gold, cursor: 'pointer', fontWeight: 600 }} onClick={() => navigate('/affiliate-login')}>
-              Sign in
+              {T('Sign in')}
             </span>
           </div>
         )}

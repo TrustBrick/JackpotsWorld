@@ -189,7 +189,7 @@ export default function WithdrawalRequestModal({ onClose, onSuccess, onError }) 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 4 }}>
             <Wallet size={16} style={{ color: C.gold }} />
             <span style={{ fontSize: 16, fontWeight: 900, color: C.gold }}>
-              {step === "confirm" ? "Confirm Withdrawal" : "Request Withdrawal"}
+              {step === "confirm" ? "Confirm Withdrawal" : "Withdrawal Request"}
             </span>
           </div>
           <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>From your selected casino wallet</div>

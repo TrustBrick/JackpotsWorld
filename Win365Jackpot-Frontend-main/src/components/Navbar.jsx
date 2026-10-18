@@ -9,11 +9,13 @@ import { useNavigate, useLocation, Link } from 'react-router-dom'
 import BrandLockup from './shared/BrandLockup'
 import AuthModal from './AuthModal'
 import ChatBot from './ChatBot'
+import SiteLanguageButton from './SiteLanguageButton'
 import { getToken, getUser } from '../services/authStorage'
 import { endSession } from '../services/sessionManager'
 import { scrollToSection, scrollToSectionWhenReady } from '../utils/scroll'
 import useActiveSection from '../hooks/useActiveSection'
 
+import { T } from '../i18n/useSiteText'
 // Maps each navLinks entry's stable `label` to its i18next key.
 const NAV_I18N_KEY = {
   Home: 'nav.home',
@@ -127,18 +129,18 @@ function UserDropdown({ user, onLogout, onRequireAuth }) {
             <div className="h-px w-full" style={{ background: 'linear-gradient(90deg, transparent, #D4AF37, transparent)' }} />
 
             <div className="px-4 py-3 border-b" style={{ borderColor: 'rgba(212,175,55,0.1)' }}>
-              <div className="text-xs text-white/55 tracking-widest uppercase mb-0.5">Logged in as</div>
+              <div className="text-xs text-white/55 tracking-widest uppercase mb-0.5">{T('Logged in as')}</div>
               <div className="text-sm text-white/85 font-bold truncate">{user.name || user.email}</div>
               {user.name && <div className="text-xs text-white/50 truncate">{user.email}</div>}
             </div>
 
             <div className="px-4 py-3 border-b" style={{ borderColor: 'rgba(212,175,55,0.1)' }}>
               <div className="flex justify-between text-xs mb-1.5">
-                <span className="flex items-center gap-1.5 text-white/60"><Crown size={11} /> VIP Level</span>
-                <span className="font-black" style={{ color: '#D4AF37' }}>VIP {user.vip_level || 1}</span>
+                <span className="flex items-center gap-1.5 text-white/60"><Crown size={11} />{' '}{T('VIP Level')}</span>
+                <span className="font-black" style={{ color: '#D4AF37' }}>{T('VIP')}{' '}{user.vip_level || 1}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="flex items-center gap-1.5 text-white/60"><Wallet size={11} /> Wallet</span>
+                <span className="flex items-center gap-1.5 text-white/60"><Wallet size={11} />{' '}{T('Wallet')}</span>
                 <span className="font-black text-emerald-400">
                   ${Number(user.wallet_balance || 0).toLocaleString('en-IN')}
                 </span>
@@ -161,7 +163,7 @@ function UserDropdown({ user, onLogout, onRequireAuth }) {
                 onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = 'white' }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.55)' }}
               >
-                <User size={14} /> Dashboard
+                <User size={14} />{' '}{T('Dashboard')}
               </button>
               <button
                 onClick={() => { setOpen(false); onLogout() }}
@@ -170,7 +172,7 @@ function UserDropdown({ user, onLogout, onRequireAuth }) {
                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,51,102,0.08)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
-                <LogOut size={14} /> Sign Out
+                <LogOut size={14} />{' '}{T('Sign Out')}
               </button>
             </div>
           </motion.div>
@@ -436,6 +438,7 @@ export default function Navbar() {
 
           {/* Desktop auth */}
           <div className="hidden md:flex items-center gap-2.5">
+            <SiteLanguageButton />
             {user ? (
               <UserDropdown
   user={user}
@@ -460,6 +463,7 @@ export default function Navbar() {
 
           {/* ── Mobile: auth buttons + hamburger (all in topbar) ── */}
           <div className="md:hidden flex items-center gap-2">
+            <SiteLanguageButton compact />
 
             {user ? (
               // Logged in → show dropdown in topbar

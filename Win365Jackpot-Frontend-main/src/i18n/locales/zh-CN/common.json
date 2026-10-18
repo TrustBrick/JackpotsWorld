@@ -13,7 +13,8 @@
     "whatsapp": "WhatsApp",
     "telegram": "Telegram",
     "signOut": "退出登录",
-    "language": "语言"
+    "language": "语言",
+    "kyc": "KYC 验证"
   },
   "vip": {
     "vip": "VIP",
@@ -116,7 +117,9 @@
     "transaction": "交易",
     "balanceBefore": "交易前余额",
     "balanceAfter": "交易后余额",
-    "approved": "已批准"
+    "approved": "已批准",
+    "totalCasinoBalance": "赌场总余额",
+    "totalCasinoBalanceSub": "所有赌场钱包的合计余额"
   },
   "system": {
     "genericError": "出现问题",
@@ -314,7 +317,11 @@
     "otpCreditsLabel": "OTP 额度",
     "verification": "验证",
     "rollingPointsLabel": "流水积分",
-    "rewardPoints": "奖励积分"
+    "rewardPoints": "奖励积分",
+    "merchandise": "周边商品",
+    "giftVoucher": "礼品券",
+    "discountVoucher": "折扣券",
+    "spinReward": "转盘奖励"
   },
   "packages": {
     "casinoTourPackages": "赌场旅游套餐",
@@ -407,7 +414,9 @@
     "faqShortcut": "常见问题",
     "pleaseFillBoth": "请填写这两个字段",
     "ticketSubmitted": "支持工单已提交",
-    "failedToSubmit": "提交工单失败"
+    "failedToSubmit": "提交工单失败",
+    "ticket": "选择工单类别",
+    "uploadDocument": "上传文件"
   },
   "travel": {
     "header": "赌场旅行历史",
@@ -437,7 +446,7 @@
   "poker": {
     "eyebrow": "高额筹码，实时对战",
     "title": "扑克",
-    "subtitle": "来自我们合作赌场的即将举行的锦标赛和**真人牌桌**——获取您的门票，或实时查看赛程填充情况。",
+    "subtitle": "与 JackpotsWorld 一起探索高端扑克体验。发现 VIP 扑克目的地、专属赌场套餐、奢华礼宾服务，以及遍布亚洲的**世界级扑克体验**。",
     "signInPrompt": "登录以获取锦标赛门票并跟踪您已报名的赛事。",
     "loadError": "暂时无法加载锦标赛。请重试。",
     "noTournaments": "目前没有安排的锦标赛。请稍后再来查看。",
@@ -450,7 +459,20 @@
     "upcomingTournaments": "即将开始的锦标赛",
     "completedTournaments": "已结束的锦标赛",
     "viewLiveEvents": "查看直播赛事",
-    "exploreUpcoming": "浏览即将开始"
+    "exploreUpcoming": "浏览即将开始",
+    "info": {
+      "heading": "扑克目的地与 VIP 体验",
+      "intro": "与 JackpotsWorld 一起探索扑克目的地和锦标赛机会。我们帮助访客了解可选的扑克体验、目的地选择以及相关 VIP 服务。",
+      "tournamentsTitle": "扑克锦标赛",
+      "tournamentsBody": "想了解扑克锦标赛信息？请直接向相关场馆或主办方查询最新赛程、赛事详情、参赛要求和名额情况。",
+      "destinationsTitle": "印度扑克目的地",
+      "destinationsBody": "在合法提供扑克的目的地探索相关体验。规划行程前，请确认场馆详情、资格要求和当地适用法规。",
+      "vipTitle": "VIP 服务",
+      "vipBody": "联系 JackpotsWorld，了解当前可提供的 VIP 服务和目的地协助。礼遇和安排取决于场馆及适用条款。",
+      "contactTitle": "联系 JackpotsWorld",
+      "contactBody": "联系我们的团队，获取有关可选目的地、扑克赛事和 VIP 服务的准确信息。",
+      "contactChat": "联系我们的团队"
+    }
   },
   "events": {
     "eyebrow": "Jackpotsworld 呈现",
@@ -548,5 +570,63 @@
     "earnCommission": "赚取每小时佣金",
     "tagline": "尽享博彩乐趣的同时",
     "disclaimer": "符合条件的玩家在享受博彩体验的同时，可享有专属旅行、住宿及收益优惠。具体以条款及细则为准。"
+  },
+  "cookieConsent": {
+    "title": "我们重视您的隐私",
+    "message": "我们使用必要的 Cookie 来运行本网站，并使用可选的分析 Cookie 了解网站的使用情况。您可以接受或拒绝可选 Cookie。",
+    "learnMore": "Cookie 政策",
+    "accept": "全部接受",
+    "reject": "拒绝非必要 Cookie"
+  },
+  "onlineGambling": {
+    "eyebrow": "资讯与玩家安全",
+    "title": "网络博彩",
+    "subtitle": "什么是网络博彩、它有哪些风险，以及在哪里寻求帮助。**JackpotsWorld 不是网络博彩网站**，也不鼓励任何形式的博彩。",
+    "noticeTitle": "我们不推广网络博彩",
+    "noticeBody": "JackpotsWorld 不运营、不托管、也不链接任何真钱网络赌场、投注应用或网络游戏平台。您无法在本网站下注或以金钱进行游戏。我们为成年人提供合法持牌实体场所的信息，从不鼓励任何人参与博彩。",
+    "positionTitle": "我们的立场",
+    "positionPoints": [
+      "本网站不是网络博彩网站，我们不提供网络博彩。",
+      "我们不鼓励、不宣传、也不奖励任何形式的博彩，无论线上还是线下。",
+      "我们的内容是为成年人提供的实体目的地、活动和礼宾服务信息，仅限于此类场所合法的地区。",
+      "如果博彩不再是让您感到安心的选择，请停下来寻求帮助 — 以下资源免费且保密。"
+    ],
+    "whatTitle": "什么是网络博彩？",
+    "whatBody": "网络博彩是指通过网站或应用在互联网上下注 — 包括赌场类游戏、体育投注、纸牌游戏或彩票。由于手机随时都能访问，与实体场所相比，控制时间和金钱往往难得多。其是否合法取决于您所在的地区；在许多地方，包括印度的多个邦，网络博彩受到限制或被禁止。",
+    "risksTitle": "风险",
+    "risks": [
+      "随时可以访问，游戏可能在没有自然停顿的情况下一直持续。",
+      "下注只需几秒、资金是数字形式时，损失会迅速累积。",
+      "追损 — 加大下注想把输掉的赢回来 — 往往让情况更糟。",
+      "无牌网站可能不兑付、滥用您的个人或银行卡信息，甚至本身就是骗局。",
+      "可能影响睡眠、工作、学业、人际关系和心理健康。",
+      "借钱或挪用账单资金去博彩，可能导致严重债务。"
+    ],
+    "signsTitle": "博彩可能正在成为问题的迹象",
+    "signs": [
+      "一次又一次花费比计划更多的时间或金钱。",
+      "一天中大部分时间都在想博彩，或停下来时感到焦躁。",
+      "向家人或朋友隐瞒自己博彩的程度。",
+      "借博彩逃避压力、孤独或低落情绪。",
+      "因博彩借钱、变卖物品或拖欠款项。",
+      "觉得需要加大下注才能获得同样的刺激。"
+    ],
+    "addictionTitle": "别让它变成成瘾",
+    "addictionBody": "博彩成瘾是一种公认的健康问题，而不是意志力不足，任何人都可能遇到。越早发现，越容易重新掌控。如果上述迹象让您感到熟悉，请与信任的人谈谈，并联系下方任一支持服务。",
+    "controlTitle": "保持掌控",
+    "controlTips": [
+      "永远不要把博彩当作赚钱或解决财务问题的方式。",
+      "开始前设定时间和金额上限，达到后就停止。",
+      "绝不用借来的钱或生活必需的钱去博彩。",
+      "不要追损。",
+      "定期休息，在情绪低落、疲惫或饮酒时避免博彩。",
+      "让博彩只占平衡生活的一小部分，永远不要成为生活的中心。"
+    ],
+    "toolsTitle": "您的 JackpotsWorld 账户工具",
+    "toolsBody": "会员可随时在控制台的“负责任博彩”栏目中设置存款限额、暂停一段时间或进行自我禁入。",
+    "toolsCta": "打开负责任博彩设置",
+    "helpTitle": "在哪里获得帮助",
+    "helpBody": "以下机构为受博彩影响的任何人（包括家人和朋友）提供免费、保密的支持：",
+    "ageNote": "JackpotsWorld 仅面向 21 岁及以上的成年人。请务必了解并遵守您居住地及旅行目的地的相关法律。"
   }
 }

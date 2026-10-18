@@ -13,7 +13,8 @@
     "whatsapp": "WhatsApp",
     "telegram": "Telegram",
     "signOut": "Đăng xuất",
-    "language": "Ngôn ngữ"
+    "language": "Ngôn ngữ",
+    "kyc": "Xác minh KYC"
   },
   "vip": {
     "vip": "VIP",
@@ -116,7 +117,9 @@
     "transaction": "Giao dịch",
     "balanceBefore": "Số dư trước",
     "balanceAfter": "Số dư sau",
-    "approved": "ĐÃ DUYỆT"
+    "approved": "ĐÃ DUYỆT",
+    "totalCasinoBalance": "Tổng số dư sòng bài",
+    "totalCasinoBalanceSub": "Tổng số dư của tất cả ví sòng bài"
   },
   "system": {
     "genericError": "Đã xảy ra lỗi",
@@ -314,7 +317,11 @@
     "otpCreditsLabel": "Tín dụng OTP",
     "verification": "Xác minh",
     "rollingPointsLabel": "Điểm Rolling",
-    "rewardPoints": "Điểm thưởng"
+    "rewardPoints": "Điểm thưởng",
+    "merchandise": "Hàng lưu niệm",
+    "giftVoucher": "Phiếu quà tặng",
+    "discountVoucher": "Phiếu giảm giá",
+    "spinReward": "Thưởng vòng quay"
   },
   "packages": {
     "casinoTourPackages": "Gói du lịch Casino",
@@ -407,7 +414,9 @@
     "faqShortcut": "Câu hỏi thường gặp",
     "pleaseFillBoth": "Vui lòng điền cả hai trường",
     "ticketSubmitted": "Đã gửi yêu cầu hỗ trợ",
-    "failedToSubmit": "Gửi yêu cầu thất bại"
+    "failedToSubmit": "Gửi yêu cầu thất bại",
+    "ticket": "Chọn loại yêu cầu",
+    "uploadDocument": "Tải lên tài liệu"
   },
   "travel": {
     "header": "Lịch sử du lịch Casino",
@@ -437,7 +446,7 @@
   "poker": {
     "eyebrow": "Cược Lớn, Hành Động Trực Tiếp",
     "title": "Poker",
-    "subtitle": "Các giải đấu sắp tới và **bàn chơi trực tiếp** từ các sòng bạc đối tác của chúng tôi — nhận vé của bạn hoặc theo dõi lịch trình lấp đầy theo thời gian thực.",
+    "subtitle": "Khám phá trải nghiệm poker cao cấp cùng JackpotsWorld. Tìm hiểu điểm đến poker VIP, gói sòng bài độc quyền, dịch vụ sang trọng và **trải nghiệm poker đẳng cấp thế giới** khắp châu Á.",
     "signInPrompt": "Đăng nhập để nhận vé tham gia giải đấu và theo dõi các sự kiện bạn đã đăng ký.",
     "loadError": "Không thể tải giải đấu lúc này. Vui lòng thử lại.",
     "noTournaments": "Hiện không có giải đấu nào được lên lịch. Vui lòng quay lại sau.",
@@ -450,7 +459,20 @@
     "upcomingTournaments": "Giải đấu sắp diễn ra",
     "completedTournaments": "Giải đấu đã kết thúc",
     "viewLiveEvents": "Xem sự kiện trực tiếp",
-    "exploreUpcoming": "Khám phá sắp diễn ra"
+    "exploreUpcoming": "Khám phá sắp diễn ra",
+    "info": {
+      "heading": "Điểm đến poker và trải nghiệm VIP",
+      "intro": "Khám phá điểm đến poker và cơ hội giải đấu cùng JackpotsWorld. Chúng tôi giúp khách tìm hiểu trải nghiệm poker hiện có, lựa chọn điểm đến và dịch vụ VIP liên quan.",
+      "tournamentsTitle": "Giải đấu poker",
+      "tournamentsBody": "Bạn cần thông tin về giải đấu poker? Hãy kiểm tra lịch mới nhất, chi tiết sự kiện, điều kiện tham gia và tình trạng chỗ trực tiếp với cơ sở hoặc ban tổ chức.",
+      "destinationsTitle": "Điểm đến poker tại Ấn Độ",
+      "destinationsBody": "Khám phá trải nghiệm poker tại những nơi được phép hợp pháp. Hãy xác nhận thông tin cơ sở, điều kiện tham gia và quy định địa phương trước khi lên kế hoạch.",
+      "vipTitle": "Dịch vụ VIP",
+      "vipBody": "Liên hệ JackpotsWorld để biết các dịch vụ VIP và hỗ trợ tại điểm đến hiện có. Quyền lợi và sắp xếp tùy thuộc vào cơ sở và điều khoản áp dụng.",
+      "contactTitle": "Liên hệ JackpotsWorld",
+      "contactBody": "Liên hệ đội ngũ của chúng tôi để có thông tin chính xác về điểm đến, sự kiện poker và dịch vụ VIP.",
+      "contactChat": "Trò chuyện với đội ngũ"
+    }
   },
   "events": {
     "eyebrow": "Jackpotsworld Giới Thiệu",
@@ -548,5 +570,63 @@
     "earnCommission": "Kiếm Hoa Hồng Theo Giờ",
     "tagline": "Trong Khi Tận Hưởng Trò Chơi",
     "disclaimer": "Người chơi đủ điều kiện có thể được hưởng các ưu đãi độc quyền về du lịch, lưu trú và thu nhập trong khi tận hưởng trải nghiệm chơi game. Điều khoản và điều kiện được áp dụng."
+  },
+  "cookieConsent": {
+    "title": "Chúng tôi tôn trọng quyền riêng tư của bạn",
+    "message": "Chúng tôi dùng cookie thiết yếu để vận hành trang và cookie phân tích tùy chọn để hiểu cách trang được sử dụng. Bạn có thể chấp nhận hoặc từ chối cookie tùy chọn.",
+    "learnMore": "Chính sách cookie",
+    "accept": "Chấp nhận tất cả",
+    "reject": "Từ chối cookie không thiết yếu"
+  },
+  "onlineGambling": {
+    "eyebrow": "Thông tin & an toàn người chơi",
+    "title": "Cờ bạc trực tuyến",
+    "subtitle": "Cờ bạc trực tuyến là gì, rủi ro ra sao và tìm sự giúp đỡ ở đâu. **JackpotsWorld không phải trang cờ bạc trực tuyến** và không khuyến khích bất kỳ hình thức cờ bạc nào.",
+    "noticeTitle": "Chúng tôi không quảng bá cờ bạc trực tuyến",
+    "noticeBody": "JackpotsWorld không vận hành, lưu trữ hay liên kết tới bất kỳ sòng bài trực tuyến bằng tiền thật, ứng dụng cá cược hay nền tảng trò chơi trực tuyến nào. Bạn không thể đặt cược hay chơi ăn tiền trên website này. Chúng tôi chia sẻ thông tin về các cơ sở trực tiếp được cấp phép dành cho người lớn và không bao giờ khuyến khích ai tham gia cờ bạc.",
+    "positionTitle": "Quan điểm của chúng tôi",
+    "positionPoints": [
+      "Đây không phải trang cờ bạc trực tuyến và chúng tôi không cung cấp cờ bạc trực tuyến.",
+      "Chúng tôi không khuyến khích, quảng cáo hay khen thưởng cờ bạc, dù trực tuyến hay trực tiếp.",
+      "Nội dung của chúng tôi là thông tin về điểm đến trực tiếp, sự kiện và dịch vụ dành cho người lớn tại nơi các cơ sở này hợp pháp.",
+      "Nếu cờ bạc không còn là lựa chọn bạn cảm thấy thoải mái, hãy dừng lại và tìm sự hỗ trợ — các nguồn dưới đây đều miễn phí và bảo mật."
+    ],
+    "whatTitle": "Cờ bạc trực tuyến là gì?",
+    "whatBody": "Cờ bạc trực tuyến là đặt tiền qua internet — vào trò chơi kiểu sòng bài, cá cược thể thao, bài hoặc xổ số — qua website hoặc ứng dụng. Vì có thể truy cập trên điện thoại bất kỳ lúc nào, việc kiểm soát thời gian và tiền bạc khó hơn nhiều so với tại một cơ sở thực. Tính hợp pháp tùy nơi bạn sống; ở nhiều nơi, bao gồm một số bang của Ấn Độ, hình thức này bị hạn chế hoặc cấm.",
+    "risksTitle": "Những rủi ro",
+    "risks": [
+      "Luôn sẵn sàng, nên việc chơi có thể kéo dài mà không có điểm dừng tự nhiên.",
+      "Thua lỗ tăng nhanh khi cược chỉ mất vài giây và tiền ở dạng số.",
+      "Gỡ thua — cược nhiều hơn để lấy lại số đã mất — thường khiến mọi thứ tệ hơn.",
+      "Trang không giấy phép có thể không trả thưởng, lạm dụng thông tin cá nhân hoặc thẻ, hoặc là lừa đảo.",
+      "Có thể ảnh hưởng đến giấc ngủ, công việc, học tập, các mối quan hệ và sức khỏe tinh thần.",
+      "Vay mượn hoặc dùng tiền chi trả hóa đơn để cờ bạc có thể dẫn đến nợ nần nghiêm trọng."
+    ],
+    "signsTitle": "Dấu hiệu cờ bạc đang trở thành vấn đề",
+    "signs": [
+      "Liên tục tiêu nhiều thời gian hoặc tiền hơn dự định.",
+      "Nghĩ về cờ bạc phần lớn thời gian trong ngày, hoặc bồn chồn khi ngừng chơi.",
+      "Giấu gia đình hoặc bạn bè về mức độ chơi.",
+      "Chơi để trốn tránh căng thẳng, cô đơn hoặc buồn bã.",
+      "Vay tiền, bán đồ hoặc trễ thanh toán vì cờ bạc.",
+      "Cảm thấy phải cược số tiền lớn hơn mới có cùng cảm giác hưng phấn."
+    ],
+    "addictionTitle": "Đừng để nó thành nghiện",
+    "addictionBody": "Nghiện cờ bạc là một vấn đề sức khỏe được công nhận, không phải do thiếu ý chí, và có thể xảy ra với bất kỳ ai. Phát hiện càng sớm thì càng dễ lấy lại kiểm soát. Nếu bạn thấy quen thuộc với những dấu hiệu trên, hãy chia sẻ với người bạn tin tưởng và liên hệ một trong các dịch vụ hỗ trợ dưới đây.",
+    "controlTitle": "Giữ quyền kiểm soát",
+    "controlTips": [
+      "Đừng bao giờ xem cờ bạc là cách kiếm tiền hay giải quyết vấn đề tài chính.",
+      "Đặt giới hạn thời gian và tiền trước khi bắt đầu, và dừng lại khi chạm mức đó.",
+      "Không bao giờ chơi bằng tiền vay hoặc tiền dành cho nhu cầu thiết yếu.",
+      "Đừng gỡ thua.",
+      "Nghỉ ngơi thường xuyên, và tránh chơi khi buồn bực, mệt mỏi hoặc đã uống rượu.",
+      "Hãy để cờ bạc chỉ là một phần nhỏ trong cuộc sống cân bằng, không bao giờ là trung tâm."
+    ],
+    "toolsTitle": "Công cụ trong tài khoản JackpotsWorld",
+    "toolsBody": "Hội viên có thể đặt giới hạn nạp tiền, tạm nghỉ hoặc tự loại trừ bất cứ lúc nào trong mục Chơi có trách nhiệm trên bảng điều khiển.",
+    "toolsCta": "Mở cài đặt chơi có trách nhiệm",
+    "helpTitle": "Nơi tìm sự giúp đỡ",
+    "helpBody": "Các tổ chức sau hỗ trợ miễn phí và bảo mật cho bất kỳ ai bị ảnh hưởng bởi cờ bạc, kể cả gia đình và bạn bè:",
+    "ageNote": "JackpotsWorld dành cho người từ 21 tuổi trở lên. Hãy luôn tìm hiểu và tuân thủ luật pháp nơi bạn sống và nơi bạn đến."
   }
 }

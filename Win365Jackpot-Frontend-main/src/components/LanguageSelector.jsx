@@ -29,6 +29,14 @@ export const SUPPORTED_LANGUAGES = [
   { code: "es", name: "Spanish" },
   { code: "pt", name: "Portuguese" },
   { code: "ru", name: "Russian" },
+  { code: "nl", name: "Dutch" },
+  { code: "da", name: "Danish" },
+  { code: "el", name: "Greek" },
+  { code: "is", name: "Icelandic" },
+  { code: "it", name: "Italian" },
+  { code: "nb", name: "Norwegian" },
+  { code: "ro", name: "Romanian" },
+  { code: "sv", name: "Swedish" },
 ];
 
 /**

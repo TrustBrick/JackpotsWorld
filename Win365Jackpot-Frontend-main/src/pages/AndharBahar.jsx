@@ -23,6 +23,7 @@ import { scrollToSectionWhenReady } from '../utils/scroll'
 import { hasAmount } from '../utils/money'
 import GoldLastWord from '../components/shared/GoldLastWord'
 
+import { T } from '../i18n/useSiteText'
 /* ─────────────────────────────────────────────────────────────────────────
    Andhar Bahar — the third game destination, alongside Poker and Teen Patti.
 
@@ -195,10 +196,10 @@ function StepCard({ step, index, reduceMotion }) {
 
 // ── Event card ──────────────────────────────────────────────────────────────
 const STATUS_STYLE = {
-  live: { label: 'Live Now', color: '#34d399' },
-  upcoming: { label: 'Upcoming', color: GOLD },
-  published: { label: 'Upcoming', color: GOLD },
-  completed: { label: 'Completed', color: 'rgba(255,255,255,0.45)' },
+  live: { label: T('Live Now'), color: '#34d399' },
+  upcoming: { label: T('Upcoming'), color: GOLD },
+  published: { label: T('Upcoming'), color: GOLD },
+  completed: { label: T('Completed'), color: 'rgba(255,255,255,0.45)' },
 }
 
 function EventCard({ ev, index, reduceMotion, isLoggedIn, onRegister, registering }) {
@@ -250,7 +251,7 @@ function EventCard({ ev, index, reduceMotion, isLoggedIn, onRegister, registerin
               className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-widest uppercase"
               style={{ background: `${GOLD}18`, border: `1px solid ${GOLD}55`, color: GOLD }}
             >
-              Featured
+              {T('Featured')}
             </span>
           )}
           {ev.event_type && (
@@ -268,7 +269,7 @@ function EventCard({ ev, index, reduceMotion, isLoggedIn, onRegister, registerin
           {venue && (
             <div className="flex items-center gap-2 text-theme-muted">
               <MapPin size={12} style={{ color: GOLD }} className="shrink-0" />
-              <span className="truncate">{venue}{place ? ` · ${place}` : ''}</span>
+              <span className="truncate">{venue}{place ? T(' · {{place}}', { place }) : ''}</span>
             </div>
           )}
           {!venue && place && (
@@ -288,7 +289,7 @@ function EventCard({ ev, index, reduceMotion, isLoggedIn, onRegister, registerin
           {hasAmount(ev.min_buy_in) && (
             <div className="flex items-center gap-2 text-theme-muted">
               <Layers size={12} style={{ color: GOLD }} className="shrink-0" />
-              <span>From {ev.currency || ''} {Number(ev.min_buy_in).toLocaleString()}</span>
+              <span>{T('From')}{' '}{ev.currency || ''} {Number(ev.min_buy_in).toLocaleString()}</span>
             </div>
           )}
         </div>
@@ -491,7 +492,7 @@ export default function AndharBahar() {
       setNotice({ ok: res.ok, message: res.message })
       if (res.ok) reload()
     } catch {
-      setNotice({ ok: false, message: 'Could not register just now. Please try again.' })
+      setNotice({ ok: false, message: T('Could not register just now. Please try again.') })
     }
     setRegisteringId(null)
   }
@@ -584,13 +585,13 @@ export default function AndharBahar() {
                     onClick={() => navigate('/andhar-bahar/sign-in')}
                     className="btn-outline-gold flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase"
                   >
-                    <LogIn size={13} /> Sign In
+                    <LogIn size={13} />{' '}{T('Sign In')}
                   </button>
                   <button
                     onClick={() => navigate('/andhar-bahar/sign-up')}
                     className="btn-gold flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase"
                   >
-                    <UserPlus size={13} /> Sign Up
+                    <UserPlus size={13} />{' '}{T('Sign Up')}
                   </button>
                 </div>
               </div>
@@ -622,7 +623,7 @@ export default function AndharBahar() {
           <Section>
             <div className="flex items-center justify-center gap-3 py-16 text-theme-muted font-body text-sm">
               <RefreshCw size={16} className="animate-spin" style={{ color: GOLD }} />
-              Loading Andhar Bahar…
+              {T('Loading Andhar Bahar…')}
             </div>
           </Section>
         )}
@@ -632,13 +633,13 @@ export default function AndharBahar() {
             <div className="casino-card p-8 flex flex-col items-center gap-4 text-center">
               <AlertTriangle size={22} style={{ color: GOLD }} />
               <p className="text-theme-muted font-body text-sm">
-                We could not load this page just now.
+                {T('We could not load this page just now.')}
               </p>
               <button
                 onClick={reload}
                 className="btn-outline-gold px-6 py-2 rounded-full text-xs font-bold tracking-widest uppercase"
               >
-                Try again
+                {T('Try again')}
               </button>
             </div>
           </Section>
@@ -650,7 +651,7 @@ export default function AndharBahar() {
           <Section>
             <div className="casino-card p-10 text-center">
               <p className="text-theme-muted font-body text-sm">
-                This section is not available right now. Please check back soon.
+                {T('This section is not available right now. Please check back soon.')}
               </p>
             </div>
           </Section>
@@ -777,7 +778,7 @@ export default function AndharBahar() {
             {faqs.length > 0 && (
               <Section id="andhar-bahar-faq">
                 <div className="max-w-3xl mx-auto">
-                  <SectionHeading icon={ShieldCheck} title="Frequently Asked Questions" />
+                  <SectionHeading icon={ShieldCheck} title={T('Frequently Asked Questions')} />
                   <div style={{ borderTop: '1px solid rgba(212,175,55,0.14)' }}>
                     {faqs.map((item, i) => (
                       <FaqRow

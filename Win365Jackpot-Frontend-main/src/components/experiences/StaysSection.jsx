@@ -4,6 +4,8 @@ import { ArrowUpRight } from 'lucide-react'
 import { useExperiencePillar, iconFor, imageFor, SECTION_PAD, CONTAINER, HEADER_GAP } from './shared'
 import ExperienceEnquiryModal from './ExperienceEnquiryModal'
 
+import { T } from '../../i18n/useSiteText'
+import GoldLastWord from '../shared/GoldLastWord'
 /**
  * §9 HOTELS & RESORTS — "stay somewhere exceptional".
  *
@@ -52,21 +54,19 @@ export default function StaysSection() {
               className="font-body"
               style={{ fontSize: 11, letterSpacing: '0.24em', textTransform: 'uppercase', color: 'var(--w365-text-muted)', marginBottom: 12 }}
             >
-              Where You Stay
+              {T('Where You Stay')}
             </p>
             <h2
               className="section-heading"
               style={{ fontSize: 'clamp(1.9rem, 6.2vw, 3.3rem)', lineHeight: 1.06, marginBottom: 14 }}
             >
-              Hotels &amp; <span className="gold-text">Resorts</span>
+              <GoldLastWord text={T('Hotels & Resorts')} />
             </h2>
             <p
               className="font-body"
               style={{ color: 'var(--w365-text-muted)', fontSize: 'clamp(0.92rem, 2.4vw, 1.05rem)', lineHeight: 1.7 }}
             >
-              Stay somewhere exceptional. Rooms, suites and resorts arranged
-              through our network, close to the destinations we introduce
-              members to.
+              {T('Stay somewhere exceptional. Rooms, suites and resorts arranged through our network, close to the destinations we introduce members to.')}
             </p>
           </div>
         </motion.header>
@@ -200,7 +200,7 @@ function StayRow({ item, index, last, reduceMotion, onEnquire }) {
         {/* Only ever a partner an admin actually entered. */}
         {item.partner && (
           <p className="font-body" style={{ fontSize: 12, color: 'var(--w365-text-muted)', marginBottom: 14 }}>
-            Arranged with <span style={{ color: accent }}>{item.partner}</span>
+            {T('Arranged with')}{' '}<span style={{ color: accent }}>{item.partner}</span>
           </p>
         )}
 
@@ -215,7 +215,7 @@ function StayRow({ item, index, last, reduceMotion, onEnquire }) {
             transition: 'border-color 0.25s',
           }}
         >
-          {item.cta_text || 'Enquire Now'}
+          {T(item.cta_text || 'Enquire Now')}
           <ArrowUpRight size={14} style={{ transform: hovered ? 'translate(2px,-2px)' : 'none', transition: 'transform 0.25s' }} />
         </button>
       </div>

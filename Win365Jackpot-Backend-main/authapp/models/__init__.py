@@ -202,3 +202,4 @@ __all__ = [
     "PlayerCommunicationRestriction",
     "PlayerCommunicationRestrictionLog",
 ]
+from .content_translation_models import ContentTranslation  # noqa: E402,F401

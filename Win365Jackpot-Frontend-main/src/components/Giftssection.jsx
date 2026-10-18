@@ -6,6 +6,8 @@ import { useAutoFetch } from '../hooks/useAutoFetch'
 import { fetchGiftItems, fetchGiftSteps } from '../services/landingService'
 import { SECTION_PAD, CONTAINER } from '../utils/layout'
 
+import { T } from '../i18n/useSiteText'
+import GoldLastWord from './shared/GoldLastWord'
 // ─── Gift Data (fallback, used only until the API responds) ───────────────────
 // Also doubles as the logo source for admin-managed gift entries that don't
 // have an uploaded logo yet (see FALLBACK_GIFT_LOGO_BY_NAME below).
@@ -20,12 +22,12 @@ const FALLBACK_GIFTS = [
     tier:      'LEGENDARY',
     tierColor: '#D4AF37',
     name:      'Rolex Submariner',
-    subtitle:  'Swiss Precision · Timeless Prestige',
+    subtitle:  T('Swiss Precision · Timeless Prestige'),
     logoSrc:   '/assets/images/logos/rolex.png?v=2',
     logoAlt:   'Rolex',
     value:     '$15K+',
-    description: 'The icon of icons. A genuine Rolex Submariner — waterproof to 300m, Oystersteel bracelet, Cerachrom bezel. Worn by champions.',
-    perks:     ['Authenticated Certificate', 'Luxury Gift Box', 'Free Engraving', 'Worldwide Delivery'],
+    description: T('The icon of icons. A genuine Rolex Submariner — waterproof to 300m, Oystersteel bracelet, Cerachrom bezel. Worn by champions.'),
+    perks:     [T('Authenticated Certificate'), T('Luxury Gift Box'), T('Free Engraving'), T('Worldwide Delivery')],
     accent:    '#D4AF37',
     featured:  true,
   },
@@ -34,12 +36,12 @@ const FALLBACK_GIFTS = [
     tier:      'ULTRA',
     tierColor: '#4FC3F7',
     name:      'BMW M3 Competition',
-    subtitle:  '510 HP · Twin-Turbo · The Ultimate Machine',
+    subtitle:  T('510 HP · Twin-Turbo · The Ultimate Machine'),
     logoSrc:   '/assets/images/logos/bmw.png?v=2',
     logoAlt:   'BMW',
     value:     '$120K+',
-    description: 'Pure M. The BMW M3 Competition — 510 horsepower, 0–100 in 3.9 seconds. Win it, drive it, live it.',
-    perks:     ['Full Registration', 'Insurance 1st Year', 'VIP Delivery Ceremony', 'Track Day Experience'],
+    description: T('Pure M. The BMW M3 Competition — 510 horsepower, 0–100 in 3.9 seconds. Win it, drive it, live it.'),
+    perks:     [T('Full Registration'), T('Insurance 1st Year'), T('VIP Delivery Ceremony'), T('Track Day Experience')],
     accent:    '#4FC3F7',
     featured:  false,
   },
@@ -48,12 +50,12 @@ const FALLBACK_GIFTS = [
     tier:      'ULTRA',
     tierColor: '#C0C0C0',
     name:      'Mercedes-Benz GLE',
-    subtitle:  'AMG Line · 9G-Tronic · Pure Luxury',
+    subtitle:  T('AMG Line · 9G-Tronic · Pure Luxury'),
     logoSrc:   '/assets/images/logos/benz.png',
     logoAlt:   'Mercedes-Benz',
     value:     '$95K+',
-    description: 'The three-pointed star. A Mercedes-Benz GLE AMG Line — commanding presence, whisper-quiet cabin, cutting-edge tech.',
-    perks:     ['Full Registration', 'Insurance 1st Year', 'Concierge Delivery', 'AMG Accessories Pack'],
+    description: T('The three-pointed star. A Mercedes-Benz GLE AMG Line — commanding presence, whisper-quiet cabin, cutting-edge tech.'),
+    perks:     [T('Full Registration'), T('Insurance 1st Year'), T('Concierge Delivery'), T('AMG Accessories Pack')],
     accent:    '#C8C8C8',
     featured:  false,
   },
@@ -62,12 +64,12 @@ const FALLBACK_GIFTS = [
     tier:      'ELITE',
     tierColor: '#A8A8A8',
     name:      'Apple Ultra Bundle',
-    subtitle:  'iPhone 16 Pro Max · MacBook Pro · Vision Pro',
+    subtitle:  T('iPhone 16 Pro Max · MacBook Pro · Vision Pro'),
     logoSrc:   '/assets/images/logos/apple.png',
     logoAlt:   'Apple',
     value:     '$6K+',
-    description: 'The complete Apple ecosystem. iPhone 16 Pro Max, MacBook Pro M4, Apple Watch Ultra 2, and the future — Vision Pro.',
-    perks:     ['Apple Care+ 2 Years', 'Setup & Delivery', 'Engraving Option', 'Accessories Kit'],
+    description: T('The complete Apple ecosystem. iPhone 16 Pro Max, MacBook Pro M4, Apple Watch Ultra 2, and the future — Vision Pro.'),
+    perks:     [T('Apple Care+ 2 Years'), T('Setup & Delivery'), T('Engraving Option'), T('Accessories Kit')],
     accent:    '#A8A8A8',
     featured:  false,
   },
@@ -75,10 +77,10 @@ const FALLBACK_GIFTS = [
 const FALLBACK_GIFT_LOGO_BY_NAME = new Map(FALLBACK_GIFTS.map(g => [g.name, g.logoSrc]))
 
 const FALLBACK_STEPS = [
-  { icon:'🎰', label:'Play & Win',    description:'Earn with every game — Baccarat, Slots, Roulette & more'     },
-  { icon:'💰', label:'Go Highroller', description:'Qualify as a Highroller and unlock the exclusive prize vault' },
-  { icon:'🎁', label:'Redeem Gifts',  description:'Choose your dream prize from our luxury gifts catalogue'      },
-  { icon:'🚀', label:'We Deliver',     description:'Verified, authenticated, delivered to your door worldwide'    },
+  { icon:'🎰', label:T('Play & Win'),    description:T('Earn with every game — Baccarat, Slots, Roulette & more')     },
+  { icon:'💰', label:T('Go Highroller'), description:T('Qualify as a Highroller and unlock the exclusive prize vault') },
+  { icon:'🎁', label:T('Redeem Gifts'),  description:T('Choose your dream prize from our luxury gifts catalogue')      },
+  { icon:'🚀', label:T('We Deliver'),     description:T('Verified, authenticated, delivered to your door worldwide')    },
 ]
 const FALLBACK_STEP_ICON_BY_LABEL = new Map(FALLBACK_STEPS.map(s => [s.label, s.icon]))
 
@@ -191,7 +193,7 @@ function FeaturedCard({ gift }) {
           </div>
           <TierBadge tier={gift.tier} color={gift.tierColor} />
           <div style={{ marginTop: 16, textAlign: 'center' }}>
-            <div style={{ fontSize: 9, color: 'rgba(var(--w365-text-rgb),0.55)', letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 4 }}>Market Value</div>
+            <div style={{ fontSize: 9, color: 'rgba(var(--w365-text-rgb),0.55)', letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 4 }}>{T('Market Value')}</div>
             <div style={{ fontSize: 26, fontWeight: 900, color: gift.accent }}>{gift.value}</div>
           </div>
         </div>
@@ -232,12 +234,12 @@ function FeaturedCard({ gift }) {
                 }}
               >
                 <Gift size={13} />
-                Claim This Prize
+                {T('Claim This Prize')}
                 <ChevronRight size={13} />
               </motion.button>
             </ScrollLink>
             <span style={{ fontSize: 11, color: 'rgba(var(--w365-text-rgb),0.25)', letterSpacing: '0.1em' }}>
-              Highroller exclusive
+              {T('Highroller exclusive')}
             </span>
           </div>
         </div>
@@ -333,12 +335,12 @@ function GiftCard({ gift, index }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ fontSize: 14 }}>🎰</span>
             <span style={{ fontSize: 10, fontWeight: 800, color: gift.accent, letterSpacing: '0.15em', textTransform: 'uppercase' }}>
-              HIGHROLLER
+              {T('HIGHROLLER')}
             </span>
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: 8, color: 'rgba(var(--w365-text-rgb),0.50)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 2 }}>
-              Market Value
+              {T('Market Value')}
             </div>
             <div style={{ fontSize: 15, fontWeight: 900, color: gift.accent }}>{gift.value}</div>
           </div>
@@ -358,7 +360,7 @@ function GiftCard({ gift, index }) {
             }}
           >
             <Gift size={12} />
-            Claim This Prize
+            {T('Claim This Prize')}
             <ChevronRight size={12} />
           </motion.button>
         </ScrollLink>
@@ -425,7 +427,7 @@ export default function GiftsSection() {
               color: 'rgba(212,175,55,0.8)', fontWeight: 700,
             }}
           >
-            🎁 Highroller Rewards Programme
+            {T('🎁 Highroller Rewards Programme')}
           </motion.div>
 
           <motion.h2
@@ -442,7 +444,7 @@ export default function GiftsSection() {
                 size, text colour, gold on the last word. This used to lead
                 with a gold "WIN MORE" over a smaller second line, the only
                 landing heading shaped that way. */}
-            WIN MORE THAN JUST <span className="gold-text">MONEY</span>
+            <GoldLastWord text={T('WIN MORE THAN JUST MONEY')} />
           </motion.h2>
 
           <motion.div
@@ -458,11 +460,10 @@ export default function GiftsSection() {
             transition={{ delay: 0.3 }}
             style={{ fontSize: 'clamp(13px,2vw,16px)', color: 'rgba(var(--w365-text-rgb),0.70)', maxWidth: 560, margin: '0 auto', lineHeight: 1.7 }}
           >
-            Highrollers play differently. Walk away with a{' '}
-            <span style={{ color: '#D4AF37' }}>Rolex, BMW, Mercedes-Benz</span>{' '}
-            or the complete{' '}
-            <span style={{ color: '#D4AF37' }}>Apple ecosystem</span>.
-            Real prizes. Real delivery. No catch.
+            {T('Highrollers play differently. Walk away with a')}{' '}
+            <span style={{ color: '#D4AF37' }}>{T('Rolex, BMW, Mercedes-Benz')}</span>{' '}
+            {T('or the complete')}{' '}
+            <span style={{ color: '#D4AF37' }}>{T('Apple ecosystem')}</span>{T('. Real prizes. Real delivery. No catch.')}
           </motion.p>
         </div>
 
@@ -490,16 +491,16 @@ export default function GiftsSection() {
         >
           <div style={{ textAlign: 'center', marginBottom: 36 }}>
             <h3 style={{ fontSize: 'clamp(18px,3.5vw,28px)', fontWeight: 900, color: 'rgba(var(--w365-text-rgb),0.9)', margin: '0 0 8px' }}>
-              How to{' '}
+              {T('How to')}{' '}
               <span style={{
                 background: 'linear-gradient(135deg, #D4AF37, #F5E07A)',
                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
               }}>
-                Earn & Redeem
+                {T('Earn & Redeem')}
               </span>
             </h3>
             <p style={{ fontSize: 12, color: 'rgba(var(--w365-text-rgb),0.55)', letterSpacing: '0.1em' }}>
-              4 simple steps to your dream prize
+              {T('4 simple steps to your dream prize')}
             </p>
           </div>
 
@@ -558,7 +559,7 @@ export default function GiftsSection() {
         >
           <div style={{ fontSize: 40, marginBottom: 16 }}>🏆</div>
           <h3 style={{ fontSize: 'clamp(20px,4vw,36px)', fontWeight: 900, color: 'var(--w365-text)', margin: '0 0 12px', lineHeight: 1.2 }}>
-            Your Dream Prize Awaits
+            {T('Your Dream Prize Awaits')}
           </h3>
           <p style={{ fontSize: 13, color: 'rgba(var(--w365-text-rgb),0.70)', maxWidth: 480, margin: '0 auto 32px', lineHeight: 1.7 }}>
             {/* "start playing as a Highroller" read as playing HERE. Play
@@ -567,8 +568,8 @@ export default function GiftsSection() {
                 business confirmed it can verify from its own records — but
                 "50,000+ members" is now a membership count and nothing more,
                 never "winning players". */}
-            Register today, visit our partner destinations, and watch your prize counter rise.{' '}
-            <span style={{ color: '#D4AF37' }}>50,000+ members</span> are already on their way to something legendary.
+            {T('Register today, visit our partner destinations, and watch your prize counter rise.')}{' '}
+            <span style={{ color: '#D4AF37' }}>{T('50,000+ members')}</span>{' '}{T('are already on their way to something legendary.')}
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             <ScrollLink to="register" smooth duration={600} offset={-80}>
@@ -585,7 +586,7 @@ export default function GiftsSection() {
                 }}
               >
                 <Gift size={15} />
-                Start Winning Prizes
+                {T('Start Winning Prizes')}
               </motion.button>
             </ScrollLink>
             <ScrollLink to="packages" smooth duration={600} offset={-80}>
@@ -600,7 +601,7 @@ export default function GiftsSection() {
                   textTransform: 'uppercase', cursor: 'pointer',
                 }}
               >
-                View All Packages
+                {T('View All Packages')}
               </motion.button>
             </ScrollLink>
           </div>

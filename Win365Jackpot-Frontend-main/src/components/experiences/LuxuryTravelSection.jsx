@@ -4,6 +4,8 @@ import { ArrowRight } from 'lucide-react'
 import { useExperiencePillar, iconFor, imageFor, SECTION_PAD, CONTAINER, HEADER_GAP } from './shared'
 import ExperienceEnquiryModal from './ExperienceEnquiryModal'
 
+import { T } from '../../i18n/useSiteText'
+import GoldLastWord from '../shared/GoldLastWord'
 /**
  * §8 LUXURY TRAVEL — private jets and cruises.
  *
@@ -49,20 +51,19 @@ export default function LuxuryTravelSection() {
             className="font-body"
             style={{ fontSize: 11, letterSpacing: '0.24em', textTransform: 'uppercase', color: 'var(--w365-text-muted)', marginBottom: 12 }}
           >
-            Getting There
+            {T('Getting There')}
           </p>
           <h2
             className="section-heading"
             style={{ fontSize: 'clamp(1.9rem, 6.2vw, 3.3rem)', lineHeight: 1.06, marginBottom: 14 }}
           >
-            Luxury <span className="gold-text">Travel</span>
+            <GoldLastWord text={T('Luxury Travel')} />
           </h2>
           <p
             className="font-body"
             style={{ color: 'var(--w365-text-muted)', fontSize: 'clamp(0.92rem, 2.4vw, 1.05rem)', lineHeight: 1.7 }}
           >
-            The journey is part of the destination. Aviation and sailing
-            arranged around your plans through our network of travel partners.
+            {T('The journey is part of the destination. Aviation and sailing arranged around your plans through our network of travel partners.')}
           </p>
         </motion.header>
 
@@ -189,7 +190,7 @@ function TravelPanel({ item, index, reduceMotion, onEnquire }) {
             fontSize: 12, fontWeight: 800, letterSpacing: '0.09em', textTransform: 'uppercase',
           }}
         >
-          {item.cta_text || 'Enquire Now'} <ArrowRight size={14} />
+          {T(item.cta_text || 'Enquire Now')} <ArrowRight size={14} />
         </button>
       </div>
 

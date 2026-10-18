@@ -44,6 +44,7 @@ from authapp.views.admin_offline_deposit_views import (
     AdminOfflineDepositsView,
     AdminDepositHistoryView,
     AdminCheckSlipView,
+    AdminPlayerDaySlipsView,
 )
 
 from authapp.views.casino_wallet_views import CasinoWalletBalanceView
@@ -109,6 +110,7 @@ urlpatterns = [
     path("deposits/history/", AdminDepositHistoryView.as_view()),
     path("deposits/casinos/", AdminCasinoListView.as_view()),
     path("deposits/check-slip/", AdminCheckSlipView.as_view()),
+    path("deposits/day-slips/", AdminPlayerDaySlipsView.as_view()),
 
     # ── Casino Visits ─────────────────────────────────
     path("casino-visits/", AdminCasinoVisitView.as_view()),

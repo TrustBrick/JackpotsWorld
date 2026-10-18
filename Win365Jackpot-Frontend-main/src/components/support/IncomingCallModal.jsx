@@ -20,6 +20,7 @@ import { PUBLIC_CALL_THEME } from "./callTheme"
 // than in separate files. Same notes, same cadence as before.
 import { useRingtone } from "../../hooks/useCallTones"
 
+import { T } from '../../i18n/useSiteText'
 export default function IncomingCallModal({
   call,
   onAccept,
@@ -52,7 +53,7 @@ export default function IncomingCallModal({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Incoming support call"
+      aria-label={T("Incoming support call")}
       style={{
         position: "fixed", inset: 0, zIndex: 9998,
         background: theme.overlay,
@@ -98,14 +99,14 @@ export default function IncomingCallModal({
           margin: "0 0 3px", fontSize: 11, letterSpacing: "0.13em",
           textTransform: "uppercase", color: theme.gold, fontWeight: 600,
         }}>
-          {isCallback ? "Incoming call" : "Incoming support call"}
+          {isCallback ? T("Incoming call") : T("Incoming support call")}
         </p>
 
         <h3 style={{
           margin: "0 0 4px", fontSize: 19, fontWeight: 700,
           color: theme.text, wordBreak: "break-word",
         }}>
-          {isCallback ? "Customer Support" : displayName}
+          {isCallback ? T("Customer Support") : displayName}
         </h3>
 
         {isCallback ? (
@@ -129,14 +130,14 @@ export default function IncomingCallModal({
           </p>
         )}
         <p style={{ margin: "0 0 18px", fontSize: 12, color: theme.muted }}>
-          Ticket #{call.ticket_id}
+          {T("Ticket #")}{call.ticket_id}
           {isAffiliate && (
             <span style={{
               marginLeft: 8, padding: "2px 7px", borderRadius: 4,
               background: `${theme.gold}22`, color: theme.gold,
               fontSize: 9.5, letterSpacing: "0.08em", fontWeight: 700,
             }}>
-              AFFILIATE
+              {T("AFFILIATE")}
             </span>
           )}
         </p>
@@ -156,7 +157,7 @@ export default function IncomingCallModal({
               opacity: busy ? 0.55 : 1,
             }}
           >
-            <PhoneOff size={16} /> Decline
+            <PhoneOff size={16} />{' '}{T("Decline")}
           </button>
           <button
             type="button"
@@ -172,7 +173,7 @@ export default function IncomingCallModal({
               opacity: busy ? 0.55 : 1,
             }}
           >
-            <Phone size={16} /> Accept
+            <Phone size={16} />{' '}{T("Accept")}
           </button>
         </div>
 

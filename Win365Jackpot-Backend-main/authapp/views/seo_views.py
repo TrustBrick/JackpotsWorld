@@ -46,6 +46,7 @@ STATIC_ROUTES = [
     ('/affiliate-register', 'monthly', '0.5'),
     ('/privacy-policy',     'yearly',  '0.3'),
     ('/cookies-policy',     'yearly',  '0.3'),
+    ('/online-gambling',    'yearly',  '0.4'),
 ]
 
 

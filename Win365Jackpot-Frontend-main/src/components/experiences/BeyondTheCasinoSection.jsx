@@ -6,6 +6,8 @@ import { useAllExperiences, iconFor, imageFor, SECTION_PAD, CONTAINER, HEADER_GA
 import ExperienceEnquiryModal from './ExperienceEnquiryModal'
 import { scrollToSection } from '../../utils/scroll'
 
+import { T } from '../../i18n/useSiteText'
+import GoldLastWord from '../shared/GoldLastWord'
 /**
  * "Beyond the Casino" — the overview band under the hero.
  *
@@ -91,20 +93,19 @@ export default function BeyondTheCasinoSection() {
             className="font-body"
             style={{ fontSize: 11, letterSpacing: '0.24em', textTransform: 'uppercase', color: 'var(--w365-text-muted)', marginBottom: 14 }}
           >
-            More Than Just Casinos
+            {T('More Than Just Casinos')}
           </p>
           <h2
             className="section-heading"
             style={{ fontSize: 'clamp(2rem, 6.5vw, 3.4rem)', lineHeight: 1.06, marginBottom: 16 }}
           >
-            Beyond the <span className="gold-text">Casino</span>
+            <GoldLastWord text={T('Beyond the Casino')} />
           </h2>
           <p
             className="font-body"
             style={{ color: 'var(--w365-text-muted)', fontSize: 'clamp(0.92rem, 2.4vw, 1.04rem)', lineHeight: 1.7 }}
           >
-            Your destination. Your experience. Your way. One VIP host arranging
-            the whole trip, from the casino floor to the flight home.
+            {T('Your destination. Your experience. Your way. One VIP host arranging the whole trip, from the casino floor to the flight home.')}
           </p>
         </motion.header>
 
@@ -288,7 +289,7 @@ function BeyondCard({ item, index, reduceMotion, chips, onGo, onChip }) {
             letterSpacing: '0.04em', color: accent,
           }}
         >
-          {item.cta_text || 'Explore'}
+          {T(item.cta_text || 'Explore')}
           <ArrowRight
             size={13}
             style={{ transform: hovered && !reduceMotion ? 'translateX(3px)' : 'none', transition: 'transform 0.25s' }}

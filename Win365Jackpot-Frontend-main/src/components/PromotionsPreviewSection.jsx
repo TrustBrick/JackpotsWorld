@@ -7,6 +7,7 @@ import { useAutoFetch } from '../hooks/useAutoFetch'
 import { fetchPromotions } from '../services/promotionService'
 import { flagFromCountryCode } from '../utils/countryFlags'
 
+import { T } from '../i18n/useSiteText'
 export default function PromotionsPreviewSection() {
   const { ref, inView } = useInView({ threshold: 0.1, triggerOnce: true })
   const navigate = useNavigate()
@@ -26,14 +27,14 @@ export default function PromotionsPreviewSection() {
       <div className="flex items-center gap-2 mb-4">
         <Gift size={16} className="text-gold" />
         <h3 className="font-black text-base uppercase tracking-wide" style={{ color: 'var(--w365-heading)' }}>
-          Latest Promotions
+          {T('Latest Promotions')}
         </h3>
       </div>
 
       <div className="flex flex-col gap-3 flex-1">
         {promos.length === 0 && (
           <p className="text-sm font-body" style={{ color: 'var(--w365-text-muted)' }}>
-            New bonuses coming soon — check back shortly.
+            {T('New bonuses coming soon — check back shortly.')}
           </p>
         )}
         {promos.map(p => (
@@ -61,7 +62,7 @@ export default function PromotionsPreviewSection() {
         onClick={() => navigate('/promotions')}
         className="btn-gold mt-4 flex items-center justify-center gap-1.5 rounded-full py-2.5 text-xs font-bold tracking-widest uppercase"
       >
-        View All Promotions <ArrowRight size={13} />
+        {T('View All Promotions')}{' '}<ArrowRight size={13} />
       </motion.button>
     </motion.div>
   )

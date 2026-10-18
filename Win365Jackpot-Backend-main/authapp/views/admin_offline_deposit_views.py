@@ -40,6 +40,7 @@ from authapp.models import ActivityLog
 from authapp.models.wallet_models import WalletAccount, WalletTransaction
 from authapp.constants.games import normalise_game
 from authapp.models.offline_deposit import OfflineDepositLog
+from authapp.services.bet_slip_service import next_slip_number, slips_for_day
 from authapp.models.casino_models import Casino
 from authapp.models.casino_wallet_models import CasinoWalletAccount
 from authapp.utils.account_number import generate_account_number
@@ -58,6 +59,7 @@ from authapp.services.wallet_service import (
     debit_main_wallet as _debit_main,
 )
 
+import datetime
 import logging
 from authapp.utils.client_ip import get_client_ip as _resolve_client_ip
 
@@ -375,8 +377,15 @@ class AdminOfflineDepositsView(APIView):
             # ──────────────────────────────────────────────────────────────────
             if txn_type in CASINO_DEPOSIT:
                 try:
-                    new_main_bal = _debit_main(user, wallet_type, amount, txn_type,
-                                               note or f"Deposit at {casino}", actor)
+                    # Tagged exactly like a LAC/WAC row ("[CASINO:X] [C] DAC $1000 |
+                    # note") so the transaction ledger names the casino the
+                    # money went to. DAC has no separate casino audit row (see
+                    # credit_casino_wallet), so this row is the only one.
+                    new_main_bal = _debit_main(
+                        user, wallet_type, amount, txn_type,
+                        f"[CASINO:{casino}] [{wallet_type}] {txn_type} ${amount} | {note or f'Deposit at {casino}'}",
+                        actor,
+                    )
                 except ValueError as exc:
                     return Response({"error": f"User main wallet: {exc}"}, status=400)
                 casino_result = credit_casino_wallet(
@@ -638,6 +647,11 @@ class AdminOfflineDepositsView(APIView):
             rp_rate  = Decimal(str(vip_cfg["rp_rate"]))
             roll_pct = Decimal(str(vip_cfg["rolling_pct"]))
 
+            # A further slip on a day that already has one is numbered
+            # automatically when the admin leaves the slip number blank.
+            if not slip_number and betting_date:
+                slip_number = next_slip_number(user, betting_date) or ""
+
             if slip_number:
                 if OfflineDepositLog.objects.filter(slip_number=slip_number).exists():
                     return _reject(f"❌ Slip number '{slip_number}' already exists")
@@ -816,6 +830,43 @@ class AdminCheckSlipView(APIView):
             return Response({"error": "slip_number required"}, status=400)
         exists = OfflineDepositLog.objects.filter(slip_number=slip).exists()
         return Response({"exists": exists, "slip_number": slip})
+
+
+# GET /admin-panel/deposits/day-slips/?user_id=&betting_date=YYYY-MM-DD
+class AdminPlayerDaySlipsView(APIView):
+    """A player's bet slips for one betting date, plus the slip number the
+    next one should take — so a second slip on the same day is filled in
+    automatically instead of being retyped."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if not _is_admin(request.user):
+            return Response({"error": "Forbidden"}, status=403)
+        user_id = request.query_params.get("user_id")
+        betting_date = (request.query_params.get("betting_date") or "").strip()
+        if not user_id or not betting_date:
+            return Response({"error": "user_id and betting_date required"}, status=400)
+        try:
+            datetime.date.fromisoformat(betting_date)
+        except ValueError:
+            return Response({"error": "betting_date must be YYYY-MM-DD"}, status=400)
+        user = User.objects.filter(pk=user_id).first()
+        if user is None:
+            return Response({"error": "User not found"}, status=404)
+        slips = [
+            {
+                "slip_number":      s.slip_number,
+                "casino_name":      s.casino_name,
+                "total_bet_amount": float(s.total_bet_amount),
+                "created_at":       s.created_at.isoformat(),
+            }
+            for s in slips_for_day(user, betting_date)
+        ]
+        return Response({
+            "betting_date":     betting_date,
+            "slips":            slips,
+            "next_slip_number": next_slip_number(user, betting_date),
+        })
 
 
 # ─── Notification helpers ─────────────────────────────────────────────────────

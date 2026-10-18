@@ -26,6 +26,7 @@ import Logo from "./shared/Logo";
 import BrandMark from "./shared/BrandMark";
 import { SECTION_PAD, CONTAINER } from "../utils/layout";
 
+import { T } from '../i18n/useSiteText'
 const API = import.meta.env.VITE_API_URL;
 
 // ─── Design tokens (identical to AuthModal) ───────────────────────────────────
@@ -93,7 +94,7 @@ const Label = ({ children, optional }) => (
     letterSpacing: "0.06em", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 6 }}>
     {children}
     {optional && <span style={{ fontWeight: 400, color: C.dim, textTransform: "none",
-      letterSpacing: 0, fontSize: 10 }}>(optional)</span>}
+      letterSpacing: 0, fontSize: 10 }}>{T("(optional)")}</span>}
   </div>
 );
 
@@ -216,7 +217,7 @@ function CountrySelector({ value, onChange, countries, loading }) {
                 color: C.muted, pointerEvents: "none",
               }} />
               <input autoFocus value={search} onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search country…"
+                placeholder={T("Search country…")}
                 style={{
                   width: "100%", padding: "7px 10px 7px 28px", fontSize: 12,
                   background: C.bg, border: `1px solid ${C.border}`,
@@ -426,13 +427,13 @@ function SuccessScreen({ onReset }) {
       </motion.div>
       <div style={{ fontSize: 19, fontWeight: 800, color: C.text, marginBottom: 10,
         fontFamily: "Manrope, sans-serif", letterSpacing: "-0.01em" }}>
-        You're on the list!
+        {T("You're on the list!")}
       </div>
       <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.7, marginBottom: 28, maxWidth: 280, margin: "0 auto 28px" }}>
-        Our VIP concierge team will reach outwithin 24 hours with your exclusive package details.
+        {T("Our VIP concierge team will reach outwithin 24 hours with your exclusive package details.")}
       </div>
       <GoldBtn onClick={onReset} loading={false} disabled={false}>
-        Register another interest
+        {T("Register another interest")}
       </GoldBtn>
     </motion.div>
   );
@@ -626,7 +627,7 @@ export default function Register() {
         <Logo size="md" />
       </div>
       <div style={{ fontSize: 11, color: C.muted, letterSpacing: "0.06em", marginTop: 2 }}>
-        VIP Access
+        {T("VIP Access")}
       </div>
     </div>
   </div>
@@ -641,7 +642,7 @@ export default function Register() {
     <Star size={9} color={C.gold} fill={C.gold} />
     <span style={{ fontSize: 10, fontWeight: 700, color: C.gold,
       letterSpacing: "0.12em", textTransform: "uppercase" }}>
-      Exclusive VIP Registration
+      {T("Exclusive VIP Registration")}
     </span>
   </div>
 </div>
