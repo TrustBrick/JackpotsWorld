@@ -23,6 +23,7 @@ import { toMetaDescription, TITLE_SUFFIX, ROUTE_SEO } from '../config/seo'
 import GoldLastWord from '../components/shared/GoldLastWord'
 
 import { T } from '../i18n/useSiteText'
+import { requestFeedback } from '../services/feedbackPrompt'
 function formatDate(iso) {
   if (!iso) return ''
   return new Date(`${iso}T00:00:00`).toLocaleDateString('en-US', {
@@ -105,6 +106,7 @@ export default function TeenPattiDetails() {
     const res = await registerForTeenPattiEvent(id)
     setBusy(false)
     setResult(res)
+    if (res.ok) requestFeedback('registration')  // VISITOR-FEEDBACK
     load()
   }
 

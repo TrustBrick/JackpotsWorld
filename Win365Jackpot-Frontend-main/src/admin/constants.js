@@ -171,6 +171,8 @@ export const ADMIN_NAV_GROUPS = [
       // because both are people waiting to be answered, which is the same
       // job; they are two tables only because they collect different things.
       { id:"whatsapp-enquiries", label:"WhatsApp Enquiries", icon:"MessageCircle" },
+      // VISITOR-FEEDBACK: ratings and comments from the public "Feedback" tab.
+      { id:"visitor-feedback", label:"Visitor Feedback", icon:"Star" },
       { id:"support-settings", label:"Support Settings", icon:"Languages" },
       // SUPPORT-SCRIPT: the standard live-chat wording from the Call & Live
       // Chat Script Manual. The greeting row is the one message the system

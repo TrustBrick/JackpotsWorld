@@ -17,6 +17,7 @@ import {
 } from './destinations/landingPrimitives'
 
 import { T } from '../i18n/useSiteText'
+import usePageHelpfulPrompt from '../hooks/usePageHelpfulPrompt'
 // ─────────────────────────────────────────────────────────────────────────────
 // PremiumCasino (/premium-casino) — the top-level casino hub page: what a
 // land-based casino is, entertainment, VIP, poker, events, nightlife and how
@@ -120,6 +121,7 @@ function InfoSection({ eyebrow, title, intro, paras = [], bullets, bulletCols = 
 }
 
 export default function PremiumCasino() {
+  usePageHelpfulPrompt()  // VISITOR-FEEDBACK: "Was this page helpful?" after a real read
   const { theme } = useTheme()
   const route = ROUTE_SEO[PATH] || {}
   const section = { position: 'relative', padding: SECTION_PAD, zIndex: 1 }

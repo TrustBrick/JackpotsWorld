@@ -51,6 +51,7 @@ export default function CookieConsent() {
       {visible && (
         <motion.div
           role="dialog"
+          data-feedback-blocker="cookie"
           aria-label={t('cookieConsent.title', 'Cookie notice')}
           aria-live="polite"
           initial={{ opacity: 0, y: 24 }}

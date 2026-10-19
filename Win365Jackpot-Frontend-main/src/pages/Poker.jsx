@@ -18,6 +18,7 @@ import { HERO_WATERMARKS } from '../config/heroWatermarks'
 import { useAutoFetch } from '../hooks/useAutoFetch'
 import { getToken } from '../services/authStorage'
 import GoldLastWord from '../components/shared/GoldLastWord'
+import usePageHelpfulPrompt from '../hooks/usePageHelpfulPrompt'
 
 function SectionHeading({ icon: Icon, title, count, accent }) {
   return (
@@ -36,6 +37,7 @@ function SectionHeading({ icon: Icon, title, count, accent }) {
 }
 
 export default function Poker() {
+  usePageHelpfulPrompt()  // VISITOR-FEEDBACK: "Was this page helpful?" after a real read
   const { t } = useTranslation()
   const { theme } = useTheme()
   const [authOpen, setAuthOpen] = useState(false)

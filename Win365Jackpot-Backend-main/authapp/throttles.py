@@ -143,3 +143,14 @@ class WhatsAppEnquiryThrottle(SimpleRateThrottle):
     def get_cache_key(self, request, view):
         ident = request.user.pk if request.user and request.user.is_authenticated else self.get_ident(request)
         return self.cache_format % {"scope": self.scope, "ident": ident}
+
+
+class VisitorFeedbackThrottle(SimpleRateThrottle):
+    """VISITOR-FEEDBACK: per-IP (or per-account) cap on the public feedback
+    form. Low on purpose — a genuine visitor sends one, maybe two; the limit
+    keeps the admin list readable rather than protecting the server."""
+    scope = "visitor-feedback"
+
+    def get_cache_key(self, request, view):
+        ident = request.user.pk if request.user and request.user.is_authenticated else self.get_ident(request)
+        return self.cache_format % {"scope": self.scope, "ident": ident}

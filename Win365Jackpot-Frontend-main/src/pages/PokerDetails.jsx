@@ -18,6 +18,7 @@ import { pokerSchema, breadcrumbSchema } from '../utils/seoSchemas'
 import { hasAmount } from '../utils/money'
 import { toMetaDescription, TITLE_SUFFIX, ROUTE_SEO } from '../config/seo'
 import GoldLastWord from '../components/shared/GoldLastWord'
+import { requestFeedback } from '../services/feedbackPrompt'
 
 const STATUS_LABEL_KEYS = {
   upcoming: 'common.statusUpcoming',
@@ -66,7 +67,10 @@ export default function PokerDetails() {
     setTicketState({ loading: true, message: '' })
     const { ok, message } = await registerForTournament(id)
     setTicketState({ loading: false, message })
-    if (ok) setTimeout(() => setTicketState(s => ({ ...s, message: '' })), 4000)
+    if (ok) {
+      requestFeedback('registration')  // VISITOR-FEEDBACK
+      setTimeout(() => setTicketState(s => ({ ...s, message: '' })), 4000)
+    }
   }
 
   // Shared by the visible <Breadcrumbs> and the BreadcrumbList JSON-LD.
