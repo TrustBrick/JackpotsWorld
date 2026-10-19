@@ -42,6 +42,7 @@ import {
   enquiryContext, recordWhatsAppClick, rememberContact, rememberedContact,
   sendWhatsAppEnquiry,
 } from '../../services/whatsappEnquiryService'
+import { requestFeedbackOnReturn } from '../../services/feedbackPrompt'
 
 const GateContext = createContext(null)
 
@@ -78,6 +79,8 @@ export function WhatsAppGateProvider({ children }) {
     // reading, which is the whole point of an enquiry button on a landing
     // page. noopener because the opened document is third-party.
     window.open(link, '_blank', 'noopener')
+    // VISITOR-FEEDBACK: ask once they come back from WhatsApp.
+    requestFeedbackOnReturn('whatsapp_enquiry')
   }, [enquiryNumber])
 
   const open = useCallback(({ source = '', message = '' } = {}) => {

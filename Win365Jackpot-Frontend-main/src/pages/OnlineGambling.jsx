@@ -7,6 +7,7 @@ import Footer from '../components/Footer'
 import PageHeader from '../components/shared/PageHeader'
 import PageScrollButtons from '../components/PageScrollButtons'
 import { useTheme } from '../context/ThemeContext'
+import usePageHelpfulPrompt from '../hooks/usePageHelpfulPrompt'
 
 /**
  * /online-gambling — an information and player-safety page, not a product
@@ -59,6 +60,7 @@ function Bullets({ items }) {
 const bodyStyle = { color: 'var(--w365-text-muted)' }
 
 export default function OnlineGambling() {
+  usePageHelpfulPrompt()  // VISITOR-FEEDBACK: "Was this page helpful?" after a real read
   const { t } = useTranslation()
   const { theme } = useTheme()
   const list = key => t(key, { returnObjects: true })

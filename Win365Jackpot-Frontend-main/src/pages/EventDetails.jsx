@@ -17,6 +17,7 @@ import Breadcrumbs from '../components/shared/Breadcrumbs'
 import { eventSchema, breadcrumbSchema } from '../utils/seoSchemas'
 import { toMetaDescription, TITLE_SUFFIX, ROUTE_SEO } from '../config/seo'
 import GoldLastWord from '../components/shared/GoldLastWord'
+import { requestFeedback } from '../services/feedbackPrompt'
 
 function formatDate(iso) {
   if (!iso) return ''
@@ -59,7 +60,10 @@ export default function EventDetails() {
     setTicketState({ loading: true, message: '' })
     const { ok, message } = await requestEventTicket(id)
     setTicketState({ loading: false, message })
-    if (ok) setTimeout(() => setTicketState(s => ({ ...s, message: '' })), 4000)
+    if (ok) {
+      requestFeedback('registration')  // VISITOR-FEEDBACK
+      setTimeout(() => setTicketState(s => ({ ...s, message: '' })), 4000)
+    }
   }
 
   // One trail, used for both the visible <Breadcrumbs> and the JSON-LD below.

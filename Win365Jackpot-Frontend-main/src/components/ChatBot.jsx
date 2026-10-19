@@ -1079,6 +1079,7 @@ export default function ChatBot({ portal = "player" }) {
       <AnimatePresence>
         {open && (
           <motion.div
+            data-feedback-blocker="chat"
             initial={{ opacity: 0, y: 16, scale: 0.93 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.93 }}

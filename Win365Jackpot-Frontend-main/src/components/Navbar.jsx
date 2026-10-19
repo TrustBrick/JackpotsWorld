@@ -3,13 +3,15 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import {
   Menu, X, Gift, UserPlus, LogOut,
-  ChevronDown, User, Crown, Wallet,
+  ChevronDown, User, Crown, Wallet, Star,
 } from 'lucide-react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import BrandLockup from './shared/BrandLockup'
 import AuthModal from './AuthModal'
 import ChatBot from './ChatBot'
 import SiteLanguageButton from './SiteLanguageButton'
+import FeedbackWidget from './feedback/FeedbackWidget'
+import { openFeedback } from '../services/feedbackPrompt'
 import { getToken, getUser } from '../services/authStorage'
 import { endSession } from '../services/sessionManager'
 import { scrollToSection, scrollToSectionWhenReady } from '../utils/scroll'
@@ -546,6 +548,17 @@ export default function Navbar() {
                     )}
                   </li>
                 ))}
+                {/* VISITOR-FEEDBACK: same form as the bottom-left star button */}
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => { setMobileOpen(false); openFeedback() }}
+                    className="nav-link w-full flex items-center gap-2 py-2.5 text-base text-left"
+                    style={{ background: 'none', border: 'none', color: '#D4AF37', cursor: 'pointer' }}
+                  >
+                    <Star size={15} aria-hidden="true" /> {T('Share feedback')}
+                  </button>
+                </li>
               </ul>
             </motion.div>
           )}
@@ -553,6 +566,8 @@ export default function Navbar() {
       </motion.nav>
 
       <ChatBot />
+      {/* VISITOR-FEEDBACK: bottom-left button, activity prompts and the form */}
+      <FeedbackWidget />
     </>
   )
 }

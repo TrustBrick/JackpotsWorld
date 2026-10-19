@@ -15,6 +15,7 @@ import {
   GOLD, Cta, InternalCTA, Reveal, SectionHeading, cardStyle,
   IconCard, BulletList, FaqItem, buildFaqJsonLd, buildBreadcrumbJsonLd,
 } from './landingPrimitives'
+import usePageHelpfulPrompt from '../../hooks/usePageHelpfulPrompt'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DestinationLanding — the template every standalone destination SEO page
@@ -28,6 +29,7 @@ import {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function DestinationLanding({ content }) {
+  usePageHelpfulPrompt()  // VISITOR-FEEDBACK: "Was this page helpful?" after a real read
   const { theme } = useTheme()
   const route = ROUTE_SEO[content.path] || {}
 

@@ -24,6 +24,7 @@ import { hasAmount } from '../utils/money'
 import GoldLastWord from '../components/shared/GoldLastWord'
 
 import { T } from '../i18n/useSiteText'
+import { requestFeedback } from '../services/feedbackPrompt'
 /* ─────────────────────────────────────────────────────────────────────────
    Andhar Bahar — the third game destination, alongside Poker and Teen Patti.
 
@@ -490,7 +491,7 @@ export default function AndharBahar() {
     try {
       const res = await registerForAndharBaharEvent(ev.id)
       setNotice({ ok: res.ok, message: res.message })
-      if (res.ok) reload()
+      if (res.ok) { requestFeedback('registration'); reload() }  // VISITOR-FEEDBACK
     } catch {
       setNotice({ ok: false, message: T('Could not register just now. Please try again.') })
     }

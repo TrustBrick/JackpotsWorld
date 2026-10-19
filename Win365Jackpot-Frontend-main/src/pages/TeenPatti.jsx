@@ -17,6 +17,7 @@ import {
 import { useAutoFetch } from '../hooks/useAutoFetch'
 import { getToken } from '../services/authStorage'
 import GoldLastWord from '../components/shared/GoldLastWord'
+import { requestFeedback } from '../services/feedbackPrompt'
 
 // "published" is an admin-set state that hasn't been date-promoted yet; to a
 // visitor it belongs with Upcoming.
@@ -105,6 +106,7 @@ export default function TeenPatti() {
     const res = await registerForTeenPattiEvent(event.id)
     setRegisteringId(null)
     setResult(res)
+    if (res.ok) requestFeedback('registration')  // VISITOR-FEEDBACK
     // Refresh either way: on success the seat count moved, and on failure the
     // local view may simply have been stale (e.g. it filled a second ago).
     reload()

@@ -16,6 +16,7 @@ import {
   Menu, X, // mobile off-canvas drawer controls
   HelpCircle, Headset,
   UserCircle, // ADMIN-PROFILE
+  Star, // VISITOR-FEEDBACK
 } from "lucide-react";
 
 import OverviewTab       from "./tabs/OverviewTab";
@@ -39,6 +40,7 @@ import LocationsManageTab   from "./tabs/content/LocationsManageTab";
 import LandingManageTab     from "./tabs/content/LandingManageTab";
 import ExperienceEnquiriesTable from "./tabs/content/ExperienceEnquiriesTable";
 import WhatsAppEnquiriesTable from "./tabs/content/WhatsAppEnquiriesTable";  // WHATSAPP-LEADS
+import VisitorFeedbackTable from "./tabs/content/VisitorFeedbackTable";  // VISITOR-FEEDBACK
 import AffiliatesTab        from "./tabs/AffiliatesTab";
 import AffiliateWithdrawalsTab from "./tabs/AffiliateWithdrawalsTab"; // AFFILIATE-WITHDRAWALS
 import AffiliateCommissionsTab from "./tabs/AffiliateCommissionsTab"; // Commission Engine
@@ -86,6 +88,7 @@ const ICON_MAP = {
   Headset, // Live Support Settings
   Inbox, // Experience Enquiries
   UserCircle, // ADMIN-PROFILE
+  Star, // VISITOR-FEEDBACK
 };
 
 // AFFILIATE-APPROVAL: sessionStorage keys for sidebar state that should
@@ -283,6 +286,7 @@ function AdminPanelInner() {
   // working it — so the badge clears when the work is done rather than
   // when someone merely opens the tab.
   const [newEnquiries, setNewEnquiries] = useState(0);
+  const [newFeedback, setNewFeedback] = useState(0); // VISITOR-FEEDBACK badge
   const [notifPopup, setNotifPopup] = useState(null);
 
   // Sidebar becomes an off-canvas drawer below the tablet breakpoint —
@@ -349,6 +353,12 @@ function AdminPanelInner() {
         if (!j) return;
         setNewEnquiries(Array.isArray(j) ? j.length : (j.count ?? 0));
       } catch { /* keep the previous count on a transient failure */ }
+      // VISITOR-FEEDBACK: unread feedback, counted the same way.
+      try {
+        const r = await adminFetch(`${API}/api/admin-panel/visitor-feedback/summary/`);
+        const j = await r?.json();
+        if (j && typeof j.new === "number") setNewFeedback(j.new);
+      } catch { /* keep the previous count */ }
     };
     poll();
     const interval = setInterval(poll, 20000);
@@ -453,6 +463,7 @@ function AdminPanelInner() {
       // a queue of people waiting to be answered, not page content.
       case "experience-enquiries": return <ExperienceEnquiriesTable {...props} />;
       case "whatsapp-enquiries": return <WhatsAppEnquiriesTable {...props} />;  // WHATSAPP-LEADS
+      case "visitor-feedback": return <VisitorFeedbackTable {...props} />;  // VISITOR-FEEDBACK
       // EMAIL-LOGS: no case on purpose. The logging backend and the
       // /api/admin-panel/email-logs/ endpoints are untouched; only the screen
       // is gone. An "email-logs" id arriving from a stale sessionStorage tab
@@ -608,6 +619,11 @@ function AdminPanelInner() {
                             {t.id === "experience-enquiries" && newEnquiries > 0 && (
                               <span style={{ marginLeft: "auto", fontSize: 9.5, fontWeight: 800, minWidth: 16, height: 16, borderRadius: 8, padding: "0 4px", background: "#ff3366", color: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
                                 {newEnquiries}
+                              </span>
+                            )}
+                            {t.id === "visitor-feedback" && newFeedback > 0 && (
+                              <span style={{ marginLeft: "auto", fontSize: 9.5, fontWeight: 800, minWidth: 16, height: 16, borderRadius: 8, padding: "0 4px", background: "#ff3366", color: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                {newFeedback}
                               </span>
                             )}
                             {t.id === "notifications" && adminNotifUnread > 0 && (

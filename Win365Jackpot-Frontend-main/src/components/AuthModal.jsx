@@ -15,6 +15,7 @@ import Turnstile from './Turnstile'
 import Logo from './shared/Logo'
 
 import { T } from '../i18n/useSiteText'
+import { requestFeedback } from '../services/feedbackPrompt'
 const API = import.meta.env.VITE_API_URL
 
 // ─── Network / API helper ─────────────────────────────────────────────────────
@@ -1080,7 +1081,7 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'login', onAut
 
   return (
     <AnimatePresence>
-      <motion.div key="ov"
+      <motion.div key="ov" data-feedback-blocker="auth"
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         style={{
           position: 'fixed', inset: 0, zIndex: 200,
@@ -1151,7 +1152,7 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'login', onAut
                   ? <SignInPanel key="li" onSuccess={onAuthSuccess} onClose={onClose} onForgotPassword={() => switchTab('forgot')} />
                   : tab === 'forgot'
                     ? <ForgotPasswordPanel key="fp" onBack={() => switchTab('login')} onDone={() => switchTab('login')} />
-                    : <RegisterPanel key="rg" onRegistered={() => setSuccess(true)} />}
+                    : <RegisterPanel key="rg" onRegistered={() => { setSuccess(true); requestFeedback('signup') }} />}
             </AnimatePresence>
           </div>
 

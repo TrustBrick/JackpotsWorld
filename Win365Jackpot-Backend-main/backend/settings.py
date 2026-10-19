@@ -867,3 +867,9 @@ REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["experience-enquiry"] = config(
 REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["whatsapp-enquiry"] = config(
     "WHATSAPP_ENQUIRY_RATE", default="12/hour",
 )
+
+# ── Visitor feedback ─────────────────────────────────────────────────────────
+# VISITOR-FEEDBACK: per-IP ceiling on the public "Feedback" side-tab form.
+REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["visitor-feedback"] = config(
+    "VISITOR_FEEDBACK_RATE", default="5/hour",
+)

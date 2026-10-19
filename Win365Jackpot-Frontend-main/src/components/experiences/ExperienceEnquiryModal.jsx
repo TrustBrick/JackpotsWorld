@@ -8,6 +8,7 @@ import useEnquiryMessage from '../../hooks/useEnquiryMessage'
 import { buildWhatsAppLink } from '../../services/enquiryContact'
 
 import { T } from '../../i18n/useSiteText'
+import { requestFeedback } from '../../services/feedbackPrompt'
 /**
  * "Enquire Now" for one experience card.
  *
@@ -165,6 +166,7 @@ export default function ExperienceEnquiryModal({ experience, isOpen, onClose }) 
       const res = await sendExperienceEnquiry(payload)
       if (res.ok) {
         setSent(res)
+        requestFeedback('experience_enquiry')  // VISITOR-FEEDBACK: shown once this modal closes
       } else {
         setErrors(res.fieldErrors || {})
         setBanner(res.message)

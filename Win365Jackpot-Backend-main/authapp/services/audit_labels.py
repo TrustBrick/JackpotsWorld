@@ -47,6 +47,8 @@ VERBS = {
 
 # Endpoints whose path IS the action. {method: phrase}, "*" for any method.
 ACTION_RULES = [
+    # ── Visitor feedback ─────────────────────────────────────────────────────
+    (r"/visitor-feedback/[^/]+/publish/",    {"*": "Published visitor feedback as a testimonial"}),
     # ── Calls ────────────────────────────────────────────────────────────────
     (r"/live-chat/calls/[^/]+/accept/",      {"*": "Picked up a call"}),
     (r"/live-chat/calls/[^/]+/connected/",   {"*": "Call connected"}),
@@ -165,6 +167,7 @@ NOUN_RULES = [
     (r"/gift-steps/",                    "a gift step"),
     (r"/experiences/",                   "an experience"),
     (r"/experience-enquiries/",          "an experience enquiry"),
+    (r"/visitor-feedback/",              "visitor feedback"),
     (r"/enquiry-messages/",              "an enquiry message"),
     (r"/promotions/[^/]+/gallery/",      "a promotion gallery image"),
     (r"/promotions/",                    "a promotion"),
