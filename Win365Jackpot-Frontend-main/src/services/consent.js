@@ -14,6 +14,14 @@
 const KEY = "w365_cookie_consent";
 export const CONSENT_VERSION = 1;
 const CONSENT_EVENT = "w365:consent-change";
+const REOPEN_EVENT = "w365:consent-reopen";
+
+// The first-party analytics identifiers (see services/analytics.js). Removed the
+// moment a visitor rejects, so changing your mind from the footer link really
+// does stop the tracking and forget the ids rather than just ceasing to add to them.
+const ANALYTICS_LOCAL_KEYS = ["jw_anon_id"];
+const ANALYTICS_SESSION_KEYS = ["jw_session_id", "jw_utm_first_touch"];
+const ANALYTICS_SESSION_PREFIXES = ["jw_video_session:", "jw_video_impression:"];
 
 // Returns 'accepted' | 'rejected', or null when the visitor has not chosen yet
 // (or chose against an older policy version, which counts as "ask again").
@@ -36,6 +44,15 @@ export function setConsent(status) {
   try {
     localStorage.setItem(KEY, JSON.stringify({ status, v: CONSENT_VERSION, ts: Date.now() }));
   } catch { /* storage blocked — the banner simply reappears next load */ }
+  if (status === "rejected") {
+    try { ANALYTICS_LOCAL_KEYS.forEach(k => localStorage.removeItem(k)); } catch { /* ignore */ }
+    try {
+      ANALYTICS_SESSION_KEYS.forEach(k => sessionStorage.removeItem(k));
+      Object.keys(sessionStorage)
+        .filter(k => ANALYTICS_SESSION_PREFIXES.some(p => k.startsWith(p)))
+        .forEach(k => sessionStorage.removeItem(k));
+    } catch { /* ignore */ }
+  }
   // Let same-tab listeners react immediately (storage events only fire in
   // OTHER tabs, so this custom event covers the tab that made the choice).
   try {
@@ -58,4 +75,10 @@ export function onConsentChange(handler) {
   return () => { try { window.removeEventListener(CONSENT_EVENT, fn); } catch { /* ignore */ } };
 }
 
-export { CONSENT_EVENT };
+// Ask the banner to open again (the footer's "Cookie settings" link). The
+// stored choice stays in force until the visitor picks again.
+export function reopenConsent() {
+  try { window.dispatchEvent(new Event(REOPEN_EVENT)); } catch { /* ignore */ }
+}
+
+export { CONSENT_EVENT, REOPEN_EVENT };

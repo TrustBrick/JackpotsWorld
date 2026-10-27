@@ -8,10 +8,23 @@ if (!SITE_KEY && import.meta.env.DEV) {
   console.error('[Turnstile] VITE_TURNSTILE_SITE_KEY is not set. Add it to your .env file.')
 }
 
+// COOKIE-CONSENT: the Cloudflare script is fetched only when a form that needs
+// the check is actually on screen, not on every page load of the site.
+const SCRIPT_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js'
+function loadTurnstileScript() {
+  if (typeof document === 'undefined' || window.turnstile) return
+  if (document.querySelector(`script[src="${SCRIPT_SRC}"]`)) return
+  const el = document.createElement('script')
+  el.src = SCRIPT_SRC
+  el.async = true
+  el.defer = true
+  document.head.appendChild(el)
+}
+
 /**
  * Reusable Cloudflare Turnstile "Verify you are human" checkbox.
- * Renders explicitly against window.turnstile (loaded via the
- * challenges.cloudflare.com/turnstile/v0/api.js script tag in index.html)
+ * Renders explicitly against window.turnstile (loaded on demand from
+ * challenges.cloudflare.com/turnstile/v0/api.js by this component)
  * so it works regardless of when that script finishes loading.
  *
  * Props:
@@ -42,6 +55,7 @@ const Turnstile = forwardRef(function Turnstile({ onVerify, onExpire, onError, t
 
     let cancelled = false
     let pollTimer = null
+    loadTurnstileScript()
 
     const renderWidget = () => {
       if (cancelled || !containerRef.current || widgetIdRef.current !== null) return

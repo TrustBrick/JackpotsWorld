@@ -1,1 +1,0 @@
-import{j as n}from"./index-BwBFMnx5.js";import{D as t,s as i}from"./content-CAdMSUCe.js";import"./landingPrimitives-DGdROsG_.js";import"./usePageHelpfulPrompt-DaUF_BIf.js";import"./layout-grid-DpYUpesD.js";function p(){return n.jsx(t,{content:i})}export{p as default};

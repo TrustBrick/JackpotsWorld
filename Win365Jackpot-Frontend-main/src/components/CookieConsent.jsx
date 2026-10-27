@@ -19,7 +19,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Cookie } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { getConsent, setConsent } from '../services/consent';
+import { getConsent, setConsent, REOPEN_EVENT } from '../services/consent';
 
 // Back-office areas — no consent banner here (matches AnalyticsTracker).
 const HIDE_PREFIXES = ['/admin-panel', '/super-admin', '/affiliate-panel', '/affiliate-login'];
@@ -37,6 +37,9 @@ export default function CookieConsent() {
 
   useEffect(() => {
     setVisible(getConsent() === null);
+    const reopen = () => setVisible(true);
+    window.addEventListener(REOPEN_EVENT, reopen);
+    return () => window.removeEventListener(REOPEN_EVENT, reopen);
   }, []);
 
   const choose = (status) => {

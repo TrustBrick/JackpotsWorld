@@ -11,6 +11,7 @@ import { buildWhatsAppLink } from '../services/enquiryContact'
 import { enquiryContext, recordWhatsAppClick } from '../services/whatsappEnquiryService'
 
 import { T } from '../i18n/useSiteText'
+import { reopenConsent } from '../services/consent'
 const PRIMARY_DESTINATIONS = ['Vietnam', 'Macau', 'India (Goa)', 'Sri Lanka', 'Philippines']
 const EXTRA_DESTINATIONS   = ['Las Vegas', 'Malaysia', 'Singapore', 'Armenia', 'Georgia']
 const ALL_DESTINATIONS     = [...PRIMARY_DESTINATIONS, ...EXTRA_DESTINATIONS]
@@ -311,6 +312,19 @@ export default function Footer() {
                 >
                   {T('Cookies Policy')}
                 </RouterLink>
+              </li>
+
+              {/* COOKIE-CONSENT: withdrawing consent must be as easy as giving it */}
+              <li>
+                <button
+                  type="button"
+                  onClick={reopenConsent}
+                  style={{ fontSize: 13, color: 'var(--w365-text-muted)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', transition: 'color 0.15s' }}
+                  onMouseEnter={e => e.currentTarget.style.color = '#D4AF37'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'var(--w365-text-muted)'}
+                >
+                  {T('Cookie settings')}
+                </button>
               </li>
 
               <li>

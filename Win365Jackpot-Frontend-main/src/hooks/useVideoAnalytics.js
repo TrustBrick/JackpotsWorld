@@ -38,6 +38,7 @@ import {
   trackVideoEvent, trackVideoClick, mintActionId,
   trackVideoImpression, trackVideoPause, trackVideoExit,
 } from "../services/analytics";
+import { analyticsAllowed } from "../services/consent";
 
 const MILESTONES = [25, 50, 75, 100];
 const SESSION_KEY_PREFIX = "jw_video_session:";
@@ -54,6 +55,8 @@ function readSession(contentId) {
   try { return sessionStorage.getItem(SESSION_KEY_PREFIX + contentId) || ""; } catch { return ""; }
 }
 function writeSession(contentId, sessionId) {
+  // COOKIE-CONSENT: nothing is stored on the device until analytics is accepted.
+  if (!analyticsAllowed()) return;
   try { sessionStorage.setItem(SESSION_KEY_PREFIX + contentId, sessionId); } catch { /* storage blocked — dedup simply degrades, tracking still works */ }
 }
 function clearSession(contentId) {
@@ -186,6 +189,7 @@ export function useVideoAnalytics(videoRef, { contentId, title, contentKind = "c
     // the "already seen" short-circuit, which a cleared/blocked sessionStorage
     // would otherwise defeat.
     const markSeen = (id) => {
+      if (!analyticsAllowed()) return;  // COOKIE-CONSENT: store nothing before consent
       try { sessionStorage.setItem(IMPRESSION_KEY_PREFIX + contentId, id); } catch { /* degrade quietly */ }
     };
 
