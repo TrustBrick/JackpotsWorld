@@ -33,7 +33,7 @@ function LocationLabel({ location }) {
 /**
  * Site-wide location switch in the header (flag + language code), modelled
  * on the country-wise pickers international sites use: "Australia English",
- * "India Hindi"… Choosing a location switches the whole site to its
+ * "India English"… Choosing a location switches the whole site to its
  * language and remembers the country, so the button keeps showing its flag.
  */
 export default function SiteLanguageButton({ compact = false }) {
@@ -47,7 +47,7 @@ export default function SiteLanguageButton({ compact = false }) {
   const current = resolveLocation(i18n.language)
 
   // Every typed word must appear somewhere in "country language native", so
-  // "india hin" and "hindi india" both find India Hindi.
+  // "india eng" and "english india" both find India English.
   const words = q.trim().toLowerCase().split(/\s+/).filter(Boolean)
   const shown = LOCATIONS.filter(l => {
     const haystack = `${l.name} ${LANGUAGE_NAMES[l.lang]} ${NATIVE_NAMES[l.lang]}`.toLowerCase()
