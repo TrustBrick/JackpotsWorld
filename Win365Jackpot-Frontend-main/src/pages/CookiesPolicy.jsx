@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Shield } from 'lucide-react'
+import { reopenConsent } from '../services/consent'
 
 // The honest inventory. JackpotsWorld sets NO third-party advertising or
 // tracking cookies — there is no Google Analytics, Bing, Mixpanel, Intercom
@@ -9,16 +10,34 @@ import { ArrowLeft, Shield } from 'lucide-react'
 // "Category" drives the colour chip; see CATEGORY_COLORS.
 const COOKIES_TABLE = [
   {
-    name: 'access  refresh  (+ affiliate_token, admin_token)',
+    name: 'access  refresh  user  affiliate_token  affiliate_refresh  affiliate_user  admin_token  admin_refresh  admin_user  sa_token  sa_refresh  sa_user',
     category: 'Essential',
     duration: 'Until sign-out',
-    desc: 'Keeps you signed in. Created only after you log in. Stored for the browsing session only, unless you tick "Remember me", in which case it persists until you sign out.',
+    desc: 'Keeps you signed in, and holds a copy of your basic account details so pages load without asking again. Created only after you log in; the affiliate_*, admin_* and sa_* names are the same thing for the affiliate and staff portals. Stored for the browsing session only, unless you tick "Remember me", in which case it persists until you sign out.',
+  },
+  {
+    name: 'w365_session_event',
+    category: 'Essential',
+    duration: 'Momentary',
+    desc: 'When you sign out, tells your other open tabs of this site to sign out too. It is written and removed in the same instant.',
   },
   {
     name: 'w365_cookie_consent',
     category: 'Essential',
     duration: 'Persistent',
     desc: 'Remembers your choice on this cookie banner (accept or reject) so you are not asked again on every visit. Re-asked only if this policy materially changes.',
+  },
+  {
+    name: 'siteLocation',
+    category: 'Preference',
+    duration: 'Persistent',
+    desc: 'Remembers the country and language you picked in the location menu so the site opens that way next time.',
+  },
+  {
+    name: 'support_chat_language',
+    category: 'Preference',
+    duration: 'Persistent',
+    desc: 'Remembers the language you chose for the support chat in your account.',
   },
   {
     name: 'i18nextLng',
@@ -63,6 +82,30 @@ const COOKIES_TABLE = [
     desc: 'Remembers the country selected (or detected) for the enquiry form, so it does not have to be chosen every time.',
   },
   {
+    name: 'w365_last_activity',
+    category: 'Essential',
+    duration: 'Persistent',
+    desc: 'The time of your last activity while signed in, used to sign you out automatically after a period of inactivity. Removed when you sign out.',
+  },
+  {
+    name: 'chatbot_messages',
+    category: 'Functional',
+    duration: 'Session',
+    desc: 'Keeps the conversation with the chat assistant on screen while you move between pages. It stays in your browser and is cleared when you close the tab.',
+  },
+  {
+    name: 'jw_fb_session_start  jw_fb_asked  jw_fb_pending',
+    category: 'Functional',
+    duration: 'Session',
+    desc: 'Used by the short "how was your experience?" pop-up so it appears at most once per visit and never in your first seconds on the site. Cleared when you close the tab.',
+  },
+  {
+    name: 'jw_fb_state',
+    category: 'Functional',
+    duration: 'Persistent',
+    desc: 'Remembers that you answered or closed the feedback pop-up so you are not asked again for 14 days. Contains no personal information.',
+  },
+  {
     name: 'jw_anon_id',
     category: 'Analytics',
     duration: 'Persistent',
@@ -80,23 +123,35 @@ const COOKIES_TABLE = [
     duration: 'Session',
     desc: 'Remembers the campaign parameters (utm_*) you first arrived with, for our first-party analytics. Created ONLY after you accept analytics.',
   },
+  {
+    name: 'jw_video_session:*  jw_video_impression:*',
+    category: 'Analytics',
+    duration: 'Session',
+    desc: 'Stops a page refresh from counting one video view twice in our first-party analytics. Created ONLY after you accept analytics.',
+  },
 ]
 
 const SECTIONS = [
   {
     number: '1',
     title: 'Your Consent and How Analytics Works',
-    content: `Analytics on this site is opt-in. When you first visit, a banner asks you to accept or reject analytics cookies, and nothing in the "Analytics" category above is created until you choose "Accept all". Essential and preference items (keeping you signed in, your language, your light/dark choice) are needed for the site to work and are always active.\n\nIf you choose "Reject non-essential", no analytics identifiers are created and no usage data is collected — the choice genuinely turns the tracking off, it is not cosmetic. If you accept and later change your mind, you can clear your choice (and any analytics identifiers) by clearing this site's stored data in your browser, after which the consent banner will appear again.\n\nOur analytics are first-party only. We do not use Google Analytics, advertising pixels, or any third-party tracking cookies, and we do not sell or share this data with ad networks.`,
+    content: `Analytics on this site is opt-in. When you first visit, a banner asks you to accept or reject analytics cookies, and nothing in the "Analytics" category above is created until you choose "Accept all". Essential and preference items (keeping you signed in, your language, your light/dark choice) are needed for the site to work and are always active.\n\nIf you choose "Reject non-essential", no analytics identifiers are created and no usage data is collected — the choice genuinely turns the tracking off, it is not cosmetic. If you accept and later change your mind, use the "Change my cookie choice" button at the top of this page, or the "Cookie settings" link in the footer of our main pages, to reopen the banner and choose again; choosing "Reject non-essential" immediately deletes the analytics identifiers from your device.\n\nOur analytics are first-party only. We do not use Google Analytics, advertising pixels, or any third-party tracking cookies, and we do not sell or share this data with ad networks.`,
   },
   {
     number: '2',
     title: 'Third-Party Services',
-    content: `This site relies on two external services. Neither is used for advertising or for tracking you across other websites:\n\nCloudflare Turnstile — a privacy-focused "are you human?" check shown on the sign-in and registration forms to block bots and fraud. It is a strictly necessary security feature. Cloudflare may set its own cookie in your browser to perform this check; it is not used to profile you or to serve advertising.\n\nGoogle Fonts — the site's typefaces are loaded from Google's font service. This does not set a cookie, but your IP address is sent to Google as a normal part of requesting the font files.`,
+    content: `This site relies on Cloudflare. It is not used for advertising or for tracking you across other websites:
+
+Cloudflare Turnstile — a privacy-focused "are you human?" check shown on the sign-in and registration forms to block bots and fraud. It is a strictly necessary security feature, and its code is loaded only when one of those forms is on screen, not on every page. Cloudflare may set its own cookie in your browser to perform this check; it is not used to profile you or to serve advertising.
+
+Cloudflare network — our pages are delivered through Cloudflare's network, which may set a security cookie to protect the site from abuse.
+
+Fonts — the site's typefaces are served from this site itself. No font request is sent to Google or any other third party.`,
   },
   {
     number: '3',
     title: 'Managing and Disabling Cookies',
-    content: `You can accept or reject optional analytics at any time using the consent banner shown on your first visit. To change a choice you have already made, clear this site's stored data for jackpotsworld.vip in your browser and the banner will appear again.\n\nYou can also restrict or clear cookies and site data directly in your browser settings. Guidance for the most common browsers:\n\nGoogle Chrome: https://support.google.com/chrome/answer/95647\n\nMozilla Firefox: https://support.mozilla.org/en-US/kb/clear-cookies-and-site-data-firefox\n\nApple Safari: https://support.apple.com/en-us/guide/safari/sfri11471/mac\n\nMicrosoft Edge: https://support.microsoft.com/en-us/microsoft-edge/view-and-delete-browser-history-in-microsoft-edge`,
+    content: `You can accept or reject optional analytics at any time using the consent banner shown on your first visit. To change a choice you have already made, use the "Change my cookie choice" button at the top of this page, or the "Cookie settings" link in the footer of our main pages; the banner will open again.\n\nYou can also restrict or clear cookies and site data directly in your browser settings. Guidance for the most common browsers:\n\nGoogle Chrome: https://support.google.com/chrome/answer/95647\n\nMozilla Firefox: https://support.mozilla.org/en-US/kb/clear-cookies-and-site-data-firefox\n\nApple Safari: https://support.apple.com/en-us/guide/safari/sfri11471/mac\n\nMicrosoft Edge: https://support.microsoft.com/en-us/microsoft-edge/view-and-delete-browser-history-in-microsoft-edge`,
   },
   {
     number: '4',
@@ -205,6 +260,19 @@ export default function CookiesPolicy() {
             browser come from Cloudflare's security check on our sign-in and
             registration forms (see Third-Party Services below).
           </p>
+
+          <button
+            type="button"
+            onClick={reopenConsent}
+            style={{
+              marginTop: 18, cursor: 'pointer', padding: '9px 18px', borderRadius: 10,
+              fontSize: 13.5, fontWeight: 700, fontFamily: 'inherit',
+              background: 'transparent', color: '#E5C76B',
+              border: '1px solid rgba(212,175,55,0.45)',
+            }}
+          >
+            Change my cookie choice
+          </button>
         </div>
 
         {/* ── Cookies Table ── */}
