@@ -11,7 +11,9 @@
 //   • never in the first 20 seconds on the site;
 //   • never while a dialog, the chat window or the cookie banner is open
 //     (it waits for them to close, for up to 30 minutes);
-//   • never on sign-in, dashboard, affiliate or admin pages.
+//   • never on sign-in, affiliate or admin pages, and on the player dashboard
+//     only for the moments that happen there (a deposit or withdrawal request,
+//     the end of a support call).
 //
 // Every read and write is wrapped: private mode or blocked storage just
 // means the visitor is not prompted, never that something breaks.
@@ -21,7 +23,6 @@ import { resolveLocation } from '../i18n/locations'
 import i18n from '../i18n'
 
 export const REQUEST_EVENT = 'jw:feedback-request'
-export const OPEN_EVENT = 'jw:open-feedback'
 
 const SESSION_START = 'jw_fb_session_start'
 const SESSION_ASKED = 'jw_fb_asked'
@@ -35,9 +36,12 @@ const DISMISSALS_BEFORE_SNOOZE = 2
 
 // The app's own routes (App.jsx) where a prompt would be in the way.
 const NO_PROMPT_PATHS = [
-  /^\/admin-panel/, /^\/super-admin/, /^\/dashboard/, /^\/affiliate-panel/,
+  /^\/admin-panel/, /^\/super-admin/, /^\/affiliate-panel/,
   /^\/affiliate-login/, /^\/affiliate-register/, /\/sign-(in|up)$/,
 ]
+// The player dashboard is off limits, except for the moments that only happen there.
+const DASHBOARD_PATH = /^\/dashboard/
+const DASHBOARD_TRIGGERS = new Set(['deposit', 'withdrawal', 'support_call'])
 
 const read = (store, key, fallback = null) => {
   try { const v = store.getItem(key); return v == null ? fallback : JSON.parse(v) } catch { return fallback }
@@ -52,7 +56,8 @@ try {
   if (!sessionStorage.getItem(SESSION_START)) sessionStorage.setItem(SESSION_START, String(Date.now()))
 } catch { /* ignore */ }
 
-export function promptAllowedOnPath(path = window.location.pathname) {
+export function promptAllowedOnPath(path = window.location.pathname, trigger = '') {
+  if (DASHBOARD_PATH.test(path)) return DASHBOARD_TRIGGERS.has(trigger)
   return !NO_PROMPT_PATHS.some(rx => rx.test(path))
 }
 
@@ -90,14 +95,24 @@ export function promptReadyToShow() {
     return null
   }
   if (visitAgeMs() < MIN_TIME_ON_SITE_MS) return null
-  if (!promptAllowedOnPath() || somethingIsOpen() || document.hidden) return null
+  if (!promptAllowedOnPath(window.location.pathname, pending.trigger) || somethingIsOpen() || document.hidden) return null
   return pending
 }
 
 /** The prompt is on screen — it counts as this visit's one ask. */
-export function markPromptShown() {
+export function markPromptShown(trigger) {
   write(sessionStorage, SESSION_ASKED, true)
   remove(sessionStorage, PENDING)
+  trackPromptEvent(trigger, 'shown')
+}
+
+/**
+ * Tell the server the popup appeared or was closed unanswered, so Back Office
+ * can show a response rate per moment. Fire-and-forget: never throws.
+ */
+export function trackPromptEvent(trigger, event) {
+  if (!trigger) return
+  try { apiPostAuthed('/api/feedback/prompt-event/', { trigger, event }).catch(() => {}) } catch { /* ignore */ }
 }
 
 /** The visitor sent feedback (prompted or not): leave them alone for a while. */
@@ -108,7 +123,8 @@ export function markFeedbackSent() {
 }
 
 /** The visitor closed the prompt without answering. */
-export function markPromptDismissed() {
+export function markPromptDismissed(trigger) {
+  trackPromptEvent(trigger, 'dismissed')
   const state = read(localStorage, STATE, {})
   const dismissals = (state.dismissals || 0) + 1
   write(localStorage, STATE, dismissals >= DISMISSALS_BEFORE_SNOOZE
@@ -133,11 +149,6 @@ export function requestFeedbackOnReturn(trigger, { minAwayMs = 4000 } = {}) {
   document.addEventListener('visibilitychange', onChange)
   // Give up quietly if they never leave or never return within the hour.
   setTimeout(() => document.removeEventListener('visibilitychange', onChange), 60 * 60 * 1000)
-}
-
-/** Open the full feedback form (header menu, footer link, round button). */
-export function openFeedback() {
-  try { window.dispatchEvent(new Event(OPEN_EVENT)) } catch { /* ignore */ }
 }
 
 /**

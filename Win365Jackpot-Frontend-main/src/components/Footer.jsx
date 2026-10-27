@@ -9,7 +9,6 @@ import useEnquiryNumber from '../hooks/useEnquiryNumber'
 import useEnquiryMessage from '../hooks/useEnquiryMessage'
 import { buildWhatsAppLink } from '../services/enquiryContact'
 import { enquiryContext, recordWhatsAppClick } from '../services/whatsappEnquiryService'
-import { openFeedback } from '../services/feedbackPrompt'
 
 import { T } from '../i18n/useSiteText'
 const PRIMARY_DESTINATIONS = ['Vietnam', 'Macau', 'India (Goa)', 'Sri Lanka', 'Philippines']
@@ -289,19 +288,6 @@ export default function Footer() {
                 >
                   {T('Contact')}
                 </a>
-              </li>
-
-              {/* VISITOR-FEEDBACK: opens the same form as the left-edge tab */}
-              <li>
-                <button
-                  type="button"
-                  onClick={openFeedback}
-                  style={{ fontSize: 13, color: 'var(--w365-text-muted)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', transition: 'color 0.15s' }}
-                  onMouseEnter={e => e.currentTarget.style.color = '#D4AF37'}
-                  onMouseLeave={e => e.currentTarget.style.color = 'var(--w365-text-muted)'}
-                >
-                  {T('Give feedback')}
-                </button>
               </li>
 
               {/* ── Legal links ── */}

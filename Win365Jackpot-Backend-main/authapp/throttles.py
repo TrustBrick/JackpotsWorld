@@ -154,3 +154,14 @@ class VisitorFeedbackThrottle(SimpleRateThrottle):
     def get_cache_key(self, request, view):
         ident = request.user.pk if request.user and request.user.is_authenticated else self.get_ident(request)
         return self.cache_format % {"scope": self.scope, "ident": ident}
+
+
+class FeedbackPromptEventThrottle(SimpleRateThrottle):
+    """VISITOR-FEEDBACK: per-IP cap on the "popup shown / closed" beacons.
+    A visitor sees at most one popup a visit, so this only has to stop someone
+    inflating the shown-versus-answered figures."""
+    scope = "feedback-prompt-event"
+
+    def get_cache_key(self, request, view):
+        ident = request.user.pk if request.user and request.user.is_authenticated else self.get_ident(request)
+        return self.cache_format % {"scope": self.scope, "ident": ident}

@@ -13,6 +13,7 @@ import { Card, Spinner, Pagination, Btn, StatusBadge } from "../../components/Sh
 // feature (see the two modal files and the RequestHistory component below).
 import DepositRequestModal from "../../DepositRequestModal";
 import WithdrawalRequestModal from "../../WithdrawalRequestModal";
+import { requestFeedback } from "../../../../services/feedbackPrompt";
 
 /* ─── CONSTANTS (outside components — defined once) ─────── */
 const TX_PAGE_SIZE = 10;
@@ -276,6 +277,7 @@ export default function WalletTab({ profile, onToast }) {
           onSuccess={(msg) => {
             setShowDepositModal(false);
             onToast?.(msg, "success");
+            requestFeedback("deposit");  // VISITOR-FEEDBACK
             setRequestsRefreshKey(k => k + 1);
             setTab("requests");
           }}
@@ -288,6 +290,7 @@ export default function WalletTab({ profile, onToast }) {
           onSuccess={(msg) => {
             setShowWithdrawalModal(false);
             onToast?.(msg, "success");
+            requestFeedback("withdrawal");  // VISITOR-FEEDBACK
             loadBalances(true);
             setRequestsRefreshKey(k => k + 1);
             setTab("requests");

@@ -10,6 +10,8 @@ below, and can copy a row into the Testimonials list — the only way feedback
 ever appears on the site.
 """
 
+import logging
+
 from django.db import transaction
 from django.db.models import Avg, Count, Max, Q
 from rest_framework import generics, status
@@ -19,9 +21,15 @@ from rest_framework.views import APIView
 
 from authapp.models.landing_models import Testimonial
 from authapp.models.visitor_feedback_models import (
+    LOW_RATING_ALERT_AT,
+    PROMPT_EVENT_CHOICES,
+    PROMPT_EVENT_DISMISSED,
+    PROMPT_EVENT_SHOWN,
     STATUS_NEW,
     STATUS_REVIEWED,
+    TRIGGER_CHOICES,
     TRIGGER_PAGE_HELPFUL,
+    FeedbackPromptEvent,
     VisitorFeedback,
 )
 from authapp.permissions.super_admin_permissions import IsAdminOrSuperAdmin
@@ -30,8 +38,10 @@ from authapp.serializers.visitor_feedback_serializers import (
     VisitorFeedbackAdminSerializer,
     VisitorFeedbackCreateSerializer,
 )
-from authapp.throttles import VisitorFeedbackThrottle
+from authapp.throttles import FeedbackPromptEventThrottle, VisitorFeedbackThrottle
 from authapp.utils.client_ip import get_client_ip
+
+logger = logging.getLogger(__name__)
 
 # A field the form hides from people. Bots that fill every input fill this
 # one too; such a submission is answered as if it worked and then dropped.
@@ -63,14 +73,72 @@ class VisitorFeedbackCreateView(generics.CreateAPIView):
             if not serializer.validated_data.get("email"):
                 extra["email"] = user.email or ""
 
-        serializer.save(
+        feedback = serializer.save(
             user=user,
             status=STATUS_NEW,
             submitted_ip=get_client_ip(request),
             user_agent=(request.META.get("HTTP_USER_AGENT") or "")[:1000],
             **extra,
         )
+        _alert_support_if_low(feedback)
         return Response({"message": THANK_YOU}, status=status.HTTP_201_CREATED)
+
+
+def _alert_support_if_low(feedback):
+    """Email the support inbox about a 1-2 star rating, so a complaint does not
+    wait for someone to open the Back Office tab.
+
+    Best-effort, like the affiliate registration alert: an SMTP failure is
+    logged and never turns the visitor's thank-you into an error. A page-helpful
+    thumb-down is stored as 1 but is not a complaint, so it is skipped.
+    """
+    if feedback.rating > LOW_RATING_ALERT_AT or feedback.trigger == TRIGGER_PAGE_HELPFUL:
+        return
+    try:
+        from authapp.services.email_service import build_message
+        from authapp.utils.email_utils import SUPPORT_EMAIL
+
+        who = feedback.name or (feedback.user.email if feedback.user_id else "") or "anonymous visitor"
+        lines = [
+            f"A visitor gave {feedback.rating} star(s) at: {feedback.get_trigger_display()}.",
+            "",
+            f"From: {who}",
+            f"Email: {feedback.email or '-'}",
+            f"Page: {feedback.page_path or '-'}",
+            f"Country: {feedback.country_code or '-'}   Language: {feedback.language or '-'}",
+            "",
+            "Comment:",
+            feedback.message or "(no comment)",
+            "",
+            "Open Back Office > Visitor Feedback to review it.",
+        ]
+        build_message(
+            subject=f"Low feedback rating ({feedback.rating}/5): {feedback.get_trigger_display()}",
+            body="\n".join(lines),
+            to=[SUPPORT_EMAIL],
+            user=feedback.user,
+            triggered_by="visitor_feedback_low_rating",
+            metadata={"feedback_id": feedback.id},
+        ).send(fail_silently=False)
+    except Exception:
+        logger.exception("Low-rating feedback alert failed for feedback %s", feedback.pk)
+
+
+class FeedbackPromptEventView(APIView):
+    """POST /api/feedback/prompt-event/ — the popup was shown, or closed with
+    no answer. Answers themselves are VisitorFeedback rows; together they give
+    a response rate per moment. Anonymous and stores nothing but the moment."""
+
+    permission_classes = [AllowAny]
+    throttle_classes = [FeedbackPromptEventThrottle]
+
+    def post(self, request):
+        trigger = request.data.get("trigger")
+        event = request.data.get("event")
+        if trigger not in dict(TRIGGER_CHOICES) or event not in dict(PROMPT_EVENT_CHOICES):
+            return Response({"error": "Unknown trigger or event."}, status=status.HTTP_400_BAD_REQUEST)
+        FeedbackPromptEvent.objects.create(trigger=trigger, event=event)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 # ── Back Office ──────────────────────────────────────────────────────────────
@@ -136,7 +204,25 @@ class AdminVisitorFeedbackSummaryView(APIView):
             row["trigger"]: {"count": row["n"], "average": round(row["a"], 2)}
             for row in stars.values("trigger").annotate(n=Count("id"), a=Avg("rating"))
         }
+        # Response rate per moment: popups shown against answers received. The
+        # popup is the only way in now, so every non-manual row is an answer to
+        # one; "manual" rows are older feedback from the removed button.
+        events = {}
+        for row in FeedbackPromptEvent.objects.values("trigger", "event").annotate(n=Count("id")):
+            events.setdefault(row["trigger"], {})[row["event"]] = row["n"]
+        answered = {r["trigger"]: r["n"] for r in qs.values("trigger").annotate(n=Count("id"))}
+        prompts = {}
+        for trigger_key, counts in events.items():
+            shown = counts.get(PROMPT_EVENT_SHOWN, 0)
+            got = answered.get(trigger_key, 0)
+            prompts[trigger_key] = {
+                "shown": shown,
+                "dismissed": counts.get(PROMPT_EVENT_DISMISSED, 0),
+                "answered": got,
+                "response_rate": round(min(got / shown, 1.0) * 100) if shown else None,
+            }
         return Response({
+            "prompts": prompts,
             "total": qs.count(),
             "average_rating": round(average, 2) if average is not None else None,
             "new": qs.filter(status=STATUS_NEW).count(),

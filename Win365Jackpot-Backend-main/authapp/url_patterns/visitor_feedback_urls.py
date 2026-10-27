@@ -9,12 +9,15 @@ from authapp.views.visitor_feedback_views import (
     AdminVisitorFeedbackDetailView,
     AdminVisitorFeedbackListView,
     AdminVisitorFeedbackSummaryView,
+    FeedbackPromptEventView,
     VisitorFeedbackCreateView,
 )
 
 # Public (any visitor, throttled) — mounted at api/
 public_urlpatterns = [
     path("feedback/", VisitorFeedbackCreateView.as_view(), name="visitor-feedback-create"),
+    path("feedback/prompt-event/", FeedbackPromptEventView.as_view(),
+         name="visitor-feedback-prompt-event"),
 ]
 
 # Admin-only — mounted at api/admin-panel/

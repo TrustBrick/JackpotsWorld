@@ -3,22 +3,18 @@ import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Star, X, ThumbsUp, ThumbsDown } from 'lucide-react'
 
-import FeedbackForm from './FeedbackForm'
 import {
   REQUEST_EVENT, markFeedbackSent, markPromptDismissed, markPromptShown,
-  openFeedback, promptAllowedOnPath, promptReadyToShow, sendFeedback,
+  promptReadyToShow, sendFeedback,
 } from '../../services/feedbackPrompt'
 import { T } from '../../i18n/useSiteText'
 
 /**
- * VISITOR-FEEDBACK: everything feedback-related on a public page, anchored to
- * the bottom-left corner (the chat assistant and WhatsApp own the right).
- *
- *   • A small round button — dark glass, thin gold ring, gold star — that
- *     appears once the visitor scrolls past the hero and opens the full form.
- *   • The prompt card, which slides up from the same corner right after the
- *     visitor finishes something (services/feedbackPrompt decides when).
- *     One tap answers it; the comment is optional.
+ * VISITOR-FEEDBACK: the prompt card, anchored to the bottom-left corner (the
+ * chat assistant and WhatsApp own the right). It slides up right after the
+ * visitor finishes something (services/feedbackPrompt decides when). One tap
+ * answers it; the comment is optional. There is deliberately no button to open
+ * feedback by hand.
  */
 
 const GOLD = '#D4AF37'
@@ -33,6 +29,9 @@ const QUESTIONS = {
   registration:       T('How smooth was registration?'),
   signup:             T('How was signing up?'),
   page_helpful:       T('Was this page helpful?'),
+  deposit:            T('How easy was it to request your deposit?'),
+  withdrawal:         T('How easy was it to request your withdrawal?'),
+  support_call:       T('How was your call with our support team?'),
 }
 const RATING_WORDS = ['', T('Poor'), T('Fair'), T('Good'), T('Very good'), T('Excellent')]
 
@@ -50,32 +49,21 @@ const glass = {
 }
 
 export default function FeedbackWidget() {
-  const [launcherVisible, setLauncherVisible] = useState(false)
-  const [launcherLifted, setLauncherLifted] = useState(false)
-  const [hovered, setHovered] = useState(false)
   const [prompt, setPrompt] = useState(null)   // { trigger, stage, rating, message }
   const clearSince = useRef(null)
   const promptRef = useRef(null)
   promptRef.current = prompt
 
-  // One cheap loop drives both the launcher and the prompt: scroll position,
-  // the cookie banner, the voice-over button, and whether a queued prompt
-  // may show yet.
+  // One cheap loop decides whether a queued prompt may show yet.
   useEffect(() => {
     const tick = () => {
-      const pastHero = window.scrollY > Math.min(window.innerHeight * 0.6, 520)
-      const cookieBanner = !!document.querySelector('[data-feedback-blocker="cookie"]')
-      setLauncherVisible(pastHero && !cookieBanner && promptAllowedOnPath())
-      // The Promotions voice-over button also lives bottom-left.
-      setLauncherLifted(!!document.querySelector('[data-voiceover-toggle]'))
-
       if (promptRef.current) return
       const ready = promptReadyToShow()
       if (!ready) { clearSince.current = null; return }
       if (clearSince.current == null) { clearSince.current = Date.now(); return }
       if (Date.now() - clearSince.current < CLEAR_FOR_MS) return
       clearSince.current = null
-      markPromptShown()
+      markPromptShown(ready.trigger)
       setPrompt({ trigger: ready.trigger, stage: 'ask', rating: 0, message: '' })
     }
     tick()
@@ -97,7 +85,7 @@ export default function FeedbackWidget() {
     const p = promptRef.current
     if (!p) return
     if (p.stage === 'comment' && p.rating) { submit(p); return }  // a rating was given: keep it
-    if (p.stage === 'ask') markPromptDismissed()
+    if (p.stage === 'ask') markPromptDismissed(p.trigger)
     setPrompt(null)
   }
 
@@ -111,62 +99,10 @@ export default function FeedbackWidget() {
   const choose = rating => setPrompt(p => ({ ...p, rating, stage: 'comment' }))
 
   const bottomBase = 'max(20px, env(safe-area-inset-bottom))'
-  const launcherBottom = launcherLifted ? 'calc(max(20px, env(safe-area-inset-bottom)) + 62px)' : bottomBase
   const left = 'clamp(16px, 3vw, 26px)'
 
   return (
     <>
-      {/* ── Round launcher ─────────────────────────────────────────── */}
-      <AnimatePresence>
-        {launcherVisible && !prompt && (
-          <motion.div
-            key="fb-launcher"
-            initial={{ opacity: 0, y: 12, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 12, scale: 0.9 }}
-            transition={{ duration: 0.25 }}
-            style={{ position: 'fixed', left, bottom: launcherBottom, zIndex: 40, display: 'flex', alignItems: 'center', gap: 10 }}
-          >
-            <motion.button
-              type="button"
-              onClick={openFeedback}
-              onMouseEnter={() => setHovered(true)}
-              onMouseLeave={() => setHovered(false)}
-              onFocus={() => setHovered(true)}
-              onBlur={() => setHovered(false)}
-              whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 0.94 }}
-              aria-label={T('Share feedback')}
-              style={{
-                ...glass,
-                width: 48, height: 48, borderRadius: '50%', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                border: '1.5px solid rgba(212, 175, 55, 0.7)',
-                boxShadow: '0 0 0 4px rgba(212, 175, 55, 0.08), 0 8px 24px rgba(0, 0, 0, 0.45), inset 0 0 12px rgba(212, 175, 55, 0.12)',
-                touchAction: 'manipulation',
-              }}
-            >
-              <Star size={20} color={GOLD_LIGHT} fill="rgba(243, 214, 113, 0.18)" strokeWidth={1.7} aria-hidden="true" />
-            </motion.button>
-            <AnimatePresence>
-              {hovered && (
-                <motion.span
-                  initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }}
-                  transition={{ duration: 0.15 }}
-                  style={{
-                    ...glass, pointerEvents: 'none', whiteSpace: 'nowrap',
-                    padding: '6px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600,
-                    color: GOLD_LIGHT, border: '1px solid rgba(212, 175, 55, 0.35)',
-                  }}
-                >
-                  {T('Share feedback')}
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* ── Activity prompt ────────────────────────────────────────── */}
       {createPortal(
         <AnimatePresence>
@@ -290,7 +226,6 @@ export default function FeedbackWidget() {
         document.body,
       )}
 
-      <FeedbackForm />
     </>
   )
 }

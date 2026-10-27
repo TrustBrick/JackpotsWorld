@@ -1,1 +1,0 @@
-import{j as n}from"./index-C_gge70q.js";import{D as t,s as i}from"./content-DSHmfbr-.js";import"./landingPrimitives-BVzBh1jj.js";import"./usePageHelpfulPrompt-ONooxi50.js";import"./layout-grid-0yf4qkaw.js";function p(){return n.jsx(t,{content:i})}export{p as default};
