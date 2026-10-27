@@ -1,7 +1,10 @@
 // Country-wise site locations for the header picker ("Australia English",
-// "India Hindi"…). A location is a country plus the site language it uses;
-// only the 24 languages bundled in ./index.js can appear here, so a country
-// whose own language we don't ship lists the closest one we do.
+// "India English"…). A location is a country plus the site language it uses.
+// Each country appears ONCE, with its main national language: regional
+// languages (Telugu, Tamil, Bengali…) and second languages are deliberately
+// not listed. A country whose own language we don't ship lists the closest
+// one we do. Every bundled language still works for visitors whose browser
+// asks for it or who pick it from the dashboard; it just has no picker row.
 
 const FLAG_URLS = import.meta.glob(
   '../../node_modules/flag-icons/flags/4x3/{am,at,au,be,ca,de,dk,es,ge,gb,gr,ie,in,is,it,kz,lk,mo,mx,my,nl,no,nz,pe,ph,ro,se,sg,us,vn}.svg',
@@ -41,30 +44,17 @@ export const LOCATIONS = [
   L('au', 'Australia', 'en'),
   L('at', 'Austria', 'de'),
   L('be', 'Belgium', 'nl'),
-  L('be', 'Belgium', 'fr'),
   L('ca', 'Canada', 'en'),
-  L('ca', 'Canada', 'fr'),
   L('dk', 'Denmark', 'da'),
   L('ge', 'Georgia', 'en'),
   L('de', 'Germany', 'de'),
   L('gr', 'Greece', 'el'),
   L('is', 'Iceland', 'is'),
-  L('is', 'Iceland', 'en'),
   L('in', 'India', 'en'),
-  L('in', 'India', 'hi'),
-  L('in', 'India', 'bn'),
-  L('in', 'India', 'gu'),
-  L('in', 'India', 'kn'),
-  L('in', 'India', 'ml'),
-  L('in', 'India', 'mr'),
-  L('in', 'India', 'pa'),
-  L('in', 'India', 'ta'),
-  L('in', 'India', 'te'),
   L('ie', 'Ireland', 'en'),
   L('it', 'Italy', 'it'),
   L('kz', 'Kazakhstan', 'ru'),
   L('mo', 'Macau', 'zh-TW'),
-  L('mo', 'Macau', 'en'),
   L('my', 'Malaysia', 'en'),
   L('mx', 'Mexico', 'es'),
   L('nl', 'Netherlands', 'nl'),
@@ -72,14 +62,10 @@ export const LOCATIONS = [
   L('no', 'Norway', 'nb'),
   L('pe', 'Peru', 'es'),
   L('ph', 'Philippines', 'fil'),
-  L('ph', 'Philippines', 'en'),
   L('ro', 'Romania', 'ro'),
   L('sg', 'Singapore', 'en'),
-  L('sg', 'Singapore', 'zh-CN'),
   L('es', 'Spain', 'es'),
   L('lk', 'Sri Lanka', 'si'),
-  L('lk', 'Sri Lanka', 'ta'),
-  L('lk', 'Sri Lanka', 'en'),
   L('se', 'Sweden', 'sv'),
   L('gb', 'United Kingdom', 'en'),
   L('us', 'United States', 'en'),
