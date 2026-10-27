@@ -873,3 +873,6 @@ REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["whatsapp-enquiry"] = config(
 REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["visitor-feedback"] = config(
     "VISITOR_FEEDBACK_RATE", default="5/hour",
 )
+REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["feedback-prompt-event"] = config(
+    "FEEDBACK_PROMPT_EVENT_RATE", default="20/hour",
+)

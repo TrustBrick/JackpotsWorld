@@ -52,7 +52,14 @@ TRIGGER_CHOICES = [
     ("registration", "After a game or event registration"),
     ("signup", "After signing up"),
     (TRIGGER_PAGE_HELPFUL, "Was this page helpful?"),
+    ("deposit", "After a deposit request"),
+    ("withdrawal", "After a withdrawal request"),
+    ("support_call", "After a support call"),
 ]
+
+# A rating at or below this raises an email to the support inbox. The
+# page-helpful thumb-down is stored as 1 but is not a complaint worth an email.
+LOW_RATING_ALERT_AT = 2
 
 
 class VisitorFeedback(models.Model):
@@ -98,3 +105,30 @@ class VisitorFeedback(models.Model):
 
     def __str__(self):
         return f"{self.rating}★ {self.get_category_display()} — {self.name or 'anonymous'}"
+
+
+PROMPT_EVENT_SHOWN = "shown"
+PROMPT_EVENT_DISMISSED = "dismissed"
+PROMPT_EVENT_CHOICES = [
+    (PROMPT_EVENT_SHOWN, "Popup shown"),
+    (PROMPT_EVENT_DISMISSED, "Popup closed without an answer"),
+]
+
+
+class FeedbackPromptEvent(models.Model):
+    """One popup appearing, or being closed unanswered.
+
+    Answers are already VisitorFeedback rows; these two events are what is
+    needed to turn them into a response rate per moment. Anonymous and carries
+    nothing but the moment and the time.
+    """
+
+    trigger = models.CharField(max_length=30, choices=TRIGGER_CHOICES, db_index=True)
+    event = models.CharField(max_length=12, choices=PROMPT_EVENT_CHOICES, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+    def __str__(self):
+        return f"{self.trigger} {self.event}"

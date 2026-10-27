@@ -26,6 +26,7 @@ import {
   isWebRTCSupported,
 } from "../services/voiceCallService"
 import { useRingbackTone } from "./useCallTones"
+import { requestFeedback } from "../services/feedbackPrompt"
 
 // Local UI phases. Distinct from the server's CallSession.status, which is the
 // record of what happened; these describe what this browser is showing.
@@ -228,11 +229,15 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
   }, [])
 
   const finish = useCallback((serverCall, nextPhase = PHASE.ENDED) => {
+    // VISITOR-FEEDBACK: a call the customer actually spoke on, not one that was
+    // declined, missed or never connected.
+    const wasTalking = phaseRef.current === PHASE.CONNECTED
     cleanup()
     if (serverCall) setLastEnded(serverCall)
     setCall(null)
     callRef.current = null
     applyPhase(nextPhase)
+    if (wasTalking && role === "customer" && nextPhase === PHASE.ENDED) requestFeedback("support_call")
     // Auto-dismiss the "Call ended · 04:27" notice so the customer is returned
     // to the conversation rather than left staring at a dead modal. Tracked in
     // a ref so unmounting mid-summary cancels it instead of firing into a
@@ -243,7 +248,7 @@ export function useVoiceCall({ role, apiBase, fetcher, sendSignal, ticketId, ena
         applyPhase(PHASE.IDLE)
       }
     }, 4000)
-  }, [cleanup, applyPhase])
+  }, [cleanup, applyPhase, role])
 
   // ── REST helpers ──────────────────────────────────────────────────────────
   const adminPrefix = role === "agent" ? "/api/admin-panel" : "/api"

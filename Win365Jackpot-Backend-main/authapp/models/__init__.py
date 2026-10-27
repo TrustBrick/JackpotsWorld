@@ -115,7 +115,7 @@ from .whatsapp_enquiry_models import (
 )
 
 # VISITOR-FEEDBACK: ratings and comments from the public "Feedback" side tab.
-from .visitor_feedback_models import VisitorFeedback
+from .visitor_feedback_models import FeedbackPromptEvent, VisitorFeedback
 
 # SUPPORT-COMMUNICATION: departments, call transfer/hold records and per-player
 # chat/call restrictions, layered on the live-chat + voice-call stack above.
@@ -197,6 +197,7 @@ __all__ = [
     "ExperienceEnquiry",
     # WHATSAPP-CAPTURE
     "WhatsAppEnquiry",
+    "FeedbackPromptEvent",
     "VisitorFeedback",
     "WHATSAPP_ENQUIRY_STATUS_CHOICES",
     # SUPPORT-COMMUNICATION

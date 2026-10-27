@@ -1,12 +1,13 @@
 """VISITOR-FEEDBACK: the public feedback form and the Back Office list,
 including "Publish as testimonial"."""
 
+from django.core import mail
 from django.core.cache import cache
 from rest_framework.test import APITestCase
 
 from authapp.models.landing_models import Testimonial
 from authapp.models.user_model import User
-from authapp.models.visitor_feedback_models import VisitorFeedback
+from authapp.models.visitor_feedback_models import FeedbackPromptEvent, VisitorFeedback
 
 PUBLIC = "/api/feedback/"
 ADMIN = "/api/admin-panel/visitor-feedback/"
@@ -170,3 +171,61 @@ class VisitorFeedbackTests(APITestCase):
         self.assertEqual(self.client.get(ADMIN + "summary/").status_code, 403)
         self.assertEqual(self.client.post(f"{ADMIN}{fb.id}/publish/", {}).status_code, 403)
         self.assertFalse(Testimonial.objects.filter(text="Add more Macau packages").exists())
+
+
+EVENT = "/api/feedback/prompt-event/"
+
+
+class FeedbackAlertsAndPromptEventTests(APITestCase):
+    def setUp(self):
+        cache.clear()
+        self.admin = User.objects.create_user(
+            email="fb-admin2@example.com", password="pw12345!", name="Admin",
+            is_staff=True, is_superuser=True,
+        )
+
+    def _send(self, **overrides):
+        payload = {"rating": 5, "trigger": "deposit", "message": ""}
+        payload.update(overrides)
+        return self.client.post(PUBLIC, payload, format="json")
+
+    def test_new_moments_are_stored_not_folded_into_manual(self):
+        for trigger in ("deposit", "withdrawal", "support_call"):
+            self._send(trigger=trigger)
+        self.assertEqual(sorted(VisitorFeedback.objects.values_list("trigger", flat=True)),
+                         ["deposit", "support_call", "withdrawal"])
+
+    def test_low_rating_emails_support(self):
+        self._send(rating=1, trigger="withdrawal", message="Still waiting", page_path="/dashboard")
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["support@jackpotsworld.vip"])
+        self.assertIn("1/5", mail.outbox[0].subject)
+        self.assertIn("Still waiting", mail.outbox[0].body)
+
+    def test_good_rating_and_page_helpful_thumb_down_send_no_email(self):
+        self._send(rating=4)
+        self._send(rating=1, trigger="page_helpful")
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_a_failing_email_never_breaks_the_thank_you(self):
+        from unittest import mock
+        with mock.patch("django.core.mail.EmailMultiAlternatives.send", side_effect=OSError("smtp down")):
+            r = self._send(rating=1)
+        self.assertEqual(r.status_code, 201)
+        self.assertEqual(VisitorFeedback.objects.count(), 1)
+
+    def test_prompt_events_are_recorded_and_validated(self):
+        self.assertEqual(self.client.post(EVENT, {"trigger": "deposit", "event": "shown"}, format="json").status_code, 204)
+        self.assertEqual(self.client.post(EVENT, {"trigger": "nope", "event": "shown"}, format="json").status_code, 400)
+        self.assertEqual(self.client.post(EVENT, {"trigger": "deposit", "event": "x"}, format="json").status_code, 400)
+        self.assertEqual(FeedbackPromptEvent.objects.count(), 1)
+
+    def test_summary_reports_response_rate_per_moment(self):
+        for _ in range(4):
+            self.client.post(EVENT, {"trigger": "signup", "event": "shown"}, format="json")
+        self.client.post(EVENT, {"trigger": "signup", "event": "dismissed"}, format="json")
+        self._send(trigger="signup", rating=5)
+        self.client.force_authenticate(self.admin)
+        s = self.client.get(ADMIN + "summary/").data
+        self.assertEqual(s["prompts"]["signup"],
+                         {"shown": 4, "dismissed": 1, "answered": 1, "response_rate": 25})

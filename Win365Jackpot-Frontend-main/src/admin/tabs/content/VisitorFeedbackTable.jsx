@@ -25,6 +25,9 @@ const TRIGGER_OPTIONS = [
   { value: "registration", label: "After a game or event registration" },
   { value: "signup", label: "After signing up" },
   { value: "page_helpful", label: "Was this page helpful?" },
+  { value: "deposit", label: "After a deposit request" },
+  { value: "withdrawal", label: "After a withdrawal request" },
+  { value: "support_call", label: "After a support call" },
 ];
 const TRIGGER_LABEL = Object.fromEntries(TRIGGER_OPTIONS.map(o => [o.value, o.label]));
 
@@ -205,6 +208,22 @@ export default function VisitorFeedbackTable({ onToast }) {
                   <Stars value={Math.round(v.average)} size={11} />
                   <span style={{ width: 54, textAlign: "right", color: C.muted }}>{v.average.toFixed(1)} · {v.count}</span>
                 </button>
+              ))}
+            </Card>
+          )}
+          {Object.keys(summary.prompts || {}).length > 0 && (
+            <Card style={{ padding: "12px 16px", flex: "2 1 260px" }}>
+              <div style={{ fontSize: 11, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>
+                Popup response rate
+              </div>
+              {Object.entries(summary.prompts).sort((a, b) => b[1].shown - a[1].shown).map(([key, v]) => (
+                <div key={key} style={{ display: "flex", alignItems: "center", gap: 8, padding: "2px 0", color: C.text, fontSize: 12 }}>
+                  <span style={{ flex: 1 }}>{TRIGGER_LABEL[key] || key}</span>
+                  <span style={{ color: C.muted }} title="Shown · answered · closed without an answer">
+                    {v.shown} shown · {v.answered} answered · {v.dismissed} closed
+                  </span>
+                  <span style={{ width: 40, textAlign: "right", fontWeight: 700 }}>{v.response_rate == null ? "—" : `${v.response_rate}%`}</span>
+                </div>
               ))}
             </Card>
           )}
